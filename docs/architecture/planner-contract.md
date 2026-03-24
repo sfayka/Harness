@@ -150,6 +150,21 @@ The planner output is a structured planning bundle, not a freeform narrative.
 
 It must contain enough structure for later modules to register tasks, evaluate dependencies, and route work without reinterpreting planner intent.
 
+Planner output is expected to be re-computable and replaceable under controlled replan policy.
+
+The architecture should assume planning may be run again later, for example when:
+
+- clarification materially changes task scope
+- the original decomposition proves insufficient
+- explicit maintainer or control-plane policy requests a replan
+
+This document does not fully define plan versioning yet, but the intended direction is:
+
+- replanning is explicit, not silent
+- existing child tasks must be reviewed rather than implicitly discarded
+- the control plane should treat plans as reviewable outputs that can be superseded by a later plan version
+- plan replacement policy belongs to Harness core, not to the planner acting unilaterally
+
 ## Canonical Planner Output Shape
 
 A planner output bundle should contain:
