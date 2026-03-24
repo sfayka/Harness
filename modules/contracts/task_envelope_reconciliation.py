@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
 
+from modules.contracts.task_envelope_external_facts import (
+    GitHubArtifactFacts,
+    LinearFacts,
+    validate_github_facts,
+    validate_linear_facts,
+)
 from modules.contracts.task_envelope_validation import assert_valid_task_envelope
 from modules.contracts.task_envelope_verification import ReconciliationFacts, ReconciliationStatus
 
@@ -63,31 +69,6 @@ class ExpectedCodeContext:
     repository_name: str
     branch_name: str | None = None
     base_branch: str | None = None
-
-
-@dataclass(frozen=True)
-class GitHubArtifactFacts:
-    """Normalized GitHub facts consumed by reconciliation."""
-
-    artifact_found: bool = True
-    repository_host: str | None = None
-    repository_owner: str | None = None
-    repository_name: str | None = None
-    branch_name: str | None = None
-    pull_request_found: bool | None = None
-    commit_found: bool | None = None
-    review_state: str | None = None
-    changed_files_match: bool | None = None
-    reasons: tuple[str, ...] = ()
-
-
-@dataclass(frozen=True)
-class LinearFacts:
-    """Normalized Linear facts consumed by reconciliation."""
-
-    record_found: bool = True
-    state: str | None = None
-    reasons: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -168,6 +149,18 @@ def evaluate_reconciliation(
 
     if reconciliation_input.evidence_policy == "required" and reconciliation_input.evidence_status == "not_applicable":
         raise ReconciliationInputError("Required evidence policy cannot be paired with not_applicable evidence status")
+
+    if github_facts is not None:
+        try:
+            validate_github_facts(github_facts)
+        except Exception as error:
+            raise ReconciliationInputError(str(error)) from error
+
+    if linear_facts is not None:
+        try:
+            validate_linear_facts(linear_facts)
+        except Exception as error:
+            raise ReconciliationInputError(str(error)) from error
 
     if reconciliation_input.pending_reasons:
         # Pending means the reconciliation layer still lacks enough external
