@@ -125,6 +125,8 @@ For tasks with required completion evidence, transition to `completed` is only v
 
 `completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
 
+`completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
+
 `blocked` is a lifecycle state, not a root cause. Clarification, external dependencies, and reconciliation failures may all use `blocked`, but they must be distinguished by the relevant contract fields rather than inferred from the state name alone.
 
 ## Field Semantics
@@ -242,6 +244,8 @@ Each artifact record may carry:
 - verification status
 
 Completion is not trusted purely because an executor claims success. `artifacts.completion_evidence` is where Harness records whether the evidence requirement is deferred, required, satisfied, insufficient, or not applicable.
+
+Verification consumes this evidence state but remains a distinct control-plane decision layer. Evidence presence and completion acceptance must not collapse into one concept.
 
 ### Completion Trust Levels
 
