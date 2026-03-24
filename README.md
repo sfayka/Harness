@@ -28,6 +28,12 @@ Harness exists to answer questions a work surface alone should not answer by tru
 - do GitHub, Linear, and Harness agree?
 - should completion be accepted, blocked, reversed, or sent to manual review?
 
+At the contract boundary:
+
+- Linear sends `issue_id`, `title`, `description`, optional labels and priority, and optional linked artifacts
+- Harness derives the canonical `TaskEnvelope`, required artifacts, and verification expectations
+- Harness returns a control-plane outcome plus evidence validation, reconciliation results, and required follow-up actions
+
 ## Why Harness Exists
 
 AI agents are getting better at reasoning and execution.

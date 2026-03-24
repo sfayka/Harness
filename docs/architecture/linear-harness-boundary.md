@@ -55,6 +55,42 @@ Harness is where the system decides whether work is actually verified, reconcile
 5. Harness reconciles its own state against GitHub and Linear.
 6. Harness reports verified outcomes back so Linear reflects trusted state rather than unverified claims.
 
+## Contract Boundary
+
+### Linear -> Harness
+
+Linear sends:
+
+- `issue_id`
+- `title`
+- `description`
+- `labels` and `priority` when present
+- linked artifacts when present
+
+### Harness Derives
+
+Harness derives:
+
+- canonical `TaskEnvelope`
+- required artifacts
+- verification expectations
+- reconciliation expectations against GitHub and Linear state
+
+### Harness -> Linear
+
+Harness returns:
+
+- control-plane outcome: `completed`, `blocked`, `failed`, or `review_required`
+- evidence validation result
+- reconciliation result
+- required follow-up actions
+
+## Boundary Note
+
+`review_required` should be understood as a control-plane outcome returned to Linear.
+
+It does not require Linear and Harness to share the same internal lifecycle enum. Harness may still keep the underlying task in a blocked state until review is resolved.
+
 ## Non-Goals
 
 Harness should not become:
