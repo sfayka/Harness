@@ -41,6 +41,15 @@ from .task_envelope_enforcement import (
     EnforcementResult,
     enforce_task_envelope,
 )
+from .task_envelope_end_to_end import (
+    CanonicalCaseInput,
+    CanonicalExternalFactBundle,
+    build_canonical_fact_bundle,
+    build_expected_code_context,
+    build_github_completion_facts,
+    build_linear_completion_facts,
+    enforce_canonical_task_case,
+)
 from .task_envelope_reconciliation import (
     ExpectedCodeContext,
     MismatchCategory,
@@ -92,6 +101,8 @@ __all__ = [
     "ArtifactValidationError",
     "ArtifactValidationResult",
     "BranchFact",
+    "CanonicalCaseInput",
+    "CanonicalExternalFactBundle",
     "ChangedFileFact",
     "ChangedFilesSummary",
     "CommitFact",
@@ -143,6 +154,11 @@ __all__ = [
     "assert_valid_completion_evidence",
     "assert_valid_task_envelope",
     "append_review_record",
+    "build_canonical_fact_bundle",
+    "build_expected_code_context",
+    "build_github_completion_facts",
+    "build_linear_completion_facts",
+    "enforce_canonical_task_case",
     "enforce_task_envelope",
     "evaluate_reconciliation",
     "evaluate_verification_decision",
