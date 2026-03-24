@@ -4,6 +4,8 @@ Harness is a task orchestration layer built around Openclaw.
 
 The goal is to give users a place to hand over ambiguous projects or loosely defined tasks, let the agent clarify what it needs, and then route the actual execution through a system that can be inspected and verified.
 
+The Harness runtime is Python. Integration with OpenClaw is API-first rather than a Node extension model.
+
 ## Purpose
 
 Harness is a continuation of the ideas behind InboxToBacklog, but in a fresh repository with a tighter focus on execution management.

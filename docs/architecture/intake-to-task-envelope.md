@@ -10,6 +10,8 @@ This document specifies which fields intake owns, which defaults it must apply, 
 
 The intake module accepts a normalized inbound request and produces a schema-valid `TaskEnvelope`.
 
+The canonical implementation for this mapping lives in the Python module at `modules/intake/`.
+
 Intake owns:
 
 - validating required inbound fields
@@ -24,6 +26,8 @@ Intake does not own:
 - decomposition into child tasks
 - dependency resolution
 - executor selection
+- executor capability requirements
+- routing priority policy
 - workflow runtime state
 - execution artifacts beyond empty initialization
 
@@ -96,7 +100,7 @@ These fields are explicitly deferred at intake time:
 - `required_capabilities` -> `[]`
 - `priority` -> `normal`
 
-`priority` is initialized rather than omitted because the canonical schema requires it, but intake does not treat this as a dispatch decision.
+`priority` is initialized only because the canonical schema currently requires it. Intake treats this as a schema-required placeholder, not a dispatch decision.
 
 ### Artifacts
 
@@ -115,7 +119,7 @@ Observability is initialized without runtime behavior:
 - `retries.attempt_count` -> `0`
 - `retries.max_attempts` -> `0`
 - `retries.last_retry_at` -> `null`
-- `execution_metadata.intake_deferred_fields` lists fields not yet owned by intake
+- `execution_metadata.schema_required_deferred_fields` lists deferred fields that must still be present because the schema requires them
 
 ## Deferred Ownership
 
