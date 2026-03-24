@@ -2,10 +2,17 @@ from __future__ import annotations
 
 import unittest
 
-from modules.contracts.task_envelope_reconciliation import (
-    ExpectedCodeContext,
+from modules.contracts.task_envelope_external_facts import (
+    BranchFact,
+    ChangedFilesSummary,
+    CommitFact,
     GitHubArtifactFacts,
     LinearFacts,
+    PullRequestFact,
+    RepositoryFact,
+)
+from modules.contracts.task_envelope_reconciliation import (
+    ExpectedCodeContext,
     MismatchCategory,
     ReconciliationEvaluationInput,
     ReconciliationInputError,
@@ -124,16 +131,13 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
             ),
             github_facts=GitHubArtifactFacts(
                 artifact_found=True,
-                repository_host="github.com",
-                repository_owner="sfayka",
-                repository_name="Harness",
-                branch_name="codex/reconcile",
-                pull_request_found=True,
-                commit_found=True,
-                review_state="approved",
-                changed_files_match=True,
+                repository=RepositoryFact(host="github.com", owner="sfayka", name="Harness"),
+                branch=BranchFact(name="codex/reconcile", base_branch="main"),
+                commit=CommitFact(sha="abcdef1234567890"),
+                pull_request=PullRequestFact(number=100, review_state="approved"),
+                changed_files=ChangedFilesSummary(matches_expected_scope=True),
             ),
-            linear_facts=LinearFacts(record_found=True, state="completed"),
+            linear_facts=LinearFacts(record_found=True, issue_id="lin-1", state="completed"),
         )
 
         self.assertEqual(result.outcome, ReconciliationOutcome.NO_MISMATCH)
@@ -167,10 +171,8 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
             ),
             github_facts=GitHubArtifactFacts(
                 artifact_found=True,
-                repository_host="github.com",
-                repository_owner="other-owner",
-                repository_name="OtherRepo",
-                branch_name="codex/wrong",
+                repository=RepositoryFact(host="github.com", owner="other-owner", name="OtherRepo"),
+                branch=BranchFact(name="codex/wrong"),
             ),
         )
 
@@ -182,7 +184,7 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
     def test_returns_contradictory_facts_for_linear_status_conflict(self) -> None:
         result = _evaluate(
             _base_task_envelope(),
-            linear_facts=LinearFacts(record_found=True, state="in_progress"),
+            linear_facts=LinearFacts(record_found=True, issue_id="lin-1", state="in_progress"),
         )
 
         self.assertEqual(result.outcome, ReconciliationOutcome.CONTRADICTORY_FACTS)
@@ -215,12 +217,10 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
             _base_task_envelope(),
             github_facts=GitHubArtifactFacts(
                 artifact_found=True,
-                repository_host="github.com",
-                repository_owner="sfayka",
-                repository_name="Harness",
-                branch_name="codex/reconcile",
-                review_state="changes_requested",
-                changed_files_match=False,
+                repository=RepositoryFact(host="github.com", owner="sfayka", name="Harness"),
+                branch=BranchFact(name="codex/reconcile"),
+                pull_request=PullRequestFact(number=100, review_state="changes_requested"),
+                changed_files=ChangedFilesSummary(matches_expected_scope=False),
             ),
         )
 

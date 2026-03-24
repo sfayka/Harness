@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import unittest
 
 from modules.contracts.task_envelope_enforcement import (
@@ -8,10 +7,17 @@ from modules.contracts.task_envelope_enforcement import (
     EnforcementInput,
     enforce_task_envelope,
 )
-from modules.contracts.task_envelope_reconciliation import (
-    ExpectedCodeContext,
+from modules.contracts.task_envelope_external_facts import (
+    BranchFact,
+    ChangedFilesSummary,
+    CommitFact,
     GitHubArtifactFacts,
     LinearFacts,
+    PullRequestFact,
+    RepositoryFact,
+)
+from modules.contracts.task_envelope_reconciliation import (
+    ExpectedCodeContext,
     ReconciliationEvaluationInput,
 )
 from modules.contracts.task_envelope_review import (
@@ -191,16 +197,13 @@ def _aligned_reconciliation_input(
         ),
         github_facts=GitHubArtifactFacts(
             artifact_found=True,
-            repository_host="github.com",
-            repository_owner="sfayka",
-            repository_name="Harness",
-            branch_name="codex/enforcement",
-            pull_request_found=True,
-            commit_found=True,
-            review_state="approved",
-            changed_files_match=True,
+            repository=RepositoryFact(host="github.com", owner="sfayka", name="Harness"),
+            branch=BranchFact(name="codex/enforcement", base_branch="main"),
+            commit=CommitFact(sha="abcdef1234567890"),
+            pull_request=PullRequestFact(number=200, review_state="approved"),
+            changed_files=ChangedFilesSummary(matches_expected_scope=True),
         ),
-        linear_facts=LinearFacts(record_found=True, state=linear_state),
+        linear_facts=LinearFacts(record_found=True, issue_id="lin-1", state=linear_state),
     )
 
 
