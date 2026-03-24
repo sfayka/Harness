@@ -298,4 +298,4 @@ This distinction matters because Linear and Harness business logic should reason
 
 ## Schema Reference
 
-The machine-readable schema lives in [task_envelope.schema.json](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/schemas/task_envelope.schema.json).
+The machine-readable schema lives in [task_envelope.schema.json](../../schemas/task_envelope.schema.json).

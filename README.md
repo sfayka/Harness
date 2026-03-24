@@ -6,6 +6,25 @@ The goal is not to out-reason model-native task runners. The goal is to make AI-
 
 The Harness runtime is Python. Integration with OpenClaw is API-first rather than a Node extension model.
 
+## What Harness Is
+
+Harness is a system for:
+
+- receiving validated work through explicit contracts
+- normalizing work into canonical task structures
+- delegating execution to replaceable workers
+- requiring evidence before trusting completion
+- reconciling lifecycle state across systems such as Linear and GitHub
+
+## What Harness Is Not
+
+Harness is not:
+
+- a generic agent framework
+- a model-hosted plugin extension
+- a bet against improving model-native reasoning
+- a system that treats executor-reported success as sufficient evidence of completion
+
 ## Purpose
 
 Harness is a continuation of the ideas behind InboxToBacklog, but in a fresh repository with a tighter focus on correctness, verification, and control-plane guarantees.
@@ -69,21 +88,52 @@ For now, Harness should optimize for clarity over automation theater.
 
 ## Status
 
-This is an early project scaffold. The README currently captures the intent and operating model so the repo has a concrete starting point.
+This repository is still early, but the architecture direction is established.
+
+Current focus:
+
+- canonical contracts such as `TaskEnvelope`
+- artifact and completion evidence modeling
+- intake normalization
+- verification, auditability, and system-of-record reconciliation
+
+Not yet in scope:
+
+- full planner sophistication
+- advanced dispatcher behavior
+- workflow-heavy runtime features beyond what is needed for control-plane guarantees
+
+## Explore The Repo
+
+- `docs/architecture/` contains the main system model and contract docs
+- `docs/adrs/` contains architecture decision records
+- `docs/planning/` contains near-term planning notes
+- `modules/` contains the current Python implementation work
+- `schemas/` contains canonical machine-readable contracts
+- `tests/` contains Python tests for contract validation and module behavior
+
+## Public Readiness Notes
+
+- No license file has been added in this change set because license selection should be maintainer-confirmed before the repository is made public.
+- Secrets and local-only files should continue to be reviewed before changing repository visibility, even though this pass did not find obvious committed credentials.
 
 ## Architecture Docs
 
 The architecture baseline for Epic 1 lives under `docs/`:
 
-- [System Context](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/system-context.md)
-- [TaskEnvelope Contract](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/task-envelope.md)
-- [Artifact And Completion Evidence](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/artifact-and-completion-evidence.md)
-- [Intake To TaskEnvelope Mapping](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/intake-to-task-envelope.md)
-- [Module Boundaries](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/module-boundaries.md)
-- [Canonical Vocabulary](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/canonical-vocabulary.md)
-- [Repository Layout Proposal](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/repository-layout.md)
-- [ADR 0001](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/adrs/0001-openclaw-as-ingress-harness-as-control-plane.md)
-- [ADR 0002](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/adrs/0002-initial-substrate-choice-and-replacement-strategy.md)
-- [ADR 0003](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/adrs/0003-harness-implementation-runtime.md)
-- [ADR 0004](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/adrs/0004-harness-strategic-positioning-reliability-layer.md)
-- [Initial Codex Tickets](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/planning/initial-codex-tickets.md)
+- [System Context](docs/architecture/system-context.md)
+- [TaskEnvelope Contract](docs/architecture/task-envelope.md)
+- [Artifact And Completion Evidence](docs/architecture/artifact-and-completion-evidence.md)
+- [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
+- [Module Boundaries](docs/architecture/module-boundaries.md)
+- [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)
+- [Repository Layout Proposal](docs/architecture/repository-layout.md)
+- [ADR 0001](docs/adrs/0001-openclaw-as-ingress-harness-as-control-plane.md)
+- [ADR 0002](docs/adrs/0002-initial-substrate-choice-and-replacement-strategy.md)
+- [ADR 0003](docs/adrs/0003-harness-implementation-runtime.md)
+- [ADR 0004](docs/adrs/0004-harness-strategic-positioning-reliability-layer.md)
+- [Initial Codex Tickets](docs/planning/initial-codex-tickets.md)
+
+## Contributing
+
+Lightweight contributor guidance lives in [CONTRIBUTING.md](CONTRIBUTING.md).
