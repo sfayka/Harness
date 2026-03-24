@@ -264,6 +264,13 @@ It is optional because many tasks do not require clarification. When present, it
 - `questions`: clarification questions that have been sent or recorded
 - `responses`: clarification answers attached to the task
 
+These meanings must remain distinct rather than collapsing into one generic “clarification happened” flag:
+
+- missing information: unresolved required inputs are absent or incomplete
+- ambiguous information: multiple plausible interpretations remain
+- awaiting human response: clarification was requested and the task is waiting on a person to answer
+- resolved clarification: the missing or ambiguous information has been satisfied or explicitly waived and the task can resume safely
+
 Use `clarification` when:
 
 - a required input is missing
@@ -278,6 +285,10 @@ Do not use `clarification` when:
 - the task is paused for executor capacity or scheduling reasons
 
 Clarification states must not authorize silent guessing. If a required input is unresolved, the task should remain `blocked` or otherwise non-progressing until the missing information is supplied, waived by policy, or the task is canceled.
+
+`clarification` may be attached when the task is first entering Harness or later after execution has already begun. The contract supports both by allowing clarification to coexist with `intake_ready`-to-`blocked` and `executing`-to-`blocked` transitions, and by recording the intended `resume_target_status`.
+
+Resolved clarification must not erase history. The `clarification` object should retain the prior `required_inputs`, `questions`, and `responses` records so the task remains auditable after it resumes.
 
 ### Observability
 

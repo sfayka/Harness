@@ -114,6 +114,81 @@ class TaskEnvelopeClarificationSchemaTests(unittest.TestCase):
         errors = validate_task_envelope(_base_task_envelope())
         self.assertEqual(errors, [])
 
+    def test_accepts_execution_time_clarification_with_resume_target(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["status_history"] = [
+            {
+                "from_status": "assigned",
+                "to_status": "executing",
+                "changed_at": "2026-03-24T18:01:00Z",
+                "reason": "Executor started work.",
+                "changed_by": "harness",
+            },
+            {
+                "from_status": "executing",
+                "to_status": "blocked",
+                "changed_at": "2026-03-24T18:05:00Z",
+                "reason": "Execution paused pending clarification.",
+                "changed_by": "harness",
+            },
+        ]
+        task_envelope["clarification"]["resume_target_status"] = "executing"
+        task_envelope["clarification"]["blocking_reason"] = "waiting_on_human_input"
+
+        errors = validate_task_envelope(task_envelope)
+        self.assertEqual(errors, [])
+
+    def test_accepts_resolved_clarification_without_erasing_question_history(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["status"] = "intake_ready"
+        task_envelope["timestamps"]["updated_at"] = "2026-03-24T18:09:00Z"
+        task_envelope["clarification"] = {
+            "status": "resolved",
+            "blocking_reason": None,
+            "resume_target_status": "intake_ready",
+            "required_inputs": [
+                {
+                    "id": "repo-target",
+                    "label": "Target repository",
+                    "description": "Repository where the requested work should occur.",
+                    "required": True,
+                    "need_type": "missing",
+                    "status": "provided",
+                    "value_summary": "harness",
+                }
+            ],
+            "questions": [
+                {
+                    "id": "question-1",
+                    "input_id": "repo-target",
+                    "prompt": "Which repository should this task be executed in?",
+                    "status": "answered",
+                    "asked_at": "2026-03-24T18:04:00Z",
+                    "asked_to": "requester",
+                    "channel": "openclaw",
+                }
+            ],
+            "responses": [
+                {
+                    "id": "response-1",
+                    "question_id": "question-1",
+                    "input_id": "repo-target",
+                    "responder": "requester",
+                    "received_at": "2026-03-24T18:08:00Z",
+                    "content": "Use the harness repository.",
+                    "source_system": "openclaw",
+                    "source_ref": "message-123",
+                }
+            ],
+            "requested_at": "2026-03-24T18:04:00Z",
+            "resolved_at": "2026-03-24T18:09:00Z",
+            "requested_by": "harness-intake",
+            "resolution_summary": "Repository clarified and intake can resume.",
+        }
+
+        errors = validate_task_envelope(task_envelope)
+        self.assertEqual(errors, [])
+
     def test_rejects_invalid_clarification_need_type(self) -> None:
         task_envelope = _base_task_envelope()
         task_envelope["clarification"]["required_inputs"][0]["need_type"] = "guess"
@@ -121,6 +196,15 @@ class TaskEnvelopeClarificationSchemaTests(unittest.TestCase):
         errors = validate_task_envelope(task_envelope)
         self.assertTrue(errors)
         self.assertTrue(any("/clarification/required_inputs/0/need_type" in error for error in errors))
+
+    def test_rejects_resolved_clarification_without_resolved_at(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["clarification"]["status"] = "resolved"
+        task_envelope["clarification"]["resolved_at"] = None
+
+        errors = validate_task_envelope(task_envelope)
+        self.assertTrue(errors)
+        self.assertTrue(any("/clarification/resolved_at" in error for error in errors))
 
 
 if __name__ == "__main__":

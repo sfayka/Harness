@@ -88,6 +88,54 @@ The `clarification` object records the missing-information contract for the task
 
 This prevents “blocked” from becoming a vague catch-all.
 
+## Clarification Modes Must Stay Distinct
+
+The clarification object must preserve separate meanings for separate situations.
+
+### Missing Information
+
+Use when required information is absent or too incomplete to proceed safely.
+
+Typical shape:
+
+- `clarification.status`: `required` or `requested`
+- `clarification.blocking_reason`: `missing_information`
+- one or more `required_inputs` with `need_type: missing` or `need_type: incomplete`
+
+### Ambiguous Information
+
+Use when information exists, but multiple materially different interpretations remain plausible.
+
+Typical shape:
+
+- `clarification.status`: `required` or `requested`
+- `clarification.blocking_reason`: `ambiguous_information`
+- one or more `required_inputs` with `need_type: ambiguous`
+
+### Awaiting Human Response
+
+Use when Harness has already asked a person for clarification and is now waiting on that answer.
+
+Typical shape:
+
+- `clarification.status`: `requested`
+- `clarification.blocking_reason`: `waiting_on_human_input`
+- at least one open question in `clarification.questions`
+- `requested_at` recorded
+
+### Resolved Clarification
+
+Use when the missing or ambiguous information has been satisfied or explicitly waived by policy and the task is safe to resume.
+
+Typical shape:
+
+- `clarification.status`: `resolved`
+- `resolved_at` recorded
+- `resume_target_status` identifies where work should resume
+- prior question and response records remain attached
+
+These modes should not be flattened into a single generic clarification bucket.
+
 ### Resume Target
 
 `resume_target_status` records where the task should return once clarification is resolved.
@@ -239,6 +287,8 @@ Then:
 - `resolved_at` is recorded
 - the task may move from `blocked` back to `resume_target_status`
 
+Clarification may begin at intake time or later during execution. The same contract applies in both cases. What changes is the `resume_target_status`.
+
 ## Distinguishing Clarification From Other Blocked States
 
 ### Blocked Due To External Dependency
@@ -262,6 +312,17 @@ This is a specific clarification case:
 - human answer needed
 - question has been sent or recorded
 - task remains non-progressing until response is evaluated
+
+## Auditability And Retention
+
+Resolved clarification must not silently erase the fact that clarification occurred.
+
+- `required_inputs` should remain on the task after resolution
+- `questions` and `responses` should be treated as append-only audit records in normal operation
+- if a question is superseded or canceled, mark its status rather than deleting it
+- resolution should add `resolved_at` and `resolution_summary`, not remove the earlier evidence
+
+Future implementations may add stronger immutability guarantees, but the architecture already requires clarification history to remain auditable.
 
 ### Advisory Missing Context
 
