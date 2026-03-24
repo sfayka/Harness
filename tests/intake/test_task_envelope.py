@@ -63,7 +63,22 @@ class CreateTaskEnvelopeTests(unittest.TestCase):
         self.assertIsNone(task_envelope["assigned_executor"])
         self.assertEqual(task_envelope["required_capabilities"], [])
         self.assertEqual(task_envelope["priority"], "normal")
-        self.assertEqual(task_envelope["artifacts"], {"pr_links": [], "commit_shas": [], "logs": [], "outputs": []})
+        self.assertEqual(
+            task_envelope["artifacts"],
+            {
+                "items": [],
+                "completion_evidence": {
+                    "policy": "deferred",
+                    "status": "deferred",
+                    "required_artifact_types": [],
+                    "validated_artifact_ids": [],
+                    "validation_method": "deferred",
+                    "validated_at": None,
+                    "validator": None,
+                    "notes": None,
+                },
+            },
+        )
 
         assert_valid_task_envelope(task_envelope)
 
@@ -107,7 +122,8 @@ class CreateTaskEnvelopeTests(unittest.TestCase):
                 "assigned_executor",
                 "required_capabilities",
                 "priority",
-                "artifacts",
+                "artifacts.items",
+                "artifacts.completion_evidence",
                 "observability",
             ],
         )
