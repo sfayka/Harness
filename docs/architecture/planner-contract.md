@@ -224,11 +224,64 @@ Harness needs checkpoints, but they should remain explicit work objects rather t
 
 In the initial contract, a checkpoint is represented as a planned child task whose purpose is validation, review, or gatekeeping rather than primary execution.
 
+A checkpoint is not just a milestone marker.
+
+It represents an explicit control-plane gate that must be satisfied before some later work may safely proceed.
+
+Typical checkpoint purposes include:
+
+- validating that a decomposition or design is acceptable
+- confirming that a review step has occurred
+- enforcing a quality or policy gate before later tasks dispatch
+- verifying that a precondition for the next phase has been met
+
+The planner should not create “checkpoint” tasks that merely restate progress without a real gate condition.
+
+### What A Checkpoint Is
+
+A checkpoint is:
+
+- an executable task record in the canonical task model
+- a validation or review-oriented gate, not a primary production task
+- a task whose completion semantics are defined by an explicit gate condition
+
+This means checkpoint tasks participate in normal lifecycle semantics:
+
+- they begin as `planned`
+- they may become `dispatch_ready`, `assigned`, or `executing` if some worker or reviewer must actively perform the gate task
+- they may become `blocked` if the gate cannot yet be evaluated
+- they must reach `completed` before dependent downstream tasks may proceed
+
+### What A Checkpoint Is Not
+
+A checkpoint is not:
+
+- a vague milestone label
+- a hidden planner note
+- a substitute for artifact verification or reconciliation
+- a freeform reminder that later modules must reinterpret
+
+Checkpoints must be concrete enough that later modules can treat them as ordinary tasks with explicit gate semantics.
+
+### Checkpoints As Executable Tasks Versus Validation Gates
+
+Checkpoint tasks are both:
+
+- executable tasks in the sense that they are first-class `TaskEnvelope` records that can be assigned, worked, blocked, and completed
+- validation gates in the sense that their primary purpose is to control whether later tasks may continue
+
+The distinction is important:
+
+- their output is a gate decision or validated condition, not usually the main deliverable of the parent task
+- their completion authorizes later dependency transitions
+- their failure or blockage prevents downstream work from safely progressing
+
 Typical checkpoint task characteristics:
 
 - `objective.deliverable_type` identifies the task as a checkpoint or validation gate
 - downstream tasks depend on the checkpoint task reaching `completed`
 - the checkpoint task has explicit acceptance criteria describing the gate condition
+- the checkpoint task should describe what is being validated and what outcome permits downstream progress
 
 Examples:
 
@@ -239,6 +292,35 @@ Examples:
 This keeps checkpoint semantics inside the normal task and dependency model without inventing a second, weaker planning-only object.
 
 `checkpoint_tasks` in the planner output are therefore a labeled subset of `child_tasks`, included separately for reviewability.
+
+### Lifecycle Effect Of Checkpoints
+
+Checkpoint tasks affect downstream lifecycle state through normal dependency semantics.
+
+The rule is:
+
+- if a downstream task depends on a checkpoint, that downstream task must not move into runnable routing or execution states until the checkpoint task reaches the required dependency status
+
+Typical effect:
+
+- downstream task remains `planned` or `blocked`
+- dependency edge points to the checkpoint task
+- required upstream status is usually `completed`
+
+Checkpoint tasks can therefore block later work in a first-class way.
+
+This is intentional. A blocked or failed checkpoint should not be treated as advisory if the planner declared it as a required gate.
+
+### Reviewability Requirement
+
+Because checkpoints can block progress, they must be especially explicit.
+
+Each checkpoint task should make clear:
+
+- what condition is being validated
+- who or what is expected to perform the validation
+- what evidence or result satisfies the gate
+- which downstream tasks are blocked on that gate
 
 ## Planning Failure And Clarification Discovery
 
