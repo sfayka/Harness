@@ -81,6 +81,34 @@ The goal is to detect when the systems tell incompatible stories about the same 
 - reconciliation results must remain auditable
 - external systems inform control-plane decisions but do not replace Harness lifecycle policy
 
+## Completion Trust Model
+
+Harness must preserve a strict distinction between three different concepts:
+
+### Executor-Reported Success
+
+- a worker claims that it completed the task
+- this is a claim about execution, not proof of correctness
+- by itself, this must not be treated as completion
+
+### Artifact-Backed Evidence
+
+- the task has the required artifacts attached and validated under `artifacts.completion_evidence`
+- this establishes that evidence exists
+- by itself, this is still not the same as reconciled completion
+
+### Reconciliation-Verified Completion
+
+- Harness has compared its internal task state, artifact evidence, GitHub facts, and Linear facts
+- no blocking mismatch remains
+- this is the condition that allows a completed state to be treated as trustworthy and durable
+
+These layers must not collapse into one concept.
+
+- executor-reported success without evidence is insufficient
+- evidence without reconciliation is still provisional
+- only reconciliation-verified completion should be treated as fully trusted
+
 ## Reconciliation Outcome Classes
 
 ### Verified Completion
@@ -93,7 +121,7 @@ Conditions:
 
 Meaning:
 
-- the task may remain completed
+- the task may remain completed as a trusted outcome
 - the control plane has enough evidence to trust the terminal state
 
 ### Claimed Completion
@@ -106,6 +134,7 @@ Conditions:
 Meaning:
 
 - the task must not be treated as fully verified yet
+- this is weaker than artifact-backed evidence
 - the task may remain `executing` or move into a non-terminal review phase in future implementations
 - current architecture should treat this as non-final until reconciliation succeeds
 
@@ -120,6 +149,11 @@ Meaning:
 
 - the task must not remain `completed`
 - the task should typically remain `blocked` or require manual review depending on policy
+
+This is distinct from claimed completion:
+
+- claimed completion means success was reported
+- missing evidence means the reported success is not supported by the required artifacts
 
 ### External Mismatch
 
@@ -241,6 +275,11 @@ Reconciliation depends on `artifacts.completion_evidence` but is not identical t
 
 - completion evidence asks whether the right artifacts exist and have been validated
 - reconciliation asks whether Harness, GitHub, and Linear are mutually consistent about the task outcome
+
+Executor-reported success is earlier than both:
+
+- it is an input claim that may trigger evidence collection and reconciliation
+- it must not be treated as either evidence satisfaction or reconciled completion
 
 Completion is trustworthy only when both are satisfied.
 

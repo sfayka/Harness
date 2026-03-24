@@ -227,6 +227,20 @@ Each artifact record may carry:
 
 Completion is not trusted purely because an executor claims success. `artifacts.completion_evidence` is where Harness records whether the evidence requirement is deferred, required, satisfied, insufficient, or not applicable.
 
+### Completion Trust Levels
+
+Harness must keep these concepts separate:
+
+- `executor-reported success`: a worker claims the task succeeded
+- `artifact-backed evidence`: the task has artifacts that satisfy the declared evidence policy
+- `reconciliation-verified completion`: Harness has compared its internal state against external systems such as GitHub and Linear and found no blocking mismatch
+
+These are not interchangeable.
+
+- executor-reported success is advisory
+- artifact-backed evidence is necessary for evidence-driven completion
+- reconciliation-verified completion is what makes a completed state durable
+
 ### Observability
 
 Observability captures operational information without redefining business state.
