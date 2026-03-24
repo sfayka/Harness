@@ -146,6 +146,8 @@ Verification has determined that:
 
 Only then may the task be treated as durably completed.
 
+If a task is already marked `completed`, it must not simply remain completed by inertia. It remains completed only if the current verification decision passes under policy.
+
 ## Verification Output Contract
 
 Verification output is a structured decision bundle, not a freeform opinion.
@@ -256,6 +258,15 @@ Typical cases:
 
 For current architecture purposes, `requires_review` is a verification outcome even if it is not yet a first-class lifecycle enum.
 
+Manual review is non-terminal unless and until a later explicit decision resolves it.
+
+That later decision may:
+
+- accept completion
+- keep the task blocked pending more facts
+- reject the completion claim
+- fail the task if policy determines the outcome is terminally unusable
+
 ## Claimed Versus Verified Completion
 
 This distinction must remain explicit.
@@ -289,6 +300,10 @@ Typical lifecycle consequence:
 
 - remain or become `blocked`
 
+Typical next step:
+
+- attach or validate additional evidence and re-run verification
+
 ### External Mismatch
 
 Means:
@@ -302,6 +317,15 @@ Typical lifecycle consequence:
 - or `failed` when policy treats the mismatch as terminal
 
 Missing evidence and contradictory evidence are not the same problem.
+
+Typical next step:
+
+- reconcile or resolve the contradiction, then re-run verification
+
+These outcomes must not collapse into the same verification result:
+
+- insufficient evidence means the support is missing or not yet validated
+- external mismatch means contradictory facts already exist
 
 ## Repeatability And Re-Runnable Verification
 
@@ -323,6 +347,19 @@ The intended direction is:
 
 Verification reruns must not silently erase prior decision history.
 
+### Allowed Effects Of Verification Reruns
+
+A rerun after new evidence or reconciliation data may explicitly:
+
+- preserve `completed` if the outcome remains accepted
+- move a previously `completed` task back to `blocked`
+- move a previously `blocked` task into an accepted completed outcome
+- escalate a previously blocked task to manual review
+- resolve a prior manual-review outcome into accepted completion, continued block, or failure
+- move the task to `failed` when new facts show the outcome is terminally invalid
+
+What must not happen is silent continuity by default. The latest verification decision must explain why the lifecycle state stays the same or changes.
+
 ## Lifecycle Consequences
 
 Verification affects lifecycle state, but only through explicit policy decisions.
@@ -332,6 +369,8 @@ Verification affects lifecycle state, but only through explicit policy decisions
 Possible effect:
 
 - task remains `completed` as a trusted completed outcome
+
+This applies only when the current verification run passes.
 
 ### Verification Block
 
@@ -352,6 +391,8 @@ Possible effect:
 
 - task remains non-final while a review-required outcome is tracked
 - current architecture may represent this through `blocked` plus explicit verification outcome or review metadata
+
+Review escalation is non-terminal by default.
 
 ## Runtime Versus Verification
 
