@@ -24,7 +24,13 @@ The part of the system that decides what work exists, who owns it, what state it
 
 The durable project, epic, task, and dependency records that represent planned or active work.
 
-Linear is the source of truth for structured work.
+Linear is the source of truth for structured work and the primary human-and-agent work surface.
+
+### Work Surface
+
+The place where humans and agents coordinate around tasks, issues, projects, and workflow state.
+
+In this architecture, Linear is the work surface.
 
 ### Artifact Evidence
 
@@ -79,6 +85,7 @@ The system whose records are authoritative for a particular class of information
 In this architecture:
 
 - Linear is the source of truth for structured work.
+- Linear is the work surface for structured work coordination.
 - GitHub is the source of truth for code artifacts.
 - the workflow substrate is the source of truth for resumable orchestration state
 - executors are the source of truth only for their immediate runtime outputs until Harness applies policy
@@ -86,6 +93,12 @@ In this architecture:
 ### System-Of-Record Alignment
 
 The discipline of keeping Harness lifecycle decisions consistent with the authoritative state held in systems such as Linear and GitHub.
+
+### Completion Enforcement
+
+The policy-driven decision about whether a claimed completed state should be accepted, blocked, reversed, or escalated to review.
+
+Harness owns completion enforcement. Linear may display the result, but it does not replace that policy function.
 
 ## Terms To Avoid Or Use Carefully
 
@@ -112,3 +125,4 @@ Avoid as a system-wide architecture term. Use `structured work state`, `workflow
 - Separate business state from runtime state in naming.
 - Use `executor` as the abstraction and `Codex` as one implementation.
 - Use `verification` or `evidence` instead of vague claims like `done` when artifact checks are required.
+- Use `Linear` when referring to the work surface or structured-work system of record, not as a synonym for the Harness control plane.

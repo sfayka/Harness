@@ -6,11 +6,11 @@ Define the top-level system model before implementation so future modules do not
 
 ## System Framing
 
-Harness sits between the user-facing ingress layer and the execution layer as the system that enforces correctness.
+Harness sits underneath the user-facing and agent-facing work surface as the system that enforces correctness.
 
 - OpenClaw is the ingress layer.
-- Harness is the control plane and reliability layer.
-- Linear is the source of truth for structured work.
+- Linear is the human-and-agent work surface and the source of truth for structured work.
+- Harness is the control plane and reliability layer beneath that work surface.
 - GitHub is the source of truth for code artifacts such as pull requests and commits.
 - Executors such as Codex are workers.
 - The workflow substrate provides persistence, resumability, and coordination state for Harness itself.
@@ -22,13 +22,14 @@ The Mermaid source for the diagram lives in [system-context.mmd](system-context.
 ```mermaid
 flowchart LR
     U["User"] --> O["OpenClaw\nIngress and clarification"]
-    O --> H["Harness\nControl plane and reliability layer"]
-    H --> L["Linear\nStructured work source of truth"]
+    O --> L["Linear\nWork surface and structured work source of truth"]
+    L --> H["Harness\nControl plane and reliability layer"]
     H --> G["GitHub\nArtifact evidence source of truth"]
     H --> S["Workflow substrate\nPersistence and resumability"]
     H --> E["Executors\nCodex and future workers"]
     E --> H
-    H --> O
+    H --> L
+    L --> O
 ```
 
 ## Responsibilities By System
@@ -42,18 +43,21 @@ flowchart LR
 
 ### Harness
 
-- translates validated requests into canonical work contracts
-- decomposes work into manageable tasks
+- consumes validated or synchronized work from ingress and work-surface systems
+- translates that work into canonical control-plane contracts
+- decomposes work into manageable tasks when needed
 - delegates execution to replaceable workers
 - enforces explicit lifecycle semantics, including blocked and failed states
 - verifies completion against artifacts and system-of-record state
-- aggregates verified outcomes for upstream reporting
+- aggregates verified outcomes for upstream reporting and work-surface reconciliation
 
 ### Linear
 
-- stores epics, projects, tasks, and task state
+- stores epics, projects, issues, tasks, and workflow state
 - provides the durable structured record of planned and active work
-- serves as the reference point for task ownership and status
+- acts as the primary human-and-agent work coordination surface
+- serves as the reference point for task visibility, ownership, and workflow status
+- does not decide whether artifact-backed completion should be trusted
 
 ### GitHub
 
@@ -79,7 +83,7 @@ flowchart LR
 
 - OpenClaw does not become the durable orchestrator.
 - Harness does not become the user interface.
-- Linear owns structured work records, not executor internals.
+- Linear owns work coordination and structured work records, not completion enforcement semantics.
 - GitHub owns artifact evidence records, not lifecycle policy.
 - Executors do not own planning, routing, or lifecycle policy.
 - The workflow substrate owns resumability, not product-level work semantics.
@@ -88,6 +92,7 @@ flowchart LR
 ## Architectural Implications
 
 - ingress, control-plane enforcement, systems of record, and execution remain separable
+- Linear-facing coordination can evolve without changing Harness verification and enforcement logic
 - executor implementations can change without changing Harness core planning logic
 - workflow technology can change if Harness state transitions are modeled explicitly
 - model-native reasoning improvements do not displace Harness as long as correctness, evidence, and auditability remain Harness-owned concerns

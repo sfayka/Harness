@@ -2,6 +2,8 @@
 
 Harness is a control plane and reliability layer for AI-assisted work.
 
+It is designed to sit underneath work surfaces such as Linear, not replace them.
+
 It does not try to make AI smarter.
 
 It makes AI-driven work **reliable, auditable, and actually complete**.
@@ -9,6 +11,22 @@ It makes AI-driven work **reliable, auditable, and actually complete**.
 The goal is not to out-reason model-native task runners. The goal is to ensure that execution is artifact-backed, verifiable, and aligned with system-of-record workflows.
 
 The Harness runtime is Python. Integration with OpenClaw is API-first rather than a Node extension model.
+
+## Linear And Harness
+
+Linear and Harness serve different roles.
+
+- Linear is the work surface and system of record where humans and agents coordinate issues, projects, and workflow state.
+- Harness is the control plane underneath that surface. It decides whether work is verified, reconciled, and acceptable as complete.
+
+Harness is not trying to replace Linear's coordination layer.
+
+Harness exists to answer questions a work surface alone should not answer by trust:
+
+- did the work actually happen?
+- is completion backed by evidence?
+- do GitHub, Linear, and Harness agree?
+- should completion be accepted, blocked, reversed, or sent to manual review?
 
 ## Why Harness Exists
 
@@ -45,7 +63,12 @@ It enforces that:
 - execution is delegated to replaceable workers (Codex, Claude, etc.)
 - completion is not accepted without verifiable artifacts (PRs, commits, etc.)
 - task lifecycle state is explicit (blocked, failed, completed)
-- system-of-record tools (e.g. Linear, GitHub) stay consistent with reality
+- system-of-record tools such as Linear and GitHub stay consistent with reality
+
+In practice:
+
+- Linear remains the place where upstream work coordination happens
+- Harness remains the place where correctness, verification, and enforcement happen
 
 Harness does not try to make AI “smarter.”
 
@@ -59,6 +82,7 @@ Harness is not:
 
 - an agent framework
 - a multi-agent coordination system
+- a replacement for Linear's work coordination surface
 - a planner/router competing with model-native reasoning
 - a replacement for Codex, Claude, or similar systems
 
@@ -87,6 +111,7 @@ The project is actively evolving toward:
 
 - artifact-backed completion and verification
 - reconciliation between Harness, GitHub, and Linear
+- a clean boundary where Linear remains the human-and-agent work surface
 - explicit clarification and missing-information handling
 - explicit lifecycle semantics (including failure and blocked states)
 - treating executors as replaceable components behind contracts
@@ -96,13 +121,13 @@ This is a **build-in-public** effort. Expect rough edges, but a clear direction.
 ## Rough Workflow
 
 1. A user provides a request through an ingress layer (e.g. OpenClaw).
-2. The request is clarified and normalized into a structured task.
-3. Harness converts the request into canonical task contracts.
+2. The request is captured and coordinated in a work surface such as Linear.
+3. Harness normalizes the relevant work into canonical task contracts.
 4. Work is decomposed and delegated to replaceable executors.
-5. Harness tracks execution, blocked states, and failures.
+5. Harness tracks execution, blocked states, and failures beneath the work surface.
 6. Artifacts are collected and attached to tasks.
-7. Completion is verified against artifacts and system-of-record state.
-8. Verified outcomes are reported upstream.
+7. Completion is verified against artifacts plus system-of-record state in Linear and GitHub.
+8. Verified outcomes are written back upstream so the work surface reflects reality.
 
 ## Early Scope
 
@@ -134,11 +159,12 @@ Current focus:
 
 - canonical contracts such as `TaskEnvelope`
 - artifact and completion evidence modeling
-- intake normalization
+- Linear-aligned intake and normalization
 - verification, auditability, and system-of-record reconciliation
 
 Not yet in scope:
 
+- competing with Linear on issue/project coordination UX
 - full planner sophistication
 - advanced dispatcher behavior
 - workflow-heavy runtime features beyond what is needed for control-plane guarantees
@@ -190,6 +216,7 @@ Licensed under the Apache License 2.0.
 The architecture baseline for Epic 1 lives under `docs/`:
 
 - [System Context](docs/architecture/system-context.md)
+- [Linear And Harness Boundary](docs/architecture/linear-harness-boundary.md)
 - [TaskEnvelope Contract](docs/architecture/task-envelope.md)
 - [Artifact And Completion Evidence](docs/architecture/artifact-and-completion-evidence.md)
 - [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
