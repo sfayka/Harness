@@ -65,6 +65,8 @@ The runtime must not begin execution merely because a dispatcher selected a work
 
 Execution starts only when the runtime has a real execution-start fact from the execution gateway or worker integration.
 
+Dispatch intent, queue submission, or assignment creation are not sufficient by themselves to mark the task as executing.
+
 ## Assigned Versus Executing
 
 The distinction between `assigned` and `executing` is strict.
@@ -90,6 +92,8 @@ The runtime must not collapse these into one state transition.
 `dispatch_ready` -> `assigned` is a dispatch decision.
 
 `assigned` -> `executing` is an execution fact.
+
+Only a real `execution_started` event, or an equivalent trustworthy execution-start fact from the runtime or execution gateway, may trigger `assigned` -> `executing`.
 
 ## Runtime Input Contract
 
@@ -147,6 +151,30 @@ It should produce:
 - links to produced outputs or artifacts
 - retry or stall decisions when policy authorizes them
 
+## Attempt Versus Task
+
+The runtime must distinguish the task from any individual execution attempt.
+
+### Task
+
+The task is the canonical control-plane work object represented by `TaskEnvelope`.
+
+It persists across multiple assignments, attempts, retries, redispatches, and later verification.
+
+### Attempt
+
+An attempt is one concrete execution run against the task under a specific assignment and execution context.
+
+An attempt should have its own identifiers, timestamps, progress facts, and terminal outcome.
+
+This distinction matters because:
+
+- one task may have many attempts
+- one failed attempt does not automatically redefine the whole task as failed
+- one successful attempt still requires later verification before the task is trusted as complete
+
+Runtime reporting should preserve attempt-scoped records without collapsing them into a single task-level story.
+
 ## Execution Event Semantics
 
 Runtime events must be explicit and reviewable.
@@ -177,6 +205,8 @@ This event should:
 - record execution start time
 - attach execution identifiers needed for later audit
 
+The presence of an assignment alone must not trigger this transition.
+
 ### Progress Reported
 
 Represents a neutral progress fact while work is still in flight.
@@ -189,6 +219,30 @@ Examples:
 - worker status update emitted
 
 Progress events must remain advisory execution facts. They do not change task meaning on their own.
+
+### Progress Event Versus Artifact
+
+A progress event is not the same as an artifact.
+
+Progress events answer:
+
+- is the worker still active
+- what changed during execution
+- when was the last known forward movement
+
+Artifacts answer:
+
+- what durable output or evidence now exists
+- what can later be inspected, verified, or reconciled
+
+Examples:
+
+- heartbeat or percent-complete update: progress event
+- pull request URL or commit SHA: artifact
+- temporary worker note: progress event
+- changed-file record attached to the task: artifact
+
+The runtime may observe both, but it must not collapse ephemeral progress reporting into durable artifact evidence.
 
 ### Output Attached
 
@@ -235,6 +289,8 @@ This event should include:
 - failure message or summary
 - whether the failure is retryable under policy
 
+Failure means the attempt has reached an unsuccessful terminal outcome.
+
 ### Execution Stalled
 
 Represents an execution that appears in flight but is no longer making expected progress.
@@ -249,11 +305,36 @@ Stall is not automatically the same as failure.
 
 It is a runtime finding that may lead to retry, reassignment, blocking, or manual review depending on policy.
 
+### Stall Versus Failure
+
+Stall means the attempt appears stuck or inactive.
+
+Failure means the attempt has ended unsuccessfully.
+
+The distinction must remain explicit:
+
+- a stalled attempt may later resume, time out, fail, or be canceled
+- a failed attempt is already terminal for that attempt
+- stall is a diagnostic runtime condition
+- failure is an attempt outcome
+
 ### Execution Timed Out
 
 Represents an attempt that exceeded allowed execution time or deadline thresholds.
 
 This is stronger than a generic stall condition because the policy threshold has been crossed explicitly.
+
+### Timeout Versus Manual Cancellation
+
+Timeout means policy thresholds expired without successful completion.
+
+Manual cancellation means a human or control-plane action intentionally stopped the attempt.
+
+These are not interchangeable:
+
+- timeout is an automatic runtime outcome based on elapsed conditions
+- manual cancellation is an intentional stop decision
+- both may end an attempt, but they carry different audit meaning and should remain distinguishable in runtime records
 
 ### Retry Scheduled / Retry Started
 
