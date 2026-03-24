@@ -6,94 +6,144 @@
 
 ## Context
 
-Harness needs a workflow substrate that provides persistence and resumability for orchestration. The initial choice should fit an early-stage open-source project with limited operational budget and a strong need to keep business rules understandable.
+Harness requires a workflow substrate that supports persistence, resumability, and controlled execution of multi-step tasks.
+
+The system is early-stage, open-source, and not monetized. Priorities are:
+
+- keeping the system model understandable
+- minimizing operational overhead
+- avoiding premature platform lock-in
+- ensuring long-term replaceability of the workflow substrate
 
 The current candidate set is:
 
 - LangGraph
 - Temporal
-- build mostly ourselves with minimal framework support
+- building a custom substrate
 
-The architecture also needs a credible path to replace the initial substrate later without rewriting the control plane.
+The architecture must allow replacing the underlying substrate later without rewriting the control plane or business logic.
 
 ## Decision
 
-Start by building the workflow substrate mostly ourselves behind a narrow internal abstraction, using only minimal framework support where it removes obvious boilerplate.
+Harness will implement a **thin orchestration layer with explicit, Harness-owned contracts**, and use a **lightweight external substrate for persistence and resumability**.
 
-The recommended shape is:
+The system is structured as follows:
 
-- explicit Harness state machines and contracts live in Harness-owned code
-- substrate interfaces handle checkpoint persistence, resume, and event replay
-- vendor-specific orchestration behavior stays behind adapters
+- Harness defines:
+  - task schema and lifecycle
+  - module boundaries
+  - orchestration rules and transitions
+  - execution routing and event handling
 
-This is the default starting point because it best matches the current stage of the project:
+- The substrate provides:
+  - checkpoint persistence
+  - resumability
+  - durable step execution primitives (as available)
 
-- it keeps the system model legible while core concepts are still changing
-- it avoids early commitment to a graph-oriented or platform-oriented runtime model
-- it reduces operational and conceptual overhead for a non-monetized open-source project
-- it forces the control plane contracts to become explicit before platform lock-in happens
+- All substrate-specific behavior is isolated behind **adapter interfaces**
+
+For the initial implementation, prefer a **lightweight, low-operational-overhead substrate** (e.g., LangGraph or equivalent), but do not encode business logic directly in substrate-native constructs.
+
+## Rationale
+
+This approach balances control and pragmatism:
+
+- avoids building a custom workflow engine prematurely
+- keeps business logic and orchestration semantics owned by Harness
+- reduces operational complexity compared to full platforms like Temporal
+- allows early contributors to reason about the system without deep framework knowledge
+- maintains flexibility to change substrates later
 
 ## Consequences
 
-- initial implementation effort is higher than adopting a full orchestration platform immediately
-- the project keeps tighter control over task lifecycle semantics
-- later migration remains possible because business workflow state is defined in Harness terms rather than substrate terms
-- early contributors can reason about the system without learning a large orchestration platform first
+- additional abstraction layer (Harness contracts + substrate adapters) must be maintained
+- developers must be disciplined about not leaking substrate-specific concepts into business logic
+- some substrate capabilities may not be fully utilized initially
+- system remains understandable and evolvable as the domain model stabilizes
 
 ## Alternatives Considered
 
 ### LangGraph
 
-Not the default starting point.
+Viable as an initial substrate.
 
-Reasons:
+Pros:
+- built-in persistence and resumability for agent-style workflows
+- lower operational overhead than full workflow platforms
+- good fit for iterative development
 
-- its graph-centric model is attractive for persistent agent workflows, but Harness is primarily a control plane, not a graph-authored agent runtime
-- adopting it early risks encoding business orchestration policy into framework-specific graph structures
-- it is more useful after the core Harness state model is stable enough to map intentionally onto graph execution
+Cons:
+- graph-native modeling can leak into business logic if not carefully isolated
+- not designed as a general-purpose control plane
 
-Potential future use:
+Use strategy:
+- acceptable as initial substrate **only behind adapter boundaries**
+- do not encode core orchestration logic as graph definitions
 
-- if the system later benefits from graph-native resumability for planner-heavy flows, LangGraph can be introduced behind the substrate adapter for selected workflow classes
+---
 
 ### Temporal
 
-Not the default starting point.
+Not selected as the initial substrate.
 
-Reasons:
+Pros:
+- strong durability guarantees
+- mature model for long-running workflows
+- scalable and production-proven
 
-- it offers strong durability and long-running workflow primitives, but adds operational weight and platform complexity too early
-- it is a better fit once workflow volume, reliability demands, and team maturity justify the infrastructure cost
-- starting there would optimize for scale and robustness before the Harness domain model is settled
+Cons:
+- high operational and conceptual overhead
+- requires stable workflow definitions to be effective
+- over-optimizes for scale at the current stage
 
-Potential future use:
+Use strategy:
+- strong candidate for future adoption if system scale and reliability requirements increase
 
-- if Harness grows into a multi-tenant or high-throughput orchestration service, Temporal is a credible replacement substrate because it is strong at durable execution once contracts are stable
+---
 
-### Build Mostly Ourselves With Minimal Framework Support
+### Build Custom Substrate
 
-Chosen as the starting point.
+Not selected as the default approach.
 
-Reasons:
+Pros:
+- maximum control
+- no external dependencies
 
-- lowest operational burden
-- best fit for an architecture that is still being defined
-- easiest way to keep the substrate replaceable by making boundaries explicit now
+Cons:
+- requires re-implementing persistence, resumability, and replay semantics
+- high risk of incomplete or fragile workflow guarantees
+- significant engineering cost with low early leverage
+
+Use strategy:
+- limit custom implementation to:
+  - domain models
+  - orchestration contracts
+  - control-plane logic
+- do not attempt to build a full workflow engine
 
 ## Replacement Strategy
 
-The migration path depends on keeping these rules from day one:
+Substrate replacement is enabled by enforcing strict architectural boundaries:
 
-- define orchestration state in Harness-owned contracts
-- isolate checkpointing and resume behavior behind substrate interfaces
-- treat Linear identifiers and task states as business-level references, not substrate internals
-- keep executor event handling independent from vendor runtime types
+- all orchestration state is defined in Harness-owned contracts
+- substrate interfaces abstract persistence and execution
+- Linear identifiers and task states remain business-level concepts
+- executor interactions are independent of substrate types
 
-If replacement becomes necessary later:
+If replacement is required:
 
-1. keep task and workflow state contracts stable
+1. keep task and workflow contracts stable
 2. implement a new substrate adapter
-3. replay or migrate active workflow state into the new adapter
-4. cut over workflow creation to the new substrate while retiring the old adapter
+3. migrate or replay active workflow state if necessary
+4. transition new workflows to the new substrate
+5. deprecate the old adapter
 
-The key architectural constraint is that Harness business rules must not depend on LangGraph nodes, Temporal workflow classes, or any other substrate-native model.
+## Architectural Constraint
+
+Harness business logic must not depend on:
+
+- LangGraph node or graph structures
+- Temporal workflow classes or SDK types
+- any substrate-specific execution model
+
+All orchestration behavior must be expressed in Harness terms and mapped to the substrate via adapters.
