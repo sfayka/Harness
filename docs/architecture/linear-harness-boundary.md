@@ -91,6 +91,21 @@ Harness returns:
 - reconciliation result
 - required follow-up actions
 
+## Example: Feature Implementation Task
+
+1. A Linear issue is created for a feature implementation task.
+2. An executor such as Codex performs the work.
+3. A pull request is opened in GitHub.
+4. Linear is marked done by a human or agent.
+5. Harness evaluates the completion claim:
+   - verifies the pull request exists
+   - checks repository and branch correctness
+   - validates artifact completeness
+6. Harness returns a control-plane decision:
+   - `accepted_completion` when the evidence and external facts align
+   - `blocked` when required evidence is missing or incomplete
+   - `external_mismatch` when GitHub, Linear, and Harness facts do not agree
+
 ## Boundary Note
 
 `review_required` should be understood as a control-plane outcome returned to Linear.

@@ -40,6 +40,15 @@ At the contract boundary:
 - Harness derives the canonical `TaskEnvelope`, required artifacts, and verification expectations
 - Harness returns a control-plane outcome plus evidence validation, reconciliation results, and required follow-up actions
 
+Example feature flow:
+
+1. A Linear issue is created.
+2. Codex executes the work.
+3. A GitHub pull request is opened.
+4. Linear is marked done.
+5. Harness verifies the PR, checks repo and branch correctness, and validates artifact completeness.
+6. Harness returns `accepted_completion`, `blocked`, or `external_mismatch`.
+
 ## Why Harness Exists
 
 AI agents are getting better at reasoning and execution.
