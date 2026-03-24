@@ -165,6 +165,7 @@ The architecture baseline for Epic 1 lives under `docs/`:
 - [Artifact And Completion Evidence](docs/architecture/artifact-and-completion-evidence.md)
 - [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
 - [Clarification And Missing Information](docs/architecture/clarification-and-missing-information.md)
+- [Planner Contract](docs/architecture/planner-contract.md)
 - [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
 - [Module Boundaries](docs/architecture/module-boundaries.md)
 - [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)

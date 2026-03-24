@@ -182,6 +182,8 @@ Relationship fields distinguish hierarchy from scheduling dependencies.
 - `parent_task_id` and `child_task_ids` define decomposition structure
 - `dependencies` define execution prerequisites
 
+Planner-created sub-tasks and checkpoint tasks should attach through these same fields rather than through planner-only relationship objects.
+
 Each dependency contains:
 
 - `task_id`: referenced task
@@ -189,6 +191,8 @@ Each dependency contains:
 - `required_status`: status the dependency must reach before this task is unblocked
 
 When a task is blocked because another task or external system must finish work first, `dependencies` remains the primary representation. Clarification should not be used to represent ordinary upstream dependency waits.
+
+Checkpoint and validation gates should generally be represented as explicit planned child tasks with dependencies, not as implicit planner notes.
 
 ### Execution Routing
 
