@@ -165,6 +165,22 @@ python -m modules.cli run blocked_reconciliation_mismatch --json
 The CLI uses canonical `TaskEnvelope` fixtures plus normalized GitHub/Linear fact bundles.
 It does not call live external APIs.
 
+## Local HTTP API
+
+You can also run a minimal local HTTP wrapper around the same evaluation entry point:
+
+```bash
+python -m modules.api --host 127.0.0.1 --port 8000
+```
+
+Then submit canonical evaluation requests to:
+
+- `GET /health`
+- `POST /evaluate`
+
+The API accepts canonical `TaskEnvelope` input plus normalized external facts and returns structured evaluation results.
+It is a thin wrapper over the existing evaluator, not a production service.
+
 ## License
 
 Licensed under the Apache License 2.0.
