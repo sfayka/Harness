@@ -352,8 +352,13 @@ def validate_completion_evidence(
     is_valid = not invalid_issues
     is_sufficient = False
     if is_valid:
-        if policy in {"advisory_only", "not_applicable"}:
+        if policy == "advisory_only":
             is_sufficient = True
+        elif policy == "not_applicable":
+            # Structurally valid not_applicable evidence must not be treated as an
+            # implicit authorization for completion. Later verification policy still
+            # has to decide what completion means for that task type.
+            is_sufficient = False
         elif policy == "required":
             is_sufficient = status == "satisfied" and not insufficient_issues
         elif policy == "deferred":

@@ -230,6 +230,7 @@ class CompletionEvidenceValidationPrimitiveTests(unittest.TestCase):
         result = validate_task_evidence(task_envelope)
 
         self.assertFalse(result.is_valid)
+        self.assertFalse(result.is_sufficient)
         self.assertEqual(result.unknown_validated_artifact_ids, ("artifact-missing",))
         self.assertTrue(any(issue.code == "unknown_validated_artifact_id" for issue in result.issues))
         with self.assertRaises(CompletionEvidenceValidationError):
@@ -237,6 +238,25 @@ class CompletionEvidenceValidationPrimitiveTests(unittest.TestCase):
                 task_envelope["artifacts"]["items"],
                 task_envelope["artifacts"]["completion_evidence"],
             )
+
+    def test_accepts_structurally_valid_not_applicable_evidence_without_treating_it_as_sufficient(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "not_applicable",
+            "status": "not_applicable",
+            "required_artifact_types": [],
+            "validated_artifact_ids": [],
+            "validation_method": "none",
+            "validated_at": None,
+            "validator": None,
+            "notes": "No artifact evidence is applicable for this task type.",
+        }
+
+        result = validate_task_evidence(task_envelope)
+
+        self.assertTrue(result.is_valid)
+        self.assertFalse(result.is_sufficient)
+        self.assertEqual(result.issues, ())
 
     def test_rejects_satisfied_required_evidence_backed_by_unverified_artifact(self) -> None:
         task_envelope = _base_task_envelope()
