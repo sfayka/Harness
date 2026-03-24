@@ -17,7 +17,7 @@ Harness sits between the user-facing ingress layer and the execution layer as th
 
 ## Context Diagram
 
-The Mermaid source for the diagram lives in [system-context.mmd](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/system-context.mmd).
+The Mermaid source for the diagram lives in [system-context.mmd](system-context.mmd).
 
 ```mermaid
 flowchart LR

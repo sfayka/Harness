@@ -143,6 +143,6 @@ Fields deferred beyond intake:
 
 ## Validation Rule
 
-Every produced envelope must be validated against [task_envelope.schema.json](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/schemas/task_envelope.schema.json) before leaving intake.
+Every produced envelope must be validated against [task_envelope.schema.json](../../schemas/task_envelope.schema.json) before leaving intake.
 
 If validation fails, intake must reject the envelope rather than emitting a partial or schema-invalid object.
