@@ -133,6 +133,8 @@ For tasks with required completion evidence, transition to `completed` is only v
 
 State movement is policy-enforced. Executor-reported events may supply inputs, but they do not independently authorize lifecycle transitions such as `assigned` -> `executing` or `executing` -> `completed`.
 
+Manual review is an explicit control-plane function, not an informal override path. Review outcomes must remain auditable and must still respect state transition enforcement rules.
+
 ## Field Semantics
 
 ### Origin

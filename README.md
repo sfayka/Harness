@@ -170,6 +170,7 @@ The architecture baseline for Epic 1 lives under `docs/`:
 - [Runtime Execution Contract](docs/architecture/runtime-execution-contract.md)
 - [Verification And Completion Enforcement](docs/architecture/verification-and-completion-enforcement.md)
 - [State Transition Enforcement](docs/architecture/state-transition-enforcement.md)
+- [Operator And Manual Review](docs/architecture/operator-and-manual-review.md)
 - [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
 - [Module Boundaries](docs/architecture/module-boundaries.md)
 - [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)
