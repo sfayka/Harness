@@ -206,6 +206,8 @@ Execution routing fields remain abstract so executors can be swapped without cha
 
 This field records the current active assignment chosen by the dispatcher. Assignment history should remain auditable through `status_history` and observability surfaces rather than being overwritten without trace.
 
+`assigned_executor` must not be used as a historical ledger. It answers "who is actively assigned now," while assignment history lives elsewhere.
+
 `required_capabilities` is a list of capability identifiers such as:
 
 - `code_editing`

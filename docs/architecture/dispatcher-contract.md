@@ -207,7 +207,11 @@ It should capture:
 - `executor_id` when a specific worker instance is selected
 - `assignment_reason`
 
-This field represents the active assignment, not the full assignment history.
+This field represents the current active assignment only, not the full assignment history.
+
+It must not be treated as a combined current-state field and audit log.
+
+When reassignment occurs, `assigned_executor` is updated to the new active assignment while historical assignment records remain preserved through the audit surfaces described below.
 
 ### Assignment Audit Trail
 
@@ -259,6 +263,10 @@ Allowed dispatcher-owned task updates include:
 
 The dispatcher may also authorize the transition from `assigned` to `executing` when the execution gateway confirms work has actually started.
 
+Dispatch alone must not cause `assigned` -> `executing`.
+
+That transition is reserved for actual execution start.
+
 The dispatcher must not use the task update to:
 
 - redefine task structure
@@ -308,6 +316,10 @@ This means:
 - the assignment has been recorded
 - the task is ready to start execution but has not yet started
 
+`assigned` therefore means "worker chosen and assignment recorded."
+
+It does not mean "work has started."
+
 ### Assigned To Executing
 
 Normal execution-start transition:
@@ -317,6 +329,13 @@ Normal execution-start transition:
 This should occur only when the execution gateway or runtime confirms that work has actually begun.
 
 The dispatcher may initiate this transition path, but it must not infer execution start without a real execution-start signal.
+
+The boundary must stay strict:
+
+- dispatch creates assignment
+- execution start creates `executing`
+
+If the system collapses those two moments into one, assignment auditability and start-of-work semantics become unreliable.
 
 ### Blocked Dispatch
 
@@ -337,6 +356,9 @@ It may occur when:
 
 - an assigned worker fails to start
 - execution stalls and policy allows reassignment
+- execution exceeds timeout or heartbeat thresholds and policy allows redispatch
+- explicit manual override requests reassignment
+- a capability mismatch is discovered after assignment
 - the original executor is no longer valid for the task
 - retry policy requires a new worker selection
 
@@ -347,6 +369,33 @@ Reassignment should:
 - preserve prior assignment history
 
 Reassignment must not silently erase the fact that the task was previously assigned elsewhere.
+
+## Redispatch Triggers And Ownership
+
+Redispatch must happen under explicit control-plane policy rather than ad hoc executor behavior.
+
+High-level triggers may include:
+
+- executor failure to accept or start the task
+- timeout, stall, or missed-heartbeat conditions detected by runtime systems
+- explicit manual override from a maintainer or authorized operator
+- capability mismatch discovered after assignment
+- retry policy requiring a fresh dispatch decision
+
+Detection may happen in other modules:
+
+- runtime may detect stall or timeout
+- execution gateway may report submission or startup failure
+- humans may request override
+- verification or review flows may reveal a capability mismatch
+
+Assignment consequences remain dispatcher-owned:
+
+- deciding whether redispatch is allowed now
+- choosing the next active assignment
+- updating `assigned_executor`
+- recording reassignment audit data
+- keeping the task in the correct lifecycle state while redispatch occurs
 
 ## Retries And Redispatch
 
