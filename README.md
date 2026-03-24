@@ -162,6 +162,7 @@ The architecture baseline for Epic 1 lives under `docs/`:
 - [System Context](docs/architecture/system-context.md)
 - [TaskEnvelope Contract](docs/architecture/task-envelope.md)
 - [Artifact And Completion Evidence](docs/architecture/artifact-and-completion-evidence.md)
+- [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
 - [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
 - [Module Boundaries](docs/architecture/module-boundaries.md)
 - [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)

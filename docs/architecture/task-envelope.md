@@ -295,6 +295,13 @@ This distinction matters because Linear and Harness business logic should reason
 - evaluates `artifacts.items` and `artifacts.completion_evidence`
 - determines whether a completion transition is evidence-backed
 - rejects terminal completion when required evidence is missing or insufficient
+- reconciles task state against external systems such as GitHub and Linear before preserving or changing terminal lifecycle state
+
+### Reconciliation
+
+- compares Harness task state with system-of-record state and artifact state
+- classifies mismatches instead of collapsing them into generic failure
+- may keep a task completed, move it to blocked, or require manual review depending on mismatch severity and evidence policy
 
 ## Schema Reference
 
