@@ -204,6 +204,8 @@ Execution routing fields remain abstract so executors can be swapped without cha
 - `executor_id`: specific executor instance, if one is selected
 - `assignment_reason`: optional routing explanation
 
+This field records the current active assignment chosen by the dispatcher. Assignment history should remain auditable through `status_history` and observability surfaces rather than being overwritten without trace.
+
 `required_capabilities` is a list of capability identifiers such as:
 
 - `code_editing`
@@ -310,6 +312,7 @@ Observability captures operational information without redefining business state
 - last heartbeat timestamp
 - queue name
 - scheduling hints
+- assignment and dispatch correlation identifiers when needed for auditability
 
 It must not store substrate-native execution graphs, workflow classes, or framework objects.
 
