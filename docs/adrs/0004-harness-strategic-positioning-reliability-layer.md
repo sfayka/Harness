@@ -20,6 +20,8 @@ The durable value is in:
 - system-of-record alignment across tools such as Linear and GitHub
 - treating executors as replaceable workers behind contracts
 
+Linear's movement toward an AI-native work surface strengthens this positioning rather than weakening it. Harness should not compete with Linear on work coordination or agent-facing issue management. Harness should sit underneath that surface as the layer that enforces correctness.
+
 ## Decision
 
 Position Harness as a control plane and reliability layer for AI-driven work.
@@ -29,16 +31,19 @@ This means:
 - Harness is not an agent runtime
 - Harness is not primarily an autonomy product
 - Harness does not compete on raw reasoning quality
+- Harness does not compete with Linear on issue, project, or workflow coordination
 - Harness owns correctness, traceability, verification, and enforcement
 - LLMs and agents are replaceable workers behind explicit contracts
 - completion is not accepted unless supported by task-appropriate artifacts and reconciliation
 - Harness enforces that task completion must be backed by verifiable evidence, not executor-reported success
+- Linear remains the work surface and structured-work system of record where humans and agents coordinate work
 
 ## Architectural Implications
 
 - TaskEnvelope and related contracts must support attachment of execution artifacts and evidence
 - Lifecycle transitions (especially to `completed`) must be gated by verification rules
 - Integrations with systems like GitHub and Linear are required for correctness, not optional extensions
+- Linear integration should optimize for system-of-record alignment and upstream write-back of verified outcomes rather than trying to replace Linear's native coordination surface
 - Executor outputs must be treated as untrusted until validated against artifacts
 - The system must support post-hoc audit and reconciliation of task outcomes
 
@@ -59,6 +64,7 @@ Reliability is defined by enforceable guarantees, not by worker quality.
 
 - architecture and implementation work should prioritize verification, evidence, and auditability before sophisticated planner behavior
 - artifact systems such as GitHub and structured work systems such as Linear are part of the system contract, not optional metadata sinks
+- work-surface features such as issue intake UX, generic coordination, and project management should remain secondary to reliability and enforcement capabilities
 - executor integrations should be designed for replaceability rather than special treatment of any one model provider
 - task lifecycle semantics become a first-class product boundary, not a side effect of worker behavior
 
