@@ -22,10 +22,32 @@ The planner is not responsible for:
 
 - clarification policy at ingress
 - executor selection
+- routing decisions
+- scheduling decisions
 - workflow runtime durability
 - artifact-backed completion verification
 - reconciliation with GitHub or Linear
 - freeform execution of the task itself
+
+## Planner Boundary Summary
+
+The planner defines:
+
+- structure
+- decomposition
+- dependencies
+- sequencing
+- checkpoint and gate placement
+
+The planner does not define:
+
+- executor selection
+- routing
+- scheduling
+- runtime orchestration
+- completion verification
+
+If a later module needs to decide who should do the work, when it should run, or how it should be routed, that decision belongs outside the planner contract.
 
 ## Preconditions For Planning
 
@@ -159,11 +181,13 @@ A planner output bundle should contain:
 `plan_summary` provides a concise, reviewable explanation of:
 
 - the decomposition strategy
-- the intended execution order
+- the intended sequencing or execution order
 - major assumptions preserved from the parent task
 - any explicit non-goals or excluded scope
 
 This is for auditability, not for downstream reinterpretation.
+
+Sequencing here means structural ordering constraints between tasks. It does not mean runtime scheduling or executor routing.
 
 ### Parent Task Update
 
@@ -179,6 +203,8 @@ Allowed parent-task planning updates include:
 The planner must not use the parent update to:
 
 - assign executors
+- route work to a worker class or queue
+- schedule work for a specific time or runtime slot
 - mark evidence satisfied
 - mark the task completed
 - rewrite origin semantics
@@ -350,6 +376,7 @@ The planner may surface clarification findings, but it does not own ingress conv
 - decomposition strategy
 - child task creation
 - dependency definition
+- sequencing definition
 - checkpoint definition
 - transition into a structured planned state
 
@@ -358,6 +385,7 @@ The planner may surface clarification findings, but it does not own ingress conv
 - executor selection
 - assignment decisions
 - routing policy
+- scheduling and queue placement
 
 ### Runtime Owns
 
@@ -375,6 +403,8 @@ The planner may surface clarification findings, but it does not own ingress conv
 The planner must not:
 
 - choose Codex, Claude, or any other specific executor
+- choose an executor class, routing destination, or queue
+- choose when work should run
 - mark a task `dispatch_ready`, `assigned`, `executing`, or `completed`
 - declare artifact evidence satisfied
 - declare reconciliation complete
