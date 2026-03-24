@@ -34,7 +34,14 @@ TaskEnvelope = dict[str, object]
 
 
 class EnforcementAction(StrEnum):
-    """Top-level integrated enforcement actions."""
+    """Top-level integrated enforcement actions.
+
+    NO_OP means the control plane evaluated the task and determined that
+    nothing should change yet.
+
+    TRANSITION_REJECTED means the flow attempted or was given a concrete
+    lifecycle action, but that action failed lifecycle policy enforcement.
+    """
 
     NO_OP = "no_op"
     TRANSITION_APPLIED = "transition_applied"
@@ -142,6 +149,8 @@ def _apply_transition(
             facts=facts,
         )
     except LifecycleTransitionError as error:
+        # A specific lifecycle change was attempted here, so failure is not a
+        # no-op. It is an explicit rejected action that must remain auditable.
         return _result_with_error(
             task_envelope,
             action=EnforcementAction.TRANSITION_REJECTED,
@@ -244,6 +253,8 @@ def enforce_task_envelope(
         )
 
     if verification_result.outcome == VerificationOutcome.VERIFICATION_DEFERRED:
+        # Verification concluded that nothing should move yet. No lifecycle
+        # change was attempted, so this remains a true no-op.
         return EnforcementResult(
             action=EnforcementAction.NO_OP,
             task_envelope=task_envelope,
@@ -287,6 +298,7 @@ def enforce_task_envelope(
 
     target_status = verification_result.target_status
     if target_status is None or target_status == task_envelope["status"]:
+        # The integrated evaluation produced no lifecycle delta to apply.
         return EnforcementResult(
             action=EnforcementAction.NO_OP,
             task_envelope=task_envelope,

@@ -217,6 +217,7 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.action, EnforcementAction.NO_OP)
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.VERIFICATION_DEFERRED)
         self.assertIsNone(result.transition_result)
+        self.assertIsNone(result.error)
 
     def test_claimed_completion_with_valid_evidence_transitions_to_completed(self) -> None:
         task = _base_task(status="executing")
@@ -358,6 +359,40 @@ class IntegratedEnforcementTests(unittest.TestCase):
 
         self.assertEqual(result.action, EnforcementAction.TRANSITION_REJECTED)
         self.assertIn("not authorized", result.error)
+        self.assertIsNone(result.transition_result)
+
+    def test_distinguishes_no_op_from_transition_rejected(self) -> None:
+        no_op_result = enforce_task_envelope(
+            _base_task(status="executing"),
+            enforcement_input=EnforcementInput(),
+        )
+
+        review_request = ReviewRequest(
+            review_request_id="review-request-4",
+            task_id="task-blocked-1",
+            requested_at="2026-03-24T16:20:00Z",
+            requested_by="operator",
+            trigger=ReviewTrigger.RUNTIME_ANOMALY,
+            summary="Try the task again.",
+            presented_sections=("task_state", "runtime_facts"),
+            allowed_outcomes=(ReviewOutcome.AUTHORIZE_RETRY,),
+        )
+        rejected_review_decision = resolve_review_request(
+            review_request,
+            review_id="review-3",
+            reviewer=_reviewer(),
+            outcome=ReviewOutcome.AUTHORIZE_RETRY,
+            reasoning="A retry should be attempted.",
+        )
+        rejected_result = enforce_task_envelope(
+            _base_task(status="blocked"),
+            enforcement_input=EnforcementInput(review_decision=rejected_review_decision),
+        )
+
+        self.assertEqual(no_op_result.action, EnforcementAction.NO_OP)
+        self.assertIsNone(no_op_result.error)
+        self.assertEqual(rejected_result.action, EnforcementAction.TRANSITION_REJECTED)
+        self.assertIsNotNone(rejected_result.error)
 
     def test_invalid_evidence_returns_invalid_input(self) -> None:
         task = _base_task(status="completed")
