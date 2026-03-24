@@ -2,7 +2,7 @@
 
 ## Objective
 
-Propose a repository layout that mirrors the architecture boundaries without committing to runtime implementation yet.
+Propose a repository layout that mirrors the architecture boundaries and gives reliability, verification, and system-of-record enforcement first-class homes.
 
 ## Proposed Layout
 
@@ -12,22 +12,24 @@ docs/
   adrs/
   planning/
 
-src/
-  harness/
-    intake/
-    planning/
-    assignment/
-    reporting/
+modules/
+  contracts/
+  intake/
+  planning/
+  dispatch/
+  verification/
   integrations/
     openclaw/
     linear/
+    github/
     executors/
       codex/
   substrate/
-  contracts/
 
 tests/
-  architecture/
+  contracts/
+  intake/
+  verification/
   integrations/
   substrate/
 ```
@@ -38,55 +40,45 @@ tests/
 
 Architecture, ADRs, and planning artifacts stay visible and versioned next to code.
 
-### src/harness/
+### modules/
 
 Owns control-plane behavior only.
 
 Suggested ownership slices:
 
+- `contracts/` for canonical task and evidence contracts
 - `intake/` for normalization after ingress validation
 - `planning/` for decomposition and dependency generation
-- `assignment/` for routing and reassignment policy
-- `reporting/` for status aggregation and upstream summaries
+- `dispatch/` for routing and reassignment policy
+- `verification/` for evidence checks and completion enforcement
 
-### src/integrations/
+### modules/integrations/
 
 Contains boundary adapters to external systems.
 
 - `openclaw/` for ingress-facing contracts
 - `linear/` for structured work synchronization
+- `github/` for artifact evidence synchronization
 - `executors/` for worker-specific transport layers
 
-### src/substrate/
+### modules/substrate/
 
 Contains the workflow runtime adapter and substrate-facing abstractions.
 
-This directory should hide substrate implementation details behind stable interfaces used by `src/harness/`.
-
-### src/contracts/
-
-Contains canonical payload and state definitions shared across modules.
-
-Examples:
-
-- request contract
-- task contract
-- execution event contract
-- status enums
+This directory should hide substrate implementation details behind stable interfaces used by the control-plane modules.
 
 ### tests/
 
-Keeps architecture tests and adapter tests separate from control-plane tests.
+Keeps contract validation, intake behavior, verification behavior, and adapter tests separate.
 
 ## Layout Rules
 
-- do not put executor-specific behavior into `src/harness/`
-- do not put planning policy into `src/integrations/`
+- do not put executor-specific behavior into `modules/planning/`, `modules/dispatch/`, or `modules/verification/`
+- do not put planning or verification policy into `modules/integrations/`
 - do not let substrate APIs leak through module boundaries
 - keep shared contracts independent from vendor adapters
+- keep artifact verification logic separate from executor integrations
 
 ## Near-Term Recommendation
 
-Do not create the runtime directories yet unless implementation starts in those areas.
-
-For Epic 1, the value is in agreeing on the layout and using it to guide future tickets.
+Implementation should prioritize `contracts/`, `intake/`, `verification/`, and the integrations that provide structured work and artifact evidence before investing heavily in smarter planning or dispatch behavior.

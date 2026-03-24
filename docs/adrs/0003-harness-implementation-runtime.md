@@ -6,12 +6,13 @@
 
 ## Context
 
-Harness is the orchestration/control plane of the system. It owns:
+Harness is the control plane and reliability layer of the system. It owns:
 
 - task contracts and lifecycle semantics
 - orchestration rules and transitions
 - intake normalization and clarification behavior
 - execution routing and artifact tracking
+- completion verification and auditability
 
 OpenClaw is an ingress/interface layer and is implemented in a Node/TypeScript ecosystem. Harness must integrate cleanly with OpenClaw today, while also remaining replaceable and usable with other ingress layers later.
 
@@ -22,6 +23,7 @@ The project priorities are:
 - minimal coupling to ingress/runtime choices
 - low operational friction for an open-source project
 - clean communication between OpenClaw and Harness
+- reliable, artifact-backed execution guarantees
 
 The current implementation direction needs an explicit runtime decision because intake was implemented opportunistically in Node.js before a repo-level runtime choice was made.
 
@@ -46,6 +48,7 @@ Python is selected because Harness is primarily a control-plane/backend system r
 This choice is preferred because it:
 
 - fits orchestration, state handling, contract enforcement, and backend service responsibilities well
+- fits verification, auditability, and system-of-record reconciliation responsibilities well
 - keeps Harness independent from OpenClaw’s Node/TypeScript runtime
 - reduces the chance that OpenClaw implementation details leak into Harness business logic
 - preserves flexibility if OpenClaw is later replaced by another ingress layer
@@ -60,6 +63,7 @@ API-first integration is required because it makes cross-runtime communication e
 - Harness must expose explicit API contracts for ingress integration
 - OpenClaw/Harness integration will rely on network/process boundaries rather than shared libraries
 - TypeScript client generation may be used later for OpenClaw-side ergonomics, but generated clients are downstream artifacts rather than primary source of truth
+- runtime choice should reinforce Harness as a standalone control plane, not as an agent-hosted extension
 
 ## Alternatives Considered
 
@@ -123,3 +127,5 @@ Harness business logic must not depend on:
 - Node-specific execution assumptions
 
 All ingress communication must pass through explicit contracts owned by Harness.
+
+This runtime choice supports the broader requirement that Harness own correctness, traceability, evidence enforcement, and auditability independently of whichever worker or ingress system is current.

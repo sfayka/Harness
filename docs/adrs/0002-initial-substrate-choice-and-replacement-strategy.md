@@ -14,6 +14,7 @@ The system is early-stage, open-source, and not monetized. Priorities are:
 - minimizing operational overhead
 - avoiding premature platform lock-in
 - ensuring long-term replaceability of the workflow substrate
+- keeping verification, evidence enforcement, and lifecycle correctness in Harness-owned code
 
 The current candidate set is:
 
@@ -34,6 +35,7 @@ The system is structured as follows:
   - module boundaries
   - orchestration rules and transitions
   - execution routing and event handling
+  - verification rules and evidence requirements
 
 - The substrate provides:
   - checkpoint persistence
@@ -50,6 +52,7 @@ This approach balances control and pragmatism:
 
 - avoids building a custom workflow engine prematurely
 - keeps business logic and orchestration semantics owned by Harness
+- keeps verification and artifact-backed completion out of substrate-native constructs
 - reduces operational complexity compared to full platforms like Temporal
 - allows early contributors to reason about the system without deep framework knowledge
 - maintains flexibility to change substrates later
@@ -60,6 +63,7 @@ This approach balances control and pragmatism:
 - developers must be disciplined about not leaking substrate-specific concepts into business logic
 - some substrate capabilities may not be fully utilized initially
 - system remains understandable and evolvable as the domain model stabilizes
+- correctness still depends on Harness enforcing evidence and system-of-record rules above the substrate layer
 
 ## Alternatives Considered
 
@@ -128,6 +132,7 @@ Substrate replacement is enabled by enforcing strict architectural boundaries:
 - all orchestration state is defined in Harness-owned contracts
 - substrate interfaces abstract persistence and execution
 - Linear identifiers and task states remain business-level concepts
+- artifact evidence and verification rules remain business-level concepts
 - executor interactions are independent of substrate types
 
 If replacement is required:
@@ -147,3 +152,5 @@ Harness business logic must not depend on:
 - any substrate-specific execution model
 
 All orchestration behavior must be expressed in Harness terms and mapped to the substrate via adapters.
+
+Artifact-backed completion, auditability, and system-of-record reconciliation must also remain expressed in Harness terms rather than substrate-native workflow semantics.

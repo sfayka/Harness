@@ -1,7 +1,8 @@
 flowchart LR
     U["User"] --> O["OpenClaw\nIngress and clarification"]
-    O --> H["Harness\nControl plane"]
+    O --> H["Harness\nControl plane and reliability layer"]
     H --> L["Linear\nStructured work source of truth"]
+    H --> G["GitHub\nArtifact evidence source of truth"]
     H --> S["Workflow substrate\nPersistence and resumability"]
     H --> E["Executors\nCodex and future workers"]
     E --> H
