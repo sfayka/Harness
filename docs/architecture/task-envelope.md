@@ -315,6 +315,8 @@ Observability captures operational information without redefining business state
 - queue name
 - scheduling hints
 - assignment and dispatch correlation identifiers when needed for auditability
+- execution and attempt correlation identifiers when needed for auditability
+- last execution progress timestamp when tracked as a neutral runtime fact
 
 It must not store substrate-native execution graphs, workflow classes, or framework objects.
 

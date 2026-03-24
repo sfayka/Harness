@@ -167,6 +167,7 @@ The architecture baseline for Epic 1 lives under `docs/`:
 - [Clarification And Missing Information](docs/architecture/clarification-and-missing-information.md)
 - [Planner Contract](docs/architecture/planner-contract.md)
 - [Dispatcher Contract](docs/architecture/dispatcher-contract.md)
+- [Runtime Execution Contract](docs/architecture/runtime-execution-contract.md)
 - [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
 - [Module Boundaries](docs/architecture/module-boundaries.md)
 - [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)
