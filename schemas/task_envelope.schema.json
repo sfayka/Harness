@@ -408,92 +408,497 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "pr_links",
-        "commit_shas",
-        "logs",
-        "outputs"
+        "items",
+        "completion_evidence"
       ],
       "properties": {
-        "pr_links": {
+        "items": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "uri"
+            "$ref": "#/$defs/artifactRecord"
           },
           "default": []
         },
-        "commit_shas": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "pattern": "^[a-fA-F0-9]{7,40}$"
-          },
-          "uniqueItems": true,
-          "default": []
-        },
-        "logs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/logReference"
-          },
-          "default": []
-        },
-        "outputs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/outputReference"
-          },
-          "default": []
+        "completion_evidence": {
+          "$ref": "#/$defs/completionEvidence"
         }
       }
     },
-    "logReference": {
+    "artifactRecord": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "id",
         "type",
-        "location"
+        "provenance",
+        "verification_status",
+        "repository",
+        "branch",
+        "changed_files",
+        "external_refs"
       ],
       "properties": {
-        "type": {
+        "id": {
           "type": "string",
           "minLength": 1
         },
-        "location": {
+        "type": {
           "type": "string",
-          "minLength": 1
+          "enum": [
+            "pull_request",
+            "commit",
+            "branch",
+            "changed_file",
+            "log",
+            "output",
+            "review_note"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "description": {
           "type": [
             "string",
             "null"
           ]
-        }
-      }
-    },
-    "outputReference": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "type",
-        "location"
-      ],
-      "properties": {
-        "type": {
-          "type": "string",
-          "minLength": 1
         },
         "location": {
-          "type": "string",
-          "minLength": 1
-        },
-        "description": {
           "type": [
             "string",
             "null"
           ]
         },
         "content_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "external_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "commit_sha": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{7,40}$"
+        },
+        "pull_request_number": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "review_state": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "approved",
+            "changes_requested",
+            "commented",
+            "dismissed",
+            null
+          ]
+        },
+        "provenance": {
+          "$ref": "#/$defs/artifactProvenance"
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "verified",
+            "rejected",
+            "informational"
+          ]
+        },
+        "repository": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/repositoryIdentity"
+            }
+          ]
+        },
+        "branch": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/branchIdentity"
+            }
+          ]
+        },
+        "changed_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/changedFile"
+          },
+          "default": []
+        },
+        "external_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/externalReference"
+          },
+          "default": []
+        },
+        "captured_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "metadata": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "pull_request"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "pull_request_number"
+            ],
+            "properties": {
+              "repository": {
+                "$ref": "#/$defs/repositoryIdentity"
+              },
+              "branch": {
+                "$ref": "#/$defs/branchIdentity"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "commit"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "commit_sha"
+            ],
+            "properties": {
+              "repository": {
+                "$ref": "#/$defs/repositoryIdentity"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "branch"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "repository": {
+                "$ref": "#/$defs/repositoryIdentity"
+              },
+              "branch": {
+                "$ref": "#/$defs/branchIdentity"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "changed_file"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "repository": {
+                "$ref": "#/$defs/repositoryIdentity"
+              },
+              "branch": {
+                "$ref": "#/$defs/branchIdentity"
+              },
+              "changed_files": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artifactProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_system",
+        "source_type",
+        "source_id"
+      ],
+      "properties": {
+        "source_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "captured_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "repositoryIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host",
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "branchIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "base_branch"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base_branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "head_commit_sha": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{7,40}$"
+        }
+      }
+    },
+    "changedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "change_type"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_type": {
+          "type": "string",
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed",
+            "copied",
+            "unknown"
+          ]
+        },
+        "previous_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "additions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "deletions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "externalReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "id"
+      ],
+      "properties": {
+        "system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        }
+      }
+    },
+    "completionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy",
+        "status",
+        "required_artifact_types",
+        "validated_artifact_ids",
+        "validation_method",
+        "validated_at",
+        "validator"
+      ],
+      "properties": {
+        "policy": {
+          "type": "string",
+          "enum": [
+            "deferred",
+            "required",
+            "advisory_only",
+            "not_applicable"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "deferred",
+            "pending",
+            "satisfied",
+            "insufficient",
+            "not_applicable"
+          ]
+        },
+        "required_artifact_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "pull_request",
+              "commit",
+              "branch",
+              "changed_file",
+              "log",
+              "output",
+              "review_note"
+            ]
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "validated_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "validation_method": {
+          "type": "string",
+          "enum": [
+            "deferred",
+            "artifact_presence",
+            "external_reconciliation",
+            "manual_review",
+            "mixed",
+            "none"
+          ]
+        },
+        "validated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "validator": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/artifactProvenance"
+            }
+          ]
+        },
+        "notes": {
           "type": [
             "string",
             "null"

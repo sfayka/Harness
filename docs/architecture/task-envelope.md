@@ -65,7 +65,7 @@ At the top level, a TaskEnvelope contains:
 | `assigned_executor` | object or null | yes | current routing decision |
 | `required_capabilities` | array | yes | executor capabilities needed for the task |
 | `priority` | enum | yes | relative scheduling priority |
-| `artifacts` | object | yes | PRs, commits, logs, and outputs |
+| `artifacts` | object | yes | canonical execution artifacts and completion evidence state |
 | `observability` | object | yes | retries, errors, and execution metadata |
 | `extensions` | object | no | explicitly non-canonical extension surface for future modules |
 
@@ -81,7 +81,7 @@ TaskEnvelope uses the following canonical states:
 | `assigned` | task has an executor selected but execution has not yet started |
 | `executing` | executor has started work |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
-| `completed` | task satisfied its acceptance criteria and is considered done by Harness |
+| `completed` | task satisfied its acceptance criteria and any required completion evidence has been verified by Harness |
 | `failed` | task reached a terminal unsuccessful outcome |
 | `canceled` | task was intentionally stopped and should not continue |
 
@@ -116,6 +116,8 @@ Terminal states:
 - `canceled`
 
 `status_history` should capture all non-initial state changes with timestamps and reasons.
+
+For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
 
 ## Field Semantics
 
@@ -205,18 +207,23 @@ Execution routing fields remain abstract so executors can be swapped without cha
 
 ### Artifacts
 
-Artifacts are product-facing outputs attached to the task, not substrate checkpoints.
+Artifacts are product-facing outputs and verification evidence attached to the task, not substrate checkpoints.
 
 `artifacts` contains:
 
-- `pr_links`
-- `commit_shas`
-- `logs`
-- `outputs`
+- `items`: canonical artifact records such as pull requests, commits, changed files, logs, outputs, and review notes
+- `completion_evidence`: the current policy and validation state for deciding whether a task may be treated as complete
 
-`logs` is for execution or diagnostic references that matter at the task level.
+Each artifact record may carry:
 
-`outputs` is for task deliverables or produced references.
+- artifact type
+- repository and branch identity
+- changed-file information
+- provenance
+- external references
+- verification status
+
+Completion is not trusted purely because an executor claims success. `artifacts.completion_evidence` is where Harness records whether the evidence requirement is deferred, required, satisfied, insufficient, or not applicable.
 
 ### Observability
 
@@ -282,6 +289,12 @@ This distinction matters because Linear and Harness business logic should reason
 
 - contribute logs, outputs, and execution observations
 - do not redefine task status semantics outside the canonical lifecycle
+
+### Verification
+
+- evaluates `artifacts.items` and `artifacts.completion_evidence`
+- determines whether a completion transition is evidence-backed
+- rejects terminal completion when required evidence is missing or insufficient
 
 ## Schema Reference
 

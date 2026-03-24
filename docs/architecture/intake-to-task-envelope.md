@@ -29,7 +29,7 @@ Intake does not own:
 - executor capability requirements
 - routing priority policy
 - workflow runtime state
-- execution artifacts beyond empty initialization
+- execution artifacts beyond schema-valid empty initialization
 
 ## Inbound Intake Shape
 
@@ -104,12 +104,19 @@ These fields are explicitly deferred at intake time:
 
 ### Artifacts
 
-Artifacts are initialized empty:
+Artifacts are initialized as schema-valid placeholders only:
 
-- `pr_links` -> `[]`
-- `commit_shas` -> `[]`
-- `logs` -> `[]`
-- `outputs` -> `[]`
+- `items` -> `[]`
+- `completion_evidence.policy` -> `deferred`
+- `completion_evidence.status` -> `deferred`
+- `completion_evidence.required_artifact_types` -> `[]`
+- `completion_evidence.validated_artifact_ids` -> `[]`
+- `completion_evidence.validation_method` -> `deferred`
+- `completion_evidence.validated_at` -> `null`
+- `completion_evidence.validator` -> `null`
+- `completion_evidence.notes` -> `null`
+
+These defaults do not claim completion evidence exists. They only keep intake schema-valid while leaving evidence policy and verification to later modules.
 
 ### Observability
 
