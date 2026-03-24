@@ -2,67 +2,106 @@
 
 Harness is a control plane and reliability layer for AI-assisted work.
 
-The goal is not to out-reason model-native task runners. The goal is to make AI-driven execution reliable, auditable, artifact-backed, and aligned with system-of-record workflows.
+It does not try to make AI smarter.
+
+It makes AI-driven work **reliable, auditable, and actually complete**.
+
+The goal is not to out-reason model-native task runners. The goal is to ensure that execution is artifact-backed, verifiable, and aligned with system-of-record workflows.
 
 The Harness runtime is Python. Integration with OpenClaw is API-first rather than a Node extension model.
 
+## Why Harness Exists
+
+AI agents are getting better at reasoning and execution.
+
+But that is not the real bottleneck.
+
+The real problem is that there is no reliable system around them.
+
+Today:
+- tasks are loosely defined
+- execution is opaque
+- completion is based on what an agent says, not what actually happened
+- there is no consistent way to verify, audit, or reconcile work
+
+This leads to:
+- tasks marked “done” with no artifacts
+- work executed in the wrong repo or context
+- silent failures or partial completion
+- constant human babysitting
+
+Harness exists to solve this problem.
+
+Harness is a continuation of the ideas behind InboxToBacklog, extended into a full control-plane system focused on correctness, verification, and auditability.
+
+---
+
 ## What Harness Is
 
-Harness is a system for:
+Harness is a **control plane and reliability layer for AI-driven work**.
 
-- receiving validated work through explicit contracts
-- normalizing work into canonical task structures
-- delegating execution to replaceable workers
-- requiring evidence before trusting completion
-- reconciling lifecycle state across systems such as Linear and GitHub
+It enforces that:
+- work is defined through explicit contracts (TaskEnvelope)
+- execution is delegated to replaceable workers (Codex, Claude, etc.)
+- completion is not accepted without verifiable artifacts (PRs, commits, etc.)
+- task lifecycle state is explicit (blocked, failed, completed)
+- system-of-record tools (e.g. Linear, GitHub) stay consistent with reality
+
+Harness does not try to make AI “smarter.”
+
+It makes AI-driven work **reliable, auditable, and actually complete**.
+
+---
 
 ## What Harness Is Not
 
 Harness is not:
 
-- a generic agent framework
-- a model-hosted plugin extension
-- a bet against improving model-native reasoning
-- a system that treats executor-reported success as sufficient evidence of completion
+- an agent framework
+- a multi-agent coordination system
+- a planner/router competing with model-native reasoning
+- a replacement for Codex, Claude, or similar systems
 
-## Purpose
+Those systems are **workers**.
 
-Harness is a continuation of the ideas behind InboxToBacklog, but in a fresh repository with a tighter focus on correctness, verification, and control-plane guarantees.
+Harness is the system that ensures their work is correct.
 
-At a high level, Harness should:
+---
 
-- accept work through explicit contracts
-- normalize work into canonical task structures
-- delegate execution to replaceable workers
-- require evidence before trusting completion
-- maintain explicit blocked, failed, and completed semantics
-- reconcile state across systems of record such as Linear and GitHub
-- provide an auditable record of what was planned, executed, verified, and finished
+## Core Principle
 
-## Problem Statement
+> Work is not complete because an agent says it is complete.  
+> Work is only accepted as complete when it is backed by verifiable evidence.
 
-Model-native task execution will continue to improve. That is not Harness's moat.
+This principle drives:
+- artifact modeling
+- completion rules
+- reconciliation with external systems
+- auditability of all outcomes
 
-The missing layer is reliable task control:
+---
 
-Harness exists to fill that gap:
+## Current Direction
 
-- make work contracts explicit
-- make lifecycle state auditable
-- enforce artifact-backed completion
-- reconcile execution claims against external systems of record
-- surface blocked and failed outcomes instead of assuming successful autonomy
+The project is actively evolving toward:
+
+- artifact-backed completion and verification
+- reconciliation between Harness, GitHub, and Linear
+- explicit lifecycle semantics (including failure and blocked states)
+- treating executors as replaceable components behind contracts
+
+This is a **build-in-public** effort. Expect rough edges, but a clear direction.
 
 ## Rough Workflow
 
-1. A user gives Openclaw a request.
-2. Openclaw asks follow-up questions if needed.
-3. Openclaw hands validated work to Harness.
-4. Harness normalizes the request into canonical task structures.
-5. Harness decomposes the work and delegates execution to replaceable workers.
-6. Harness watches progress, blocked states, failures, and evidence collection.
-7. Harness verifies completion against artifacts and system-of-record state.
-8. Harness aggregates verified outcomes and reports status back upstream.
+1. A user provides a request through an ingress layer (e.g. OpenClaw).
+2. The request is clarified and normalized into a structured task.
+3. Harness converts the request into canonical task contracts.
+4. Work is decomposed and delegated to replaceable executors.
+5. Harness tracks execution, blocked states, and failures.
+6. Artifacts are collected and attached to tasks.
+7. Completion is verified against artifacts and system-of-record state.
+8. Verified outcomes are reported upstream.
 
 ## Early Scope
 
@@ -88,7 +127,7 @@ For now, Harness should optimize for clarity over automation theater.
 
 ## Status
 
-This repository is still early, but the architecture direction is established.
+Not production-ready. Architecture-first.
 
 Current focus:
 
@@ -132,6 +171,10 @@ The architecture baseline for Epic 1 lives under `docs/`:
 - [ADR 0003](docs/adrs/0003-harness-implementation-runtime.md)
 - [ADR 0004](docs/adrs/0004-harness-strategic-positioning-reliability-layer.md)
 - [Initial Codex Tickets](docs/planning/initial-codex-tickets.md)
+
+## System Overview
+
+![System Diagram](docs/architecture/system-context.png)
 
 ## Contributing
 
