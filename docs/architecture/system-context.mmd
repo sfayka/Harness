@@ -1,0 +1,8 @@
+flowchart LR
+    U["User"] --> O["OpenClaw\nIngress and clarification"]
+    O --> H["Harness\nControl plane"]
+    H --> L["Linear\nStructured work source of truth"]
+    H --> S["Workflow substrate\nPersistence and resumability"]
+    H --> E["Executors\nCodex and future workers"]
+    E --> H
+    H --> O
