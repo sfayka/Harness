@@ -121,6 +121,8 @@ Terminal states:
 
 `status_history` should capture all non-initial state changes with timestamps and reasons.
 
+Allowed transitions are not sufficient by themselves. Each transition must also satisfy ownership and precondition rules enforced by the relevant control-plane module or authorized actor.
+
 For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
 
 `completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
@@ -128,6 +130,8 @@ For tasks with required completion evidence, transition to `completed` is only v
 `completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
 
 `blocked` is a lifecycle state, not a root cause. Clarification, external dependencies, and reconciliation failures may all use `blocked`, but they must be distinguished by the relevant contract fields rather than inferred from the state name alone.
+
+State movement is policy-enforced. Executor-reported events may supply inputs, but they do not independently authorize lifecycle transitions such as `assigned` -> `executing` or `executing` -> `completed`.
 
 ## Field Semantics
 
