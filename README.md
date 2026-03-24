@@ -87,6 +87,7 @@ The project is actively evolving toward:
 
 - artifact-backed completion and verification
 - reconciliation between Harness, GitHub, and Linear
+- explicit clarification and missing-information handling
 - explicit lifecycle semantics (including failure and blocked states)
 - treating executors as replaceable components behind contracts
 
@@ -163,6 +164,7 @@ The architecture baseline for Epic 1 lives under `docs/`:
 - [TaskEnvelope Contract](docs/architecture/task-envelope.md)
 - [Artifact And Completion Evidence](docs/architecture/artifact-and-completion-evidence.md)
 - [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
+- [Clarification And Missing Information](docs/architecture/clarification-and-missing-information.md)
 - [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
 - [Module Boundaries](docs/architecture/module-boundaries.md)
 - [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)

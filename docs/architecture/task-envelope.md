@@ -18,7 +18,7 @@ It is the single source of truth for task-shaped work flowing through intake, pl
 
 TaskEnvelope is designed to support:
 
-- intake of validated requests after clarification
+- intake of requests, including tasks that must pause for clarification before safe execution
 - structured planning and decomposition
 - dependency tracking
 - execution routing
@@ -66,6 +66,7 @@ At the top level, a TaskEnvelope contains:
 | `required_capabilities` | array | yes | executor capabilities needed for the task |
 | `priority` | enum | yes | relative scheduling priority |
 | `artifacts` | object | yes | canonical execution artifacts and completion evidence state |
+| `clarification` | object | no | canonical missing-information and clarification tracking state |
 | `observability` | object | yes | retries, errors, and execution metadata |
 | `extensions` | object | no | explicitly non-canonical extension surface for future modules |
 
@@ -89,6 +90,7 @@ TaskEnvelope uses the following canonical states:
 
 Canonical transitions:
 
+- `intake_ready` -> `blocked`
 - `intake_ready` -> `planned`
 - `planned` -> `dispatch_ready`
 - `planned` -> `blocked`
@@ -105,9 +107,11 @@ Canonical transitions:
 - `executing` -> `failed`
 - `executing` -> `canceled`
 - `completed` -> `blocked`
+- `blocked` -> `intake_ready`
 - `blocked` -> `planned`
 - `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
+- `blocked` -> `executing`
 - `blocked` -> `canceled`
 
 Terminal states:
@@ -120,6 +124,8 @@ Terminal states:
 For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
 
 `completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
+
+`blocked` is a lifecycle state, not a root cause. Clarification, external dependencies, and reconciliation failures may all use `blocked`, but they must be distinguished by the relevant contract fields rather than inferred from the state name alone.
 
 ## Field Semantics
 
@@ -182,6 +188,8 @@ Each dependency contains:
 - `dependency_type`: currently `blocks` or `related`
 - `required_status`: status the dependency must reach before this task is unblocked
 
+When a task is blocked because another task or external system must finish work first, `dependencies` remains the primary representation. Clarification should not be used to represent ordinary upstream dependency waits.
+
 ### Execution Routing
 
 Execution routing fields remain abstract so executors can be swapped without changing the contract.
@@ -240,6 +248,36 @@ These are not interchangeable.
 - executor-reported success is advisory
 - artifact-backed evidence is necessary for evidence-driven completion
 - reconciliation-verified completion is what makes a completed state durable
+
+### Clarification
+
+`clarification` is the canonical surface for missing, ambiguous, or incomplete information that prevents safe progress.
+
+It is optional because many tasks do not require clarification. When present, it distinguishes information gaps from other blocked conditions without changing the top-level lifecycle model.
+
+`clarification` includes:
+
+- `status`: clarification phase such as `required`, `requested`, `answered`, or `resolved`
+- `blocking_reason`: whether the task is blocked by missing information, ambiguous information, or an outstanding human or system response
+- `resume_target_status`: the status the task should return to once clarification is resolved
+- `required_inputs`: the required or optional inputs Harness is tracking
+- `questions`: clarification questions that have been sent or recorded
+- `responses`: clarification answers attached to the task
+
+Use `clarification` when:
+
+- a required input is missing
+- supplied information is ambiguous
+- provided information is incomplete enough that progress would rely on guessing
+- the task is explicitly waiting on a human or upstream system to answer a clarification request
+
+Do not use `clarification` when:
+
+- the task is blocked by an ordinary dependency on another task
+- the task is blocked by artifact or reconciliation mismatch
+- the task is paused for executor capacity or scheduling reasons
+
+Clarification states must not authorize silent guessing. If a required input is unresolved, the task should remain `blocked` or otherwise non-progressing until the missing information is supplied, waived by policy, or the task is canceled.
 
 ### Observability
 

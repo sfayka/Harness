@@ -124,6 +124,9 @@
     "artifacts": {
       "$ref": "#/$defs/artifacts"
     },
+    "clarification": {
+      "$ref": "#/$defs/clarification"
+    },
     "observability": {
       "$ref": "#/$defs/observability"
     },
@@ -421,6 +424,257 @@
         },
         "completion_evidence": {
           "$ref": "#/$defs/completionEvidence"
+        }
+      }
+    },
+    "clarification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "required_inputs",
+        "questions",
+        "responses"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "required",
+            "requested",
+            "answered",
+            "resolved"
+          ]
+        },
+        "blocking_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "missing_information",
+            "ambiguous_information",
+            "waiting_on_human_input",
+            "waiting_on_system_input",
+            null
+          ]
+        },
+        "resume_target_status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "intake_ready",
+            "planned",
+            "dispatch_ready",
+            "assigned",
+            "executing",
+            null
+          ]
+        },
+        "required_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clarificationInput"
+          },
+          "default": []
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clarificationQuestion"
+          },
+          "default": []
+        },
+        "responses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clarificationResponse"
+          },
+          "default": []
+        },
+        "requested_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "resolved_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "requested_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolution_summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "clarificationInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "description",
+        "required",
+        "need_type",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "need_type": {
+          "type": "string",
+          "enum": [
+            "missing",
+            "ambiguous",
+            "incomplete",
+            "confirmation"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "provided",
+            "waived"
+          ]
+        },
+        "value_summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "clarificationQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "prompt",
+        "status",
+        "asked_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "answered",
+            "canceled"
+          ]
+        },
+        "asked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "asked_to": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "channel": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "clarificationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "content",
+        "received_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "responder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "received_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_system": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
