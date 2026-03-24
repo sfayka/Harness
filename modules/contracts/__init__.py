@@ -13,6 +13,12 @@ from .task_envelope_evidence import (
     validate_completion_evidence,
     validate_task_evidence,
 )
+from .task_envelope_enforcement import (
+    EnforcementAction,
+    EnforcementInput,
+    EnforcementResult,
+    enforce_task_envelope,
+)
 from .task_envelope_reconciliation import (
     ExpectedCodeContext,
     GitHubArtifactFacts,
@@ -66,6 +72,9 @@ __all__ = [
     "ArtifactValidationResult",
     "CompletionEvidenceValidationError",
     "CompletionEvidenceValidationResult",
+    "EnforcementAction",
+    "EnforcementInput",
+    "EnforcementResult",
     "EvidenceValidationError",
     "ExpectedCodeContext",
     "ForbiddenTransitionError",
@@ -103,6 +112,7 @@ __all__ = [
     "assert_valid_completion_evidence",
     "assert_valid_task_envelope",
     "append_review_record",
+    "enforce_task_envelope",
     "evaluate_reconciliation",
     "evaluate_verification_decision",
     "resolve_review_request",
