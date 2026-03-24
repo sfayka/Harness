@@ -61,3 +61,15 @@ For now, Harness should optimize for clarity over automation theater.
 ## Status
 
 This is an early project scaffold. The README currently captures the intent and operating model so the repo has a concrete starting point.
+
+## Architecture Docs
+
+The architecture baseline for Epic 1 lives under `docs/`:
+
+- [System Context](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/system-context.md)
+- [Module Boundaries](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/module-boundaries.md)
+- [Canonical Vocabulary](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/canonical-vocabulary.md)
+- [Repository Layout Proposal](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/repository-layout.md)
+- [ADR 0001](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/adrs/0001-openclaw-as-ingress-harness-as-control-plane.md)
+- [ADR 0002](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/adrs/0002-initial-substrate-choice-and-replacement-strategy.md)
+- [Initial Codex Tickets](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/planning/initial-codex-tickets.md)
