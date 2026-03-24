@@ -244,6 +244,7 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, VerificationOutcome.BLOCKED_UNRESOLVED_CONDITIONS)
         self.assertEqual(result.target_status, "blocked")
         self.assertFalse(result.is_terminal)
+        self.assertIn("Verification is blocked by unresolved conditions", result.reasons)
 
     def test_returns_terminal_invalid_for_terminal_runtime_failure(self) -> None:
         result = _evaluate(
@@ -284,6 +285,19 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, VerificationOutcome.VERIFICATION_DEFERRED)
         self.assertIsNone(result.target_status)
         self.assertFalse(result.verification_passed)
+        self.assertIn("No completion claim is currently being evaluated", result.reasons)
+
+    def test_distinguishes_deferred_verification_from_blocked_control_plane_outcome(self) -> None:
+        deferred = _evaluate(_base_task_envelope(), claimed_completion=False)
+        blocked = _evaluate(
+            _base_task_envelope(),
+            reconciliation_facts=ReconciliationFacts(status=ReconciliationStatus.PENDING),
+        )
+
+        self.assertEqual(deferred.outcome, VerificationOutcome.VERIFICATION_DEFERRED)
+        self.assertIsNone(deferred.target_status)
+        self.assertEqual(blocked.outcome, VerificationOutcome.BLOCKED_UNRESOLVED_CONDITIONS)
+        self.assertEqual(blocked.target_status, "blocked")
 
     def test_returns_terminal_invalid_for_terminal_external_mismatch(self) -> None:
         result = _evaluate(

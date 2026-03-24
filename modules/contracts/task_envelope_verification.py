@@ -12,7 +12,15 @@ TaskEnvelope = dict[str, object]
 
 
 class VerificationOutcome(StrEnum):
-    """Canonical verification outcome classes."""
+    """Canonical verification outcome classes.
+
+    VERIFICATION_DEFERRED means verification cannot yet make a final policy
+    decision at all. It does not direct a lifecycle move by itself.
+
+    BLOCKED_UNRESOLVED_CONDITIONS means verification has enough context to
+    recommend the control-plane outcome remain blocked until specific missing
+    conditions are resolved.
+    """
 
     ACCEPTED_COMPLETION = "accepted_completion"
     INSUFFICIENT_EVIDENCE = "insufficient_evidence"
@@ -128,6 +136,9 @@ def evaluate_verification_decision(
         reasons.append("Manual-review requirement was raised independently of reconciliation")
 
     if not decision_input.claimed_completion:
+        # No completion claim means verification is not yet in a position to make
+        # a final completion-policy decision. This is deferred evaluation, not a
+        # blocked control-plane outcome.
         reasons.append("No completion claim is currently being evaluated")
         return VerificationDecisionResult(
             task_id=task_id,
@@ -220,6 +231,9 @@ def evaluate_verification_decision(
         unresolved_conditions.append("Reconciliation is still pending")
 
     if unresolved_conditions:
+        # At this point there is an active completion claim, but verification has
+        # identified concrete unresolved conditions. The control-plane outcome
+        # should therefore remain blocked rather than merely deferred.
         reasons.extend(unresolved_conditions)
         reasons.append("Verification is blocked by unresolved conditions")
         return VerificationDecisionResult(
