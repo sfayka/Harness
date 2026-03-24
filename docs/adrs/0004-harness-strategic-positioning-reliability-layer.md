@@ -31,7 +31,29 @@ This means:
 - Harness does not compete on raw reasoning quality
 - Harness owns correctness, traceability, verification, and enforcement
 - LLMs and agents are replaceable workers behind explicit contracts
-- completion is not trusted unless supported by task-appropriate artifacts and reconciliation
+- completion is not accepted unless supported by task-appropriate artifacts and reconciliation
+- Harness enforces that task completion must be backed by verifiable evidence, not executor-reported success
+
+## Architectural Implications
+
+- TaskEnvelope and related contracts must support attachment of execution artifacts and evidence
+- Lifecycle transitions (especially to `completed`) must be gated by verification rules
+- Integrations with systems like GitHub and Linear are required for correctness, not optional extensions
+- Executor outputs must be treated as untrusted until validated against artifacts
+- The system must support post-hoc audit and reconciliation of task outcomes
+
+## Definition Of Reliability
+
+In the context of Harness, “reliable” means:
+
+- task state is explicitly represented and transitions are controlled
+- completion is only recognized when supported by verifiable artifacts
+- execution outcomes are auditable after the fact
+- failures and blocked states are first-class and cannot be silently ignored
+- system-of-record data (e.g. Linear, GitHub) can be reconciled against Harness state
+- no task is considered complete based solely on worker-reported status
+
+Reliability is defined by enforceable guarantees, not by worker quality.
 
 ## Consequences
 
