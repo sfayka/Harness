@@ -81,7 +81,7 @@ TaskEnvelope uses the following canonical states:
 | `assigned` | task has an executor selected but execution has not yet started |
 | `executing` | executor has started work |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
-| `completed` | task satisfied its acceptance criteria and any required completion evidence has been verified by Harness |
+| `completed` | task satisfied its acceptance criteria and has a provisional completed outcome pending successful reconciliation where reconciliation is required |
 | `failed` | task reached a terminal unsuccessful outcome |
 | `canceled` | task was intentionally stopped and should not continue |
 
@@ -104,6 +104,7 @@ Canonical transitions:
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `executing` -> `canceled`
+- `completed` -> `blocked`
 - `blocked` -> `planned`
 - `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
@@ -111,13 +112,14 @@ Canonical transitions:
 
 Terminal states:
 
-- `completed`
 - `failed`
 - `canceled`
 
 `status_history` should capture all non-initial state changes with timestamps and reasons.
 
 For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
+
+`completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
 
 ## Field Semantics
 
@@ -225,6 +227,20 @@ Each artifact record may carry:
 
 Completion is not trusted purely because an executor claims success. `artifacts.completion_evidence` is where Harness records whether the evidence requirement is deferred, required, satisfied, insufficient, or not applicable.
 
+### Completion Trust Levels
+
+Harness must keep these concepts separate:
+
+- `executor-reported success`: a worker claims the task succeeded
+- `artifact-backed evidence`: the task has artifacts that satisfy the declared evidence policy
+- `reconciliation-verified completion`: Harness has compared its internal state against external systems such as GitHub and Linear and found no blocking mismatch
+
+These are not interchangeable.
+
+- executor-reported success is advisory
+- artifact-backed evidence is necessary for evidence-driven completion
+- reconciliation-verified completion is what makes a completed state durable
+
 ### Observability
 
 Observability captures operational information without redefining business state.
@@ -295,6 +311,13 @@ This distinction matters because Linear and Harness business logic should reason
 - evaluates `artifacts.items` and `artifacts.completion_evidence`
 - determines whether a completion transition is evidence-backed
 - rejects terminal completion when required evidence is missing or insufficient
+- reconciles task state against external systems such as GitHub and Linear before preserving or changing terminal lifecycle state
+
+### Reconciliation
+
+- compares Harness task state with system-of-record state and artifact state
+- classifies mismatches instead of collapsing them into generic failure
+- may keep a task completed, move it to blocked, or mark it as requiring review depending on mismatch severity and evidence policy
 
 ## Schema Reference
 
