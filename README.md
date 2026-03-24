@@ -48,6 +48,16 @@ This repository is expected to grow toward:
 - progress monitoring and retry handling
 - reporting back to the controlling interface
 
+## Initial Constraints
+
+For now, Harness should optimize for clarity over automation theater.
+
+- every task should have explicit state
+- delegation should be visible and reviewable
+- stalled or failed work should be surfaced instead of silently ignored
+- upstream reporting should be grounded in actual task status
+- ambiguous requests should be clarified before decomposition when possible
+
 ## Status
 
 This is an early project scaffold. The README currently captures the intent and operating model so the repo has a concrete starting point.
