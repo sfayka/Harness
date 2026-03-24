@@ -152,6 +152,19 @@ Not yet in scope:
 - `schemas/` contains canonical machine-readable contracts
 - `tests/` contains Python tests for contract validation and module behavior
 
+## Local Demo
+
+You can run the current control-plane evaluation loop locally through the minimal CLI/demo runner:
+
+```bash
+python -m modules.cli list
+python -m modules.cli run accepted_completion
+python -m modules.cli run blocked_reconciliation_mismatch --json
+```
+
+The CLI uses canonical `TaskEnvelope` fixtures plus normalized GitHub/Linear fact bundles.
+It does not call live external APIs.
+
 ## License
 
 Licensed under the Apache License 2.0.
