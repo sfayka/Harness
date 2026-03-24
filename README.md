@@ -19,6 +19,12 @@ Linear and Harness serve different roles.
 - Linear is the work surface and system of record where humans and agents coordinate issues, projects, and workflow state.
 - Harness is the control plane underneath that surface. It decides whether work is verified, reconciled, and acceptable as complete.
 
+System-of-record model:
+
+- Linear is the source of truth for intended work
+- GitHub is the source of truth for executed artifacts
+- Harness is the source of truth for verified state and lifecycle correctness
+
 Harness is not trying to replace Linear's coordination layer.
 
 Harness exists to answer questions a work surface alone should not answer by trust:

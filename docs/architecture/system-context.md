@@ -15,6 +15,12 @@ Harness sits underneath the user-facing and agent-facing work surface as the sys
 - Executors such as Codex are workers.
 - The workflow substrate provides persistence, resumability, and coordination state for Harness itself.
 
+Stated another way:
+
+- Linear is the source of truth for intended work.
+- GitHub is the source of truth for executed artifacts.
+- Harness is the source of truth for verified state and lifecycle correctness.
+
 ## Context Diagram
 
 The Mermaid source for the diagram lives in [system-context.mmd](system-context.mmd).

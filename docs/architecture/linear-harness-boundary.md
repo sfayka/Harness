@@ -13,6 +13,12 @@ Linear is where humans and agents coordinate work.
 
 Harness is where the system decides whether work is actually verified, reconciled, and acceptable as complete.
 
+## System Of Record Model
+
+- Linear is the source of truth for intended work.
+- GitHub is the source of truth for executed artifacts.
+- Harness is the source of truth for verified state and lifecycle correctness.
+
 ## Linear Owns
 
 - issue, project, and workflow coordination
