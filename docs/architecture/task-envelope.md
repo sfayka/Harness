@@ -81,7 +81,7 @@ TaskEnvelope uses the following canonical states:
 | `assigned` | task has an executor selected but execution has not yet started |
 | `executing` | executor has started work |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
-| `completed` | task satisfied its acceptance criteria and any required completion evidence has been verified by Harness |
+| `completed` | task satisfied its acceptance criteria and has a provisional completed outcome pending successful reconciliation where reconciliation is required |
 | `failed` | task reached a terminal unsuccessful outcome |
 | `canceled` | task was intentionally stopped and should not continue |
 
@@ -104,6 +104,7 @@ Canonical transitions:
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `executing` -> `canceled`
+- `completed` -> `blocked`
 - `blocked` -> `planned`
 - `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
@@ -111,13 +112,14 @@ Canonical transitions:
 
 Terminal states:
 
-- `completed`
 - `failed`
 - `canceled`
 
 `status_history` should capture all non-initial state changes with timestamps and reasons.
 
 For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
+
+`completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
 
 ## Field Semantics
 
@@ -301,7 +303,7 @@ This distinction matters because Linear and Harness business logic should reason
 
 - compares Harness task state with system-of-record state and artifact state
 - classifies mismatches instead of collapsing them into generic failure
-- may keep a task completed, move it to blocked, or require manual review depending on mismatch severity and evidence policy
+- may keep a task completed, move it to blocked, or mark it as requiring review depending on mismatch severity and evidence policy
 
 ## Schema Reference
 

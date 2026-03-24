@@ -6,6 +6,8 @@ Define how Harness reconciles internal task state with external systems of recor
 
 Harness is a reliability/control-plane system. A task is not trustworthy merely because an executor reported success or because one external system looks consistent in isolation. Harness must compare internal lifecycle state, evidence state, and external system state and then represent any mismatch explicitly.
 
+Completion is provisional until reconciliation passes.
+
 ## Initial Reconciliation Scope
 
 The initial reconciliation scope is:
@@ -135,6 +137,7 @@ Meaning:
 
 - the task cannot be considered fully reconciled
 - the mismatch must be represented explicitly and surfaced for audit
+- a previously completed task may need to move back to `blocked` or into a review-required state
 
 ### Wrong-Repo Or Wrong-Branch Execution
 
@@ -186,6 +189,12 @@ These category names are architecture-level semantics. Exact enum naming can be 
 
 ## How Mismatches Affect Lifecycle State
 
+The key rule is:
+
+- `completed` is not irrevocable
+- `completed` is only durable after required reconciliation passes
+- if reconciliation later fails, Harness may move the task back to `blocked` or mark it as requiring review
+
 ### Task May Remain Completed
 
 Allowed only when:
@@ -204,6 +213,8 @@ Typical when:
 
 `blocked` is appropriate when progress can resume once the mismatch is resolved.
 
+This includes tasks that were previously marked `completed` but later found to be unreconciled or contradictory.
+
 ### Task Should Require Manual Review
 
 Typical when:
@@ -213,6 +224,8 @@ Typical when:
 - the system cannot safely choose between multiple contradictory facts
 
 Manual review is a reconciliation outcome, not a substitute for explicit lifecycle semantics. Future implementation may represent this through a dedicated review flag or mismatch record while preserving the underlying task state.
+
+For current architecture purposes, `requires_review` should be treated as an explicit reconciliation outcome even if it is not yet a first-class lifecycle enum in `TaskEnvelope`.
 
 ### Task May Become Failed
 
@@ -230,6 +243,14 @@ Reconciliation depends on `artifacts.completion_evidence` but is not identical t
 - reconciliation asks whether Harness, GitHub, and Linear are mutually consistent about the task outcome
 
 Completion is trustworthy only when both are satisfied.
+
+A task may therefore:
+
+- reach `completed`
+- later become `blocked`
+- or require review
+
+if reconciliation reveals that the completion claim was not actually trustworthy.
 
 ## Auditability Requirements
 
