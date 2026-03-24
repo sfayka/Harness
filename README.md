@@ -68,6 +68,7 @@ The architecture baseline for Epic 1 lives under `docs/`:
 
 - [System Context](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/system-context.md)
 - [TaskEnvelope Contract](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/task-envelope.md)
+- [Intake To TaskEnvelope Mapping](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/intake-to-task-envelope.md)
 - [Module Boundaries](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/module-boundaries.md)
 - [Canonical Vocabulary](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/canonical-vocabulary.md)
 - [Repository Layout Proposal](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/docs/architecture/repository-layout.md)
