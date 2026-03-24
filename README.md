@@ -112,10 +112,9 @@ Not yet in scope:
 - `schemas/` contains canonical machine-readable contracts
 - `tests/` contains Python tests for contract validation and module behavior
 
-## Public Readiness Notes
+## License
 
-- No license file has been added in this change set because license selection should be maintainer-confirmed before the repository is made public.
-- Secrets and local-only files should continue to be reviewed before changing repository visibility, even though this pass did not find obvious committed credentials.
+Licensed under the Apache License 2.0.
 
 ## Architecture Docs
 
