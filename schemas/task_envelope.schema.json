@@ -1,0 +1,624 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness.dev/schemas/task_envelope.schema.json",
+  "title": "TaskEnvelope",
+  "description": "Canonical structured work contract for the Harness control plane.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "description",
+    "origin",
+    "status",
+    "timestamps",
+    "objective",
+    "constraints",
+    "acceptance_criteria",
+    "parent_task_id",
+    "child_task_ids",
+    "dependencies",
+    "assigned_executor",
+    "required_capabilities",
+    "priority",
+    "artifacts",
+    "observability"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable identifier for this task envelope."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short human-readable task label."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Detailed task description."
+    },
+    "origin": {
+      "$ref": "#/$defs/origin"
+    },
+    "status": {
+      "$ref": "#/$defs/status"
+    },
+    "timestamps": {
+      "$ref": "#/$defs/timestamps"
+    },
+    "status_history": {
+      "type": "array",
+      "description": "Ordered audit trail of non-initial status changes.",
+      "items": {
+        "$ref": "#/$defs/statusHistoryEntry"
+      },
+      "default": []
+    },
+    "objective": {
+      "$ref": "#/$defs/objective"
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/constraint"
+      },
+      "default": []
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/acceptanceCriterion"
+      },
+      "default": []
+    },
+    "parent_task_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Parent task identifier if this task was produced by decomposition."
+    },
+    "child_task_ids": {
+      "type": "array",
+      "description": "Identifiers of direct child tasks.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/dependency"
+      },
+      "default": []
+    },
+    "assigned_executor": {
+      "description": "Current executor routing decision if one exists.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/assignedExecutor"
+        }
+      ]
+    },
+    "required_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "default": []
+    },
+    "priority": {
+      "$ref": "#/$defs/priority"
+    },
+    "artifacts": {
+      "$ref": "#/$defs/artifacts"
+    },
+    "observability": {
+      "$ref": "#/$defs/observability"
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Explicit non-canonical extension surface for future modules.",
+      "default": {},
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "intake_ready",
+        "planning",
+        "ready",
+        "assigned",
+        "in_progress",
+        "blocked",
+        "completed",
+        "failed",
+        "canceled"
+      ]
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "normal",
+        "low",
+        "backlog"
+      ]
+    },
+    "origin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_system",
+        "source_type",
+        "source_id"
+      ],
+      "properties": {
+        "source_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "ingress_request",
+            "task_decomposition",
+            "retry",
+            "manual",
+            "synchronization",
+            "system_generated"
+          ]
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingress_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ingress_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requested_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "timestamps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "updated_at",
+        "completed_at"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "statusHistoryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_status",
+        "to_status",
+        "changed_at"
+      ],
+      "properties": {
+        "from_status": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/status"
+            }
+          ]
+        },
+        "to_status": {
+          "$ref": "#/$defs/status"
+        },
+        "changed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "changed_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "deliverable_type",
+        "success_signal"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deliverable_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success_signal": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "description",
+        "required"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "acceptanceCriterion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "required"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "dependency_type",
+        "required_status"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependency_type": {
+          "type": "string",
+          "enum": [
+            "blocks",
+            "related"
+          ]
+        },
+        "required_status": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "assigned",
+            "in_progress",
+            "completed"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "assignedExecutor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executor_type",
+        "executor_id"
+      ],
+      "properties": {
+        "executor_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executor_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "assignment_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pr_links",
+        "commit_shas",
+        "logs",
+        "outputs"
+      ],
+      "properties": {
+        "pr_links": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
+          "default": []
+        },
+        "commit_shas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{7,40}$"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "logs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/logReference"
+          },
+          "default": []
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/outputReference"
+          },
+          "default": []
+        }
+      }
+    },
+    "logReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "location"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "outputReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "location"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "location": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "content_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "errors",
+        "retries",
+        "execution_metadata"
+      ],
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/errorRecord"
+          },
+          "default": []
+        },
+        "retries": {
+          "$ref": "#/$defs/retryState"
+        },
+        "execution_metadata": {
+          "type": "object",
+          "description": "Neutral runtime facts that do not change business semantics.",
+          "default": {},
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      }
+    },
+    "errorRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "recorded_at"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retryable": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "retryState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_count",
+        "max_attempts"
+      ],
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_retry_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "jsonValue": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/jsonValue"
+          }
+        }
+      ]
+    }
+  }
+}
