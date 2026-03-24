@@ -208,6 +208,7 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, ReconciliationOutcome.RECONCILIATION_PENDING)
         self.assertEqual(result.status, ReconciliationStatus.PENDING)
         self.assertFalse(result.blocking)
+        self.assertIn("GitHub sync has not finished yet.", result.reasons)
 
     def test_returns_contradictory_facts_for_changed_file_and_review_conflict(self) -> None:
         result = _evaluate(
@@ -242,6 +243,19 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
                 evidence_policy="required",
                 evidence_status="not_applicable",
             )
+
+    def test_distinguishes_pending_external_facts_from_missing_evidence(self) -> None:
+        pending = _evaluate(
+            _base_task_envelope(),
+            pending_reasons=("Linear sync has not completed yet.",),
+        )
+        missing = _evaluate(_base_task_envelope(), evidence_status="insufficient")
+
+        self.assertEqual(pending.outcome, ReconciliationOutcome.RECONCILIATION_PENDING)
+        self.assertEqual(pending.status, ReconciliationStatus.PENDING)
+        self.assertEqual(missing.outcome, ReconciliationOutcome.MISSING_EVIDENCE)
+        self.assertEqual(missing.status, ReconciliationStatus.MISMATCH)
+        self.assertIn(MismatchCategory.MISSING_VALIDATED_ARTIFACT, missing.mismatch_categories)
 
 
 if __name__ == "__main__":

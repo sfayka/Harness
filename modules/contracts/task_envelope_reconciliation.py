@@ -12,7 +12,14 @@ TaskEnvelope = dict[str, object]
 
 
 class ReconciliationOutcome(StrEnum):
-    """Canonical reconciliation outcome classes."""
+    """Canonical reconciliation outcome classes.
+
+    RECONCILIATION_PENDING means reconciliation cannot yet judge the task
+    because external facts are still pending or unavailable.
+
+    MISSING_EVIDENCE means the expected evidence should exist by now under the
+    declared task/evidence policy, but does not.
+    """
 
     NO_MISMATCH = "no_mismatch"
     MISSING_EVIDENCE = "missing_evidence"
@@ -163,6 +170,9 @@ def evaluate_reconciliation(
         raise ReconciliationInputError("Required evidence policy cannot be paired with not_applicable evidence status")
 
     if reconciliation_input.pending_reasons:
+        # Pending means the reconciliation layer still lacks enough external
+        # facts to make a judgment. This is distinct from missing evidence,
+        # where the required evidence should already exist but does not.
         reasons.extend(reconciliation_input.pending_reasons)
         return ReconciliationResult(
             task_id=task_id,
