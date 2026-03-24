@@ -139,10 +139,10 @@
       "type": "string",
       "enum": [
         "intake_ready",
-        "planning",
-        "ready",
+        "planned",
+        "dispatch_ready",
         "assigned",
-        "in_progress",
+        "executing",
         "blocked",
         "completed",
         "failed",
@@ -363,9 +363,10 @@
         "required_status": {
           "type": "string",
           "enum": [
-            "ready",
+            "planned",
+            "dispatch_ready",
             "assigned",
-            "in_progress",
+            "executing",
             "completed"
           ]
         },

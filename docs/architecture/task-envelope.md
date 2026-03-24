@@ -75,37 +75,37 @@ TaskEnvelope uses the following canonical states:
 
 | State | Meaning |
 | --- | --- |
-| `intake_ready` | task has been accepted into Harness from ingress and is ready for planning or normalization |
-| `planning` | task is being decomposed, scoped, or otherwise transformed into executable work |
-| `ready` | task is sufficiently defined to be assigned for execution |
+| `intake_ready` | task has entered Harness and is ready for normalization, clarification, or planning |
+| `planned` | task has been decomposed or otherwise defined enough for routing |
+| `dispatch_ready` | task is sufficiently defined and ready for executor selection |
 | `assigned` | task has an executor selected but execution has not yet started |
-| `in_progress` | executor has started work |
+| `executing` | executor has started work |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
 | `completed` | task satisfied its acceptance criteria and is considered done by Harness |
-| `failed` | task execution or orchestration reached a terminal unsuccessful outcome |
+| `failed` | task reached a terminal unsuccessful outcome |
 | `canceled` | task was intentionally stopped and should not continue |
 
 ## Allowed Lifecycle Transitions
 
 Canonical transitions:
 
-- `intake_ready` -> `planning`
-- `planning` -> `ready`
-- `planning` -> `blocked`
-- `planning` -> `canceled`
-- `ready` -> `assigned`
-- `ready` -> `blocked`
-- `ready` -> `canceled`
-- `assigned` -> `in_progress`
+- `intake_ready` -> `planned`
+- `planned` -> `dispatch_ready`
+- `planned` -> `blocked`
+- `planned` -> `canceled`
+- `dispatch_ready` -> `assigned`
+- `dispatch_ready` -> `blocked`
+- `dispatch_ready` -> `canceled`
+- `assigned` -> `executing`
 - `assigned` -> `blocked`
 - `assigned` -> `failed`
 - `assigned` -> `canceled`
-- `in_progress` -> `completed`
-- `in_progress` -> `blocked`
-- `in_progress` -> `failed`
-- `in_progress` -> `canceled`
-- `blocked` -> `planning`
-- `blocked` -> `ready`
+- `executing` -> `completed`
+- `executing` -> `blocked`
+- `executing` -> `failed`
+- `executing` -> `canceled`
+- `blocked` -> `planned`
+- `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
 - `blocked` -> `canceled`
 
@@ -271,12 +271,12 @@ This distinction matters because Linear and Harness business logic should reason
 ### Planner
 
 - enriches `child_task_ids`, `dependencies`, and decomposition-related fields
-- transitions work through `planning` to `ready`
+- transitions work through `planned` to `dispatch_ready`
 
 ### Dispatcher
 
 - updates `assigned_executor`, `required_capabilities`, and `priority`
-- moves work from `ready` to `assigned`
+- moves work from `dispatch_ready` to `assigned`
 
 ### Executor Integrations
 
