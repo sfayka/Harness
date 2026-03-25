@@ -37,24 +37,16 @@ function mapReconciliationStatus(summary: Record<string, unknown> | null): Recon
     return null;
   }
 
-  const categories = Array.isArray(summary.mismatch_categories)
-    ? summary.mismatch_categories.map(String)
-    : [];
-
-  if (categories.includes("wrong_repository") || categories.includes("wrong_branch")) {
-    return "wrong_target";
-  }
-
   switch (summary.outcome) {
     case "no_mismatch":
       return "no_mismatch";
+    case "missing_evidence":
+      return "stale_evidence";
     case "wrong_target":
       return "wrong_target";
     case "contradictory_facts":
     case "terminal_invalid":
       return "contradictory_facts";
-    case "missing_evidence":
-      return "stale_evidence";
     case "review_required":
     case "reconciliation_pending":
       return "pending";
@@ -189,9 +181,25 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
   const reasons = Array.isArray(verificationSummary?.reasons)
     ? verificationSummary.reasons.map(String)
     : [];
+  const mismatchCategories = Array.isArray(reconciliationSummary?.mismatch_categories)
+    ? reconciliationSummary.mismatch_categories.map(String)
+    : [];
   const mismatches = Array.isArray(reconciliationSummary?.reasons)
     ? reconciliationSummary.reasons.map(String)
     : [];
+  const artifactTypeCounts =
+    (evidenceSummary.artifact_type_counts as Record<string, number> | undefined) ?? {};
+  const githubArtifactCount =
+    Number(artifactTypeCounts.pull_request ?? 0) +
+    Number(artifactTypeCounts.commit ?? 0) +
+    Number(artifactTypeCounts.branch ?? 0) +
+    Number(artifactTypeCounts.changed_file ?? 0);
+  const githubState =
+    githubArtifactCount > 0
+      ? `${githubArtifactCount} artifact${githubArtifactCount === 1 ? "" : "s"}`
+      : null;
+  const reconciliationStatusText =
+    (reconciliationSummary?.status as string | undefined) ?? null;
 
   return {
     task_id: String(readModel.task_id ?? ""),
@@ -267,8 +275,12 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
     verification_summary: verificationSummary && mappedVerificationStatus
       ? {
           result: mappedVerificationStatus,
+          outcome: String(verificationSummary.outcome ?? ""),
           completion_accepted: Boolean(verificationSummary.accepted_completion),
+          verification_passed: Boolean(verificationSummary.verification_passed),
           evidence_sufficient: Boolean(verificationSummary.evidence_is_sufficient),
+          evidence_is_valid: Boolean(verificationSummary.evidence_is_valid),
+          evidence_is_sufficient: Boolean(verificationSummary.evidence_is_sufficient),
           reasons,
           evaluated_at:
             (evaluationSummary.latest_recorded_at as string | undefined) ??
@@ -278,14 +290,12 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
     reconciliation_summary: reconciliationSummary && mappedReconciliationStatus
       ? {
           result: mappedReconciliationStatus,
-          linear_state:
-            (reconciliationSummary.status as string | undefined) ??
-            null,
-          github_state:
-            Array.isArray(reconciliationSummary.mismatch_categories) &&
-            reconciliationSummary.mismatch_categories.length > 0
-              ? String((reconciliationSummary.mismatch_categories as unknown[])[0])
-              : null,
+          outcome: String(reconciliationSummary.outcome ?? ""),
+          status: reconciliationStatusText,
+          blocking: Boolean(reconciliationSummary.blocking),
+          mismatch_categories: mismatchCategories,
+          linear_state: reconciliationStatusText,
+          github_state: githubState,
           harness_state: String(readModel.current_status ?? ""),
           mismatches,
           evaluated_at:

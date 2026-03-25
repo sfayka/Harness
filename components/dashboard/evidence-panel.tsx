@@ -28,7 +28,7 @@ function extractArtifacts(timeline?: TimelineEvent[]) {
   return timeline
     .filter((e) => e.event_type === "artifact_captured")
     .map((e) => ({
-      id: e.event_id,
+      id: typeof e.details.artifact_id === "string" ? e.details.artifact_id : e.event_id,
       type: (e.details.type as string) || "unknown",
       pr_number: e.details.pull_request_number as number | undefined,
       commit_sha: e.details.commit_sha as string | undefined,
@@ -43,11 +43,11 @@ export function EvidencePanel({ evidence, timeline }: EvidencePanelProps) {
   const artifacts = extractArtifacts(timeline);
 
   const statusConfig = {
-    validated: {
+    satisfied: {
       icon: CheckCircle2,
       color: "text-success",
       bg: "bg-success/10",
-      label: "Validated",
+      label: "Satisfied",
     },
     insufficient: {
       icon: AlertCircle,
@@ -61,23 +61,23 @@ export function EvidencePanel({ evidence, timeline }: EvidencePanelProps) {
       bg: "bg-info/10",
       label: "Pending",
     },
-    awaiting: {
+    deferred: {
       icon: Clock,
       color: "text-muted-foreground",
       bg: "bg-muted",
-      label: "Awaiting",
+      label: "Deferred",
     },
-    missing: {
-      icon: XCircle,
-      color: "text-destructive",
-      bg: "bg-destructive/10",
-      label: "Missing",
+    not_applicable: {
+      icon: FileOutput,
+      color: "text-muted-foreground",
+      bg: "bg-muted",
+      label: "Not Applicable",
     },
   };
 
   const status =
     statusConfig[completion_evidence.status as keyof typeof statusConfig] ||
-    statusConfig.awaiting;
+    statusConfig.deferred;
 
   // Check which required types are present
   const presentTypes = new Set(Object.keys(evidence.artifact_type_counts));
@@ -131,9 +131,7 @@ export function EvidencePanel({ evidence, timeline }: EvidencePanelProps) {
                           {type.replace("_", " ")}
                         </span>
                       </div>
-                      <span
-                        className={`text-xs font-mono ${isPresent ? "text-success" : "text-destructive"}`}
-                      >
+                      <span className={`text-xs font-mono ${isPresent ? "text-success" : "text-destructive"}`}>
                         {isPresent ? `${count} present` : "missing"}
                       </span>
                     </div>

@@ -1,4 +1,4 @@
-import type { ReconciliationSummary } from "@/lib/types";
+import type { EvidenceSummary, ReconciliationSummary, TimelineEvent } from "@/lib/types";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ReconciliationBadge } from "@/components/ui/status-badge";
 import { formatDateTime } from "@/lib/utils";
@@ -13,37 +13,49 @@ import {
 
 interface ReconciliationCardProps {
   summary: ReconciliationSummary | null;
+  evidence?: EvidenceSummary | null;
+  timeline?: TimelineEvent[];
+  currentStatus?: string | null;
 }
 
-// Determine if a system state indicates a problem
-function getSystemStatus(
-  state: string | null,
-  hasMismatch: boolean
-): "ok" | "missing" | "mismatch" | "unknown" {
-  if (!state || state === "-") return "missing";
-  if (hasMismatch) return "mismatch";
-
-  const okStates = [
-    "done",
-    "completed",
-    "merged",
-    "closed",
-    "resolved",
-    "accepted",
-  ];
-  const lowerState = state.toLowerCase();
-  if (okStates.some((s) => lowerState.includes(s))) return "ok";
-
-  return "unknown";
-}
-
-// Check if this system is mentioned in mismatches
 function systemHasMismatch(system: string, mismatches: string[]): boolean {
   const lowerSystem = system.toLowerCase();
   return mismatches.some((m) => m.toLowerCase().includes(lowerSystem));
 }
 
-export function ReconciliationCard({ summary }: ReconciliationCardProps) {
+function inferGithubState(
+  evidence?: EvidenceSummary | null,
+  timeline?: TimelineEvent[],
+): string | null {
+  const artifactTypeCounts = evidence?.artifact_type_counts ?? {};
+  const githubArtifactCount =
+    Number(artifactTypeCounts.pull_request ?? 0) +
+    Number(artifactTypeCounts.commit ?? 0) +
+    Number(artifactTypeCounts.branch ?? 0) +
+    Number(artifactTypeCounts.changed_file ?? 0);
+
+  if (githubArtifactCount > 0) {
+    const validatedCount = Number(evidence?.validated_artifact_count ?? 0);
+    return validatedCount > 0 ? `${validatedCount} validated artifact${validatedCount === 1 ? "" : "s"}` : `${githubArtifactCount} artifact${githubArtifactCount === 1 ? "" : "s"}`;
+  }
+
+  const timelineHasGithubArtifact = (timeline ?? []).some(
+    (event) =>
+      event.event_type === "artifact_captured" &&
+      ((event.source?.toLowerCase() === "github") ||
+        typeof event.details.pull_request_number === "number" ||
+        typeof event.details.commit_sha === "string"),
+  );
+
+  return timelineHasGithubArtifact ? "artifacts present" : null;
+}
+
+export function ReconciliationCard({
+  summary,
+  evidence,
+  timeline,
+  currentStatus,
+}: ReconciliationCardProps) {
   if (!summary) {
     return (
       <Card>
@@ -65,28 +77,58 @@ export function ReconciliationCard({ summary }: ReconciliationCardProps) {
     );
   }
 
-  const hasMismatches = summary.mismatches.length > 0;
+  const mismatchCategories = summary.mismatch_categories ?? [];
+  const mismatchReasons = summary.mismatches ?? [];
+  const hasMismatches = mismatchCategories.length > 0;
   const isContradictory =
-    summary.result === "contradictory_facts" ||
-    summary.result === "wrong_target";
+    summary.outcome === "contradictory_facts" ||
+    summary.outcome === "wrong_target" ||
+    summary.outcome === "terminal_invalid";
 
   const systems = [
     {
       name: "Linear",
-      state: summary.linear_state,
-      hasMismatch: systemHasMismatch("linear", summary.mismatches),
+      state: summary.status ?? summary.linear_state,
+      status: hasMismatches && systemHasMismatch("linear", mismatchCategories) ? "mismatch" : summary.status === "passed" ? "ok" : "unknown",
     },
     {
       name: "GitHub",
-      state: summary.github_state,
-      hasMismatch: systemHasMismatch("github", summary.mismatches),
+      state: summary.github_state ?? inferGithubState(evidence, timeline),
+      status: hasMismatches && systemHasMismatch("github", mismatchCategories) ? "mismatch" : inferGithubState(evidence, timeline) ? "ok" : "missing",
     },
     {
       name: "Harness",
-      state: summary.harness_state,
-      hasMismatch: systemHasMismatch("harness", summary.mismatches),
+      state: currentStatus ?? summary.harness_state,
+      status: hasMismatches && systemHasMismatch("harness", mismatchCategories) ? "mismatch" : (currentStatus ?? summary.harness_state) ? "ok" : "unknown",
     },
-  ];
+  ] as const;
+
+  const statusStyles = {
+    ok: {
+      bg: "bg-success/10 border-success/30",
+      icon: CheckCircle2,
+      iconColor: "text-success",
+      stateColor: "text-success",
+    },
+    missing: {
+      bg: "bg-muted/50 border-border",
+      icon: Minus,
+      iconColor: "text-muted-foreground",
+      stateColor: "text-muted-foreground",
+    },
+    mismatch: {
+      bg: "bg-warning/10 border-warning/30",
+      icon: AlertCircle,
+      iconColor: "text-warning",
+      stateColor: "text-warning",
+    },
+    unknown: {
+      bg: "bg-muted/50 border-border",
+      icon: Minus,
+      iconColor: "text-muted-foreground",
+      stateColor: "text-foreground",
+    },
+  } as const;
 
   return (
     <Card
@@ -112,36 +154,7 @@ export function ReconciliationCard({ summary }: ReconciliationCardProps) {
           {/* System States - with tension indicators */}
           <div className="space-y-1.5">
             {systems.map((system) => {
-              const status = getSystemStatus(system.state, system.hasMismatch);
-
-              const statusStyles = {
-                ok: {
-                  bg: "bg-success/10 border-success/30",
-                  icon: CheckCircle2,
-                  iconColor: "text-success",
-                  stateColor: "text-success",
-                },
-                missing: {
-                  bg: "bg-destructive/10 border-destructive/30",
-                  icon: XCircle,
-                  iconColor: "text-destructive",
-                  stateColor: "text-destructive",
-                },
-                mismatch: {
-                  bg: "bg-warning/10 border-warning/30",
-                  icon: AlertCircle,
-                  iconColor: "text-warning",
-                  stateColor: "text-warning",
-                },
-                unknown: {
-                  bg: "bg-muted/50 border-border",
-                  icon: Minus,
-                  iconColor: "text-muted-foreground",
-                  stateColor: "text-foreground",
-                },
-              };
-
-              const style = statusStyles[status];
+              const style = statusStyles[system.status];
               const Icon = style.icon;
 
               return (
@@ -188,7 +201,7 @@ export function ReconciliationCard({ summary }: ReconciliationCardProps) {
                 </span>
               </div>
               <ul className="space-y-1">
-                {summary.mismatches.map((mismatch, index) => (
+                {(mismatchReasons.length > 0 ? mismatchReasons : mismatchCategories).map((mismatch, index) => (
                   <li
                     key={index}
                     className="text-xs text-foreground flex items-start gap-1.5"
@@ -202,7 +215,7 @@ export function ReconciliationCard({ summary }: ReconciliationCardProps) {
           )}
 
           {/* All Aligned Banner */}
-          {!hasMismatches && summary.result === "no_mismatch" && (
+          {!hasMismatches && summary.outcome === "no_mismatch" && !summary.blocking && (
             <div className="flex items-center gap-2 p-2.5 rounded-lg bg-success/10 border border-success/30">
               <CheckCircle2 className="h-4 w-4 text-success" />
               <span className="text-sm font-medium text-success">
