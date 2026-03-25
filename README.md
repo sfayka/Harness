@@ -223,12 +223,14 @@ python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
 Then submit canonical evaluation requests to:
 
 - `GET /health`
+- `POST /tasks`
 - `POST /evaluate`
 - `POST /tasks/<task_id>/reevaluate`
 - `GET /tasks/<task_id>`
 - `GET /tasks/<task_id>/evaluations`
 
 The API accepts canonical `TaskEnvelope` input plus normalized external facts and returns structured evaluation results.
+`POST /tasks` is the canonical ingress submission path for new work. It creates a new persisted task record, runs the initial evaluation, and appends the first evaluation record. Duplicate task IDs are rejected with `409 Conflict`.
 Successful evaluations persist the current task snapshot and append an evaluation record under the configured store root.
 Re-evaluation requests load the latest stored task, append any new canonical artifacts, apply new normalized facts or review outcomes, and persist the next task snapshot plus a new evaluation record.
 It is a thin wrapper over the existing evaluator and store scaffolding, not a production service.

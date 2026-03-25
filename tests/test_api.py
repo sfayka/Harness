@@ -206,6 +206,30 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 404)
         self.assertIn("not found", history_payload["error"].lower())
 
+    def test_service_submit_persists_new_task_and_initial_evaluation(self) -> None:
+        status, payload = self.service.submit(_request_payload("accepted_completion"))
+
+        task_status, task_payload = self.service.get_task(payload["task_envelope"]["id"])
+        history_status, history_payload = self.service.get_evaluation_history(payload["task_envelope"]["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "completed")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_service_submit_rejects_duplicate_task_id(self) -> None:
+        initial_status, initial_payload = self.service.submit(_request_payload("accepted_completion"))
+        duplicate_status, duplicate_payload = self.service.submit(_request_payload("accepted_completion"))
+        history_status, history_payload = self.service.get_evaluation_history(initial_payload["task_envelope"]["id"])
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(duplicate_status, 409)
+        self.assertTrue(duplicate_payload["duplicate_task_id"])
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
     def test_service_can_reevaluate_existing_blocked_task_to_completed(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")
         initial_status, initial_response = self.service.evaluate(initial_payload)
@@ -283,6 +307,72 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["status"], "ok")
+
+    def test_api_submit_accepts_new_task_and_persists_initial_result(self) -> None:
+        status, payload = self._post_json("/tasks", _request_payload("accepted_completion"))
+        task_id = payload["task_envelope"]["id"]
+
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertIn("evaluation_record", payload)
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "completed")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_api_submit_can_persist_initial_blocked_result(self) -> None:
+        status, payload = self._post_json("/tasks", _request_payload("blocked_insufficient_evidence"))
+        task_id = payload["task_envelope"]["id"]
+
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["target_status"], "blocked")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "blocked")
+
+    def test_api_submit_can_persist_initial_review_required_result(self) -> None:
+        status, payload = self._post_json("/tasks", _request_payload("review_required"))
+        task_id = payload["task_envelope"]["id"]
+
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "review_required")
+        self.assertTrue(payload["requires_review"])
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["id"], task_id)
+        self.assertEqual(history_status, 200)
+        self.assertEqual(history_payload["evaluations"][0]["result"]["action"], "review_required")
+
+    def test_api_submit_rejects_invalid_input_without_persisting_state(self) -> None:
+        invalid_payload = _request_payload("invalid_input")
+        task_id = invalid_payload["request"]["task_envelope"]["id"]
+
+        status, payload = self._post_json("/tasks", invalid_payload)
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(payload["invalid_input"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_submit_rejects_duplicate_task_id_with_conflict(self) -> None:
+        initial_status, initial_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
+        duplicate_status, duplicate_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
+        history_status, history_payload = self._get_json(
+            f"/tasks/{initial_payload['task_envelope']['id']}/evaluations"
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(duplicate_status, 409)
+        self.assertTrue(duplicate_payload["duplicate_task_id"])
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
 
     def test_api_persists_accepted_completion_and_exposes_history(self) -> None:
         status, payload = self._post_json("/evaluate", _request_payload("accepted_completion"))
