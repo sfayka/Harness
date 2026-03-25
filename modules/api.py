@@ -42,6 +42,7 @@ from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
 from modules.store import (
     EvaluationRecord,
     FileBackedHarnessStore,
+    TaskEnvelopeAlreadyExistsError,
     TaskEnvelopeNotFoundError,
 )
 
@@ -381,6 +382,45 @@ class HarnessApiService:
             return self.store.put_task(task_envelope)
         return self.store.update_task(task_envelope)
 
+    def submit(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            request = parse_evaluation_request(payload)
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        task_id = str(request.task_envelope["id"])
+        try:
+            self.store.get_task(task_id)
+            return HTTPStatus.CONFLICT, {
+                "error": f"Task {task_id!r} already exists; use reevaluate for existing tasks",
+                "duplicate_task_id": True,
+            }
+        except TaskEnvelopeNotFoundError:
+            pass
+
+        result = evaluate_task_case(request)
+        status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
+        response_payload = _to_jsonable(result)
+
+        if result.invalid_input:
+            return status, response_payload
+
+        try:
+            stored_task = self.store.create_task(result.task_envelope)
+        except TaskEnvelopeAlreadyExistsError as error:
+            return HTTPStatus.CONFLICT, {
+                "error": str(error),
+                "duplicate_task_id": True,
+            }
+
+        record = self.store.put_evaluation_record(request=request, result=result)
+        response_payload["task_envelope"] = _to_jsonable(stored_task)
+        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        return status, response_payload
+
     def evaluate(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             request = parse_evaluation_request(payload)
@@ -491,7 +531,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         path_components = _task_path_components(self.path)
         request_path = urlparse(self.path).path
 
-        if request_path != "/evaluate" and not (
+        if request_path not in {"/evaluate", "/tasks"} and not (
             len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "reevaluate"
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
@@ -506,7 +546,9 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             return
 
         service = self.service or HarnessApiService()
-        if request_path == "/evaluate":
+        if request_path == "/tasks":
+            status, response_payload = service.submit(payload)
+        elif request_path == "/evaluate":
             status, response_payload = service.evaluate(payload)
         else:
             status, response_payload = service.reevaluate(path_components[1], payload)

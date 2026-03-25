@@ -6,7 +6,11 @@ from pathlib import Path
 
 from modules.demo_cases import build_demo_request
 from modules.evaluation import evaluate_task_case
-from modules.store import FileBackedHarnessStore, TaskEnvelopeNotFoundError
+from modules.store import (
+    FileBackedHarnessStore,
+    TaskEnvelopeAlreadyExistsError,
+    TaskEnvelopeNotFoundError,
+)
 
 
 class HarnessStoreTests(unittest.TestCase):
@@ -25,6 +29,14 @@ class HarnessStoreTests(unittest.TestCase):
 
         self.assertEqual(stored["id"], request.task_envelope["id"])
         self.assertEqual(stored["status"], request.task_envelope["status"])
+
+    def test_create_task_rejects_duplicate_id(self) -> None:
+        request = build_demo_request("accepted_completion")
+
+        self.store.create_task(request.task_envelope)
+
+        with self.assertRaises(TaskEnvelopeAlreadyExistsError):
+            self.store.create_task(request.task_envelope)
 
     def test_updates_task_after_lifecycle_change(self) -> None:
         request = build_demo_request("accepted_completion")

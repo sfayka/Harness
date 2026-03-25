@@ -23,6 +23,10 @@ class TaskEnvelopeNotFoundError(StoreError):
     """Raised when a requested TaskEnvelope does not exist in the store."""
 
 
+class TaskEnvelopeAlreadyExistsError(StoreError):
+    """Raised when a task create is attempted with an existing TaskEnvelope id."""
+
+
 class EvaluationRecordNotFoundError(StoreError):
     """Raised when a requested evaluation record does not exist in the store."""
 
@@ -56,6 +60,8 @@ class EvaluationRecord:
 
 class TaskEnvelopeStore(Protocol):
     """Storage boundary for canonical TaskEnvelope records."""
+
+    def create_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope: ...
 
     def put_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope: ...
 
@@ -112,6 +118,14 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
     def put_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope:
         task_id = str(task_envelope["id"])
         self._write_json(self._task_path(task_id), _jsonable(task_envelope))
+        return task_envelope
+
+    def create_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope:
+        task_id = str(task_envelope["id"])
+        path = self._task_path(task_id)
+        if path.exists():
+            raise TaskEnvelopeAlreadyExistsError(f"TaskEnvelope {task_id!r} already exists")
+        self._write_json(path, _jsonable(task_envelope))
         return task_envelope
 
     def get_task(self, task_id: str) -> TaskEnvelope:
@@ -172,6 +186,7 @@ __all__ = [
     "EvaluationRecordStore",
     "FileBackedHarnessStore",
     "StoreError",
+    "TaskEnvelopeAlreadyExistsError",
     "TaskEnvelopeNotFoundError",
     "TaskEnvelopeStore",
 ]
