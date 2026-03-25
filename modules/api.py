@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import json
 from dataclasses import asdict, is_dataclass
+from datetime import datetime, timezone
 from enum import Enum
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -48,6 +50,10 @@ class ApiRequestError(ValueError):
     """Raised when the HTTP API receives malformed request payloads."""
 
 
+def _iso_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def _require_mapping(value: Any, *, field_name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ApiRequestError(f"{field_name} must be an object")
@@ -66,6 +72,17 @@ def _optional_string_tuple(value: Any, *, field_name: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ApiRequestError(f"{field_name} must be an array of strings")
     return tuple(value)
+
+
+def _optional_object_list(value: Any, *, field_name: str) -> tuple[dict[str, Any], ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, list):
+        raise ApiRequestError(f"{field_name} must be an array of objects")
+    result = []
+    for index, item in enumerate(value):
+        result.append(_require_mapping(item, field_name=f"{field_name}[{index}]"))
+    return tuple(result)
 
 
 def _parse_repository(payload: dict[str, Any] | None) -> RepositoryFact | None:
@@ -233,6 +250,84 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     )
 
 
+def _merge_artifacts(existing_task: dict[str, Any], *, new_artifacts: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+    merged_task = deepcopy(existing_task)
+    artifact_items = list(merged_task["artifacts"]["items"])
+    existing_ids = {str(item.get("id")) for item in artifact_items if item.get("id") is not None}
+
+    for artifact in new_artifacts:
+        artifact_id = artifact.get("id")
+        if artifact_id is not None and str(artifact_id) in existing_ids:
+            raise ApiRequestError(f"new_artifacts contains duplicate artifact id {artifact_id!r}")
+        artifact_items.append(deepcopy(artifact))
+        if artifact_id is not None:
+            existing_ids.add(str(artifact_id))
+
+    merged_task["artifacts"]["items"] = artifact_items
+    return merged_task
+
+
+def _merge_completion_evidence(
+    existing_task: dict[str, Any],
+    *,
+    completion_evidence_update: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if completion_evidence_update is None:
+        return existing_task
+
+    merged_task = deepcopy(existing_task)
+    merged_task["artifacts"]["completion_evidence"].update(dict(completion_evidence_update))
+    return merged_task
+
+
+def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str, Any]) -> HarnessEvaluationRequest:
+    """Parse a reevaluation payload against an existing stored TaskEnvelope."""
+
+    request_payload = _require_mapping(payload.get("request"), field_name="request")
+    merged_task = deepcopy(task_envelope)
+
+    new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
+    if new_artifacts:
+        merged_task = _merge_artifacts(merged_task, new_artifacts=new_artifacts)
+
+    completion_evidence_update = _optional_mapping(
+        request_payload.get("completion_evidence"),
+        field_name="completion_evidence",
+    )
+    if completion_evidence_update is not None:
+        merged_task = _merge_completion_evidence(
+            merged_task,
+            completion_evidence_update=completion_evidence_update,
+        )
+
+    merged_task["timestamps"]["updated_at"] = _iso_now()
+
+    review_request = _parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request"))
+    review_decision = _parse_review_decision(
+        _optional_mapping(request_payload.get("review_decision"), field_name="review_decision")
+    )
+
+    if review_request is not None and review_request.task_id != merged_task["id"]:
+        raise ApiRequestError("review_request.task_id must match the stored task id")
+    if review_decision is not None and review_decision.record.task_id != merged_task["id"]:
+        raise ApiRequestError("review_decision.record.task_id must match the stored task id")
+
+    return HarnessEvaluationRequest(
+        task_envelope=merged_task,
+        external_facts=_parse_external_facts(_optional_mapping(request_payload.get("external_facts"), field_name="external_facts")),
+        claimed_completion=bool(request_payload.get("claimed_completion", False)),
+        acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
+        runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
+        unresolved_conditions=_optional_string_tuple(
+            request_payload.get("unresolved_conditions"),
+            field_name="unresolved_conditions",
+        ),
+        review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
+        review_request=review_request,
+        review_decision=review_decision,
+    )
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -308,6 +403,33 @@ class HarnessApiService:
         response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
+    def reevaluate(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        try:
+            request = parse_reevaluation_request(stored_task, payload)
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        result = evaluate_task_case(request)
+        status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
+        response_payload = _to_jsonable(result)
+
+        if result.invalid_input:
+            return status, response_payload
+
+        stored_task = self.store.update_task(result.task_envelope)
+        record = self.store.put_evaluation_record(request=request, result=result)
+        response_payload["task_envelope"] = _to_jsonable(stored_task)
+        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        return status, response_payload
+
     def get_task(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             task = self.store.get_task(task_id)
@@ -366,7 +488,12 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
 
     def do_POST(self) -> None:  # noqa: N802
-        if urlparse(self.path).path != "/evaluate":
+        path_components = _task_path_components(self.path)
+        request_path = urlparse(self.path).path
+
+        if request_path != "/evaluate" and not (
+            len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "reevaluate"
+        ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
 
@@ -379,7 +506,10 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             return
 
         service = self.service or HarnessApiService()
-        status, response_payload = service.evaluate(payload)
+        if request_path == "/evaluate":
+            status, response_payload = service.evaluate(payload)
+        else:
+            status, response_payload = service.reevaluate(path_components[1], payload)
         self._write_json(status, response_payload)
 
 

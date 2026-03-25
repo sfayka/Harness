@@ -4,12 +4,20 @@ import json
 import tempfile
 import threading
 import unittest
+from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from modules.api import HarnessApiService, evaluate_http_payload, run_server
+from modules.contracts.task_envelope_review import (
+    ReviewOutcome,
+    ReviewRequest,
+    ReviewTrigger,
+    ReviewerIdentity,
+    resolve_review_request,
+)
 from modules.demo_cases import build_demo_request
 from modules.store import FileBackedHarnessStore
 
@@ -28,6 +36,121 @@ def _to_jsonable(value):
 
 def _request_payload(case_name: str) -> dict:
     return {"request": _to_jsonable(build_demo_request(case_name))}
+
+
+def _review_note_artifact(artifact_id: str = "artifact-review-note-1") -> dict:
+    return {
+        "id": artifact_id,
+        "type": "review_note",
+        "title": "Manual evidence note",
+        "description": "Evidence was manually confirmed during reevaluation.",
+        "location": None,
+        "content_type": "text/plain",
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "harness",
+            "source_type": "manual_review",
+            "source_id": f"review/{artifact_id}",
+            "captured_by": "operator",
+        },
+        "verification_status": "verified",
+        "repository": None,
+        "branch": None,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-03-24T17:10:00Z",
+        "metadata": {},
+    }
+
+
+def _progress_artifact(artifact_id: str = "artifact-progress-1") -> dict:
+    return {
+        "id": artifact_id,
+        "type": "progress_artifact",
+        "title": "Progress snapshot",
+        "description": "Progress carried across reevaluations.",
+        "location": None,
+        "content_type": "application/json",
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": f"progress/{artifact_id}",
+            "captured_by": "harness-api",
+        },
+        "verification_status": "informational",
+        "repository": None,
+        "branch": None,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-03-24T17:15:00Z",
+        "metadata": {
+            "completed_items": "2",
+            "remaining_items": "1",
+        },
+    }
+
+
+def _handoff_artifact(artifact_id: str = "artifact-handoff-1") -> dict:
+    return {
+        "id": artifact_id,
+        "type": "handoff_artifact",
+        "title": "Session handoff",
+        "description": "Resume from external reconciliation on the next session.",
+        "location": None,
+        "content_type": "application/json",
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": f"handoff/{artifact_id}",
+            "captured_by": "harness-api",
+        },
+        "verification_status": "informational",
+        "repository": None,
+        "branch": None,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-03-24T17:20:00Z",
+        "metadata": {
+            "from_session_id": "session-1",
+            "resume_hint": "Continue verification after the next sync.",
+        },
+    }
+
+
+def _review_decision_payload(task_id: str) -> dict:
+    review_request = ReviewRequest(
+        review_request_id="review-request-api-1",
+        task_id=task_id,
+        requested_at="2026-03-24T17:30:00Z",
+        requested_by="verification",
+        trigger=ReviewTrigger.VERIFICATION,
+        summary="Manual confirmation is required before completion can be accepted.",
+        presented_sections=("task_state", "evidence", "reconciliation"),
+        allowed_outcomes=(ReviewOutcome.ACCEPT_COMPLETION,),
+    )
+    review_decision = resolve_review_request(
+        review_request,
+        review_id="review-api-1",
+        reviewer=ReviewerIdentity(
+            reviewer_id="operator-1",
+            reviewer_name="Casey Reviewer",
+            authority_role="operator",
+        ),
+        outcome=ReviewOutcome.ACCEPT_COMPLETION,
+        reasoning="Additional evidence and manual review resolve the remaining uncertainty.",
+    )
+    return _to_jsonable(review_decision)
 
 
 class HarnessApiPayloadTests(unittest.TestCase):
@@ -82,6 +205,37 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertIn("not found", task_payload["error"].lower())
         self.assertEqual(history_status, 404)
         self.assertIn("not found", history_payload["error"].lower())
+
+    def test_service_can_reevaluate_existing_blocked_task_to_completed(self) -> None:
+        initial_payload = _request_payload("blocked_insufficient_evidence")
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+
+        reevaluation_payload = {
+            "request": {
+                "new_artifacts": [_review_note_artifact()],
+                "completion_evidence": {
+                    "validated_artifact_ids": [
+                        "artifact-pr-1",
+                        "artifact-commit-1",
+                        "artifact-review-note-1",
+                    ]
+                },
+                "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+            }
+        }
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            initial_response["task_envelope"]["id"],
+            reevaluation_payload,
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(reevaluation_response["action"], "transition_applied")
 
 
 class HarnessHttpApiTests(unittest.TestCase):
@@ -244,6 +398,203 @@ class HarnessHttpApiTests(unittest.TestCase):
         except HTTPError as error:
             self.assertEqual(error.code, 400)
             error.close()
+
+    def test_api_can_reevaluate_blocked_task_to_completed_when_new_evidence_arrives(self) -> None:
+        initial_payload = _request_payload("blocked_insufficient_evidence")
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_payload = {
+            "request": {
+                "new_artifacts": [_review_note_artifact()],
+                "completion_evidence": {
+                    "validated_artifact_ids": [
+                        "artifact-pr-1",
+                        "artifact-commit-1",
+                        "artifact-review-note-1",
+                    ]
+                },
+                "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+            }
+        }
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            reevaluation_payload,
+        )
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 2)
+
+    def test_api_can_reevaluate_completed_task_back_to_blocked_for_contradictory_facts(self) -> None:
+        initial_payload = _request_payload("accepted_completion")
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_payload = {
+            "request": {
+                "external_facts": deepcopy(_request_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+            }
+        }
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            reevaluation_payload,
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "completed")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(
+            reevaluation_response["enforcement_result"]["verification_result"]["outcome"],
+            "external_mismatch",
+        )
+
+    def test_api_can_reevaluate_review_required_path_to_completed_after_manual_review(self) -> None:
+        accepted_payload = _request_payload("accepted_completion")
+        initial_payload = {
+            "request": deepcopy(accepted_payload["request"]),
+        }
+        initial_payload["request"]["task_envelope"]["status"] = "blocked"
+        initial_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
+        initial_payload["request"]["review_request"] = deepcopy(_request_payload("review_required")["request"]["review_request"])
+        initial_payload["request"]["review_request"]["task_id"] = initial_payload["request"]["task_envelope"]["id"]
+        initial_payload["request"]["external_facts"] = deepcopy(_request_payload("review_required")["request"]["external_facts"])
+
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_payload = {
+            "request": {
+                "review_decision": _review_decision_payload(task_id),
+            }
+        }
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            reevaluation_payload,
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["action"], "review_required")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertIn(reevaluation_response["action"], {"transition_applied", "follow_up_authorized"})
+
+    def test_api_can_reevaluate_pending_task_to_completed_when_external_facts_arrive(self) -> None:
+        initial_payload = _request_payload("accepted_completion")
+        initial_payload["request"]["external_facts"] = None
+
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_payload["request"]["task_envelope"]["id"]
+
+        reevaluation_payload = {
+            "request": {
+                "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+            }
+        }
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            reevaluation_payload,
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(
+            initial_response["enforcement_result"]["verification_result"]["outcome"],
+            "blocked_unresolved_conditions",
+        )
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+
+    def test_api_appends_long_running_support_artifacts_across_reevaluations(self) -> None:
+        initial_payload = _request_payload("blocked_insufficient_evidence")
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        first_reevaluation_status, _ = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "new_artifacts": [_progress_artifact()],
+                    "external_facts": deepcopy(initial_payload["request"]["external_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+        second_reevaluation_status, _ = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "new_artifacts": [_handoff_artifact()],
+                    "external_facts": deepcopy(initial_payload["request"]["external_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        artifact_types = [item["type"] for item in task_payload["task"]["artifacts"]["items"]]
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(first_reevaluation_status, 200)
+        self.assertEqual(second_reevaluation_status, 200)
+        self.assertEqual(task_status, 200)
+        self.assertEqual(history_status, 200)
+        self.assertIn("progress_artifact", artifact_types)
+        self.assertIn("handoff_artifact", artifact_types)
+        self.assertEqual(len(history_payload["evaluations"]), 3)
+        self.assertEqual(
+            task_payload["task"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
+            ["artifact-pr-1", "artifact-commit-1"],
+        )
+
+    def test_api_rejects_invalid_reevaluation_without_corrupting_store_state(self) -> None:
+        initial_payload = _request_payload("accepted_completion")
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+        before_task_status, before_task_payload = self._get_json(f"/tasks/{task_id}")
+        before_history_status, before_history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        invalid_status, invalid_payload = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "new_artifacts": [_review_note_artifact("artifact-pr-1")],
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+        after_task_status, after_task_payload = self._get_json(f"/tasks/{task_id}")
+        after_history_status, after_history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(before_task_status, 200)
+        self.assertEqual(before_history_status, 200)
+        self.assertEqual(invalid_status, 400)
+        self.assertTrue(invalid_payload["invalid_input"])
+        self.assertEqual(after_task_status, 200)
+        self.assertEqual(after_history_status, 200)
+        self.assertEqual(before_task_payload["task"], after_task_payload["task"])
+        self.assertEqual(before_history_payload["evaluations"], after_history_payload["evaluations"])
 
 
 if __name__ == "__main__":

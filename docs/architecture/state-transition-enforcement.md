@@ -71,6 +71,7 @@ No module may cause lifecycle movement outside its authority just because it obs
 | `executing` | `failed` | yes | runtime or verification | execution attempt or resulting outcome is terminally unusable under policy |
 | `executing` | `canceled` | yes | operator or authorized control-plane policy | execution is intentionally stopped |
 | `completed` | `blocked` | yes | verification or reconciliation-driven control-plane policy | later verification/reconciliation shows outcome is provisional, insufficient, or contradictory |
+| `blocked` | `completed` | yes | verification or manual review | the task was blocked on unresolved completion acceptance and later evidence/reconciliation resolves that blocker |
 | `blocked` | `intake_ready` | yes | clarification handling or operator | blocked intake task has newly resolved clarification and must resume normalization |
 | `blocked` | `planned` | yes | planner, clarification handling, or operator | planning blocker resolved and task should return to planned state |
 | `blocked` | `dispatch_ready` | yes | dispatcher or operator | dispatch blocker resolved and task is ready for assignment |
@@ -138,6 +139,7 @@ May cause:
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `completed` -> `blocked`
+- `blocked` -> `completed`
 
 Verification owns completion acceptance policy and may reverse a provisional completed state when later facts invalidate it.
 

@@ -61,7 +61,7 @@ _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "dispatch_ready": {"assigned", "blocked", "canceled"},
     "assigned": {"executing", "blocked", "failed", "canceled"},
     "executing": {"completed", "blocked", "failed", "canceled"},
-    "blocked": {"intake_ready", "planned", "dispatch_ready", "assigned", "executing", "canceled"},
+    "blocked": {"intake_ready", "planned", "dispatch_ready", "assigned", "executing", "completed", "canceled"},
     "completed": {"blocked"},
     "failed": set(),
     "canceled": set(),
@@ -90,6 +90,7 @@ _AUTHORIZED_ACTORS: dict[tuple[str, str], set[str]] = {
     ("blocked", "dispatch_ready"): {"dispatcher", "operator", "manual_review"},
     ("blocked", "assigned"): {"dispatcher"},
     ("blocked", "executing"): {"runtime"},
+    ("blocked", "completed"): {"verification", "manual_review"},
     ("blocked", "canceled"): {"operator", "manual_review"},
 }
 
