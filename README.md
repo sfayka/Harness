@@ -255,6 +255,40 @@ That spike:
 
 It uses only the public API and preserves OpenClaw-style source metadata in the canonical task payload. See [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md) for the narrow scope and what was learned.
 
+## Ingress Request Builder
+
+To reduce canonical task payload construction friction for ingress clients, Harness now includes a thin ingress-side builder adapter:
+
+```bash
+python - <<'PY'
+from modules.connectors import (
+    IngressSourceContext,
+    IngressTaskIntent,
+    build_task_submission_payload,
+)
+
+payload = build_task_submission_payload(
+    intent=IngressTaskIntent(
+        task_id="task-example-1",
+        title="Example task",
+        description="Construct a canonical Harness submission payload.",
+        acceptance_criteria=("The payload validates at the API boundary.",),
+    ),
+    context=IngressSourceContext(
+        source_system="openclaw",
+        source_id="msg-example-1",
+        ingress_name="OpenClaw",
+        ingress_id="conv-example-1",
+        extension_namespace="openclaw",
+        extension_payload={"conversation_id": "conv-example-1", "channel": "cli"},
+    ),
+)
+print(payload["request"]["task_envelope"]["origin"])
+PY
+```
+
+The builder keeps the API unchanged. It just helps ingress clients construct valid `POST /tasks` and reevaluation payloads without reimplementing canonical defaults.
+
 ## Canonical Demo Pack
 
 You can run a packaged set of canonical demo scenarios that generate:
