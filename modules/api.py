@@ -13,6 +13,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from modules.connectors import (
+    LinearConnectorInputError,
+    LinearIngressInputError,
+    translate_linear_submission_payload,
+)
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import (
     BranchFact,
@@ -421,6 +426,17 @@ class HarnessApiService:
         response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
+    def submit_linear_ingress(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            canonical_payload = translate_linear_submission_payload(payload)
+        except (LinearIngressInputError, LinearConnectorInputError, ValueError) as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        return self.submit(canonical_payload)
+
     def evaluate(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             request = parse_evaluation_request(payload)
@@ -531,7 +547,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         path_components = _task_path_components(self.path)
         request_path = urlparse(self.path).path
 
-        if request_path not in {"/evaluate", "/tasks"} and not (
+        if request_path not in {"/evaluate", "/tasks", "/ingress/linear"} and not (
             len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "reevaluate"
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
@@ -548,6 +564,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         service = self.service or HarnessApiService()
         if request_path == "/tasks":
             status, response_payload = service.submit(payload)
+        elif request_path == "/ingress/linear":
+            status, response_payload = service.submit_linear_ingress(payload)
         elif request_path == "/evaluate":
             status, response_payload = service.evaluate(payload)
         else:

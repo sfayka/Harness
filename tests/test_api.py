@@ -38,6 +38,61 @@ def _request_payload(case_name: str) -> dict:
     return {"request": _to_jsonable(build_demo_request(case_name))}
 
 
+def _linear_ingress_payload(case_name: str, *, task_id: str | None = None) -> dict:
+    canonical_request = _request_payload(case_name)["request"]
+    task = deepcopy(canonical_request["task_envelope"])
+    external_facts = deepcopy(canonical_request.get("external_facts") or {})
+
+    payload = {
+        "issue": {
+            "id": f"lin-{task['id']}",
+            "identifier": f"HAR-{task['id']}",
+            "title": task["title"],
+            "description": task["description"],
+        },
+        "state": {
+            "id": "workflow_in_progress" if case_name == "accepted_completion" else "workflow_completed",
+            "name": "in_progress" if case_name == "accepted_completion" else "completed",
+            "type": "started" if case_name == "accepted_completion" else "completed",
+        },
+        "project": {
+            "id": "project-harness",
+            "name": "Harness",
+        },
+        "task_reference": {
+            "harness_task_id": task_id or task["id"],
+            "external_ref": f"HAR-{task['id']}",
+        },
+        "labels": ["linear", "ingress"],
+        "priority": task.get("priority", "normal"),
+        "task_status": task["status"],
+        "acceptance_criteria": deepcopy(task["acceptance_criteria"]),
+        "linked_artifacts": deepcopy(task["artifacts"]["items"]),
+        "completion_evidence": deepcopy(task["artifacts"]["completion_evidence"]),
+        "external_facts": {},
+        "claimed_completion": canonical_request.get("claimed_completion", False),
+        "acceptance_criteria_satisfied": canonical_request.get("acceptance_criteria_satisfied", False),
+        "runtime_facts": _to_jsonable(canonical_request.get("runtime_facts") or {}),
+    }
+
+    if task.get("assigned_executor") is not None:
+        payload["assigned_executor"] = deepcopy(task["assigned_executor"])
+
+    if external_facts.get("expected_code_context") is not None:
+        payload["external_facts"]["expected_code_context"] = deepcopy(external_facts["expected_code_context"])
+    if external_facts.get("github_facts") is not None:
+        payload["external_facts"]["github_facts"] = deepcopy(external_facts["github_facts"])
+
+    if case_name == "review_required":
+        payload["state"] = {
+            "id": "workflow_in_progress",
+            "name": "in_progress",
+            "type": "started",
+        }
+
+    return payload
+
+
 def _review_note_artifact(artifact_id: str = "artifact-review-note-1") -> dict:
     return {
         "id": artifact_id,
@@ -230,6 +285,20 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
+    def test_service_can_submit_linear_ingress_payload_via_canonical_submission_path(self) -> None:
+        status, payload = self.service.submit_linear_ingress(_linear_ingress_payload("accepted_completion"))
+
+        task_status, task_payload = self.service.get_task(payload["task_envelope"]["id"])
+        history_status, history_payload = self.service.get_evaluation_history(payload["task_envelope"]["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "linear")
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["extensions"]["linear"]["issue_id"], f"lin-{payload['task_envelope']['id']}")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
     def test_service_can_reevaluate_existing_blocked_task_to_completed(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")
         initial_status, initial_response = self.service.evaluate(initial_payload)
@@ -367,6 +436,57 @@ class HarnessHttpApiTests(unittest.TestCase):
         history_status, history_payload = self._get_json(
             f"/tasks/{initial_payload['task_envelope']['id']}/evaluations"
         )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(duplicate_status, 409)
+        self.assertTrue(duplicate_payload["duplicate_task_id"])
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_api_linear_ingress_can_submit_accepted_task(self) -> None:
+        status, payload = self._post_json("/ingress/linear", _linear_ingress_payload("accepted_completion"))
+        task_id = payload["task_envelope"]["id"]
+
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "linear")
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["extensions"]["linear"]["issue_id"], f"lin-{task_id}")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_api_linear_ingress_can_submit_initial_blocked_task(self) -> None:
+        status, payload = self._post_json("/ingress/linear", _linear_ingress_payload("blocked_insufficient_evidence"))
+        task_id = payload["task_envelope"]["id"]
+
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["target_status"], "blocked")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "blocked")
+
+    def test_api_linear_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-1")
+        del payload["issue"]["title"]
+
+        status, response_payload = self._post_json("/ingress/linear", payload)
+        task_status, task_payload = self._get_json("/tasks/task-linear-invalid-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_linear_ingress_rejects_duplicate_task_id_consistently(self) -> None:
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-duplicate-1")
+
+        initial_status, _ = self._post_json("/ingress/linear", payload)
+        duplicate_status, duplicate_payload = self._post_json("/ingress/linear", payload)
+        history_status, history_payload = self._get_json("/tasks/task-linear-duplicate-1/evaluations")
 
         self.assertEqual(initial_status, 200)
         self.assertEqual(duplicate_status, 409)
