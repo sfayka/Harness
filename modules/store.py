@@ -63,6 +63,8 @@ class TaskEnvelopeStore(Protocol):
 
     def create_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope: ...
 
+    def list_tasks(self) -> tuple[TaskEnvelope, ...]: ...
+
     def put_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope: ...
 
     def get_task(self, task_id: str) -> TaskEnvelope: ...
@@ -119,6 +121,19 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
         task_id = str(task_envelope["id"])
         self._write_json(self._task_path(task_id), _jsonable(task_envelope))
         return task_envelope
+
+    def list_tasks(self) -> tuple[TaskEnvelope, ...]:
+        tasks: list[TaskEnvelope] = []
+        for path in self.tasks_dir.glob("*.json"):
+            tasks.append(self._read_json(path))
+        tasks.sort(
+            key=lambda task: (
+                str((task.get("timestamps") or {}).get("updated_at") or ""),
+                str(task.get("id") or ""),
+            ),
+            reverse=True,
+        )
+        return tuple(tasks)
 
     def create_task(self, task_envelope: TaskEnvelope) -> TaskEnvelope:
         task_id = str(task_envelope["id"])

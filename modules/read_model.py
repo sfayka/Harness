@@ -156,6 +156,8 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                     "type": artifact.get("type"),
                     "title": artifact.get("title"),
                     "verification_status": artifact.get("verification_status"),
+                    "pull_request_number": artifact.get("pull_request_number"),
+                    "commit_sha": artifact.get("commit_sha"),
                     "repository": artifact.get("repository"),
                     "branch": artifact.get("branch"),
                 },
@@ -199,7 +201,10 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                     "occurred_at": review_request.get("requested_at") or record.recorded_at,
                     "summary": "Manual review requested",
                     "source": review_request.get("requested_by") or "harness",
-                    "details": review_request,
+                    "details": {
+                        **review_request,
+                        "reason": review_request.get("summary"),
+                    },
                 }
             )
 
@@ -330,6 +335,9 @@ class HarnessReadModelService:
             "event_count": len(timeline),
             "timeline": timeline,
         }
+
+    def list_task_read_models(self) -> tuple[TaskReadModel, ...]:
+        return tuple(self.build_task_read_model(str(task["id"])) for task in self.store.list_tasks())
 
 
 __all__ = [

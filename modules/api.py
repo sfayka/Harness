@@ -495,6 +495,10 @@ class HarnessApiService:
             return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
         return HTTPStatus.OK, {"task": task}
 
+    def list_tasks(self) -> tuple[int, dict[str, Any]]:
+        tasks = self.read_model_service.list_task_read_models()
+        return HTTPStatus.OK, {"tasks": [_to_jsonable(task) for task in tasks]}
+
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             self.store.get_task(task_id)
@@ -535,9 +539,20 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         body = json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_GET(self) -> None:  # noqa: N802
         path_components = _task_path_components(self.path)
@@ -545,6 +560,11 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
         if path_components == ("health",):
             self._write_json(HTTPStatus.OK, {"status": "ok"})
+            return
+
+        if path_components == ("tasks",):
+            status, payload = service.list_tasks()
+            self._write_json(status, payload)
             return
 
         if len(path_components) == 2 and path_components[0] == "tasks":
