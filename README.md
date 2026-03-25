@@ -184,10 +184,8 @@ Current focus:
 - artifact and completion evidence modeling
 - Linear-aligned intake and normalization
 - PRD-to-work-breakdown generation for upstream structure creation
-<<<<<<< codex/prd-bulk-ingestion
 - review-and-approve bulk ingestion of generated work into persisted Harness tasks
-=======
->>>>>>> main
+- canonical goal-to-work composition from high-level request to persisted Harness tasks
 - verification, auditability, and system-of-record reconciliation
 
 Not yet in scope:
