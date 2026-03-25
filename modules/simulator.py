@@ -138,6 +138,7 @@ class SimulationStepResult:
     target_status: str | None
     task_status: str | None
     task_id: str | None
+    request_payload: dict[str, Any] | None
     payload: dict[str, Any]
 
 
@@ -194,7 +195,16 @@ class _ScenarioContext:
         self.task_id: str | None = None
         self.steps: list[SimulationStepResult] = []
 
-    def record(self, *, name: str, method: str, path: str, http_status: int, payload: dict[str, Any]) -> dict[str, Any]:
+    def record(
+        self,
+        *,
+        name: str,
+        method: str,
+        path: str,
+        http_status: int,
+        request_payload: dict[str, Any] | None,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
         task_envelope = payload.get("task_envelope")
         task_id = payload.get("task_envelope", {}).get("id") if isinstance(task_envelope, dict) else None
         if task_id is None and "task" in payload and isinstance(payload["task"], dict):
@@ -216,6 +226,7 @@ class _ScenarioContext:
                 if isinstance(task_envelope or payload.get("task"), dict)
                 else None,
                 task_id=self.task_id,
+                request_payload=deepcopy(request_payload),
                 payload=payload,
             )
         )
@@ -224,7 +235,14 @@ class _ScenarioContext:
 
 def _submit_step(client: HarnessSimulatorClient, context: _ScenarioContext, name: str, payload: dict[str, Any]) -> dict[str, Any]:
     status, response_payload = client.submit_task(payload)
-    return context.record(name=name, method="POST", path="/tasks", http_status=status, payload=response_payload)
+    return context.record(
+        name=name,
+        method="POST",
+        path="/tasks",
+        http_status=status,
+        request_payload=payload,
+        payload=response_payload,
+    )
 
 
 def _reevaluate_step(
@@ -237,7 +255,14 @@ def _reevaluate_step(
         raise ValueError("task_id is required before reevaluation")
     path = f"/tasks/{context.task_id}/reevaluate"
     status, response_payload = client.reevaluate_task(context.task_id, payload)
-    return context.record(name=name, method="POST", path=path, http_status=status, payload=response_payload)
+    return context.record(
+        name=name,
+        method="POST",
+        path=path,
+        http_status=status,
+        request_payload=payload,
+        payload=response_payload,
+    )
 
 
 def _fetch_final_state(client: HarnessSimulatorClient, context: _ScenarioContext) -> tuple[dict[str, Any] | None, tuple[dict[str, Any], ...]]:
@@ -328,6 +353,8 @@ def _scenario_wrong_target_corrected(client: HarnessSimulatorClient) -> Simulati
     context = _ScenarioContext()
     initial_payload = _canonical_payload("accepted_completion")
     wrong_target_payload = deepcopy(initial_payload)
+    wrong_target_payload["request"]["task_envelope"]["status"] = "blocked"
+    wrong_target_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
     wrong_target_payload["request"]["external_facts"]["github_facts"]["branch"]["name"] = "codex/wrong-target"
 
     _submit_step(client, context, "submit", wrong_target_payload)
@@ -408,6 +435,34 @@ def _scenario_contradictory_facts_rollback(client: HarnessSimulatorClient) -> Si
     return SimulationResult("contradictory_facts_rollback", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
 
+def _scenario_contradictory_facts_blocked(client: HarnessSimulatorClient) -> SimulationResult:
+    context = _ScenarioContext()
+    accepted_payload = _canonical_payload("accepted_completion")
+    _submit_step(client, context, "submit", accepted_payload)
+    _reevaluate_step(
+        client,
+        context,
+        "introduce_contradictory_facts",
+        {
+            "request": {
+                "external_facts": deepcopy(_canonical_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(accepted_payload["request"]["runtime_facts"]),
+            }
+        },
+    )
+    task_snapshot, history = _fetch_final_state(client, context)
+    return SimulationResult(
+        "contradictory_facts_blocked",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+    )
+
+
 def _scenario_long_running_handoff(client: HarnessSimulatorClient) -> SimulationResult:
     context = _ScenarioContext()
     initial_payload = _canonical_payload("blocked_insufficient_evidence")
@@ -470,6 +525,7 @@ _SCENARIOS = {
     "missing_evidence_then_completed": _scenario_missing_evidence_then_completed,
     "wrong_target_corrected": _scenario_wrong_target_corrected,
     "review_required_then_completed": _scenario_review_required_then_completed,
+    "contradictory_facts_blocked": _scenario_contradictory_facts_blocked,
     "contradictory_facts_rollback": _scenario_contradictory_facts_rollback,
     "long_running_handoff": _scenario_long_running_handoff,
 }
