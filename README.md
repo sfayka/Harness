@@ -212,6 +212,26 @@ python -m modules.cli run blocked_reconciliation_mismatch --json
 The CLI uses canonical `TaskEnvelope` fixtures plus normalized GitHub/Linear fact bundles.
 It does not call live external APIs.
 
+## OpenClaw-Style Simulator
+
+You can also run a lightweight ingress simulator against the public Harness API.
+
+Start the API first:
+
+```bash
+python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+```
+
+Then run simulator scenarios such as:
+
+```bash
+python -m modules.simulator list
+python -m modules.simulator --base-url http://127.0.0.1:8000 run successful_completion
+python -m modules.simulator --base-url http://127.0.0.1:8000 run long_running_handoff --json
+```
+
+The simulator is entirely client-side. It uses only the public HTTP API to submit tasks, reevaluate tasks, and inspect persisted state over time.
+
 ## Local HTTP API
 
 You can also run a minimal local HTTP wrapper around the same evaluation entry point:
