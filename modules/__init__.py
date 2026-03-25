@@ -6,6 +6,7 @@ from .evaluation import (
     HarnessEvaluator,
     evaluate_task_case,
 )
+from .read_model import HarnessReadModelService, TaskReadModel
 from .store import (
     EvaluationRecord,
     EvaluationRecordStore,
@@ -19,6 +20,8 @@ __all__ = [
     "HarnessEvaluationRequest",
     "HarnessEvaluationResult",
     "HarnessEvaluator",
+    "HarnessReadModelService",
+    "TaskReadModel",
     "EvaluationRecord",
     "EvaluationRecordStore",
     "FileBackedHarnessStore",
