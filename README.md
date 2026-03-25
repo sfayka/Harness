@@ -291,6 +291,32 @@ This walkthrough seeds named tasks such as:
 
 The generated `walkthrough.txt` and `walkthrough.json` files include task IDs, direct dashboard URLs, and per-scenario operator focus points. See [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md) for the narrated flow.
 
+## One-Command Local Demo Bootstrap
+
+For the lowest-friction local demo path, use the bootstrap command:
+
+```bash
+python -m modules.demo_bootstrap
+```
+
+That single command will:
+
+- clear the local demo store and walkthrough output
+- start the Python API on `http://127.0.0.1:8000`
+- start the dashboard on `http://127.0.0.1:3000`
+- seed the deterministic walkthrough tasks
+- print the dashboard URL plus direct `/?task=` links for each canonical demo task
+
+Useful options:
+
+```bash
+python -m modules.demo_bootstrap --exit-after-seed
+python -m modules.demo_bootstrap successful_completion review_required_then_completed
+python -m modules.demo_bootstrap --json --exit-after-seed
+```
+
+The bootstrap command uses the existing public API, walkthrough seeding flow, and dashboard wiring. It does not introduce a separate demo-only control path.
+
 ## Local HTTP API
 
 You can also run a minimal local HTTP wrapper around the same evaluation entry point:
