@@ -46,23 +46,23 @@ export function VerificationCard({ summary }: VerificationCardProps) {
           {/* Key indicators */}
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
-              {summary.completion_accepted ? (
+              {(summary.verification_passed ?? summary.completion_accepted) ? (
                 <CheckCircle2 className="h-4 w-4 text-success" />
               ) : (
                 <XCircle className="h-4 w-4 text-destructive" />
               )}
               <span className="text-muted-foreground">
-                Completion {summary.completion_accepted ? "Accepted" : "Not Accepted"}
+                Completion {(summary.verification_passed ?? summary.completion_accepted) ? "Accepted" : "Not Accepted"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
-              {summary.evidence_sufficient ? (
+              {(summary.evidence_is_sufficient ?? summary.evidence_sufficient) ? (
                 <FileSearch className="h-4 w-4 text-success" />
               ) : (
                 <FileSearch className="h-4 w-4 text-warning" />
               )}
               <span className="text-muted-foreground">
-                Evidence {summary.evidence_sufficient ? "Sufficient" : "Insufficient"}
+                Evidence {(summary.evidence_is_sufficient ?? summary.evidence_sufficient) ? "Sufficient" : "Insufficient"}
               </span>
             </div>
           </div>

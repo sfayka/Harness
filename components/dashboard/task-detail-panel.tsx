@@ -254,7 +254,12 @@ export function TaskDetailPanel({
             {/* Verification & Reconciliation */}
             <div className="grid grid-cols-1 gap-4">
               <VerificationCard summary={task.verification_summary} />
-              <ReconciliationCard summary={task.reconciliation_summary} />
+              <ReconciliationCard
+                summary={task.reconciliation_summary}
+                evidence={task.evidence_summary}
+                timeline={task.timeline}
+                currentStatus={task.current_status}
+              />
             </div>
 
             {/* Evidence */}

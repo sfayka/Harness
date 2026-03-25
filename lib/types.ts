@@ -81,14 +81,22 @@ export interface EvidenceSummary {
 
 export interface VerificationSummary {
   result: VerificationStatus;
+  outcome?: string | null;
   completion_accepted: boolean;
+  verification_passed?: boolean;
   evidence_sufficient: boolean;
+  evidence_is_valid?: boolean;
+  evidence_is_sufficient?: boolean;
   reasons: string[];
   evaluated_at: string;
 }
 
 export interface ReconciliationSummary {
   result: ReconciliationStatus;
+  outcome?: string | null;
+  status?: string | null;
+  blocking?: boolean;
+  mismatch_categories?: string[];
   linear_state: string | null;
   github_state: string | null;
   harness_state: string | null;
