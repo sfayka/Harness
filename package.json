@@ -1,6 +1,5 @@
 {
   "name": "harness-dashboard",
-  "description": "Control plane dashboard for Harness AI verification",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,9 +14,8 @@
     "react-dom": "^19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^3.1.0",
-    "lucide-react": "^0.468.0",
-    "date-fns": "^4.1.0"
+    "tailwind-merge": "^3.0.0",
+    "lucide-react": "^0.468.0"
   },
   "devDependencies": {
     "typescript": "^5",

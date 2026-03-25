@@ -14,9 +14,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.2.4)
@@ -30,7 +27,7 @@ importers:
         specifier: ^19
         version: 19.2.4(react@19.2.4)
       tailwind-merge:
-        specifier: ^3.1.0
+        specifier: ^3.0.0
         version: 3.5.0
     devDependencies:
       '@tailwindcss/postcss':
@@ -411,9 +408,6 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
-
-  date-fns@4.1.0:
-    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -857,8 +851,6 @@ snapshots:
   clsx@2.1.1: {}
 
   csstype@3.2.3: {}
-
-  date-fns@4.1.0: {}
 
   detect-libc@2.1.2: {}
 
