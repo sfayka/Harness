@@ -1,0 +1,50 @@
+Harness End-to-End Demo Walkthrough
+API Base URL: http://127.0.0.1:8000
+Artifacts Directory: /Users/ssbob/Documents/Developer/Knox_Analytics/Harness/demo-output/walkthrough
+
+Scenarios:
+1. Accepted Completion
+   task_id: demo-successful-completion
+   final_status: completed
+   operator_focus: Explain how aligned evidence and reconciliation allow Harness to preserve completed.
+   dashboard_focus: Open the task timeline and show the single verification pass that ends in completed.
+   timeline: demo-output/walkthrough/successful_completion.timeline.txt
+   mermaid: demo-output/walkthrough/successful_completion.mmd
+   json: demo-output/walkthrough/successful_completion.json
+   dashboard_url: http://127.0.0.1:3000/?task=demo-successful-completion
+2. Blocked To Completed
+   task_id: demo-missing-evidence-then-completed
+   final_status: completed
+   operator_focus: Show that completion claims are blocked until the missing evidence actually arrives.
+   dashboard_focus: Open the timeline and point out the blocked evaluation before the later review note resolves it.
+   timeline: demo-output/walkthrough/missing_evidence_then_completed.timeline.txt
+   mermaid: demo-output/walkthrough/missing_evidence_then_completed.mmd
+   json: demo-output/walkthrough/missing_evidence_then_completed.json
+   dashboard_url: http://127.0.0.1:3000/?task=demo-missing-evidence-then-completed
+3. Contradictory Facts Rollback
+   task_id: demo-contradictory-facts-blocked
+   final_status: blocked
+   operator_focus: Show Harness reversing a previously accepted completion when external facts contradict it.
+   dashboard_focus: Open the task detail and highlight the completed-to-blocked lifecycle reversal.
+   timeline: demo-output/walkthrough/contradictory_facts_blocked.timeline.txt
+   mermaid: demo-output/walkthrough/contradictory_facts_blocked.mmd
+   json: demo-output/walkthrough/contradictory_facts_blocked.json
+   dashboard_url: http://127.0.0.1:3000/?task=demo-contradictory-facts-blocked
+4. Review Required To Completed
+   task_id: demo-review-required-then-completed
+   final_status: completed
+   operator_focus: Show that manual review is explicit, auditable, and non-terminal until resolved.
+   dashboard_focus: Open the review panel and timeline to show request then decision.
+   timeline: demo-output/walkthrough/review_required_then_completed.timeline.txt
+   mermaid: demo-output/walkthrough/review_required_then_completed.mmd
+   json: demo-output/walkthrough/review_required_then_completed.json
+   dashboard_url: http://127.0.0.1:3000/?task=demo-review-required-then-completed
+5. Long-Running Handoff
+   task_id: demo-long-running-handoff
+   final_status: completed
+   operator_focus: Show progress and handoff artifacts accumulating across evaluations without counting as completion evidence by default.
+   dashboard_focus: Open evidence and timeline views to point out progress_artifact and handoff_artifact before final completion.
+   timeline: demo-output/walkthrough/long_running_handoff.timeline.txt
+   mermaid: demo-output/walkthrough/long_running_handoff.mmd
+   json: demo-output/walkthrough/long_running_handoff.json
+   dashboard_url: http://127.0.0.1:3000/?task=demo-long-running-handoff

@@ -1,0 +1,18 @@
+Scenario: review_required_then_completed
+Task ID: demo-review-required-then-completed
+Initial Task State: blocked
+1. submit
+   request: POST /tasks
+   http_status: 200
+   added: artifacts=pull_request, commit; github_branch=codex/demo
+   verification: review_required
+   reconciliation: n/a
+   lifecycle: action=review_required target_status=blocked task_status=blocked
+2. resolve_review
+   request: POST /tasks/demo-review-required-then-completed/reevaluate
+   http_status: 200
+   added: review_decision=accept_completion
+   verification: n/a
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=completed task_status=completed
+Final Task State: completed

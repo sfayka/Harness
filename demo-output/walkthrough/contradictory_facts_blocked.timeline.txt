@@ -1,0 +1,18 @@
+Scenario: contradictory_facts_blocked
+Task ID: demo-contradictory-facts-blocked
+Initial Task State: completed
+1. submit
+   request: POST /tasks
+   http_status: 200
+   added: artifacts=pull_request, commit; github_branch=codex/demo; linear_state=in_progress
+   verification: accepted_completion
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=completed task_status=completed
+2. introduce_contradictory_facts
+   request: POST /tasks/demo-contradictory-facts-blocked/reevaluate
+   http_status: 200
+   added: github_branch=codex/demo; linear_state=in_progress
+   verification: external_mismatch
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=blocked task_status=blocked
+Final Task State: blocked

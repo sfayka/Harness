@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor Simulator as "Demo Runner"
+    participant API as "Harness API"
+    participant Store as "Task Store"
+    Simulator->>API: POST /tasks\nsubmit
+    Note right of API: artifacts=pull_request, commit\ngithub_branch=codex/demo
+    API->>Store: persist evaluation for demo-review-required-then-completed
+    Store-->>API: task_status=blocked
+    API-->>Simulator: action=review_required\ntarget=blocked\nverification=review_required\nreconciliation=n/a
+    Simulator->>API: POST /tasks/demo-review-required-then-completed/reevaluate\nresolve_review
+    Note right of API: review_decision=accept_completion
+    API->>Store: persist evaluation for demo-review-required-then-completed
+    Store-->>API: task_status=completed
+    API-->>Simulator: action=transition_applied\ntarget=completed\nverification=n/a\nreconciliation=n/a
+    Note over Simulator,API: final task state = completed

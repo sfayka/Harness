@@ -1,0 +1,32 @@
+Scenario: long_running_handoff
+Task ID: demo-long-running-handoff
+Initial Task State: blocked
+1. submit
+   request: POST /tasks
+   http_status: 200
+   added: artifacts=pull_request, commit; github_branch=codex/demo; linear_state=completed
+   verification: insufficient_evidence
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=blocked task_status=blocked
+2. append_progress_artifact
+   request: POST /tasks/demo-long-running-handoff/reevaluate
+   http_status: 200
+   added: new_artifacts=progress_artifact; github_branch=codex/demo; linear_state=completed
+   verification: external_mismatch
+   reconciliation: n/a
+   lifecycle: action=no_op target_status=blocked task_status=blocked
+3. append_handoff_artifact
+   request: POST /tasks/demo-long-running-handoff/reevaluate
+   http_status: 200
+   added: new_artifacts=handoff_artifact; github_branch=codex/demo; linear_state=completed
+   verification: external_mismatch
+   reconciliation: n/a
+   lifecycle: action=no_op target_status=blocked task_status=blocked
+4. complete_after_handoff
+   request: POST /tasks/demo-long-running-handoff/reevaluate
+   http_status: 200
+   added: new_artifacts=review_note; github_branch=codex/demo; linear_state=in_progress; validated_artifacts=3
+   verification: accepted_completion
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=completed task_status=completed
+Final Task State: completed

@@ -1,0 +1,4595 @@
+{
+  "evaluation_history": [
+    {
+      "evaluation_id": "2b1cff32-98c4-4090-a989-134c8e461ef4",
+      "recorded_at": "2026-03-25T17:13:55.619410Z",
+      "request": {
+        "acceptance_criteria_satisfied": true,
+        "claimed_completion": true,
+        "external_facts": {
+          "expected_code_context": {
+            "base_branch": "main",
+            "branch_name": "codex/demo",
+            "repository_host": "github.com",
+            "repository_name": "Harness",
+            "repository_owner": "sfayka"
+          },
+          "github_facts": {
+            "artifact_found": true,
+            "artifact_refs": [],
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "abcdef1234567890",
+              "name": "codex/demo"
+            },
+            "changed_files": {
+              "files": [],
+              "matches_expected_scope": true
+            },
+            "commit": {
+              "message_summary": null,
+              "sha": "abcdef1234567890",
+              "url": null
+            },
+            "pull_request": {
+              "merged": null,
+              "number": 300,
+              "review_state": "approved",
+              "state": null,
+              "url": null
+            },
+            "reasons": [],
+            "repository": {
+              "external_id": null,
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            }
+          },
+          "linear_facts": {
+            "issue_id": "lin-demo-1",
+            "issue_key": "HAR-300",
+            "project": null,
+            "reasons": [],
+            "record_found": true,
+            "state": "in_progress",
+            "task_reference": null,
+            "workflow": null
+          }
+        },
+        "review_decision": null,
+        "review_reasons": [],
+        "review_request": null,
+        "runtime_facts": {
+          "attempt_count": 1,
+          "executor_reported_failure": false,
+          "executor_reported_success": true,
+          "latest_attempt_outcome": null,
+          "terminal_failure": false
+        },
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Completion is backed by valid evidence and normalized external facts.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-03-24T20:14:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-run-demo-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "captured_at": "2026-03-24T20:10:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-300",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/example/harness/pull/300",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/300",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 300,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Harness demo case",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-03-24T20:11:00Z",
+                "changed_files": [],
+                "commit_sha": "abcdef1234567890",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-abcdef1234567890",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/abcdef1234567890",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Capability match.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Task used to demonstrate the Harness evaluation entry point.",
+          "id": "demo-contradictory-facts-blocked",
+          "objective": {
+            "deliverable_type": "code_change",
+            "success_signal": "The evaluator returns a structured control-plane result.",
+            "summary": "Demonstrate the Harness evaluation path."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {},
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": "OpenClaw",
+            "requested_by": null,
+            "source_id": "demo-contradictory-facts-blocked",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [],
+          "status": "executing",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-24T20:00:00Z",
+            "updated_at": "2026-03-24T20:05:00Z"
+          },
+          "title": "Demo: Contradictory Facts Rollback"
+        },
+        "unresolved_conditions": []
+      },
+      "result": {
+        "accepted_completion": true,
+        "action": "transition_applied",
+        "enforcement_result": {
+          "action": "transition_applied",
+          "error": null,
+          "evidence_result": {
+            "artifact_results": [
+              {
+                "artifact_id": "artifact-pr-1",
+                "artifact_type": "pull_request",
+                "is_valid": true,
+                "issues": []
+              },
+              {
+                "artifact_id": "artifact-commit-1",
+                "artifact_type": "commit",
+                "is_valid": true,
+                "issues": []
+              }
+            ],
+            "is_sufficient": true,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ]
+          },
+          "reasons": [
+            "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "reconciliation_result": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+              "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "demo-contradictory-facts-blocked",
+            "terminal": false
+          },
+          "review_decision": null,
+          "review_request": null,
+          "target_status": "completed",
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Completion is backed by valid evidence and normalized external facts.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "policy": "required",
+                "required_artifact_types": [
+                  "pull_request",
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-03-24T20:14:00Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "github-sync",
+                  "source_id": "verification-run-demo-1",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "abcdef1234567890",
+                    "name": "codex/demo"
+                  },
+                  "captured_at": "2026-03-24T20:10:00Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "PR-300",
+                  "external_refs": [],
+                  "id": "artifact-pr-1",
+                  "location": "https://github.com/example/harness/pull/300",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "pull/300",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 300,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": "approved",
+                  "title": "Harness demo case",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": null,
+                  "captured_at": "2026-03-24T20:11:00Z",
+                  "changed_files": [],
+                  "commit_sha": "abcdef1234567890",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-abcdef1234567890",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/abcdef1234567890",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Capability match.",
+              "executor_id": "executor-1",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "dependencies": [],
+            "description": "Task used to demonstrate the Harness evaluation entry point.",
+            "id": "demo-contradictory-facts-blocked",
+            "objective": {
+              "deliverable_type": "code_change",
+              "success_signal": "The evaluator returns a structured control-plane result.",
+              "summary": "Demonstrate the Harness evaluation path."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {},
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": "OpenClaw",
+              "requested_by": null,
+              "source_id": "demo-contradictory-facts-blocked",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "required_capabilities": [],
+            "status": "completed",
+            "status_history": [
+              {
+                "changed_at": "2026-03-25T17:13:55.618467Z",
+                "changed_by": "verification",
+                "from_status": "executing",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              }
+            ],
+            "timestamps": {
+              "completed_at": "2026-03-25T17:13:55.618467Z",
+              "created_at": "2026-03-24T20:00:00Z",
+              "updated_at": "2026-03-25T17:13:55.618467Z"
+            },
+            "title": "Demo: Contradictory Facts Rollback"
+          },
+          "transition_result": {
+            "actor": "verification",
+            "changed_at": "2026-03-25T17:13:55.618467Z",
+            "from_status": "executing",
+            "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "status_history_entry": {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "completed",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                }
+              ],
+              "timestamps": {
+                "completed_at": "2026-03-25T17:13:55.618467Z",
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.618467Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            },
+            "to_status": "completed"
+          },
+          "verification_result": {
+            "accepted_completion": true,
+            "claimed_completion": true,
+            "evidence_is_sufficient": true,
+            "evidence_is_valid": true,
+            "is_terminal": false,
+            "outcome": "accepted_completion",
+            "reasons": [
+              "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy",
+              "Executor-reported success was treated as advisory input only",
+              "Acceptance criteria, evidence, and reconciliation all support completion"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": "completed",
+            "task_id": "demo-contradictory-facts-blocked",
+            "verification_passed": true
+          }
+        },
+        "error": null,
+        "invalid_input": false,
+        "reasons": [
+          "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "requires_review": false,
+        "target_status": "completed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Completion is backed by valid evidence and normalized external facts.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-03-24T20:14:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-run-demo-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "captured_at": "2026-03-24T20:10:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-300",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/example/harness/pull/300",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/300",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 300,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Harness demo case",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-03-24T20:11:00Z",
+                "changed_files": [],
+                "commit_sha": "abcdef1234567890",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-abcdef1234567890",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/abcdef1234567890",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Capability match.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Task used to demonstrate the Harness evaluation entry point.",
+          "id": "demo-contradictory-facts-blocked",
+          "objective": {
+            "deliverable_type": "code_change",
+            "success_signal": "The evaluator returns a structured control-plane result.",
+            "summary": "Demonstrate the Harness evaluation path."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {},
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": "OpenClaw",
+            "requested_by": null,
+            "source_id": "demo-contradictory-facts-blocked",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-03-25T17:13:55.618467Z",
+            "created_at": "2026-03-24T20:00:00Z",
+            "updated_at": "2026-03-25T17:13:55.618467Z"
+          },
+          "title": "Demo: Contradictory Facts Rollback"
+        }
+      },
+      "task_id": "demo-contradictory-facts-blocked"
+    },
+    {
+      "evaluation_id": "bbcaa991-ca34-467d-9454-61e7c562a6db",
+      "recorded_at": "2026-03-25T17:13:55.625894Z",
+      "request": {
+        "acceptance_criteria_satisfied": true,
+        "claimed_completion": true,
+        "external_facts": {
+          "expected_code_context": {
+            "base_branch": "main",
+            "branch_name": "codex/demo",
+            "repository_host": "github.com",
+            "repository_name": "Harness",
+            "repository_owner": "sfayka"
+          },
+          "github_facts": {
+            "artifact_found": true,
+            "artifact_refs": [],
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "abcdef1234567890",
+              "name": "codex/demo"
+            },
+            "changed_files": {
+              "files": [],
+              "matches_expected_scope": true
+            },
+            "commit": {
+              "message_summary": null,
+              "sha": "abcdef1234567890",
+              "url": null
+            },
+            "pull_request": {
+              "merged": null,
+              "number": 300,
+              "review_state": "approved",
+              "state": null,
+              "url": null
+            },
+            "reasons": [],
+            "repository": {
+              "external_id": null,
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            }
+          },
+          "linear_facts": {
+            "issue_id": "lin-demo-1",
+            "issue_key": "HAR-300",
+            "project": null,
+            "reasons": [],
+            "record_found": true,
+            "state": "in_progress",
+            "task_reference": null,
+            "workflow": null
+          }
+        },
+        "review_decision": null,
+        "review_reasons": [],
+        "review_request": null,
+        "runtime_facts": {
+          "attempt_count": 1,
+          "executor_reported_failure": false,
+          "executor_reported_success": true,
+          "latest_attempt_outcome": null,
+          "terminal_failure": false
+        },
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Completion is backed by valid evidence and normalized external facts.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-03-24T20:14:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-run-demo-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "captured_at": "2026-03-24T20:10:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-300",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/example/harness/pull/300",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/300",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 300,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Harness demo case",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-03-24T20:11:00Z",
+                "changed_files": [],
+                "commit_sha": "abcdef1234567890",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-abcdef1234567890",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/abcdef1234567890",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Capability match.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Task used to demonstrate the Harness evaluation entry point.",
+          "id": "demo-contradictory-facts-blocked",
+          "objective": {
+            "deliverable_type": "code_change",
+            "success_signal": "The evaluator returns a structured control-plane result.",
+            "summary": "Demonstrate the Harness evaluation path."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {},
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": "OpenClaw",
+            "requested_by": null,
+            "source_id": "demo-contradictory-facts-blocked",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-03-25T17:13:55.618467Z",
+            "created_at": "2026-03-24T20:00:00Z",
+            "updated_at": "2026-03-25T17:13:55.621139Z"
+          },
+          "title": "Demo: Contradictory Facts Rollback"
+        },
+        "unresolved_conditions": []
+      },
+      "result": {
+        "accepted_completion": false,
+        "action": "transition_applied",
+        "enforcement_result": {
+          "action": "transition_applied",
+          "error": null,
+          "evidence_result": {
+            "artifact_results": [
+              {
+                "artifact_id": "artifact-pr-1",
+                "artifact_type": "pull_request",
+                "is_valid": true,
+                "issues": []
+              },
+              {
+                "artifact_id": "artifact-commit-1",
+                "artifact_type": "commit",
+                "is_valid": true,
+                "issues": []
+              }
+            ],
+            "is_sufficient": true,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ]
+          },
+          "reasons": [
+            "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved"
+          ],
+          "reconciliation_result": {
+            "blocking": true,
+            "mismatch_categories": [
+              "linear_state_conflict"
+            ],
+            "outcome": "contradictory_facts",
+            "reasons": [
+              "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+              "Harness marks the task completed while Linear still reports active work"
+            ],
+            "status": "mismatch",
+            "task_id": "demo-contradictory-facts-blocked",
+            "terminal": false
+          },
+          "review_decision": null,
+          "review_request": null,
+          "target_status": "blocked",
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Completion is backed by valid evidence and normalized external facts.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "policy": "required",
+                "required_artifact_types": [
+                  "pull_request",
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-03-24T20:14:00Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "github-sync",
+                  "source_id": "verification-run-demo-1",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "abcdef1234567890",
+                    "name": "codex/demo"
+                  },
+                  "captured_at": "2026-03-24T20:10:00Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "PR-300",
+                  "external_refs": [],
+                  "id": "artifact-pr-1",
+                  "location": "https://github.com/example/harness/pull/300",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "pull/300",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 300,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": "approved",
+                  "title": "Harness demo case",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": null,
+                  "captured_at": "2026-03-24T20:11:00Z",
+                  "changed_files": [],
+                  "commit_sha": "abcdef1234567890",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-abcdef1234567890",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/abcdef1234567890",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Capability match.",
+              "executor_id": "executor-1",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "dependencies": [],
+            "description": "Task used to demonstrate the Harness evaluation entry point.",
+            "id": "demo-contradictory-facts-blocked",
+            "objective": {
+              "deliverable_type": "code_change",
+              "success_signal": "The evaluator returns a structured control-plane result.",
+              "summary": "Demonstrate the Harness evaluation path."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {},
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": "OpenClaw",
+              "requested_by": null,
+              "source_id": "demo-contradictory-facts-blocked",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "required_capabilities": [],
+            "status": "blocked",
+            "status_history": [
+              {
+                "changed_at": "2026-03-25T17:13:55.618467Z",
+                "changed_by": "verification",
+                "from_status": "executing",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              },
+              {
+                "changed_at": "2026-03-25T17:13:55.624932Z",
+                "changed_by": "verification",
+                "from_status": "completed",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                "to_status": "blocked"
+              }
+            ],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-24T20:00:00Z",
+              "updated_at": "2026-03-25T17:13:55.624932Z"
+            },
+            "title": "Demo: Contradictory Facts Rollback"
+          },
+          "transition_result": {
+            "actor": "verification",
+            "changed_at": "2026-03-25T17:13:55.624932Z",
+            "from_status": "completed",
+            "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+            "status_history_entry": {
+              "changed_at": "2026-03-25T17:13:55.624932Z",
+              "changed_by": "verification",
+              "from_status": "completed",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+              "to_status": "blocked"
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "blocked",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                },
+                {
+                  "changed_at": "2026-03-25T17:13:55.624932Z",
+                  "changed_by": "verification",
+                  "from_status": "completed",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                  "to_status": "blocked"
+                }
+              ],
+              "timestamps": {
+                "completed_at": null,
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.624932Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            },
+            "to_status": "blocked"
+          },
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": true,
+            "evidence_is_sufficient": true,
+            "evidence_is_valid": true,
+            "is_terminal": false,
+            "outcome": "external_mismatch",
+            "reasons": [
+              "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy",
+              "Executor-reported success was treated as advisory input only",
+              "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+              "Harness marks the task completed while Linear still reports active work",
+              "External mismatch prevents completion from being preserved"
+            ],
+            "reconciliation_status": "mismatch",
+            "requires_review": false,
+            "target_status": "blocked",
+            "task_id": "demo-contradictory-facts-blocked",
+            "verification_passed": false
+          }
+        },
+        "error": null,
+        "invalid_input": false,
+        "reasons": [
+          "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved"
+        ],
+        "requires_review": false,
+        "target_status": "blocked",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Completion is backed by valid evidence and normalized external facts.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-03-24T20:14:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-run-demo-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "captured_at": "2026-03-24T20:10:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-300",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/example/harness/pull/300",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/300",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 300,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Harness demo case",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-03-24T20:11:00Z",
+                "changed_files": [],
+                "commit_sha": "abcdef1234567890",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-abcdef1234567890",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/abcdef1234567890",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Capability match.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Task used to demonstrate the Harness evaluation entry point.",
+          "id": "demo-contradictory-facts-blocked",
+          "objective": {
+            "deliverable_type": "code_change",
+            "success_signal": "The evaluator returns a structured control-plane result.",
+            "summary": "Demonstrate the Harness evaluation path."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {},
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": "OpenClaw",
+            "requested_by": null,
+            "source_id": "demo-contradictory-facts-blocked",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [],
+          "status": "blocked",
+          "status_history": [
+            {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            },
+            {
+              "changed_at": "2026-03-25T17:13:55.624932Z",
+              "changed_by": "verification",
+              "from_status": "completed",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+              "to_status": "blocked"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-24T20:00:00Z",
+            "updated_at": "2026-03-25T17:13:55.624932Z"
+          },
+          "title": "Demo: Contradictory Facts Rollback"
+        }
+      },
+      "task_id": "demo-contradictory-facts-blocked"
+    }
+  ],
+  "final_task_id": "demo-contradictory-facts-blocked",
+  "final_task_status": "blocked",
+  "scenario_name": "contradictory_facts_blocked",
+  "steps": [
+    {
+      "action": "transition_applied",
+      "http_status": 200,
+      "method": "POST",
+      "name": "submit",
+      "path": "/tasks",
+      "payload": {
+        "accepted_completion": true,
+        "action": "transition_applied",
+        "enforcement_result": {
+          "action": "transition_applied",
+          "error": null,
+          "evidence_result": {
+            "artifact_results": [
+              {
+                "artifact_id": "artifact-pr-1",
+                "artifact_type": "pull_request",
+                "is_valid": true,
+                "issues": []
+              },
+              {
+                "artifact_id": "artifact-commit-1",
+                "artifact_type": "commit",
+                "is_valid": true,
+                "issues": []
+              }
+            ],
+            "is_sufficient": true,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ]
+          },
+          "reasons": [
+            "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "reconciliation_result": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+              "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "demo-contradictory-facts-blocked",
+            "terminal": false
+          },
+          "review_decision": null,
+          "review_request": null,
+          "target_status": "completed",
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Completion is backed by valid evidence and normalized external facts.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "policy": "required",
+                "required_artifact_types": [
+                  "pull_request",
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-03-24T20:14:00Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "github-sync",
+                  "source_id": "verification-run-demo-1",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "abcdef1234567890",
+                    "name": "codex/demo"
+                  },
+                  "captured_at": "2026-03-24T20:10:00Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "PR-300",
+                  "external_refs": [],
+                  "id": "artifact-pr-1",
+                  "location": "https://github.com/example/harness/pull/300",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "pull/300",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 300,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": "approved",
+                  "title": "Harness demo case",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": null,
+                  "captured_at": "2026-03-24T20:11:00Z",
+                  "changed_files": [],
+                  "commit_sha": "abcdef1234567890",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-abcdef1234567890",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/abcdef1234567890",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Capability match.",
+              "executor_id": "executor-1",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "dependencies": [],
+            "description": "Task used to demonstrate the Harness evaluation entry point.",
+            "id": "demo-contradictory-facts-blocked",
+            "objective": {
+              "deliverable_type": "code_change",
+              "success_signal": "The evaluator returns a structured control-plane result.",
+              "summary": "Demonstrate the Harness evaluation path."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {},
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": "OpenClaw",
+              "requested_by": null,
+              "source_id": "demo-contradictory-facts-blocked",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "required_capabilities": [],
+            "status": "completed",
+            "status_history": [
+              {
+                "changed_at": "2026-03-25T17:13:55.618467Z",
+                "changed_by": "verification",
+                "from_status": "executing",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              }
+            ],
+            "timestamps": {
+              "completed_at": "2026-03-25T17:13:55.618467Z",
+              "created_at": "2026-03-24T20:00:00Z",
+              "updated_at": "2026-03-25T17:13:55.618467Z"
+            },
+            "title": "Demo: Contradictory Facts Rollback"
+          },
+          "transition_result": {
+            "actor": "verification",
+            "changed_at": "2026-03-25T17:13:55.618467Z",
+            "from_status": "executing",
+            "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "status_history_entry": {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "completed",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                }
+              ],
+              "timestamps": {
+                "completed_at": "2026-03-25T17:13:55.618467Z",
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.618467Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            },
+            "to_status": "completed"
+          },
+          "verification_result": {
+            "accepted_completion": true,
+            "claimed_completion": true,
+            "evidence_is_sufficient": true,
+            "evidence_is_valid": true,
+            "is_terminal": false,
+            "outcome": "accepted_completion",
+            "reasons": [
+              "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy",
+              "Executor-reported success was treated as advisory input only",
+              "Acceptance criteria, evidence, and reconciliation all support completion"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": "completed",
+            "task_id": "demo-contradictory-facts-blocked",
+            "verification_passed": true
+          }
+        },
+        "error": null,
+        "evaluation_record": {
+          "evaluation_id": "2b1cff32-98c4-4090-a989-134c8e461ef4",
+          "recorded_at": "2026-03-25T17:13:55.619410Z",
+          "request": {
+            "acceptance_criteria_satisfied": true,
+            "claimed_completion": true,
+            "external_facts": {
+              "expected_code_context": {
+                "base_branch": "main",
+                "branch_name": "codex/demo",
+                "repository_host": "github.com",
+                "repository_name": "Harness",
+                "repository_owner": "sfayka"
+              },
+              "github_facts": {
+                "artifact_found": true,
+                "artifact_refs": [],
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "changed_files": {
+                  "files": [],
+                  "matches_expected_scope": true
+                },
+                "commit": {
+                  "message_summary": null,
+                  "sha": "abcdef1234567890",
+                  "url": null
+                },
+                "pull_request": {
+                  "merged": null,
+                  "number": 300,
+                  "review_state": "approved",
+                  "state": null,
+                  "url": null
+                },
+                "reasons": [],
+                "repository": {
+                  "external_id": null,
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "linear_facts": {
+                "issue_id": "lin-demo-1",
+                "issue_key": "HAR-300",
+                "project": null,
+                "reasons": [],
+                "record_found": true,
+                "state": "in_progress",
+                "task_reference": null,
+                "workflow": null
+              }
+            },
+            "review_decision": null,
+            "review_reasons": [],
+            "review_request": null,
+            "runtime_facts": {
+              "attempt_count": 1,
+              "executor_reported_failure": false,
+              "executor_reported_success": true,
+              "latest_attempt_outcome": null,
+              "terminal_failure": false
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "executing",
+              "status_history": [],
+              "timestamps": {
+                "completed_at": null,
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-24T20:05:00Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            },
+            "unresolved_conditions": []
+          },
+          "result": {
+            "accepted_completion": true,
+            "action": "transition_applied",
+            "enforcement_result": {
+              "action": "transition_applied",
+              "error": null,
+              "evidence_result": {
+                "artifact_results": [
+                  {
+                    "artifact_id": "artifact-pr-1",
+                    "artifact_type": "pull_request",
+                    "is_valid": true,
+                    "issues": []
+                  },
+                  {
+                    "artifact_id": "artifact-commit-1",
+                    "artifact_type": "commit",
+                    "is_valid": true,
+                    "issues": []
+                  }
+                ],
+                "is_sufficient": true,
+                "is_valid": true,
+                "issues": [],
+                "missing_required_artifact_types": [],
+                "unknown_validated_artifact_ids": [],
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ]
+              },
+              "reasons": [
+                "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+              ],
+              "reconciliation_result": {
+                "blocking": false,
+                "mismatch_categories": [],
+                "outcome": "no_mismatch",
+                "reasons": [
+                  "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+                  "No blocking reconciliation mismatch was detected"
+                ],
+                "status": "passed",
+                "task_id": "demo-contradictory-facts-blocked",
+                "terminal": false
+              },
+              "review_decision": null,
+              "review_request": null,
+              "target_status": "completed",
+              "task_envelope": {
+                "acceptance_criteria": [
+                  {
+                    "description": "Completion is backed by valid evidence and normalized external facts.",
+                    "id": "ac-1",
+                    "required": true
+                  }
+                ],
+                "artifacts": {
+                  "completion_evidence": {
+                    "policy": "required",
+                    "required_artifact_types": [
+                      "pull_request",
+                      "commit"
+                    ],
+                    "status": "satisfied",
+                    "validated_artifact_ids": [
+                      "artifact-pr-1",
+                      "artifact-commit-1"
+                    ],
+                    "validated_at": "2026-03-24T20:14:00Z",
+                    "validation_method": "external_reconciliation",
+                    "validator": {
+                      "captured_by": "github-sync",
+                      "source_id": "verification-run-demo-1",
+                      "source_system": "harness",
+                      "source_type": "verification"
+                    }
+                  },
+                  "items": [
+                    {
+                      "branch": {
+                        "base_branch": "main",
+                        "head_commit_sha": "abcdef1234567890",
+                        "name": "codex/demo"
+                      },
+                      "captured_at": "2026-03-24T20:10:00Z",
+                      "changed_files": [],
+                      "commit_sha": null,
+                      "content_type": null,
+                      "description": null,
+                      "external_id": "PR-300",
+                      "external_refs": [],
+                      "id": "artifact-pr-1",
+                      "location": "https://github.com/example/harness/pull/300",
+                      "metadata": {},
+                      "provenance": {
+                        "captured_by": "github-sync",
+                        "source_id": "pull/300",
+                        "source_system": "github",
+                        "source_type": "api"
+                      },
+                      "pull_request_number": 300,
+                      "repository": {
+                        "external_id": "repo-123",
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                      },
+                      "review_state": "approved",
+                      "title": "Harness demo case",
+                      "type": "pull_request",
+                      "verification_status": "verified"
+                    },
+                    {
+                      "branch": null,
+                      "captured_at": "2026-03-24T20:11:00Z",
+                      "changed_files": [],
+                      "commit_sha": "abcdef1234567890",
+                      "content_type": null,
+                      "description": null,
+                      "external_id": "commit-abcdef1234567890",
+                      "external_refs": [],
+                      "id": "artifact-commit-1",
+                      "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                      "metadata": {},
+                      "provenance": {
+                        "captured_by": "github-sync",
+                        "source_id": "commit/abcdef1234567890",
+                        "source_system": "github",
+                        "source_type": "api"
+                      },
+                      "pull_request_number": null,
+                      "repository": {
+                        "external_id": "repo-123",
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                      },
+                      "review_state": null,
+                      "title": null,
+                      "type": "commit",
+                      "verification_status": "verified"
+                    }
+                  ]
+                },
+                "assigned_executor": {
+                  "assignment_reason": "Capability match.",
+                  "executor_id": "executor-1",
+                  "executor_type": "codex"
+                },
+                "child_task_ids": [],
+                "constraints": [],
+                "dependencies": [],
+                "description": "Task used to demonstrate the Harness evaluation entry point.",
+                "id": "demo-contradictory-facts-blocked",
+                "objective": {
+                  "deliverable_type": "code_change",
+                  "success_signal": "The evaluator returns a structured control-plane result.",
+                  "summary": "Demonstrate the Harness evaluation path."
+                },
+                "observability": {
+                  "errors": [],
+                  "execution_metadata": {},
+                  "retries": {
+                    "attempt_count": 0,
+                    "last_retry_at": null,
+                    "max_attempts": 0
+                  }
+                },
+                "origin": {
+                  "ingress_id": null,
+                  "ingress_name": "OpenClaw",
+                  "requested_by": null,
+                  "source_id": "demo-contradictory-facts-blocked",
+                  "source_system": "openclaw",
+                  "source_type": "ingress_request"
+                },
+                "parent_task_id": null,
+                "priority": "normal",
+                "required_capabilities": [],
+                "status": "completed",
+                "status_history": [
+                  {
+                    "changed_at": "2026-03-25T17:13:55.618467Z",
+                    "changed_by": "verification",
+                    "from_status": "executing",
+                    "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                    "to_status": "completed"
+                  }
+                ],
+                "timestamps": {
+                  "completed_at": "2026-03-25T17:13:55.618467Z",
+                  "created_at": "2026-03-24T20:00:00Z",
+                  "updated_at": "2026-03-25T17:13:55.618467Z"
+                },
+                "title": "Demo: Contradictory Facts Rollback"
+              },
+              "transition_result": {
+                "actor": "verification",
+                "changed_at": "2026-03-25T17:13:55.618467Z",
+                "from_status": "executing",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "status_history_entry": {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                },
+                "task_envelope": {
+                  "acceptance_criteria": [
+                    {
+                      "description": "Completion is backed by valid evidence and normalized external facts.",
+                      "id": "ac-1",
+                      "required": true
+                    }
+                  ],
+                  "artifacts": {
+                    "completion_evidence": {
+                      "policy": "required",
+                      "required_artifact_types": [
+                        "pull_request",
+                        "commit"
+                      ],
+                      "status": "satisfied",
+                      "validated_artifact_ids": [
+                        "artifact-pr-1",
+                        "artifact-commit-1"
+                      ],
+                      "validated_at": "2026-03-24T20:14:00Z",
+                      "validation_method": "external_reconciliation",
+                      "validator": {
+                        "captured_by": "github-sync",
+                        "source_id": "verification-run-demo-1",
+                        "source_system": "harness",
+                        "source_type": "verification"
+                      }
+                    },
+                    "items": [
+                      {
+                        "branch": {
+                          "base_branch": "main",
+                          "head_commit_sha": "abcdef1234567890",
+                          "name": "codex/demo"
+                        },
+                        "captured_at": "2026-03-24T20:10:00Z",
+                        "changed_files": [],
+                        "commit_sha": null,
+                        "content_type": null,
+                        "description": null,
+                        "external_id": "PR-300",
+                        "external_refs": [],
+                        "id": "artifact-pr-1",
+                        "location": "https://github.com/example/harness/pull/300",
+                        "metadata": {},
+                        "provenance": {
+                          "captured_by": "github-sync",
+                          "source_id": "pull/300",
+                          "source_system": "github",
+                          "source_type": "api"
+                        },
+                        "pull_request_number": 300,
+                        "repository": {
+                          "external_id": "repo-123",
+                          "host": "github.com",
+                          "name": "Harness",
+                          "owner": "sfayka"
+                        },
+                        "review_state": "approved",
+                        "title": "Harness demo case",
+                        "type": "pull_request",
+                        "verification_status": "verified"
+                      },
+                      {
+                        "branch": null,
+                        "captured_at": "2026-03-24T20:11:00Z",
+                        "changed_files": [],
+                        "commit_sha": "abcdef1234567890",
+                        "content_type": null,
+                        "description": null,
+                        "external_id": "commit-abcdef1234567890",
+                        "external_refs": [],
+                        "id": "artifact-commit-1",
+                        "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                        "metadata": {},
+                        "provenance": {
+                          "captured_by": "github-sync",
+                          "source_id": "commit/abcdef1234567890",
+                          "source_system": "github",
+                          "source_type": "api"
+                        },
+                        "pull_request_number": null,
+                        "repository": {
+                          "external_id": "repo-123",
+                          "host": "github.com",
+                          "name": "Harness",
+                          "owner": "sfayka"
+                        },
+                        "review_state": null,
+                        "title": null,
+                        "type": "commit",
+                        "verification_status": "verified"
+                      }
+                    ]
+                  },
+                  "assigned_executor": {
+                    "assignment_reason": "Capability match.",
+                    "executor_id": "executor-1",
+                    "executor_type": "codex"
+                  },
+                  "child_task_ids": [],
+                  "constraints": [],
+                  "dependencies": [],
+                  "description": "Task used to demonstrate the Harness evaluation entry point.",
+                  "id": "demo-contradictory-facts-blocked",
+                  "objective": {
+                    "deliverable_type": "code_change",
+                    "success_signal": "The evaluator returns a structured control-plane result.",
+                    "summary": "Demonstrate the Harness evaluation path."
+                  },
+                  "observability": {
+                    "errors": [],
+                    "execution_metadata": {},
+                    "retries": {
+                      "attempt_count": 0,
+                      "last_retry_at": null,
+                      "max_attempts": 0
+                    }
+                  },
+                  "origin": {
+                    "ingress_id": null,
+                    "ingress_name": "OpenClaw",
+                    "requested_by": null,
+                    "source_id": "demo-contradictory-facts-blocked",
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request"
+                  },
+                  "parent_task_id": null,
+                  "priority": "normal",
+                  "required_capabilities": [],
+                  "status": "completed",
+                  "status_history": [
+                    {
+                      "changed_at": "2026-03-25T17:13:55.618467Z",
+                      "changed_by": "verification",
+                      "from_status": "executing",
+                      "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                      "to_status": "completed"
+                    }
+                  ],
+                  "timestamps": {
+                    "completed_at": "2026-03-25T17:13:55.618467Z",
+                    "created_at": "2026-03-24T20:00:00Z",
+                    "updated_at": "2026-03-25T17:13:55.618467Z"
+                  },
+                  "title": "Demo: Contradictory Facts Rollback"
+                },
+                "to_status": "completed"
+              },
+              "verification_result": {
+                "accepted_completion": true,
+                "claimed_completion": true,
+                "evidence_is_sufficient": true,
+                "evidence_is_valid": true,
+                "is_terminal": false,
+                "outcome": "accepted_completion",
+                "reasons": [
+                  "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy",
+                  "Executor-reported success was treated as advisory input only",
+                  "Acceptance criteria, evidence, and reconciliation all support completion"
+                ],
+                "reconciliation_status": "passed",
+                "requires_review": false,
+                "target_status": "completed",
+                "task_id": "demo-contradictory-facts-blocked",
+                "verification_passed": true
+              }
+            },
+            "error": null,
+            "invalid_input": false,
+            "reasons": [
+              "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+            ],
+            "requires_review": false,
+            "target_status": "completed",
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "completed",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                }
+              ],
+              "timestamps": {
+                "completed_at": "2026-03-25T17:13:55.618467Z",
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.618467Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            }
+          },
+          "task_id": "demo-contradictory-facts-blocked"
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "requires_review": false,
+        "target_status": "completed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Completion is backed by valid evidence and normalized external facts.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-03-24T20:14:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-run-demo-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "captured_at": "2026-03-24T20:10:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-300",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/example/harness/pull/300",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/300",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 300,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Harness demo case",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-03-24T20:11:00Z",
+                "changed_files": [],
+                "commit_sha": "abcdef1234567890",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-abcdef1234567890",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/abcdef1234567890",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Capability match.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Task used to demonstrate the Harness evaluation entry point.",
+          "id": "demo-contradictory-facts-blocked",
+          "objective": {
+            "deliverable_type": "code_change",
+            "success_signal": "The evaluator returns a structured control-plane result.",
+            "summary": "Demonstrate the Harness evaluation path."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {},
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": "OpenClaw",
+            "requested_by": null,
+            "source_id": "demo-contradictory-facts-blocked",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-03-25T17:13:55.618467Z",
+            "created_at": "2026-03-24T20:00:00Z",
+            "updated_at": "2026-03-25T17:13:55.618467Z"
+          },
+          "title": "Demo: Contradictory Facts Rollback"
+        }
+      },
+      "request_payload": {
+        "request": {
+          "acceptance_criteria_satisfied": true,
+          "claimed_completion": true,
+          "external_facts": {
+            "expected_code_context": {
+              "base_branch": "main",
+              "branch_name": "codex/demo",
+              "repository_host": "github.com",
+              "repository_name": "Harness",
+              "repository_owner": "sfayka"
+            },
+            "github_facts": {
+              "artifact_found": true,
+              "artifact_refs": [],
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "abcdef1234567890",
+                "name": "codex/demo"
+              },
+              "changed_files": {
+                "files": [],
+                "matches_expected_scope": true
+              },
+              "commit": {
+                "message_summary": null,
+                "sha": "abcdef1234567890",
+                "url": null
+              },
+              "pull_request": {
+                "merged": null,
+                "number": 300,
+                "review_state": "approved",
+                "state": null,
+                "url": null
+              },
+              "reasons": [],
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              }
+            },
+            "linear_facts": {
+              "issue_id": "lin-demo-1",
+              "issue_key": "HAR-300",
+              "project": null,
+              "reasons": [],
+              "record_found": true,
+              "state": "in_progress",
+              "task_reference": null,
+              "workflow": null
+            }
+          },
+          "review_decision": null,
+          "review_reasons": [],
+          "review_request": null,
+          "runtime_facts": {
+            "attempt_count": 1,
+            "executor_reported_failure": false,
+            "executor_reported_success": true,
+            "latest_attempt_outcome": null,
+            "terminal_failure": false
+          },
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Completion is backed by valid evidence and normalized external facts.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "policy": "required",
+                "required_artifact_types": [
+                  "pull_request",
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-03-24T20:14:00Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "github-sync",
+                  "source_id": "verification-run-demo-1",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "abcdef1234567890",
+                    "name": "codex/demo"
+                  },
+                  "captured_at": "2026-03-24T20:10:00Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "PR-300",
+                  "external_refs": [],
+                  "id": "artifact-pr-1",
+                  "location": "https://github.com/example/harness/pull/300",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "pull/300",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 300,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": "approved",
+                  "title": "Harness demo case",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": null,
+                  "captured_at": "2026-03-24T20:11:00Z",
+                  "changed_files": [],
+                  "commit_sha": "abcdef1234567890",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-abcdef1234567890",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/abcdef1234567890",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Capability match.",
+              "executor_id": "executor-1",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "dependencies": [],
+            "description": "Task used to demonstrate the Harness evaluation entry point.",
+            "id": "demo-contradictory-facts-blocked",
+            "objective": {
+              "deliverable_type": "code_change",
+              "success_signal": "The evaluator returns a structured control-plane result.",
+              "summary": "Demonstrate the Harness evaluation path."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {},
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": "OpenClaw",
+              "requested_by": null,
+              "source_id": "demo-contradictory-facts-blocked",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "required_capabilities": [],
+            "status": "executing",
+            "status_history": [],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-24T20:00:00Z",
+              "updated_at": "2026-03-24T20:05:00Z"
+            },
+            "title": "Demo: Contradictory Facts Rollback"
+          },
+          "unresolved_conditions": []
+        }
+      },
+      "target_status": "completed",
+      "task_id": "demo-contradictory-facts-blocked",
+      "task_status": "completed"
+    },
+    {
+      "action": "transition_applied",
+      "http_status": 200,
+      "method": "POST",
+      "name": "introduce_contradictory_facts",
+      "path": "/tasks/demo-contradictory-facts-blocked/reevaluate",
+      "payload": {
+        "accepted_completion": false,
+        "action": "transition_applied",
+        "enforcement_result": {
+          "action": "transition_applied",
+          "error": null,
+          "evidence_result": {
+            "artifact_results": [
+              {
+                "artifact_id": "artifact-pr-1",
+                "artifact_type": "pull_request",
+                "is_valid": true,
+                "issues": []
+              },
+              {
+                "artifact_id": "artifact-commit-1",
+                "artifact_type": "commit",
+                "is_valid": true,
+                "issues": []
+              }
+            ],
+            "is_sufficient": true,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ]
+          },
+          "reasons": [
+            "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved"
+          ],
+          "reconciliation_result": {
+            "blocking": true,
+            "mismatch_categories": [
+              "linear_state_conflict"
+            ],
+            "outcome": "contradictory_facts",
+            "reasons": [
+              "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+              "Harness marks the task completed while Linear still reports active work"
+            ],
+            "status": "mismatch",
+            "task_id": "demo-contradictory-facts-blocked",
+            "terminal": false
+          },
+          "review_decision": null,
+          "review_request": null,
+          "target_status": "blocked",
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Completion is backed by valid evidence and normalized external facts.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "policy": "required",
+                "required_artifact_types": [
+                  "pull_request",
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-03-24T20:14:00Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "github-sync",
+                  "source_id": "verification-run-demo-1",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "abcdef1234567890",
+                    "name": "codex/demo"
+                  },
+                  "captured_at": "2026-03-24T20:10:00Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "PR-300",
+                  "external_refs": [],
+                  "id": "artifact-pr-1",
+                  "location": "https://github.com/example/harness/pull/300",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "pull/300",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 300,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": "approved",
+                  "title": "Harness demo case",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": null,
+                  "captured_at": "2026-03-24T20:11:00Z",
+                  "changed_files": [],
+                  "commit_sha": "abcdef1234567890",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-abcdef1234567890",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/abcdef1234567890",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-123",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Capability match.",
+              "executor_id": "executor-1",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "dependencies": [],
+            "description": "Task used to demonstrate the Harness evaluation entry point.",
+            "id": "demo-contradictory-facts-blocked",
+            "objective": {
+              "deliverable_type": "code_change",
+              "success_signal": "The evaluator returns a structured control-plane result.",
+              "summary": "Demonstrate the Harness evaluation path."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {},
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": "OpenClaw",
+              "requested_by": null,
+              "source_id": "demo-contradictory-facts-blocked",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "required_capabilities": [],
+            "status": "blocked",
+            "status_history": [
+              {
+                "changed_at": "2026-03-25T17:13:55.618467Z",
+                "changed_by": "verification",
+                "from_status": "executing",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              },
+              {
+                "changed_at": "2026-03-25T17:13:55.624932Z",
+                "changed_by": "verification",
+                "from_status": "completed",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                "to_status": "blocked"
+              }
+            ],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-24T20:00:00Z",
+              "updated_at": "2026-03-25T17:13:55.624932Z"
+            },
+            "title": "Demo: Contradictory Facts Rollback"
+          },
+          "transition_result": {
+            "actor": "verification",
+            "changed_at": "2026-03-25T17:13:55.624932Z",
+            "from_status": "completed",
+            "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+            "status_history_entry": {
+              "changed_at": "2026-03-25T17:13:55.624932Z",
+              "changed_by": "verification",
+              "from_status": "completed",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+              "to_status": "blocked"
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "blocked",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                },
+                {
+                  "changed_at": "2026-03-25T17:13:55.624932Z",
+                  "changed_by": "verification",
+                  "from_status": "completed",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                  "to_status": "blocked"
+                }
+              ],
+              "timestamps": {
+                "completed_at": null,
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.624932Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            },
+            "to_status": "blocked"
+          },
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": true,
+            "evidence_is_sufficient": true,
+            "evidence_is_valid": true,
+            "is_terminal": false,
+            "outcome": "external_mismatch",
+            "reasons": [
+              "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy",
+              "Executor-reported success was treated as advisory input only",
+              "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+              "Harness marks the task completed while Linear still reports active work",
+              "External mismatch prevents completion from being preserved"
+            ],
+            "reconciliation_status": "mismatch",
+            "requires_review": false,
+            "target_status": "blocked",
+            "task_id": "demo-contradictory-facts-blocked",
+            "verification_passed": false
+          }
+        },
+        "error": null,
+        "evaluation_record": {
+          "evaluation_id": "bbcaa991-ca34-467d-9454-61e7c562a6db",
+          "recorded_at": "2026-03-25T17:13:55.625894Z",
+          "request": {
+            "acceptance_criteria_satisfied": true,
+            "claimed_completion": true,
+            "external_facts": {
+              "expected_code_context": {
+                "base_branch": "main",
+                "branch_name": "codex/demo",
+                "repository_host": "github.com",
+                "repository_name": "Harness",
+                "repository_owner": "sfayka"
+              },
+              "github_facts": {
+                "artifact_found": true,
+                "artifact_refs": [],
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "changed_files": {
+                  "files": [],
+                  "matches_expected_scope": true
+                },
+                "commit": {
+                  "message_summary": null,
+                  "sha": "abcdef1234567890",
+                  "url": null
+                },
+                "pull_request": {
+                  "merged": null,
+                  "number": 300,
+                  "review_state": "approved",
+                  "state": null,
+                  "url": null
+                },
+                "reasons": [],
+                "repository": {
+                  "external_id": null,
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "linear_facts": {
+                "issue_id": "lin-demo-1",
+                "issue_key": "HAR-300",
+                "project": null,
+                "reasons": [],
+                "record_found": true,
+                "state": "in_progress",
+                "task_reference": null,
+                "workflow": null
+              }
+            },
+            "review_decision": null,
+            "review_reasons": [],
+            "review_request": null,
+            "runtime_facts": {
+              "attempt_count": 1,
+              "executor_reported_failure": false,
+              "executor_reported_success": true,
+              "latest_attempt_outcome": null,
+              "terminal_failure": false
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "completed",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                }
+              ],
+              "timestamps": {
+                "completed_at": "2026-03-25T17:13:55.618467Z",
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.621139Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            },
+            "unresolved_conditions": []
+          },
+          "result": {
+            "accepted_completion": false,
+            "action": "transition_applied",
+            "enforcement_result": {
+              "action": "transition_applied",
+              "error": null,
+              "evidence_result": {
+                "artifact_results": [
+                  {
+                    "artifact_id": "artifact-pr-1",
+                    "artifact_type": "pull_request",
+                    "is_valid": true,
+                    "issues": []
+                  },
+                  {
+                    "artifact_id": "artifact-commit-1",
+                    "artifact_type": "commit",
+                    "is_valid": true,
+                    "issues": []
+                  }
+                ],
+                "is_sufficient": true,
+                "is_valid": true,
+                "issues": [],
+                "missing_required_artifact_types": [],
+                "unknown_validated_artifact_ids": [],
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ]
+              },
+              "reasons": [
+                "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved"
+              ],
+              "reconciliation_result": {
+                "blocking": true,
+                "mismatch_categories": [
+                  "linear_state_conflict"
+                ],
+                "outcome": "contradictory_facts",
+                "reasons": [
+                  "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+                  "Harness marks the task completed while Linear still reports active work"
+                ],
+                "status": "mismatch",
+                "task_id": "demo-contradictory-facts-blocked",
+                "terminal": false
+              },
+              "review_decision": null,
+              "review_request": null,
+              "target_status": "blocked",
+              "task_envelope": {
+                "acceptance_criteria": [
+                  {
+                    "description": "Completion is backed by valid evidence and normalized external facts.",
+                    "id": "ac-1",
+                    "required": true
+                  }
+                ],
+                "artifacts": {
+                  "completion_evidence": {
+                    "policy": "required",
+                    "required_artifact_types": [
+                      "pull_request",
+                      "commit"
+                    ],
+                    "status": "satisfied",
+                    "validated_artifact_ids": [
+                      "artifact-pr-1",
+                      "artifact-commit-1"
+                    ],
+                    "validated_at": "2026-03-24T20:14:00Z",
+                    "validation_method": "external_reconciliation",
+                    "validator": {
+                      "captured_by": "github-sync",
+                      "source_id": "verification-run-demo-1",
+                      "source_system": "harness",
+                      "source_type": "verification"
+                    }
+                  },
+                  "items": [
+                    {
+                      "branch": {
+                        "base_branch": "main",
+                        "head_commit_sha": "abcdef1234567890",
+                        "name": "codex/demo"
+                      },
+                      "captured_at": "2026-03-24T20:10:00Z",
+                      "changed_files": [],
+                      "commit_sha": null,
+                      "content_type": null,
+                      "description": null,
+                      "external_id": "PR-300",
+                      "external_refs": [],
+                      "id": "artifact-pr-1",
+                      "location": "https://github.com/example/harness/pull/300",
+                      "metadata": {},
+                      "provenance": {
+                        "captured_by": "github-sync",
+                        "source_id": "pull/300",
+                        "source_system": "github",
+                        "source_type": "api"
+                      },
+                      "pull_request_number": 300,
+                      "repository": {
+                        "external_id": "repo-123",
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                      },
+                      "review_state": "approved",
+                      "title": "Harness demo case",
+                      "type": "pull_request",
+                      "verification_status": "verified"
+                    },
+                    {
+                      "branch": null,
+                      "captured_at": "2026-03-24T20:11:00Z",
+                      "changed_files": [],
+                      "commit_sha": "abcdef1234567890",
+                      "content_type": null,
+                      "description": null,
+                      "external_id": "commit-abcdef1234567890",
+                      "external_refs": [],
+                      "id": "artifact-commit-1",
+                      "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                      "metadata": {},
+                      "provenance": {
+                        "captured_by": "github-sync",
+                        "source_id": "commit/abcdef1234567890",
+                        "source_system": "github",
+                        "source_type": "api"
+                      },
+                      "pull_request_number": null,
+                      "repository": {
+                        "external_id": "repo-123",
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                      },
+                      "review_state": null,
+                      "title": null,
+                      "type": "commit",
+                      "verification_status": "verified"
+                    }
+                  ]
+                },
+                "assigned_executor": {
+                  "assignment_reason": "Capability match.",
+                  "executor_id": "executor-1",
+                  "executor_type": "codex"
+                },
+                "child_task_ids": [],
+                "constraints": [],
+                "dependencies": [],
+                "description": "Task used to demonstrate the Harness evaluation entry point.",
+                "id": "demo-contradictory-facts-blocked",
+                "objective": {
+                  "deliverable_type": "code_change",
+                  "success_signal": "The evaluator returns a structured control-plane result.",
+                  "summary": "Demonstrate the Harness evaluation path."
+                },
+                "observability": {
+                  "errors": [],
+                  "execution_metadata": {},
+                  "retries": {
+                    "attempt_count": 0,
+                    "last_retry_at": null,
+                    "max_attempts": 0
+                  }
+                },
+                "origin": {
+                  "ingress_id": null,
+                  "ingress_name": "OpenClaw",
+                  "requested_by": null,
+                  "source_id": "demo-contradictory-facts-blocked",
+                  "source_system": "openclaw",
+                  "source_type": "ingress_request"
+                },
+                "parent_task_id": null,
+                "priority": "normal",
+                "required_capabilities": [],
+                "status": "blocked",
+                "status_history": [
+                  {
+                    "changed_at": "2026-03-25T17:13:55.618467Z",
+                    "changed_by": "verification",
+                    "from_status": "executing",
+                    "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                    "to_status": "completed"
+                  },
+                  {
+                    "changed_at": "2026-03-25T17:13:55.624932Z",
+                    "changed_by": "verification",
+                    "from_status": "completed",
+                    "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                    "to_status": "blocked"
+                  }
+                ],
+                "timestamps": {
+                  "completed_at": null,
+                  "created_at": "2026-03-24T20:00:00Z",
+                  "updated_at": "2026-03-25T17:13:55.624932Z"
+                },
+                "title": "Demo: Contradictory Facts Rollback"
+              },
+              "transition_result": {
+                "actor": "verification",
+                "changed_at": "2026-03-25T17:13:55.624932Z",
+                "from_status": "completed",
+                "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                "status_history_entry": {
+                  "changed_at": "2026-03-25T17:13:55.624932Z",
+                  "changed_by": "verification",
+                  "from_status": "completed",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                  "to_status": "blocked"
+                },
+                "task_envelope": {
+                  "acceptance_criteria": [
+                    {
+                      "description": "Completion is backed by valid evidence and normalized external facts.",
+                      "id": "ac-1",
+                      "required": true
+                    }
+                  ],
+                  "artifacts": {
+                    "completion_evidence": {
+                      "policy": "required",
+                      "required_artifact_types": [
+                        "pull_request",
+                        "commit"
+                      ],
+                      "status": "satisfied",
+                      "validated_artifact_ids": [
+                        "artifact-pr-1",
+                        "artifact-commit-1"
+                      ],
+                      "validated_at": "2026-03-24T20:14:00Z",
+                      "validation_method": "external_reconciliation",
+                      "validator": {
+                        "captured_by": "github-sync",
+                        "source_id": "verification-run-demo-1",
+                        "source_system": "harness",
+                        "source_type": "verification"
+                      }
+                    },
+                    "items": [
+                      {
+                        "branch": {
+                          "base_branch": "main",
+                          "head_commit_sha": "abcdef1234567890",
+                          "name": "codex/demo"
+                        },
+                        "captured_at": "2026-03-24T20:10:00Z",
+                        "changed_files": [],
+                        "commit_sha": null,
+                        "content_type": null,
+                        "description": null,
+                        "external_id": "PR-300",
+                        "external_refs": [],
+                        "id": "artifact-pr-1",
+                        "location": "https://github.com/example/harness/pull/300",
+                        "metadata": {},
+                        "provenance": {
+                          "captured_by": "github-sync",
+                          "source_id": "pull/300",
+                          "source_system": "github",
+                          "source_type": "api"
+                        },
+                        "pull_request_number": 300,
+                        "repository": {
+                          "external_id": "repo-123",
+                          "host": "github.com",
+                          "name": "Harness",
+                          "owner": "sfayka"
+                        },
+                        "review_state": "approved",
+                        "title": "Harness demo case",
+                        "type": "pull_request",
+                        "verification_status": "verified"
+                      },
+                      {
+                        "branch": null,
+                        "captured_at": "2026-03-24T20:11:00Z",
+                        "changed_files": [],
+                        "commit_sha": "abcdef1234567890",
+                        "content_type": null,
+                        "description": null,
+                        "external_id": "commit-abcdef1234567890",
+                        "external_refs": [],
+                        "id": "artifact-commit-1",
+                        "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                        "metadata": {},
+                        "provenance": {
+                          "captured_by": "github-sync",
+                          "source_id": "commit/abcdef1234567890",
+                          "source_system": "github",
+                          "source_type": "api"
+                        },
+                        "pull_request_number": null,
+                        "repository": {
+                          "external_id": "repo-123",
+                          "host": "github.com",
+                          "name": "Harness",
+                          "owner": "sfayka"
+                        },
+                        "review_state": null,
+                        "title": null,
+                        "type": "commit",
+                        "verification_status": "verified"
+                      }
+                    ]
+                  },
+                  "assigned_executor": {
+                    "assignment_reason": "Capability match.",
+                    "executor_id": "executor-1",
+                    "executor_type": "codex"
+                  },
+                  "child_task_ids": [],
+                  "constraints": [],
+                  "dependencies": [],
+                  "description": "Task used to demonstrate the Harness evaluation entry point.",
+                  "id": "demo-contradictory-facts-blocked",
+                  "objective": {
+                    "deliverable_type": "code_change",
+                    "success_signal": "The evaluator returns a structured control-plane result.",
+                    "summary": "Demonstrate the Harness evaluation path."
+                  },
+                  "observability": {
+                    "errors": [],
+                    "execution_metadata": {},
+                    "retries": {
+                      "attempt_count": 0,
+                      "last_retry_at": null,
+                      "max_attempts": 0
+                    }
+                  },
+                  "origin": {
+                    "ingress_id": null,
+                    "ingress_name": "OpenClaw",
+                    "requested_by": null,
+                    "source_id": "demo-contradictory-facts-blocked",
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request"
+                  },
+                  "parent_task_id": null,
+                  "priority": "normal",
+                  "required_capabilities": [],
+                  "status": "blocked",
+                  "status_history": [
+                    {
+                      "changed_at": "2026-03-25T17:13:55.618467Z",
+                      "changed_by": "verification",
+                      "from_status": "executing",
+                      "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                      "to_status": "completed"
+                    },
+                    {
+                      "changed_at": "2026-03-25T17:13:55.624932Z",
+                      "changed_by": "verification",
+                      "from_status": "completed",
+                      "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                      "to_status": "blocked"
+                    }
+                  ],
+                  "timestamps": {
+                    "completed_at": null,
+                    "created_at": "2026-03-24T20:00:00Z",
+                    "updated_at": "2026-03-25T17:13:55.624932Z"
+                  },
+                  "title": "Demo: Contradictory Facts Rollback"
+                },
+                "to_status": "blocked"
+              },
+              "verification_result": {
+                "accepted_completion": false,
+                "claimed_completion": true,
+                "evidence_is_sufficient": true,
+                "evidence_is_valid": true,
+                "is_terminal": false,
+                "outcome": "external_mismatch",
+                "reasons": [
+                  "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy",
+                  "Executor-reported success was treated as advisory input only",
+                  "Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts",
+                  "Harness marks the task completed while Linear still reports active work",
+                  "External mismatch prevents completion from being preserved"
+                ],
+                "reconciliation_status": "mismatch",
+                "requires_review": false,
+                "target_status": "blocked",
+                "task_id": "demo-contradictory-facts-blocked",
+                "verification_passed": false
+              }
+            },
+            "error": null,
+            "invalid_input": false,
+            "reasons": [
+              "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved"
+            ],
+            "requires_review": false,
+            "target_status": "blocked",
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Completion is backed by valid evidence and normalized external facts.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-pr-1",
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-03-24T20:14:00Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-run-demo-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "abcdef1234567890",
+                      "name": "codex/demo"
+                    },
+                    "captured_at": "2026-03-24T20:10:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "PR-300",
+                    "external_refs": [],
+                    "id": "artifact-pr-1",
+                    "location": "https://github.com/example/harness/pull/300",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "pull/300",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": 300,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness demo case",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "branch": null,
+                    "captured_at": "2026-03-24T20:11:00Z",
+                    "changed_files": [],
+                    "commit_sha": "abcdef1234567890",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-abcdef1234567890",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/abcdef1234567890",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-123",
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Capability match.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "dependencies": [],
+              "description": "Task used to demonstrate the Harness evaluation entry point.",
+              "id": "demo-contradictory-facts-blocked",
+              "objective": {
+                "deliverable_type": "code_change",
+                "success_signal": "The evaluator returns a structured control-plane result.",
+                "summary": "Demonstrate the Harness evaluation path."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {},
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": "OpenClaw",
+                "requested_by": null,
+                "source_id": "demo-contradictory-facts-blocked",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "required_capabilities": [],
+              "status": "blocked",
+              "status_history": [
+                {
+                  "changed_at": "2026-03-25T17:13:55.618467Z",
+                  "changed_by": "verification",
+                  "from_status": "executing",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "to_status": "completed"
+                },
+                {
+                  "changed_at": "2026-03-25T17:13:55.624932Z",
+                  "changed_by": "verification",
+                  "from_status": "completed",
+                  "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+                  "to_status": "blocked"
+                }
+              ],
+              "timestamps": {
+                "completed_at": null,
+                "created_at": "2026-03-24T20:00:00Z",
+                "updated_at": "2026-03-25T17:13:55.624932Z"
+              },
+              "title": "Demo: Contradictory Facts Rollback"
+            }
+          },
+          "task_id": "demo-contradictory-facts-blocked"
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved"
+        ],
+        "requires_review": false,
+        "target_status": "blocked",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Completion is backed by valid evidence and normalized external facts.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-03-24T20:14:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-run-demo-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "abcdef1234567890",
+                  "name": "codex/demo"
+                },
+                "captured_at": "2026-03-24T20:10:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-300",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/example/harness/pull/300",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/300",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 300,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Harness demo case",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-03-24T20:11:00Z",
+                "changed_files": [],
+                "commit_sha": "abcdef1234567890",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-abcdef1234567890",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/example/harness/commit/abcdef1234567890",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/abcdef1234567890",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-123",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Capability match.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Task used to demonstrate the Harness evaluation entry point.",
+          "id": "demo-contradictory-facts-blocked",
+          "objective": {
+            "deliverable_type": "code_change",
+            "success_signal": "The evaluator returns a structured control-plane result.",
+            "summary": "Demonstrate the Harness evaluation path."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {},
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": "OpenClaw",
+            "requested_by": null,
+            "source_id": "demo-contradictory-facts-blocked",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [],
+          "status": "blocked",
+          "status_history": [
+            {
+              "changed_at": "2026-03-25T17:13:55.618467Z",
+              "changed_by": "verification",
+              "from_status": "executing",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            },
+            {
+              "changed_at": "2026-03-25T17:13:55.624932Z",
+              "changed_by": "verification",
+              "from_status": "completed",
+              "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+              "to_status": "blocked"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-24T20:00:00Z",
+            "updated_at": "2026-03-25T17:13:55.624932Z"
+          },
+          "title": "Demo: Contradictory Facts Rollback"
+        }
+      },
+      "request_payload": {
+        "request": {
+          "acceptance_criteria_satisfied": true,
+          "claimed_completion": true,
+          "external_facts": {
+            "expected_code_context": {
+              "base_branch": "main",
+              "branch_name": "codex/demo",
+              "repository_host": "github.com",
+              "repository_name": "Harness",
+              "repository_owner": "sfayka"
+            },
+            "github_facts": {
+              "artifact_found": true,
+              "artifact_refs": [],
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "abcdef1234567890",
+                "name": "codex/demo"
+              },
+              "changed_files": {
+                "files": [],
+                "matches_expected_scope": true
+              },
+              "commit": {
+                "message_summary": null,
+                "sha": "abcdef1234567890",
+                "url": null
+              },
+              "pull_request": {
+                "merged": null,
+                "number": 300,
+                "review_state": "approved",
+                "state": null,
+                "url": null
+              },
+              "reasons": [],
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              }
+            },
+            "linear_facts": {
+              "issue_id": "lin-demo-1",
+              "issue_key": "HAR-300",
+              "project": null,
+              "reasons": [],
+              "record_found": true,
+              "state": "in_progress",
+              "task_reference": null,
+              "workflow": null
+            }
+          },
+          "runtime_facts": {
+            "attempt_count": 1,
+            "executor_reported_failure": false,
+            "executor_reported_success": true,
+            "latest_attempt_outcome": null,
+            "terminal_failure": false
+          }
+        }
+      },
+      "target_status": "blocked",
+      "task_id": "demo-contradictory-facts-blocked",
+      "task_status": "blocked"
+    }
+  ],
+  "task_snapshot": {
+    "acceptance_criteria": [
+      {
+        "description": "Completion is backed by valid evidence and normalized external facts.",
+        "id": "ac-1",
+        "required": true
+      }
+    ],
+    "artifacts": {
+      "completion_evidence": {
+        "policy": "required",
+        "required_artifact_types": [
+          "pull_request",
+          "commit"
+        ],
+        "status": "satisfied",
+        "validated_artifact_ids": [
+          "artifact-pr-1",
+          "artifact-commit-1"
+        ],
+        "validated_at": "2026-03-24T20:14:00Z",
+        "validation_method": "external_reconciliation",
+        "validator": {
+          "captured_by": "github-sync",
+          "source_id": "verification-run-demo-1",
+          "source_system": "harness",
+          "source_type": "verification"
+        }
+      },
+      "items": [
+        {
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "abcdef1234567890",
+            "name": "codex/demo"
+          },
+          "captured_at": "2026-03-24T20:10:00Z",
+          "changed_files": [],
+          "commit_sha": null,
+          "content_type": null,
+          "description": null,
+          "external_id": "PR-300",
+          "external_refs": [],
+          "id": "artifact-pr-1",
+          "location": "https://github.com/example/harness/pull/300",
+          "metadata": {},
+          "provenance": {
+            "captured_by": "github-sync",
+            "source_id": "pull/300",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": 300,
+          "repository": {
+            "external_id": "repo-123",
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": "approved",
+          "title": "Harness demo case",
+          "type": "pull_request",
+          "verification_status": "verified"
+        },
+        {
+          "branch": null,
+          "captured_at": "2026-03-24T20:11:00Z",
+          "changed_files": [],
+          "commit_sha": "abcdef1234567890",
+          "content_type": null,
+          "description": null,
+          "external_id": "commit-abcdef1234567890",
+          "external_refs": [],
+          "id": "artifact-commit-1",
+          "location": "https://github.com/example/harness/commit/abcdef1234567890",
+          "metadata": {},
+          "provenance": {
+            "captured_by": "github-sync",
+            "source_id": "commit/abcdef1234567890",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": null,
+          "repository": {
+            "external_id": "repo-123",
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": null,
+          "title": null,
+          "type": "commit",
+          "verification_status": "verified"
+        }
+      ]
+    },
+    "assigned_executor": {
+      "assignment_reason": "Capability match.",
+      "executor_id": "executor-1",
+      "executor_type": "codex"
+    },
+    "child_task_ids": [],
+    "constraints": [],
+    "dependencies": [],
+    "description": "Task used to demonstrate the Harness evaluation entry point.",
+    "id": "demo-contradictory-facts-blocked",
+    "objective": {
+      "deliverable_type": "code_change",
+      "success_signal": "The evaluator returns a structured control-plane result.",
+      "summary": "Demonstrate the Harness evaluation path."
+    },
+    "observability": {
+      "errors": [],
+      "execution_metadata": {},
+      "retries": {
+        "attempt_count": 0,
+        "last_retry_at": null,
+        "max_attempts": 0
+      }
+    },
+    "origin": {
+      "ingress_id": null,
+      "ingress_name": "OpenClaw",
+      "requested_by": null,
+      "source_id": "demo-contradictory-facts-blocked",
+      "source_system": "openclaw",
+      "source_type": "ingress_request"
+    },
+    "parent_task_id": null,
+    "priority": "normal",
+    "required_capabilities": [],
+    "status": "blocked",
+    "status_history": [
+      {
+        "changed_at": "2026-03-25T17:13:55.618467Z",
+        "changed_by": "verification",
+        "from_status": "executing",
+        "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      },
+      {
+        "changed_at": "2026-03-25T17:13:55.624932Z",
+        "changed_by": "verification",
+        "from_status": "completed",
+        "reason": "Verification evaluated task 'demo-contradictory-facts-blocked' against canonical completion policy; Executor-reported success was treated as advisory input only; Reconciliation evaluated task 'demo-contradictory-facts-blocked' against normalized external facts; Harness marks the task completed while Linear still reports active work; External mismatch prevents completion from being preserved",
+        "to_status": "blocked"
+      }
+    ],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-03-24T20:00:00Z",
+      "updated_at": "2026-03-25T17:13:55.624932Z"
+    },
+    "title": "Demo: Contradictory Facts Rollback"
+  }
+}

@@ -1,0 +1,11 @@
+Scenario: successful_completion
+Task ID: demo-successful-completion
+Initial Task State: completed
+1. submit
+   request: POST /tasks
+   http_status: 200
+   added: artifacts=pull_request, commit; github_branch=codex/demo; linear_state=in_progress
+   verification: accepted_completion
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=completed task_status=completed
+Final Task State: completed

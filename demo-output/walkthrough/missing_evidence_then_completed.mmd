@@ -1,0 +1,15 @@
+sequenceDiagram
+    actor Simulator as "Demo Runner"
+    participant API as "Harness API"
+    participant Store as "Task Store"
+    Simulator->>API: POST /tasks\nsubmit
+    Note right of API: artifacts=pull_request, commit\ngithub_branch=codex/demo\nlinear_state=completed
+    API->>Store: persist evaluation for demo-missing-evidence-then-completed
+    Store-->>API: task_status=blocked
+    API-->>Simulator: action=transition_applied\ntarget=blocked\nverification=insufficient_evidence\nreconciliation=n/a
+    Simulator->>API: POST /tasks/demo-missing-evidence-then-completed/reevaluate\nprovide_missing_evidence
+    Note right of API: new_artifacts=review_note\ngithub_branch=codex/demo\nlinear_state=in_progress\nvalidated_artifacts=3
+    API->>Store: persist evaluation for demo-missing-evidence-then-completed
+    Store-->>API: task_status=completed
+    API-->>Simulator: action=transition_applied\ntarget=completed\nverification=accepted_completion\nreconciliation=n/a
+    Note over Simulator,API: final task state = completed

@@ -1,0 +1,18 @@
+Scenario: missing_evidence_then_completed
+Task ID: demo-missing-evidence-then-completed
+Initial Task State: blocked
+1. submit
+   request: POST /tasks
+   http_status: 200
+   added: artifacts=pull_request, commit; github_branch=codex/demo; linear_state=completed
+   verification: insufficient_evidence
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=blocked task_status=blocked
+2. provide_missing_evidence
+   request: POST /tasks/demo-missing-evidence-then-completed/reevaluate
+   http_status: 200
+   added: new_artifacts=review_note; github_branch=codex/demo; linear_state=in_progress; validated_artifacts=3
+   verification: accepted_completion
+   reconciliation: n/a
+   lifecycle: action=transition_applied target_status=completed task_status=completed
+Final Task State: completed

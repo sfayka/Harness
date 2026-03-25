@@ -1,0 +1,76 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "output_dir": "demo-output/walkthrough",
+  "scenarios": [
+    {
+      "artifact_files": {
+        "json": "demo-output/walkthrough/successful_completion.json",
+        "mermaid": "demo-output/walkthrough/successful_completion.mmd",
+        "timeline": "demo-output/walkthrough/successful_completion.timeline.txt"
+      },
+      "dashboard_focus": "Open the task timeline and show the single verification pass that ends in completed.",
+      "dashboard_url": "http://127.0.0.1:3000/?task=demo-successful-completion",
+      "final_status": "completed",
+      "operator_focus": "Explain how aligned evidence and reconciliation allow Harness to preserve completed.",
+      "scenario_name": "successful_completion",
+      "scenario_title": "Accepted Completion",
+      "task_id": "demo-successful-completion"
+    },
+    {
+      "artifact_files": {
+        "json": "demo-output/walkthrough/missing_evidence_then_completed.json",
+        "mermaid": "demo-output/walkthrough/missing_evidence_then_completed.mmd",
+        "timeline": "demo-output/walkthrough/missing_evidence_then_completed.timeline.txt"
+      },
+      "dashboard_focus": "Open the timeline and point out the blocked evaluation before the later review note resolves it.",
+      "dashboard_url": "http://127.0.0.1:3000/?task=demo-missing-evidence-then-completed",
+      "final_status": "completed",
+      "operator_focus": "Show that completion claims are blocked until the missing evidence actually arrives.",
+      "scenario_name": "missing_evidence_then_completed",
+      "scenario_title": "Blocked To Completed",
+      "task_id": "demo-missing-evidence-then-completed"
+    },
+    {
+      "artifact_files": {
+        "json": "demo-output/walkthrough/contradictory_facts_blocked.json",
+        "mermaid": "demo-output/walkthrough/contradictory_facts_blocked.mmd",
+        "timeline": "demo-output/walkthrough/contradictory_facts_blocked.timeline.txt"
+      },
+      "dashboard_focus": "Open the task detail and highlight the completed-to-blocked lifecycle reversal.",
+      "dashboard_url": "http://127.0.0.1:3000/?task=demo-contradictory-facts-blocked",
+      "final_status": "blocked",
+      "operator_focus": "Show Harness reversing a previously accepted completion when external facts contradict it.",
+      "scenario_name": "contradictory_facts_blocked",
+      "scenario_title": "Contradictory Facts Rollback",
+      "task_id": "demo-contradictory-facts-blocked"
+    },
+    {
+      "artifact_files": {
+        "json": "demo-output/walkthrough/review_required_then_completed.json",
+        "mermaid": "demo-output/walkthrough/review_required_then_completed.mmd",
+        "timeline": "demo-output/walkthrough/review_required_then_completed.timeline.txt"
+      },
+      "dashboard_focus": "Open the review panel and timeline to show request then decision.",
+      "dashboard_url": "http://127.0.0.1:3000/?task=demo-review-required-then-completed",
+      "final_status": "completed",
+      "operator_focus": "Show that manual review is explicit, auditable, and non-terminal until resolved.",
+      "scenario_name": "review_required_then_completed",
+      "scenario_title": "Review Required To Completed",
+      "task_id": "demo-review-required-then-completed"
+    },
+    {
+      "artifact_files": {
+        "json": "demo-output/walkthrough/long_running_handoff.json",
+        "mermaid": "demo-output/walkthrough/long_running_handoff.mmd",
+        "timeline": "demo-output/walkthrough/long_running_handoff.timeline.txt"
+      },
+      "dashboard_focus": "Open evidence and timeline views to point out progress_artifact and handoff_artifact before final completion.",
+      "dashboard_url": "http://127.0.0.1:3000/?task=demo-long-running-handoff",
+      "final_status": "completed",
+      "operator_focus": "Show progress and handoff artifacts accumulating across evaluations without counting as completion evidence by default.",
+      "scenario_name": "long_running_handoff",
+      "scenario_title": "Long-Running Handoff",
+      "task_id": "demo-long-running-handoff"
+    }
+  ]
+}
