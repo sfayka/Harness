@@ -11,6 +11,7 @@ import { Search, Filter, RefreshCw } from "lucide-react";
 export default function DashboardPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isDetailExpanded, setIsDetailExpanded] = useState(false);
 
   const selectedTask = selectedTaskId
     ? mockTasks.find((t) => t.task_id === selectedTaskId)
@@ -88,12 +89,23 @@ export default function DashboardPage() {
           </div>
         </main>
 
-        {/* Detail panel (slide-in from right) */}
+        {/* Detail panel (slide-in from right, or full-screen) */}
         {selectedTask && (
-          <aside className="fixed right-0 top-14 bottom-0 w-full max-w-[480px] shadow-xl z-40 lg:shadow-none">
+          <aside
+            className={`fixed z-40 transition-all duration-300 ${
+              isDetailExpanded
+                ? "inset-0 top-14"
+                : "right-0 top-14 bottom-0 w-full max-w-[480px] shadow-xl lg:shadow-none"
+            }`}
+          >
             <TaskDetailPanel
               task={selectedTask}
-              onClose={() => setSelectedTaskId(null)}
+              onClose={() => {
+                setSelectedTaskId(null);
+                setIsDetailExpanded(false);
+              }}
+              isExpanded={isDetailExpanded}
+              onToggleExpand={() => setIsDetailExpanded(!isDetailExpanded)}
             />
           </aside>
         )}

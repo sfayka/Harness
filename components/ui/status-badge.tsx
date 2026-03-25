@@ -284,3 +284,101 @@ export function ReconciliationBadge({
     </span>
   );
 }
+
+// Combined Truth State indicator - groups verification & reconciliation
+export function TruthStateBadge({
+  verificationStatus,
+  reconciliationStatus,
+  className,
+}: {
+  verificationStatus: VerificationStatus | null;
+  reconciliationStatus: ReconciliationStatus | null;
+  className?: string;
+}) {
+  const verificationConfig = verificationStatus
+    ? verificationStatusConfig[verificationStatus]
+    : null;
+  const reconciliationConfig = reconciliationStatus
+    ? reconciliationStatusConfig[reconciliationStatus]
+    : null;
+
+  // Determine overall truth state
+  const isVerified = verificationStatus === "accepted";
+  const isAligned = reconciliationStatus === "no_mismatch";
+  const hasIssue =
+    verificationStatus === "rejected" ||
+    reconciliationStatus === "wrong_target" ||
+    reconciliationStatus === "contradictory_facts";
+  const needsAttention =
+    verificationStatus === "insufficient_evidence" ||
+    reconciliationStatus === "stale_evidence";
+
+  const containerClass = hasIssue
+    ? "border-destructive/30 bg-destructive/5"
+    : needsAttention
+      ? "border-warning/30 bg-warning/5"
+      : isVerified && isAligned
+        ? "border-success/30 bg-success/5"
+        : "border-border bg-muted/30";
+
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-1 rounded-lg border px-2 py-1.5",
+        containerClass,
+        className
+      )}
+    >
+      {/* Verification */}
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium",
+          verificationConfig?.className ?? "bg-muted text-muted-foreground"
+        )}
+      >
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            verificationStatus === "accepted"
+              ? "bg-success"
+              : verificationStatus === "rejected"
+                ? "bg-destructive"
+                : verificationStatus === "insufficient_evidence"
+                  ? "bg-warning"
+                  : verificationStatus === "pending"
+                    ? "bg-info"
+                    : "bg-muted-foreground/50"
+          )}
+        />
+        {verificationConfig?.label ?? "Unverified"}
+      </span>
+
+      <span className="text-muted-foreground/40 text-xs">|</span>
+
+      {/* Reconciliation */}
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium",
+          reconciliationConfig?.className ?? "bg-muted text-muted-foreground"
+        )}
+      >
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            reconciliationStatus === "no_mismatch"
+              ? "bg-success"
+              : reconciliationStatus === "wrong_target" ||
+                  reconciliationStatus === "contradictory_facts"
+                ? "bg-destructive"
+                : reconciliationStatus === "stale_evidence"
+                  ? "bg-warning"
+                  : reconciliationStatus === "pending"
+                    ? "bg-info"
+                    : "bg-muted-foreground/50"
+          )}
+        />
+        {reconciliationConfig?.label ?? "Unreconciled"}
+      </span>
+    </div>
+  );
+}
