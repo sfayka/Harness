@@ -1,326 +1,214 @@
 # Harness
 
-> Agents do work, Linear tracks intent, GitHub proves execution, Harness decides what is actually true
+> Linear tracks intended work, GitHub proves executed artifacts, Harness decides what is actually true.
 
-Harness is a control plane and reliability layer for AI-assisted work.
-
-It is designed to sit underneath work surfaces such as Linear, not replace them.
-
-It does not try to make AI smarter.
-
-It makes AI-driven work **reliable, auditable, and actually complete**.
-
-The goal is not to out-reason model-native task runners. The goal is to ensure that execution is artifact-backed, verifiable, and aligned with system-of-record workflows.
-
-The Harness runtime is Python. Integration with OpenClaw is API-first rather than a Node extension model.
-
-## Linear And Harness
-
-Linear and Harness serve different roles.
-
-- Linear is the work surface and system of record where humans and agents coordinate issues, projects, and workflow state.
-- Harness is the control plane underneath that surface. It decides whether work is verified, reconciled, and acceptable as complete.
-
-System-of-record model:
-
-- Linear is the source of truth for intended work
-- GitHub is the source of truth for executed artifacts
-- Harness is the source of truth for verified state and lifecycle correctness
-
-Harness is not trying to replace Linear's coordination layer.
-
-Harness exists to answer questions a work surface alone should not answer by trust:
-
-- did the work actually happen?
-- is completion backed by evidence?
-- do GitHub, Linear, and Harness agree?
-- should completion be accepted, blocked, reversed, or sent to manual review?
-
-At the contract boundary:
-
-- Linear sends `issue_id`, `title`, `description`, optional labels and priority, and optional linked artifacts
-- Harness derives the canonical `TaskEnvelope`, required artifacts, and verification expectations
-- Harness returns a control-plane outcome plus evidence validation, reconciliation results, and required follow-up actions
-
-Example feature flow:
-
-1. A Linear issue is created.
-2. Codex executes the work.
-3. A GitHub pull request is opened.
-4. Linear is marked done.
-5. Harness verifies the PR, checks repo and branch correctness, and validates artifact completeness.
-6. Harness returns `accepted_completion`, `blocked`, or `external_mismatch`.
-
-## Why Harness Exists
-
-AI agents are getting better at reasoning and execution.
-
-But that is not the real bottleneck.
-
-The real problem is that there is no reliable system around them.
-
-Today:
-- tasks are loosely defined
-- execution is opaque
-- completion is based on what an agent says, not what actually happened
-- there is no consistent way to verify, audit, or reconcile work
-
-This leads to:
-- tasks marked “done” with no artifacts
-- work executed in the wrong repo or context
-- silent failures or partial completion
-- constant human babysitting
-
-Harness exists to solve this problem.
-
-Harness is a continuation of the ideas behind InboxToBacklog, extended into a full control-plane system focused on correctness, verification, and auditability.
-
----
+Harness is a control plane and reliability layer for AI-assisted work. It sits underneath work surfaces such as Linear and ingress clients such as OpenClaw. It evaluates whether work is actually complete, evidence-backed, reconciled, and safe to accept.
 
 ## What Harness Is
 
-Harness is a **control plane and reliability layer for AI-driven work**.
+Harness is a standalone service and library that:
 
-It enforces that:
-- work is defined through explicit contracts (TaskEnvelope)
-- execution is delegated to replaceable workers (Codex, Claude, etc.)
-- completion is not accepted without verifiable artifacts (PRs, commits, etc.)
-- task lifecycle state is explicit (blocked, failed, completed)
-- system-of-record tools such as Linear and GitHub stay consistent with reality
-
-In practice:
-
-- Linear remains the place where upstream work coordination happens
-- Harness remains the place where correctness, verification, and enforcement happen
-
-Harness does not try to make AI “smarter.”
-
-It makes AI-driven work **reliable, auditable, and actually complete**.
-
----
+- normalizes work into a canonical `TaskEnvelope`
+- persists task state and append-only evaluation history
+- validates evidence and external facts
+- reconciles Harness state with Linear and GitHub
+- enforces lifecycle transitions and manual-review outcomes
+- exposes read-only inspection surfaces for operators and dashboards
 
 ## What Harness Is Not
 
 Harness is not:
 
-- an agent framework
-- a multi-agent coordination system
-- a replacement for Linear's work coordination surface
-- a planner/router competing with model-native reasoning
-- a replacement for Codex, Claude, or similar systems
+- a PM tool
+- an agent runtime
+- a chatbot UI
+- a replacement for Linear's work-coordination surface
+- a replacement for GitHub as the artifact system of record
+- a place where agent-reported success is trusted by default
 
-Those systems are **workers**.
+Harness does not try to make agents smarter. It makes agent-driven work auditable and enforceable.
 
-Harness is the system that ensures their work is correct.
+## System Of Record Model
 
----
+- Linear = intended work
+- GitHub = execution artifacts
+- Harness = lifecycle truth, verification, reconciliation, and enforcement
 
-## Core Principle
+That split is deliberate:
 
-> Work is not complete because an agent says it is complete.  
-> Work is only accepted as complete when it is backed by verifiable evidence.
+- Linear remains the human and agent work surface
+- GitHub remains the artifact and code-change surface
+- Harness remains the control plane that decides whether completion is trustworthy
 
-This principle drives:
-- artifact modeling
-- completion rules
-- reconciliation with external systems
-- auditability of all outcomes
+## Core System Model
 
----
+The core product rule is simple:
 
-## Current Direction
+> Work is not complete because an agent says it is complete. Work is complete only when policy allows it based on evidence, reconciliation, and lifecycle enforcement.
 
-The project is actively evolving toward:
+That means:
 
-- artifact-backed completion and verification
-- reconciliation between Harness, GitHub, and Linear
-- a clean boundary where Linear remains the human-and-agent work surface
-- explicit clarification and missing-information handling
-- explicit lifecycle semantics (including failure and blocked states)
-- treating executors as replaceable components behind contracts
+- agent-reported success is advisory only
+- completion must be evidence-backed when policy requires it
+- reconciliation mismatches must not be silently ignored
+- review decisions must be explicit and auditable
+- lifecycle state transitions are policy-enforced, not worker-defined
 
-This is a **build-in-public** effort. Expect rough edges, but a clear direction.
+## Architecture Overview
 
-## Rough Workflow
+At a high level:
 
-1. A user provides a request through an ingress layer (e.g. OpenClaw).
-2. The request is captured and coordinated in a work surface such as Linear.
-3. Harness normalizes the relevant work into canonical task contracts.
-4. Work is decomposed and delegated to replaceable executors.
-5. Harness tracks execution, blocked states, and failures beneath the work surface.
-6. Artifacts are collected and attached to tasks.
-7. Completion is verified against artifacts plus system-of-record state in Linear and GitHub.
-8. Verified outcomes are written back upstream so the work surface reflects reality.
+1. an ingress client submits new work or updates
+2. Harness normalizes that input into a canonical `TaskEnvelope`
+3. Harness evaluates evidence, runtime facts, reconciliation facts, and review state
+4. Harness persists task snapshots and append-only evaluation records
+5. operators and the dashboard inspect canonical read-model and timeline APIs
 
-## Early Scope
+Current implementation highlights:
 
-This repository is expected to grow toward:
+- Python backend for control-plane evaluation, persistence, and API surfaces
+- canonical `TaskEnvelope` and schema validation
+- evidence, reconciliation, verification, lifecycle, and manual-review primitives
+- stateful HTTP API with submission and reevaluation
+- dashboard-friendly read-model and timeline endpoints
+- Next.js read-only dashboard built on those canonical inspection APIs
+- demo, simulator, OpenClaw-style spike, and goal-to-work helper flows
 
-- canonical task contracts
-- lifecycle enforcement and audit trails
-- artifact tracking and completion verification
-- system-of-record reconciliation across Linear and GitHub
-- decomposition and assignment logic
-- reporting back to the controlling interface
+## Repository Layout
 
-## Initial Constraints
+- `modules/`
+  Python control-plane implementation, connectors, API, persistence, simulator, demo helpers, and goal-to-work flow.
+- `app/`, `components/`, `lib/`
+  Next.js dashboard and frontend wiring.
+- `schemas/`
+  Canonical machine-readable contracts, including `TaskEnvelope`.
+- `tests/`
+  Python backend and integration tests.
+- `docs/architecture/`
+  Architecture, contract, and boundary docs.
+- `docs/demo/`
+  Demo walkthrough guidance.
+- `docs/integration/`
+  Integration notes such as the OpenClaw boundary spike.
+- `docs/setup/`
+  Local development and run guidance.
 
-For now, Harness should optimize for clarity over automation theater.
+## Quickstart
 
-- every task should have explicit state
-- delegation should be visible and reviewable
-- completion should not be trusted without artifacts
-- stalled or failed work should be surfaced instead of silently ignored
-- upstream reporting should be grounded in verified task status
-- ambiguous requests should be clarified before decomposition when possible
+If you want the fastest useful local run:
 
-## Status
-
-Not production-ready. Architecture-first.
-
-Current focus:
-
-- canonical contracts such as `TaskEnvelope`
-- artifact and completion evidence modeling
-- Linear-aligned intake and normalization
-- PRD-to-work-breakdown generation for upstream structure creation
-- review-and-approve bulk ingestion of generated work into persisted Harness tasks
-- canonical goal-to-work composition from high-level request to persisted Harness tasks
-- verification, auditability, and system-of-record reconciliation
-
-Not yet in scope:
-
-- competing with Linear on issue/project coordination UX
-- full planner sophistication
-- advanced dispatcher behavior
-- workflow-heavy runtime features beyond what is needed for control-plane guarantees
-
-## Explore The Repo
-
-- `docs/architecture/` contains the main system model and contract docs
-- `docs/adrs/` contains architecture decision records
-- `docs/planning/` contains near-term planning notes
-- `modules/` contains the current Python implementation work
-  This now includes ingestion adapters, simulator/demo layers, and PRD-to-work-breakdown generation.
-- `schemas/` contains canonical machine-readable contracts
-- `tests/` contains Python tests for contract validation and module behavior
-
-## Local Demo
-
-You can run the current control-plane evaluation loop locally through the minimal CLI/demo runner:
+1. create a Python virtual environment and install backend deps
+2. install frontend deps with `pnpm`
+3. run the one-command demo bootstrap
 
 ```bash
-python -m modules.cli list
-python -m modules.cli run accepted_completion
-python -m modules.cli run blocked_reconciliation_mismatch --json
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pnpm install --frozen-lockfile
+python -m modules.demo_bootstrap
 ```
 
-The CLI uses canonical `TaskEnvelope` fixtures plus normalized GitHub/Linear fact bundles.
-It does not call live external APIs.
+That command:
 
-## OpenClaw-Style Simulator
+- clears demo state
+- starts the local API
+- starts the dashboard
+- seeds deterministic demo tasks
+- prints the dashboard URL and direct task links
 
-You can also run a lightweight ingress simulator against the public Harness API.
+See [docs/setup/local-development.md](docs/setup/local-development.md) for the full local workflow.
 
-Start the API first:
+## Python Environment Setup
+
+Harness backend commands assume a local virtual environment.
 
 ```bash
-python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Then run simulator scenarios such as:
+Backend validation typically uses:
 
 ```bash
-python -m modules.simulator list
-python -m modules.simulator --base-url http://127.0.0.1:8000 run successful_completion
-python -m modules.simulator --base-url http://127.0.0.1:8000 run long_running_handoff --json
+.venv/bin/python -m unittest discover -s tests
 ```
 
-The simulator is entirely client-side. It uses only the public HTTP API to submit tasks, reevaluate tasks, and inspect persisted state over time.
+## Frontend / Dashboard Setup
 
-## OpenClaw Boundary Spike
-
-There is also a narrow OpenClaw-informed client spike that validates the real ingress boundary against the public Harness API:
+Install frontend dependencies:
 
 ```bash
-python -m modules.connectors.openclaw_harness_spike --base-url http://127.0.0.1:8000
+pnpm install --frozen-lockfile
 ```
 
-That spike:
-
-- submits a new task through `POST /tasks`
-- fetches current task state and read-model data
-- submits new artifacts through `POST /tasks/<task_id>/reevaluate`
-- fetches timeline and evaluation history
-
-It uses only the public API and preserves OpenClaw-style source metadata in the canonical task payload. See [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md) for the narrow scope and what was learned.
-
-## Ingress Request Builder
-
-To reduce canonical task payload construction friction for ingress clients, Harness now includes a thin ingress-side builder adapter:
+Create a local frontend env file:
 
 ```bash
-python - <<'PY'
-from modules.connectors import (
-    IngressSourceContext,
-    IngressTaskIntent,
-    build_task_submission_payload,
-)
-
-payload = build_task_submission_payload(
-    intent=IngressTaskIntent(
-        task_id="task-example-1",
-        title="Example task",
-        description="Construct a canonical Harness submission payload.",
-        acceptance_criteria=("The payload validates at the API boundary.",),
-    ),
-    context=IngressSourceContext(
-        source_system="openclaw",
-        source_id="msg-example-1",
-        ingress_name="OpenClaw",
-        ingress_id="conv-example-1",
-        extension_namespace="openclaw",
-        extension_payload={"conversation_id": "conv-example-1", "channel": "cli"},
-    ),
-)
-print(payload["request"]["task_envelope"]["origin"])
-PY
+cp .env.example .env.local
 ```
 
-The builder keeps the API unchanged. It just helps ingress clients construct valid `POST /tasks` and reevaluation payloads without reimplementing canonical defaults.
-
-## Canonical Demo Pack
-
-You can run a packaged set of canonical demo scenarios that generate:
-
-- readable console timelines
-- Mermaid visual trace files
-- JSON trace artifacts
-
-Run the full pack locally:
+Set the backend URL in `.env.local`:
 
 ```bash
-python -m modules.demo_runner --output-dir demo-output
+HARNESS_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-Run a subset:
+Run the dashboard:
 
 ```bash
-python -m modules.demo_runner --output-dir demo-output successful_completion contradictory_facts_blocked
+pnpm dev
 ```
 
-Artifacts are written under the output directory as:
+The dashboard is currently read-only. It is built on the canonical read-model and timeline APIs, not ad hoc frontend-only state.
 
-- `<scenario>.timeline.txt`
-- `<scenario>.mmd`
-- `<scenario>.json`
-- `index.json`
+## Running The API
 
-The demo runner uses only the public API or simulator surface. It does not duplicate control-plane logic.
+Start the local API:
 
-## End-to-End Operator Walkthrough
+```bash
+.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+```
 
-For a polished local demo that seeds real tasks into the API and then makes them easy to inspect in the dashboard, use the canonical walkthrough helper:
+The API is intentionally thin. It wraps the existing evaluator and persistence scaffolding rather than introducing a second enforcement path.
+
+## Running The Dashboard
+
+With the API running and `HARNESS_API_BASE_URL` configured:
+
+```bash
+pnpm dev
+```
+
+The dashboard uses a same-origin Next proxy at `/api/harness/*`, so browser code never needs to know the raw backend URL directly.
+
+## Running The Demo Bootstrap
+
+For the lowest-friction local demo path:
+
+```bash
+python -m modules.demo_bootstrap
+```
+
+Useful options:
+
+```bash
+python -m modules.demo_bootstrap --exit-after-seed
+python -m modules.demo_bootstrap --json --exit-after-seed
+python -m modules.demo_bootstrap successful_completion review_required_then_completed
+```
+
+## Demo Walkthrough
+
+Harness includes a deterministic seeded walkthrough for local product demos, screenshots, and operator narration.
+
+Key docs:
+
+- [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md)
+- [docs/setup/local-development.md](docs/setup/local-development.md)
+
+Key commands:
 
 ```bash
 python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
@@ -332,7 +220,7 @@ python -m modules.demo_walkthrough seed \
   --output-dir demo-output/walkthrough
 ```
 
-This walkthrough seeds named tasks such as:
+Seeded tasks include:
 
 - `demo-successful-completion`
 - `demo-missing-evidence-then-completed`
@@ -340,135 +228,212 @@ This walkthrough seeds named tasks such as:
 - `demo-review-required-then-completed`
 - `demo-long-running-handoff`
 
-The generated `walkthrough.txt` and `walkthrough.json` files include task IDs, direct dashboard URLs, and per-scenario operator focus points. See [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md) for the narrated flow.
+## Environment Variables
 
-## One-Command Local Demo Bootstrap
+Current local/frontend variable surface:
 
-For the lowest-friction local demo path, use the bootstrap command:
+- `HARNESS_API_BASE_URL`
+  Required by the Next.js proxy route to reach a live backend.
 
-```bash
-python -m modules.demo_bootstrap
-```
+See:
 
-That single command will:
+- [.env.example](.env.example)
+- [docs/setup/local-development.md](docs/setup/local-development.md)
 
-- clear the local demo store and walkthrough output
-- start the Python API on `http://127.0.0.1:8000`
-- start the dashboard on `http://127.0.0.1:3000`
-- seed the deterministic walkthrough tasks
-- print the dashboard URL plus direct `/?task=` links for each canonical demo task
+## High-Level API Surface
 
-Useful options:
-
-```bash
-python -m modules.demo_bootstrap --exit-after-seed
-python -m modules.demo_bootstrap successful_completion review_required_then_completed
-python -m modules.demo_bootstrap --json --exit-after-seed
-```
-
-The bootstrap command uses the existing public API, walkthrough seeding flow, and dashboard wiring. It does not introduce a separate demo-only control path.
-
-## Local HTTP API
-
-You can also run a minimal local HTTP wrapper around the same evaluation entry point:
-
-```bash
-python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
-```
-
-Then submit canonical evaluation requests to:
+Health and inspection:
 
 - `GET /health`
 - `GET /tasks`
-- `POST /ingress/linear`
-- `POST /tasks`
-- `POST /evaluate`
-- `POST /tasks/<task_id>/reevaluate`
 - `GET /tasks/<task_id>`
 - `GET /tasks/<task_id>/evaluations`
 - `GET /tasks/<task_id>/read-model`
 - `GET /tasks/<task_id>/timeline`
 
-The API accepts canonical `TaskEnvelope` input plus normalized external facts and returns structured evaluation results.
-`POST /tasks` is the canonical ingress submission path for new work. It creates a new persisted task record, runs the initial evaluation, and appends the first evaluation record. Duplicate task IDs are rejected with `409 Conflict`.
-`POST /ingress/linear` is a thin example adapter that accepts a Linear-shaped issue payload, translates it into a canonical `TaskEnvelope` plus normalized `LinearFacts`, and then reuses the same `POST /tasks` submission path.
-Successful evaluations persist the current task snapshot and append an evaluation record under the configured store root.
-Re-evaluation requests load the latest stored task, append any new canonical artifacts, apply new normalized facts or review outcomes, and persist the next task snapshot plus a new evaluation record.
-`GET /tasks/<task_id>/read-model` returns a dashboard-friendly task inspection shape with current evidence, verification, reconciliation, review, and lifecycle context.
-`GET /tasks/<task_id>/timeline` returns a flattened event timeline suitable for task-detail and timeline views.
-It is a thin wrapper over the existing evaluator and store scaffolding, not a production service.
+Submission and reevaluation:
 
-## Local Dashboard
+- `POST /tasks`
+- `POST /tasks/<task_id>/reevaluate`
+- `POST /evaluate`
+- `POST /ingress/linear`
 
-The Next.js dashboard is a read-only inspection surface over the same persisted Harness data.
+Important behavior:
 
-1. Start the Python API:
+- `POST /tasks` is the canonical submission path for new work
+- duplicate task IDs are rejected with `409 Conflict`
+- reevaluation is explicit and uses `POST /tasks/<task_id>/reevaluate`
+- read-model and timeline endpoints are the canonical inspection surfaces for the dashboard
+
+## Integration Model
+
+### Linear
+
+Linear is the work surface and structured-work system of record.
+
+Linear sends:
+
+- issue identity
+- title and description
+- optional labels and priority
+- optional linked artifacts or external references
+
+Harness derives:
+
+- canonical `TaskEnvelope`
+- required artifacts
+- verification expectations
+- reconciliation expectations
+
+Harness returns:
+
+- current control-plane outcome
+- evidence validation result
+- reconciliation result
+- required follow-up actions
+
+### GitHub
+
+GitHub is the source of truth for executed artifacts.
+
+Harness consumes normalized GitHub facts rather than raw vendor payloads. GitHub-backed artifacts such as commits and pull requests can support verification and reconciliation, but they do not bypass policy enforcement on their own.
+
+### OpenClaw And Other Ingress Clients
+
+OpenClaw and similar clients are ingress surfaces, not control-plane owners.
+
+Current state:
+
+- the OpenClaw integration spike showed the API boundary is clean
+- the remaining ingress friction is request construction ergonomics, not architecture failure
+- the thin request-builder adapter exists to reduce payload verbosity without redesigning `POST /tasks`
+
+See:
+
+- [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md)
+- [docs/integrations/overview.md](docs/integrations/overview.md)
+
+## Current Integration Status / Maturity
+
+What is mature enough to use locally:
+
+- canonical submission and reevaluation APIs
+- persisted task snapshots and append-only evaluation history
+- read-model and timeline inspection APIs
+- dashboard read-only inspection
+- simulator, demo bootstrap, and deterministic walkthroughs
+- Linear-shaped ingress adapter
+- thin OpenClaw-informed client spike
+
+What remains intentionally narrow:
+
+- no live GitHub polling or webhook integration
+- no live Linear synchronization service
+- no production auth or multi-tenant service layer
+- no production-grade database backend
+- no mutation UI in the dashboard
+
+## What Is Real Today Vs Simulated Today
+
+Real today:
+
+- backend evaluator and enforcement primitives
+- persistence store
+- HTTP API
+- dashboard read-model and timeline inspection
+- deterministic demo walkthrough and seeded tasks
+- request-builder and ingress adapters
+
+Simulated or intentionally narrow today:
+
+- OpenClaw-style client behavior is a spike, not a full runtime integration
+- Linear ingress is an adapter/example flow, not live Linear API creation
+- demo scenarios use canonical facts and seeded state, not live external systems
+- preview fallback data is sample data only
+
+Fallback data must always be clearly marked and must never silently impersonate live backend truth.
+
+## Testing / Validation Commands
+
+Backend:
 
 ```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+.venv/bin/python -m unittest discover -s tests
 ```
 
-2. Copy the frontend environment example and point it at that API:
+Frontend:
 
 ```bash
-cp .env.example .env.local
+pnpm lint
+pnpm build
 ```
 
-3. Install and run the frontend:
+Focused examples:
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm dev
+.venv/bin/python -m unittest tests.test_api tests.test_read_model tests.test_demo_walkthrough
+.venv/bin/python -m unittest tests.connectors.test_openclaw_harness_spike
 ```
 
-The dashboard uses a same-origin Next proxy at `/api/harness/*`, which reads `HARNESS_API_BASE_URL` server-side. This keeps browser code connector-neutral and avoids hard-coding backend URLs into the client bundle.
+## Troubleshooting
 
-If `HARNESS_API_BASE_URL` is missing or the backend cannot be reached, the dashboard falls back to clearly-labeled sample data. That fallback is explicit in the UI and is intended only for preview/demo situations where a live Harness API is unavailable.
+### Dashboard shows sample data instead of live tasks
 
-## Preview / Vercel Notes
+- confirm the Python API is running
+- confirm `HARNESS_API_BASE_URL` is set in `.env.local`
+- confirm the task exists via `GET /tasks` or `GET /tasks/<task_id>`
 
-- Set `HARNESS_API_BASE_URL` in the preview environment to a reachable Harness API if you want real inspection data.
-- If that variable is not set, preview builds still succeed, but the dashboard will render labeled sample data instead of pretending to be live.
-- [vercel.json](./vercel.json) explicitly marks this repo as a Next.js deployment target so Vercel does not mis-detect the root `requirements.txt` as a Python app entrypoint.
-- The backend inspection endpoints the dashboard expects are:
-  - `GET /tasks`
-  - `GET /tasks/<task_id>/read-model`
-  - `GET /tasks/<task_id>/timeline`
+### Vercel preview builds but shows no live backend data
 
-## License
+- set `HARNESS_API_BASE_URL` in the preview environment
+- if no backend is reachable, the dashboard should show clearly labeled sample data
 
-Licensed under the Apache License 2.0.
+### Vercel detects the repo as Python instead of Next.js
+
+- this is handled by [vercel.json](vercel.json), which explicitly marks the repo as a Next.js deployment target
+
+### Duplicate task submission fails
+
+- this is expected behavior
+- `POST /tasks` is create-only and duplicate IDs return `409 Conflict`
+- use explicit reevaluation for an existing task instead
+
+## Contributing / Development Notes
+
+- start with the architecture docs before changing contracts or enforcement logic
+- prefer canonical submission, reevaluation, read-model, and timeline paths over one-off helpers
+- keep dashboard behavior read-only unless a task explicitly changes that product scope
+- keep mock or sample data clearly labeled and only as fallback when the backend is unavailable
+- update docs when changing contracts, invariants, or public API expectations
+
+Useful references:
+
+- [AGENTS.md](AGENTS.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [docs/architecture/system-context.md](docs/architecture/system-context.md)
+- [docs/architecture/linear-harness-boundary.md](docs/architecture/linear-harness-boundary.md)
+- [docs/architecture/task-envelope.md](docs/architecture/task-envelope.md)
 
 ## Architecture Docs
 
-The architecture baseline for Epic 1 lives under `docs/`:
+Core docs:
 
-- [System Context](docs/architecture/system-context.md)
-- [Linear And Harness Boundary](docs/architecture/linear-harness-boundary.md)
-- [TaskEnvelope Contract](docs/architecture/task-envelope.md)
-- [Artifact And Completion Evidence](docs/architecture/artifact-and-completion-evidence.md)
-- [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
-- [Clarification And Missing Information](docs/architecture/clarification-and-missing-information.md)
-- [Planner Contract](docs/architecture/planner-contract.md)
-- [Dispatcher Contract](docs/architecture/dispatcher-contract.md)
-- [Runtime Execution Contract](docs/architecture/runtime-execution-contract.md)
-- [Verification And Completion Enforcement](docs/architecture/verification-and-completion-enforcement.md)
-- [State Transition Enforcement](docs/architecture/state-transition-enforcement.md)
-- [Operator And Manual Review](docs/architecture/operator-and-manual-review.md)
-- [Intake To TaskEnvelope Mapping](docs/architecture/intake-to-task-envelope.md)
-- [Module Boundaries](docs/architecture/module-boundaries.md)
-- [Canonical Vocabulary](docs/architecture/canonical-vocabulary.md)
-- [Repository Layout Proposal](docs/architecture/repository-layout.md)
-- [ADR 0001](docs/adrs/0001-openclaw-as-ingress-harness-as-control-plane.md)
-- [ADR 0002](docs/adrs/0002-initial-substrate-choice-and-replacement-strategy.md)
-- [ADR 0003](docs/adrs/0003-harness-implementation-runtime.md)
-- [ADR 0004](docs/adrs/0004-harness-strategic-positioning-reliability-layer.md)
-- [Initial Codex Tickets](docs/planning/initial-codex-tickets.md)
+- [docs/architecture/system-context.md](docs/architecture/system-context.md)
+- [docs/architecture/linear-harness-boundary.md](docs/architecture/linear-harness-boundary.md)
+- [docs/architecture/task-envelope.md](docs/architecture/task-envelope.md)
+- [docs/architecture/artifact-and-completion-evidence.md](docs/architecture/artifact-and-completion-evidence.md)
+- [docs/architecture/reconciliation-rules.md](docs/architecture/reconciliation-rules.md)
+- [docs/architecture/state-transition-enforcement.md](docs/architecture/state-transition-enforcement.md)
+- [docs/architecture/operator-and-manual-review.md](docs/architecture/operator-and-manual-review.md)
+- [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md)
 
-## System Overview
+Supporting docs:
 
-![System Diagram](docs/architecture/system-context.png)
+- [docs/setup/local-development.md](docs/setup/local-development.md)
+- [docs/integrations/overview.md](docs/integrations/overview.md)
+- [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md)
+- [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md)
 
-## Contributing
+## License
 
-Lightweight contributor guidance lives in [CONTRIBUTING.md](CONTRIBUTING.md).
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
