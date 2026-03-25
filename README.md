@@ -238,6 +238,23 @@ python -m modules.simulator --base-url http://127.0.0.1:8000 run long_running_ha
 
 The simulator is entirely client-side. It uses only the public HTTP API to submit tasks, reevaluate tasks, and inspect persisted state over time.
 
+## OpenClaw Boundary Spike
+
+There is also a narrow OpenClaw-informed client spike that validates the real ingress boundary against the public Harness API:
+
+```bash
+python -m modules.connectors.openclaw_harness_spike --base-url http://127.0.0.1:8000
+```
+
+That spike:
+
+- submits a new task through `POST /tasks`
+- fetches current task state and read-model data
+- submits new artifacts through `POST /tasks/<task_id>/reevaluate`
+- fetches timeline and evaluation history
+
+It uses only the public API and preserves OpenClaw-style source metadata in the canonical task payload. See [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md) for the narrow scope and what was learned.
+
 ## Canonical Demo Pack
 
 You can run a packaged set of canonical demo scenarios that generate:
