@@ -22,7 +22,7 @@ No direct calls into Harness evaluation, persistence, or enforcement internals a
 
 ## Client Shape
 
-The spike client lives in [`modules/connectors/openclaw_harness_spike.py`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/modules/connectors/openclaw_harness_spike.py).
+The spike client lives in [`modules/connectors/openclaw_harness_spike.py`](../../modules/connectors/openclaw_harness_spike.py).
 
 It provides:
 
@@ -70,7 +70,7 @@ The main friction point is task creation verbosity:
 
 That means the right next move, if this grows, is not deeper coupling. It is a small ingress-side request builder or adapter, similar to the existing Linear-shaped ingress adapter.
 
-That builder now exists in [`modules/connectors/ingress_request_builder.py`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/modules/connectors/ingress_request_builder.py) and is reused by the OpenClaw spike client.
+That builder now exists in [`modules/connectors/ingress_request_builder.py`](../../modules/connectors/ingress_request_builder.py) and is reused by the OpenClaw spike client.
 
 Other observations:
 
