@@ -9,6 +9,7 @@ from enum import Enum
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import (
@@ -36,6 +37,11 @@ from modules.contracts.task_envelope_review import (
 )
 from modules.contracts.task_envelope_verification import RuntimeVerificationFacts
 from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
+from modules.store import (
+    EvaluationRecord,
+    FileBackedHarnessStore,
+    TaskEnvelopeNotFoundError,
+)
 
 
 class ApiRequestError(ValueError):
@@ -208,7 +214,7 @@ def _parse_review_decision(payload: dict[str, Any] | None) -> ReviewDecisionResu
 def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationRequest:
     """Parse a canonical HTTP evaluation request into the public evaluator input."""
 
-    request_payload = _require_mapping(payload, field_name="request")
+    request_payload = _require_mapping(payload.get("request"), field_name="request")
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
 
     return HarnessEvaluationRequest(
@@ -255,10 +261,78 @@ def evaluate_http_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]
     return status, _to_jsonable(result)
 
 
+def _task_path_components(path: str) -> tuple[str, ...]:
+    parsed_path = urlparse(path).path.strip("/")
+    if not parsed_path:
+        return ()
+    return tuple(unquote(component) for component in parsed_path.split("/"))
+
+
+def _serialize_evaluation_record(record: EvaluationRecord) -> dict[str, Any]:
+    return _to_jsonable(record)
+
+
+class HarnessApiService:
+    """Stateful HTTP-facing service that reuses the canonical evaluator and store."""
+
+    def __init__(self, *, store: FileBackedHarnessStore | None = None) -> None:
+        self.store = store or FileBackedHarnessStore(".harness-store")
+
+    def _upsert_task(self, task_envelope: dict[str, Any]) -> dict[str, Any]:
+        task_id = str(task_envelope["id"])
+        try:
+            self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return self.store.put_task(task_envelope)
+        return self.store.update_task(task_envelope)
+
+    def evaluate(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            request = parse_evaluation_request(payload)
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        result = evaluate_task_case(request)
+        status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
+        response_payload = _to_jsonable(result)
+
+        if result.invalid_input:
+            return status, response_payload
+
+        stored_task = self._upsert_task(result.task_envelope)
+        record = self.store.put_evaluation_record(request=request, result=result)
+        response_payload["task_envelope"] = _to_jsonable(stored_task)
+        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        return status, response_payload
+
+    def get_task(self, task_id: str) -> tuple[int, dict[str, Any]]:
+        try:
+            task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+        return HTTPStatus.OK, {"task": task}
+
+    def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
+        try:
+            self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        records = self.store.list_evaluation_records(task_id)
+        return HTTPStatus.OK, {
+            "task_id": task_id,
+            "evaluations": [_serialize_evaluation_record(record) for record in records],
+        }
+
+
 class HarnessApiHandler(BaseHTTPRequestHandler):
     """Minimal HTTP handler exposing the Harness evaluation entry point."""
 
     server_version = "HarnessHTTP/0.1"
+    service: HarnessApiService | None = None
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
         return
@@ -272,13 +346,27 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path == "/health":
+        path_components = _task_path_components(self.path)
+        service = self.service or HarnessApiService()
+
+        if path_components == ("health",):
             self._write_json(HTTPStatus.OK, {"status": "ok"})
             return
+
+        if len(path_components) == 2 and path_components[0] == "tasks":
+            status, payload = service.get_task(path_components[1])
+            self._write_json(status, payload)
+            return
+
+        if len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "evaluations":
+            status, payload = service.get_evaluation_history(path_components[1])
+            self._write_json(status, payload)
+            return
+
         self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
 
     def do_POST(self) -> None:  # noqa: N802
-        if self.path != "/evaluate":
+        if urlparse(self.path).path != "/evaluate":
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
 
@@ -290,14 +378,26 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             self._write_json(HTTPStatus.BAD_REQUEST, {"error": f"Invalid JSON body: {error}"})
             return
 
-        status, response_payload = evaluate_http_payload(payload)
+        service = self.service or HarnessApiService()
+        status, response_payload = service.evaluate(payload)
         self._write_json(status, response_payload)
 
 
-def run_server(*, host: str = "127.0.0.1", port: int = 8000) -> ThreadingHTTPServer:
+def run_server(
+    *,
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    store_root: str = ".harness-store",
+    service: HarnessApiService | None = None,
+) -> ThreadingHTTPServer:
     """Create and run the minimal HTTP API server."""
 
-    server = ThreadingHTTPServer((host, port), HarnessApiHandler)
+    api_service = service or HarnessApiService(store=FileBackedHarnessStore(store_root))
+
+    class _ConfiguredHarnessApiHandler(HarnessApiHandler):
+        service = api_service
+
+    server = ThreadingHTTPServer((host, port), _ConfiguredHarnessApiHandler)
     return server
 
 
@@ -307,6 +407,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the minimal Harness HTTP API wrapper.")
     parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind")
     parser.add_argument("--port", type=int, default=8000, help="Port to bind")
+    parser.add_argument(
+        "--store-root",
+        default=".harness-store",
+        help="Directory for persisted task snapshots and evaluation history",
+    )
     return parser
 
 
@@ -314,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
     """Run the minimal HTTP API server."""
 
     args = build_parser().parse_args(argv)
-    server = run_server(host=args.host, port=args.port)
+    server = run_server(host=args.host, port=args.port, store_root=args.store_root)
     print(f"Harness API listening on http://{args.host}:{args.port}")
     try:
         server.serve_forever()

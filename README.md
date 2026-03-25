@@ -217,16 +217,19 @@ It does not call live external APIs.
 You can also run a minimal local HTTP wrapper around the same evaluation entry point:
 
 ```bash
-python -m modules.api --host 127.0.0.1 --port 8000
+python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
 ```
 
 Then submit canonical evaluation requests to:
 
 - `GET /health`
 - `POST /evaluate`
+- `GET /tasks/<task_id>`
+- `GET /tasks/<task_id>/evaluations`
 
 The API accepts canonical `TaskEnvelope` input plus normalized external facts and returns structured evaluation results.
-It is a thin wrapper over the existing evaluator, not a production service.
+Successful evaluations persist the current task snapshot and append an evaluation record under the configured store root.
+It is a thin wrapper over the existing evaluator and store scaffolding, not a production service.
 
 ## License
 
