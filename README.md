@@ -232,6 +232,35 @@ python -m modules.simulator --base-url http://127.0.0.1:8000 run long_running_ha
 
 The simulator is entirely client-side. It uses only the public HTTP API to submit tasks, reevaluate tasks, and inspect persisted state over time.
 
+## Canonical Demo Pack
+
+You can run a packaged set of canonical demo scenarios that generate:
+
+- readable console timelines
+- Mermaid visual trace files
+- JSON trace artifacts
+
+Run the full pack locally:
+
+```bash
+python -m modules.demo_runner --output-dir demo-output
+```
+
+Run a subset:
+
+```bash
+python -m modules.demo_runner --output-dir demo-output successful_completion contradictory_facts_blocked
+```
+
+Artifacts are written under the output directory as:
+
+- `<scenario>.timeline.txt`
+- `<scenario>.mmd`
+- `<scenario>.json`
+- `index.json`
+
+The demo runner uses only the public API or simulator surface. It does not duplicate control-plane logic.
+
 ## Local HTTP API
 
 You can also run a minimal local HTTP wrapper around the same evaluation entry point:
