@@ -258,7 +258,10 @@ export function TaskDetailPanel({
             </div>
 
             {/* Evidence */}
-            <EvidencePanel evidence={task.evidence_summary} />
+            <EvidencePanel
+              evidence={task.evidence_summary}
+              timeline={task.timeline}
+            />
           </div>
 
           {/* Right column (in expanded) - Review & Timeline */}
