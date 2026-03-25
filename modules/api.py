@@ -44,6 +44,7 @@ from modules.contracts.task_envelope_review import (
 )
 from modules.contracts.task_envelope_verification import RuntimeVerificationFacts
 from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
+from modules.read_model import HarnessReadModelService
 from modules.store import (
     EvaluationRecord,
     FileBackedHarnessStore,
@@ -378,6 +379,7 @@ class HarnessApiService:
 
     def __init__(self, *, store: FileBackedHarnessStore | None = None) -> None:
         self.store = store or FileBackedHarnessStore(".harness-store")
+        self.read_model_service = HarnessReadModelService(store=self.store)
 
     def _upsert_task(self, task_envelope: dict[str, Any]) -> dict[str, Any]:
         task_id = str(task_envelope["id"])
@@ -505,6 +507,20 @@ class HarnessApiService:
             "evaluations": [_serialize_evaluation_record(record) for record in records],
         }
 
+    def get_task_read_model(self, task_id: str) -> tuple[int, dict[str, Any]]:
+        try:
+            read_model = self.read_model_service.build_task_read_model(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+        return HTTPStatus.OK, {"task": _to_jsonable(read_model)}
+
+    def get_task_timeline(self, task_id: str) -> tuple[int, dict[str, Any]]:
+        try:
+            timeline = self.read_model_service.build_task_timeline(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+        return HTTPStatus.OK, timeline
+
 
 class HarnessApiHandler(BaseHTTPRequestHandler):
     """Minimal HTTP handler exposing the Harness evaluation entry point."""
@@ -538,6 +554,16 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
         if len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "evaluations":
             status, payload = service.get_evaluation_history(path_components[1])
+            self._write_json(status, payload)
+            return
+
+        if len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "read-model":
+            status, payload = service.get_task_read_model(path_components[1])
+            self._write_json(status, payload)
+            return
+
+        if len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "timeline":
+            status, payload = service.get_task_timeline(path_components[1])
             self._write_json(status, payload)
             return
 

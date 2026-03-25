@@ -166,7 +166,7 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
             return ()
 
         records: list[EvaluationRecord] = []
-        for path in sorted(task_dir.glob("*.json")):
+        for path in task_dir.glob("*.json"):
             payload = self._read_json(path)
             records.append(
                 EvaluationRecord(
@@ -177,6 +177,7 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
                     result=payload["result"],
                 )
             )
+        records.sort(key=lambda record: (record.recorded_at, record.evaluation_id))
         return tuple(records)
 
 
