@@ -37,6 +37,11 @@ _EVIDENCE_RELEVANT_TYPES = {
     "output",
     "review_note",
 }
+_LONG_RUNNING_CONTEXT_TYPES = {
+    "progress_artifact",
+    "plan_artifact",
+    "handoff_artifact",
+}
 _SATISFYING_VERIFICATION_STATUSES = {"verified"}
 
 
@@ -117,6 +122,16 @@ def validate_artifact_record(artifact: dict[str, Any]) -> ArtifactValidationResu
     artifact_id = artifact.get("id") if isinstance(artifact, dict) else None
     artifact_type = artifact.get("type") if isinstance(artifact, dict) else None
     issues = _schema_issues(_ARTIFACT_VALIDATOR, artifact, artifact_id=artifact_id)
+
+    # Long-running context artifacts are valid first-class artifacts in the schema,
+    # but they do not carry extra completion-bearing semantics by default.
+    if not issues and artifact_type in _LONG_RUNNING_CONTEXT_TYPES:
+        return ArtifactValidationResult(
+            artifact_id=artifact_id,
+            artifact_type=artifact_type,
+            is_valid=True,
+            issues=(),
+        )
 
     if not issues and artifact_type in _EVIDENCE_RELEVANT_TYPES:
         if artifact_type == "pull_request" and artifact.get("pull_request_number") is None:
