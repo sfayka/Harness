@@ -1,5 +1,7 @@
 # Harness
 
+> Agents do work, Linear tracks intent, GitHub proves execution, Harness decides what is actually true
+
 Harness is a control plane and reliability layer for AI-assisted work.
 
 It is designed to sit underneath work surfaces such as Linear, not replace them.
@@ -182,7 +184,10 @@ Current focus:
 - artifact and completion evidence modeling
 - Linear-aligned intake and normalization
 - PRD-to-work-breakdown generation for upstream structure creation
+<<<<<<< codex/prd-bulk-ingestion
 - review-and-approve bulk ingestion of generated work into persisted Harness tasks
+=======
+>>>>>>> main
 - verification, auditability, and system-of-record reconciliation
 
 Not yet in scope:
