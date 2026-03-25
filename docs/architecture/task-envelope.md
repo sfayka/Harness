@@ -237,7 +237,7 @@ Artifacts are product-facing outputs and verification evidence attached to the t
 
 `artifacts` contains:
 
-- `items`: canonical artifact records such as pull requests, commits, changed files, logs, outputs, and review notes
+- `items`: canonical artifact records such as pull requests, commits, changed files, logs, outputs, review notes, progress artifacts, plan artifacts, and handoff artifacts
 - `completion_evidence`: the current policy and validation state for deciding whether a task may be treated as complete
 
 Each artifact record may carry:
@@ -252,6 +252,8 @@ Each artifact record may carry:
 Completion is not trusted purely because an executor claims success. `artifacts.completion_evidence` is where Harness records whether the evidence requirement is deferred, required, satisfied, insufficient, or not applicable.
 
 Verification consumes this evidence state but remains a distinct control-plane decision layer. Evidence presence and completion acceptance must not collapse into one concept.
+
+Long-running support artifacts such as `progress_artifact`, `plan_artifact`, and `handoff_artifact` are first-class task artifacts. Harness preserves them for auditability and may use them as verification or review inputs, but they are not completion-bearing by default in the current contract.
 
 ### Completion Trust Levels
 

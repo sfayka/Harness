@@ -34,8 +34,17 @@ Supported canonical artifact types:
 - `log`
 - `output`
 - `review_note`
+- `progress_artifact`
+- `plan_artifact`
+- `handoff_artifact`
 
 These artifact types are broad enough to support code-bearing tasks, advisory tasks, and reconciliation across external systems.
+
+The long-running support artifact types are intentionally distinct from completion evidence:
+
+- `progress_artifact` captures structured progress state across multiple evaluation cycles or execution sessions
+- `plan_artifact` captures decomposition, feature lists, or work-plan state that verification may inspect later
+- `handoff_artifact` captures session-transition or executor-transition context needed to continue work safely across sessions
 
 ## Artifact Record
 
@@ -160,6 +169,51 @@ Typical use:
 - manual verification statements
 - review commentary
 
+### progress_artifact
+
+Required:
+
+- `provenance`
+- `verification_status`
+
+Typical use:
+
+- progress logs that summarize what has been completed so far
+- feature or checklist state carried across multiple sessions
+- intermediate status snapshots used during later verification or review
+
+These artifacts improve continuity and auditability, but they do not imply completion by themselves.
+
+### plan_artifact
+
+Required:
+
+- `provenance`
+- `verification_status`
+
+Typical use:
+
+- structured decomposition output
+- feature implementation plans
+- reviewable work plans used during later enforcement or manual review
+
+These artifacts document intended execution shape. They are verification inputs, not completion proof by default.
+
+### handoff_artifact
+
+Required:
+
+- `provenance`
+- `verification_status`
+
+Typical use:
+
+- session handoff summaries between agent runs
+- environment-state notes required to resume long-running work
+- executor transition context when work spans multiple sessions or workers
+
+These artifacts preserve continuity across long-running work, but they do not override completion policy or lifecycle enforcement.
+
 ## Repository And Branch Identity
 
 Repository identity is represented as:
@@ -199,6 +253,14 @@ Every artifact record must include provenance:
 - `captured_by` optional
 
 Provenance is required so Harness can later explain where evidence came from and whether it came directly from an external system, from an executor report, or from a manual verifier.
+
+For long-running artifacts, `metadata` should carry structured continuity details when relevant, such as:
+
+- progress counters or checklist summaries for `progress_artifact`
+- plan scope, decomposition revision, or feature list identifiers for `plan_artifact`
+- previous session identifiers, next executor identifiers, or resume instructions for `handoff_artifact`
+
+Harness stores these as auditable task artifacts, but keeps the metadata executor-neutral and substrate-neutral.
 
 ## Completion Evidence
 
@@ -245,6 +307,7 @@ Canonical rules:
 - if evidence is required but missing, completion must not be accepted
 - executor-reported success without evidence is not sufficient for `completed`
 - advisory or research tasks may use `advisory_only` or `not_applicable`, but that must be explicit
+- progress, plan, and handoff artifacts may inform verification and review, but they are not completion-bearing artifact types in the current contract
 
 ## Distinguishing Outcome Classes
 
@@ -276,6 +339,8 @@ The model supports later reconciliation by:
 - allowing external references back to GitHub and Linear identifiers
 - separating evidence presence from evidence validation
 - making it possible to compare Harness lifecycle state against both structured work state and artifact state
+
+Long-running support artifacts may also be reconciled where applicable, for example when a handoff artifact references a GitHub branch or a Linear issue key. They remain informative inputs unless a later contract explicitly promotes them into completion policy.
 
 ## TaskEnvelope Alignment
 

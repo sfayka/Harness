@@ -196,6 +196,41 @@ class ArtifactValidationPrimitiveTests(unittest.TestCase):
         self.assertFalse(result.is_valid)
         self.assertTrue(any(issue.code == "required_artifact_field_missing" for issue in result.issues))
 
+    def test_accepts_handoff_artifact_as_auditable_non_completion_context(self) -> None:
+        artifact = {
+            "id": "artifact-handoff-1",
+            "type": "handoff_artifact",
+            "title": "Executor handoff",
+            "description": "Carry forward the current progress and resume hints.",
+            "location": None,
+            "content_type": "application/json",
+            "external_id": None,
+            "commit_sha": None,
+            "pull_request_number": None,
+            "review_state": None,
+            "provenance": {
+                "source_system": "codex",
+                "source_type": "executor_report",
+                "source_id": "handoff-1",
+                "captured_by": "harness-api",
+            },
+            "verification_status": "informational",
+            "repository": None,
+            "branch": None,
+            "changed_files": [],
+            "external_refs": [],
+            "captured_at": "2026-03-24T16:12:00Z",
+                "metadata": {
+                    "from_session_id": "session-1",
+                    "resume_hint": "Resume from verification.",
+            },
+        }
+
+        result = validate_artifact_record(artifact)
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(result.issues, ())
+
 
 class CompletionEvidenceValidationPrimitiveTests(unittest.TestCase):
     def test_accepts_required_satisfied_evidence_when_validated_artifacts_cover_required_types(self) -> None:
@@ -290,6 +325,45 @@ class CompletionEvidenceValidationPrimitiveTests(unittest.TestCase):
         self.assertTrue(
             any(issue.code == "not_applicable_requires_no_validated_artifacts" for issue in result.issues)
         )
+
+    def test_long_running_support_artifacts_do_not_change_required_completion_evidence_by_default(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["artifacts"]["items"].append(
+            {
+                "id": "artifact-progress-1",
+                "type": "progress_artifact",
+                "title": "Progress snapshot",
+                "description": "Progress carried between sessions.",
+                "location": None,
+                "content_type": "application/json",
+                "external_id": None,
+                "commit_sha": None,
+                "pull_request_number": None,
+                "review_state": None,
+                "provenance": {
+                    "source_system": "codex",
+                    "source_type": "executor_report",
+                    "source_id": "progress-1",
+                    "captured_by": "harness-api",
+                },
+                "verification_status": "informational",
+                "repository": None,
+                "branch": None,
+                "changed_files": [],
+                "external_refs": [],
+                "captured_at": "2026-03-24T16:08:00Z",
+                "metadata": {
+                    "completed_items": "2",
+                    "remaining_items": "1",
+                },
+            }
+        )
+
+        result = validate_task_evidence(task_envelope)
+
+        self.assertTrue(result.is_valid)
+        self.assertTrue(result.is_sufficient)
+        self.assertEqual(result.validated_artifact_ids, ("artifact-pr-1", "artifact-commit-1"))
 
 
 if __name__ == "__main__":

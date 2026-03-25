@@ -741,7 +741,10 @@
             "changed_file",
             "log",
             "output",
-            "review_note"
+            "review_note",
+            "progress_artifact",
+            "plan_artifact",
+            "handoff_artifact"
           ]
         },
         "title": {
