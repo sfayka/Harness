@@ -183,6 +183,7 @@ Current focus:
 - canonical contracts such as `TaskEnvelope`
 - artifact and completion evidence modeling
 - Linear-aligned intake and normalization
+- PRD-to-work-breakdown generation for upstream structure creation
 - verification, auditability, and system-of-record reconciliation
 
 Not yet in scope:
@@ -198,6 +199,7 @@ Not yet in scope:
 - `docs/adrs/` contains architecture decision records
 - `docs/planning/` contains near-term planning notes
 - `modules/` contains the current Python implementation work
+  This now includes ingestion adapters, simulator/demo layers, and PRD-to-work-breakdown generation.
 - `schemas/` contains canonical machine-readable contracts
 - `tests/` contains Python tests for contract validation and module behavior
 
