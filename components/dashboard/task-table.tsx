@@ -4,8 +4,7 @@ import type { Task } from "@/lib/types";
 import { formatRelativeTime } from "@/lib/utils";
 import {
   StatusBadge,
-  VerificationBadge,
-  ReconciliationBadge,
+  TruthStateBadge,
 } from "@/components/ui/status-badge";
 import {
   AlertCircle,
@@ -36,11 +35,8 @@ export function TaskTable({
             <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 hidden lg:table-cell">
               Status
             </th>
-            <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 hidden xl:table-cell">
-              Verification
-            </th>
-            <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 hidden xl:table-cell">
-              Reconciliation
+            <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 hidden md:table-cell">
+              Truth State
             </th>
             <th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 hidden md:table-cell">
               Updated
@@ -122,14 +118,10 @@ function TaskRow({
       <td className="px-4 py-3 hidden lg:table-cell">
         <StatusBadge status={task.current_status} variant="task" />
       </td>
-      <td className="px-4 py-3 hidden xl:table-cell">
-        <VerificationBadge
-          status={task.verification_summary?.result ?? null}
-        />
-      </td>
-      <td className="px-4 py-3 hidden xl:table-cell">
-        <ReconciliationBadge
-          status={task.reconciliation_summary?.result ?? null}
+      <td className="px-4 py-3 hidden md:table-cell">
+        <TruthStateBadge
+          verificationStatus={task.verification_summary?.result ?? null}
+          reconciliationStatus={task.reconciliation_summary?.result ?? null}
         />
       </td>
       <td className="px-4 py-3 hidden md:table-cell">
