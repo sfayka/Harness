@@ -17,10 +17,15 @@ from .linear_facts import (
     translate_linear_task_reference,
     translate_linear_workflow,
 )
+from .linear_ingress import (
+    LinearIngressInputError,
+    translate_linear_submission_payload,
+)
 
 __all__ = [
     "GitHubConnectorInputError",
     "LinearConnectorInputError",
+    "LinearIngressInputError",
     "translate_github_artifact_facts",
     "translate_github_artifact_references",
     "translate_github_branch",
@@ -29,6 +34,7 @@ __all__ = [
     "translate_github_pull_request",
     "translate_github_repository",
     "translate_linear_facts",
+    "translate_linear_submission_payload",
     "translate_linear_project",
     "translate_linear_task_reference",
     "translate_linear_workflow",
