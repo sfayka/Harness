@@ -1,5 +1,6 @@
 {
   "name": "harness-dashboard",
+  "description": "Control plane dashboard for Harness AI verification",
   "version": "0.1.0",
   "private": true,
   "scripts": {
