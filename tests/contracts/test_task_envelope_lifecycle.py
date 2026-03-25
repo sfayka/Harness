@@ -199,6 +199,43 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
         self.assertIsNone(result.task_envelope["timestamps"]["completed_at"])
         self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "completed")
 
+    def test_blocked_to_completed_is_allowed_when_verification_later_resolves_the_blocker(self) -> None:
+        task = _base_task()
+        task["status"] = "blocked"
+        task["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "satisfied",
+            "required_artifact_types": ["commit"],
+            "validated_artifact_ids": ["artifact-1"],
+            "validation_method": "external_reconciliation",
+            "validated_at": "2026-03-25T12:40:00Z",
+            "validator": {
+                "source_system": "harness",
+                "source_type": "verification",
+                "source_id": "verification-2",
+                "captured_by": "verification",
+            },
+            "notes": "Later evidence resolved the blocked completion claim.",
+        }
+
+        result = apply_task_transition(
+            task,
+            to_status="completed",
+            actor="verification",
+            reason="Previously blocked completion claim is now verified.",
+            now="2026-03-25T12:41:00Z",
+            facts={
+                "verification_passed": True,
+                "acceptance_criteria_satisfied": True,
+                "reconciliation_passed": True,
+            },
+        )
+
+        self.assertEqual(result.task_envelope["status"], "completed")
+        self.assertEqual(result.task_envelope["timestamps"]["completed_at"], "2026-03-25T12:41:00Z")
+        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "blocked")
+        self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
+
     def test_blocked_to_planned_rejects_unresolved_clarification(self) -> None:
         task = _base_task()
         task["status"] = "blocked"

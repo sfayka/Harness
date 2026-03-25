@@ -112,6 +112,7 @@ Canonical transitions:
 - `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
 - `blocked` -> `executing`
+- `blocked` -> `completed`
 - `blocked` -> `canceled`
 
 Terminal states:
@@ -126,6 +127,8 @@ Allowed transitions are not sufficient by themselves. Each transition must also 
 For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
 
 `completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
+
+`blocked` may also move back to `completed` when the blocking condition was specifically about unresolved completion acceptance and later verification or manual review resolves that blocker with sufficient evidence and non-blocking reconciliation.
 
 `completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
 

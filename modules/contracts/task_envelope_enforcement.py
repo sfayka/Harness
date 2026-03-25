@@ -201,12 +201,21 @@ def enforce_task_envelope(
     if enforcement_input.review_decision is not None:
         review_decision = enforcement_input.review_decision
         reason = review_decision.record.reasoning
+        review_transition_facts = {"terminal_failure": review_decision.record.outcome.value == "mark_failed"}
+        if review_decision.recommended_target_status == "completed":
+            review_transition_facts.update(
+                {
+                    "verification_passed": True,
+                    "acceptance_criteria_satisfied": True,
+                    "reconciliation_passed": True,
+                }
+            )
         return _apply_transition(
             task_envelope,
             actor="manual_review",
             to_status=review_decision.recommended_target_status,
             reason=reason,
-            facts={"terminal_failure": review_decision.record.outcome.value == "mark_failed"},
+            facts=review_transition_facts,
             evidence_result=evidence_result,
             review_decision=review_decision,
         )
