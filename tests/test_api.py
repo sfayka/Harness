@@ -261,6 +261,17 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 404)
         self.assertIn("not found", history_payload["error"].lower())
 
+    def test_service_lists_dashboard_tasks_from_read_model_surface(self) -> None:
+        self.service.submit(_request_payload("accepted_completion"))
+        self.service.submit(_request_payload("blocked_insufficient_evidence"))
+
+        status, payload = self.service.list_tasks()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(len(payload["tasks"]), 2)
+        self.assertIn("verification_summary", payload["tasks"][0])
+        self.assertIn("timeline", payload["tasks"][0])
+
     def test_service_submit_persists_new_task_and_initial_evaluation(self) -> None:
         status, payload = self.service.submit(_request_payload("accepted_completion"))
 
@@ -391,6 +402,17 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(task_payload["task"]["status"], "completed")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_api_lists_dashboard_tasks(self) -> None:
+        self._post_json("/tasks", _request_payload("accepted_completion"))
+        self._post_json("/tasks", _request_payload("blocked_insufficient_evidence"))
+
+        status, payload = self._get_json("/tasks")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(len(payload["tasks"]), 2)
+        self.assertIn("task_id", payload["tasks"][0])
+        self.assertIn("review_summary", payload["tasks"][0])
 
     def test_api_submit_can_persist_initial_blocked_result(self) -> None:
         status, payload = self._post_json("/tasks", _request_payload("blocked_insufficient_evidence"))
@@ -608,6 +630,14 @@ class HarnessHttpApiTests(unittest.TestCase):
         except HTTPError as error:
             self.assertEqual(error.code, 400)
             error.close()
+
+    def test_api_sets_cors_headers_for_browser_clients(self) -> None:
+        request = Request(self.base_url + "/tasks", method="OPTIONS")
+
+        with urlopen(request) as response:
+            self.assertEqual(response.status, 204)
+            self.assertEqual(response.headers["Access-Control-Allow-Origin"], "*")
+            self.assertIn("GET", response.headers["Access-Control-Allow-Methods"])
 
     def test_api_can_reevaluate_blocked_task_to_completed_when_new_evidence_arrives(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")

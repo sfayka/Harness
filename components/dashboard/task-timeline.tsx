@@ -67,6 +67,17 @@ export function TaskTimeline({ events }: TaskTimelineProps) {
 
 function TimelineEventItem({ event }: { event: TimelineEvent }) {
   const config = getEventConfig(event.event_type);
+  const pullRequestNumber =
+    typeof event.details.pull_request_number === "number"
+      ? event.details.pull_request_number
+      : null;
+  const commitSha =
+    typeof event.details.commit_sha === "string"
+      ? event.details.commit_sha
+      : null;
+  const reviewOutcome =
+    typeof event.details.outcome === "string" ? event.details.outcome : null;
+  const requiresReview = event.details.requires_review === true;
 
   return (
     <div className="relative flex gap-3 pl-1">
@@ -107,11 +118,11 @@ function TimelineEventItem({ event }: { event: TimelineEvent }) {
         {event.event_type === "artifact_captured" && event.details && (
           <div className="mt-1.5 text-xs text-muted-foreground">
             Type: {String(event.details.type)}
-            {event.details.pull_request_number && (
-              <span className="ml-2">PR #{String(event.details.pull_request_number)}</span>
+            {pullRequestNumber !== null && (
+              <span className="ml-2">PR #{String(pullRequestNumber)}</span>
             )}
-            {event.details.commit_sha && (
-              <span className="ml-2 font-mono">{String(event.details.commit_sha)}</span>
+            {commitSha && (
+              <span className="ml-2 font-mono">{commitSha}</span>
             )}
           </div>
         )}
@@ -120,7 +131,7 @@ function TimelineEventItem({ event }: { event: TimelineEvent }) {
           <div className="mt-1.5 text-xs">
             <span className="text-muted-foreground">Action: </span>
             <span className="font-mono">{String(event.details.action)}</span>
-            {event.details.requires_review && (
+            {requiresReview && (
               <span className="ml-2 text-warning">Review Required</span>
             )}
           </div>
@@ -139,14 +150,14 @@ function TimelineEventItem({ event }: { event: TimelineEvent }) {
             <span className="text-muted-foreground">Outcome: </span>
             <span
               className={`font-medium ${
-                event.details.outcome === "approved"
+                reviewOutcome === "approved"
                   ? "text-success"
-                  : event.details.outcome === "rejected"
+                  : reviewOutcome === "rejected"
                     ? "text-destructive"
                     : "text-muted-foreground"
               }`}
             >
-              {String(event.details.outcome)}
+              {String(reviewOutcome)}
             </span>
           </div>
         )}

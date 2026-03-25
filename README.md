@@ -278,6 +278,7 @@ python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
 Then submit canonical evaluation requests to:
 
 - `GET /health`
+- `GET /tasks`
 - `POST /ingress/linear`
 - `POST /tasks`
 - `POST /evaluate`
@@ -295,6 +296,42 @@ Re-evaluation requests load the latest stored task, append any new canonical art
 `GET /tasks/<task_id>/read-model` returns a dashboard-friendly task inspection shape with current evidence, verification, reconciliation, review, and lifecycle context.
 `GET /tasks/<task_id>/timeline` returns a flattened event timeline suitable for task-detail and timeline views.
 It is a thin wrapper over the existing evaluator and store scaffolding, not a production service.
+
+## Local Dashboard
+
+The Next.js dashboard is a read-only inspection surface over the same persisted Harness data.
+
+1. Start the Python API:
+
+```bash
+.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+```
+
+2. Copy the frontend environment example and point it at that API:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Install and run the frontend:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+The dashboard uses a same-origin Next proxy at `/api/harness/*`, which reads `HARNESS_API_BASE_URL` server-side. This keeps browser code connector-neutral and avoids hard-coding backend URLs into the client bundle.
+
+If `HARNESS_API_BASE_URL` is missing or the backend cannot be reached, the dashboard falls back to clearly-labeled sample data. That fallback is explicit in the UI and is intended only for preview/demo situations where a live Harness API is unavailable.
+
+## Preview / Vercel Notes
+
+- Set `HARNESS_API_BASE_URL` in the preview environment to a reachable Harness API if you want real inspection data.
+- If that variable is not set, preview builds still succeed, but the dashboard will render labeled sample data instead of pretending to be live.
+- The backend inspection endpoints the dashboard expects are:
+  - `GET /tasks`
+  - `GET /tasks/<task_id>/read-model`
+  - `GET /tasks/<task_id>/timeline`
 
 ## License
 
