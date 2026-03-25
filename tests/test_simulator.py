@@ -86,6 +86,19 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertIn("handoff_artifact", artifact_types)
         self.assertEqual(len(result.evaluation_history), 4)
 
+    def test_can_run_scenario_with_deterministic_task_identity(self) -> None:
+        result = run_scenario(
+            "successful_completion",
+            base_url=self.base_url,
+            task_id_override="demo-successful-completion",
+            task_title_override="Demo: Accepted Completion",
+            origin_source_id_override="demo-successful-completion",
+        )
+
+        self.assertEqual(result.final_task_id, "demo-successful-completion")
+        self.assertEqual(result.task_snapshot["title"], "Demo: Accepted Completion")
+        self.assertEqual(result.task_snapshot["origin"]["source_id"], "demo-successful-completion")
+
     def test_cli_lists_scenarios(self) -> None:
         exit_code, output = self._run_cli("list")
 

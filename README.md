@@ -267,6 +267,30 @@ Artifacts are written under the output directory as:
 
 The demo runner uses only the public API or simulator surface. It does not duplicate control-plane logic.
 
+## End-to-End Operator Walkthrough
+
+For a polished local demo that seeds real tasks into the API and then makes them easy to inspect in the dashboard, use the canonical walkthrough helper:
+
+```bash
+python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
+.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
+pnpm dev
+python -m modules.demo_walkthrough seed \
+  --base-url http://127.0.0.1:8000 \
+  --dashboard-url http://127.0.0.1:3000 \
+  --output-dir demo-output/walkthrough
+```
+
+This walkthrough seeds named tasks such as:
+
+- `demo-successful-completion`
+- `demo-missing-evidence-then-completed`
+- `demo-contradictory-facts-blocked`
+- `demo-review-required-then-completed`
+- `demo-long-running-handoff`
+
+The generated `walkthrough.txt` and `walkthrough.json` files include task IDs, direct dashboard URLs, and per-scenario operator focus points. See [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md) for the narrated flow.
+
 ## Local HTTP API
 
 You can also run a minimal local HTTP wrapper around the same evaluation entry point:
