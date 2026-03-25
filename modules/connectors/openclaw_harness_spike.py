@@ -4,34 +4,22 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from .ingress_request_builder import (
+    IngressRequestBuilderError,
+    IngressSourceContext,
+    IngressTaskIntent,
+    build_task_reevaluation_payload as build_ingress_task_reevaluation_payload,
+    build_task_submission_payload as build_ingress_task_submission_payload,
+)
 
-class OpenClawHarnessSpikeError(ValueError):
+
+class OpenClawHarnessSpikeError(IngressRequestBuilderError):
     """Raised when the spike client receives malformed local inputs."""
-
-
-def _iso_now() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-
-
-def _require_non_empty(value: str, *, field_name: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise OpenClawHarnessSpikeError(f"{field_name} is required")
-    return value.strip()
-
-
-def _optional_string(value: str | None, *, field_name: str) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise OpenClawHarnessSpikeError(f"{field_name} must be a string when provided")
-    stripped = value.strip()
-    return stripped or None
 
 
 @dataclass(frozen=True)
@@ -46,22 +34,7 @@ class OpenClawSourceContext:
     agent_id: str | None = None
 
 
-@dataclass(frozen=True)
-class OpenClawTaskIntent:
-    """Reviewable task intent extracted from an OpenClaw-side interaction."""
-
-    task_id: str
-    title: str
-    description: str
-    acceptance_criteria: tuple[str, ...]
-    objective_summary: str | None = None
-    deliverable_type: str = "unspecified"
-    success_signal: str = "Task satisfies declared acceptance criteria."
-    status: str = "intake_ready"
-    priority: str = "normal"
-    linked_artifacts: tuple[dict[str, Any], ...] = ()
-    completion_evidence: dict[str, Any] | None = None
-    requested_by: str | None = None
+OpenClawTaskIntent = IngressTaskIntent
 
 
 @dataclass(frozen=True)
@@ -92,100 +65,32 @@ def build_task_submission_payload(
 ) -> dict[str, Any]:
     """Build a canonical POST /tasks payload from OpenClaw-side intent."""
 
-    task_id = _require_non_empty(intent.task_id, field_name="intent.task_id")
-    title = _require_non_empty(intent.title, field_name="intent.title")
-    description = _require_non_empty(intent.description, field_name="intent.description")
+    ingress_context = IngressSourceContext(
+        source_system="openclaw",
+        source_id=context.message_id,
+        ingress_name="OpenClaw",
+        ingress_id=context.conversation_id,
+        requested_by=intent.requested_by or context.user_id,
+        extension_namespace="openclaw",
+        extension_payload={
+            "conversation_id": context.conversation_id,
+            "message_id": context.message_id,
+            "channel": context.channel,
+            "workspace_id": context.workspace_id,
+            "user_id": context.user_id,
+            "agent_id": context.agent_id,
+        },
+    )
 
-    if not intent.acceptance_criteria:
-        raise OpenClawHarnessSpikeError("intent.acceptance_criteria must contain at least one item")
-
-    created_at = _iso_now()
-    task_envelope: dict[str, Any] = {
-        "id": task_id,
-        "title": title,
-        "description": description,
-        "origin": {
-            "source_system": "openclaw",
-            "source_type": "ingress_request",
-            "source_id": _require_non_empty(context.message_id, field_name="context.message_id"),
-            "ingress_id": _optional_string(context.conversation_id, field_name="context.conversation_id"),
-            "ingress_name": "OpenClaw",
-            "requested_by": _optional_string(intent.requested_by or context.user_id, field_name="requested_by"),
-        },
-        "status": intent.status,
-        "timestamps": {
-            "created_at": created_at,
-            "updated_at": created_at,
-            "completed_at": created_at if intent.status == "completed" else None,
-        },
-        "status_history": [],
-        "objective": {
-            "summary": _require_non_empty(intent.objective_summary or description, field_name="intent.objective_summary"),
-            "deliverable_type": _require_non_empty(intent.deliverable_type, field_name="intent.deliverable_type"),
-            "success_signal": _require_non_empty(intent.success_signal, field_name="intent.success_signal"),
-        },
-        "constraints": [],
-        "acceptance_criteria": [
-            {
-                "id": f"ac-{index + 1}",
-                "description": _require_non_empty(criterion, field_name=f"intent.acceptance_criteria[{index}]"),
-                "required": True,
-            }
-            for index, criterion in enumerate(intent.acceptance_criteria)
-        ],
-        "parent_task_id": None,
-        "child_task_ids": [],
-        "dependencies": [],
-        "assigned_executor": None,
-        "required_capabilities": [],
-        "priority": intent.priority,
-        "artifacts": {
-            "items": [dict(artifact) for artifact in intent.linked_artifacts],
-            "completion_evidence": dict(intent.completion_evidence)
-            if intent.completion_evidence is not None
-            else {
-                "policy": "deferred",
-                "status": "deferred",
-                "required_artifact_types": [],
-                "validated_artifact_ids": [],
-                "validation_method": "deferred",
-                "validated_at": None,
-                "validator": None,
-                "notes": None,
-            },
-        },
-        "observability": {
-            "errors": [],
-            "retries": {
-                "attempt_count": 0,
-                "max_attempts": 0,
-                "last_retry_at": None,
-            },
-            "execution_metadata": {},
-        },
-        "extensions": {
-            "openclaw": {
-                "conversation_id": context.conversation_id,
-                "message_id": context.message_id,
-                "channel": _require_non_empty(context.channel, field_name="context.channel"),
-                "workspace_id": context.workspace_id,
-                "user_id": context.user_id,
-                "agent_id": context.agent_id,
-            }
-        },
-    }
-
-    request_payload: dict[str, Any] = {
-        "task_envelope": task_envelope,
-        "external_facts": dict(external_facts or {}),
-        "claimed_completion": claimed_completion,
-        "acceptance_criteria_satisfied": acceptance_criteria_satisfied,
-    }
-    if runtime_facts is not None:
-        request_payload["runtime_facts"] = dict(runtime_facts)
-    if unresolved_conditions:
-        request_payload["unresolved_conditions"] = list(unresolved_conditions)
-    return {"request": request_payload}
+    return build_ingress_task_submission_payload(
+        intent=intent,
+        context=ingress_context,
+        external_facts=external_facts,
+        claimed_completion=claimed_completion,
+        acceptance_criteria_satisfied=acceptance_criteria_satisfied,
+        runtime_facts=runtime_facts,
+        unresolved_conditions=unresolved_conditions,
+    )
 
 
 def build_task_reevaluation_payload(
@@ -202,30 +107,27 @@ def build_task_reevaluation_payload(
 ) -> dict[str, Any]:
     """Build a canonical POST /tasks/<id>/reevaluate payload."""
 
-    request_payload: dict[str, Any] = {
-        "external_facts": dict(external_facts or {}),
-        "new_artifacts": [dict(artifact) for artifact in new_artifacts],
-        "claimed_completion": claimed_completion,
-        "acceptance_criteria_satisfied": acceptance_criteria_satisfied,
-    }
-    if completion_evidence is not None:
-        request_payload["completion_evidence"] = dict(completion_evidence)
-    if runtime_facts is not None:
-        request_payload["runtime_facts"] = dict(runtime_facts)
-    if unresolved_conditions:
-        request_payload["unresolved_conditions"] = list(unresolved_conditions)
-    if review_request is not None:
-        request_payload["review_request"] = dict(review_request)
-    if review_decision is not None:
-        request_payload["review_decision"] = dict(review_decision)
-    return {"request": request_payload}
+    return build_ingress_task_reevaluation_payload(
+        external_facts=external_facts,
+        new_artifacts=new_artifacts,
+        completion_evidence=completion_evidence,
+        claimed_completion=claimed_completion,
+        acceptance_criteria_satisfied=acceptance_criteria_satisfied,
+        runtime_facts=runtime_facts,
+        unresolved_conditions=unresolved_conditions,
+        review_request=review_request,
+        review_decision=review_decision,
+    )
 
 
 class OpenClawHarnessSpikeClient:
     """Thin OpenClaw-style HTTP client for the public Harness API."""
 
     def __init__(self, base_url: str) -> None:
-        self.base_url = _require_non_empty(base_url.rstrip("/"), field_name="base_url")
+        normalized = base_url.rstrip("/")
+        if not normalized:
+            raise OpenClawHarnessSpikeError("base_url is required")
+        self.base_url = normalized
 
     def _request_json(self, method: str, path: str, payload: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         data = None

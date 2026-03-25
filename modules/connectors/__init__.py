@@ -21,19 +21,27 @@ from .linear_ingress import (
     LinearIngressInputError,
     translate_linear_submission_payload,
 )
+from .ingress_request_builder import (
+    IngressRequestBuilderError,
+    IngressSourceContext,
+    IngressTaskIntent,
+    build_task_reevaluation_payload,
+    build_task_submission_payload,
+)
 from .openclaw_harness_spike import (
     OpenClawHarnessSpikeClient,
     OpenClawHarnessSpikeError,
     OpenClawHarnessSpikeResult,
     OpenClawSourceContext,
     OpenClawTaskIntent,
-    build_task_reevaluation_payload,
-    build_task_submission_payload,
     run_openclaw_spike_flow,
 )
 
 __all__ = [
     "GitHubConnectorInputError",
+    "IngressRequestBuilderError",
+    "IngressSourceContext",
+    "IngressTaskIntent",
     "LinearConnectorInputError",
     "LinearIngressInputError",
     "OpenClawHarnessSpikeClient",
