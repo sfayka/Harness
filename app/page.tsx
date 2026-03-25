@@ -22,6 +22,23 @@ export default function DashboardPage() {
   const [detailError, setDetailError] = useState<string | null>(null);
 
   useEffect(() => {
+    const initialTaskId = new URLSearchParams(window.location.search).get("task");
+    if (initialTaskId) {
+      setSelectedTaskId(initialTaskId);
+    }
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (selectedTaskId) {
+      url.searchParams.set("task", selectedTaskId);
+    } else {
+      url.searchParams.delete("task");
+    }
+    window.history.replaceState({}, "", url);
+  }, [selectedTaskId]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function loadTasks() {

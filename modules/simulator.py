@@ -37,6 +37,35 @@ def _canonical_payload(case_name: str) -> dict[str, Any]:
     return {"request": _to_jsonable(build_demo_request(case_name))}
 
 
+def _customize_canonical_payload(
+    payload: dict[str, Any],
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> dict[str, Any]:
+    customized = deepcopy(payload)
+    request = customized.get("request")
+    if not isinstance(request, dict):
+        return customized
+
+    task_envelope = request.get("task_envelope")
+    if isinstance(task_envelope, dict):
+        if task_id_override is not None:
+            task_envelope["id"] = task_id_override
+        if task_title_override is not None:
+            task_envelope["title"] = task_title_override
+        origin = task_envelope.get("origin")
+        if isinstance(origin, dict) and origin_source_id_override is not None:
+            origin["source_id"] = origin_source_id_override
+
+    review_request = request.get("review_request")
+    if isinstance(review_request, dict) and task_id_override is not None:
+        review_request["task_id"] = task_id_override
+
+    return customized
+
+
 def _review_note_artifact(artifact_id: str = "artifact-review-note-sim-1") -> dict[str, Any]:
     return {
         "id": artifact_id,
@@ -191,9 +220,26 @@ class HarnessSimulatorClient:
 
 
 class _ScenarioContext:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        task_id_override: str | None = None,
+        task_title_override: str | None = None,
+        origin_source_id_override: str | None = None,
+    ) -> None:
         self.task_id: str | None = None
         self.steps: list[SimulationStepResult] = []
+        self.task_id_override = task_id_override
+        self.task_title_override = task_title_override
+        self.origin_source_id_override = origin_source_id_override
+
+    def canonical_payload(self, case_name: str) -> dict[str, Any]:
+        return _customize_canonical_payload(
+            _canonical_payload(case_name),
+            task_id_override=self.task_id_override,
+            task_title_override=self.task_title_override,
+            origin_source_id_override=self.origin_source_id_override,
+        )
 
     def record(
         self,
@@ -313,16 +359,36 @@ def _review_decision_payload(task_id: str) -> dict[str, Any]:
     return _to_jsonable(decision)
 
 
-def _scenario_successful_completion(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    _submit_step(client, context, "submit", _canonical_payload("accepted_completion"))
+def _scenario_successful_completion(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    _submit_step(client, context, "submit", context.canonical_payload("accepted_completion"))
     task_snapshot, history = _fetch_final_state(client, context)
     return SimulationResult("successful_completion", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
 
-def _scenario_missing_evidence_then_completed(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    initial_payload = _canonical_payload("blocked_insufficient_evidence")
+def _scenario_missing_evidence_then_completed(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    initial_payload = context.canonical_payload("blocked_insufficient_evidence")
     _submit_step(client, context, "submit", initial_payload)
     _reevaluate_step(
         client,
@@ -338,7 +404,7 @@ def _scenario_missing_evidence_then_completed(client: HarnessSimulatorClient) ->
                         "artifact-review-note-sim-1",
                     ]
                 },
-                "external_facts": deepcopy(_canonical_payload("accepted_completion")["request"]["external_facts"]),
+                "external_facts": deepcopy(context.canonical_payload("accepted_completion")["request"]["external_facts"]),
                 "claimed_completion": True,
                 "acceptance_criteria_satisfied": True,
                 "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
@@ -349,9 +415,19 @@ def _scenario_missing_evidence_then_completed(client: HarnessSimulatorClient) ->
     return SimulationResult("missing_evidence_then_completed", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
 
-def _scenario_wrong_target_corrected(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    initial_payload = _canonical_payload("accepted_completion")
+def _scenario_wrong_target_corrected(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    initial_payload = context.canonical_payload("accepted_completion")
     wrong_target_payload = deepcopy(initial_payload)
     wrong_target_payload["request"]["task_envelope"]["status"] = "blocked"
     wrong_target_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
@@ -375,16 +451,26 @@ def _scenario_wrong_target_corrected(client: HarnessSimulatorClient) -> Simulati
     return SimulationResult("wrong_target_corrected", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
 
-def _scenario_review_required_then_completed(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    accepted_payload = _canonical_payload("accepted_completion")
+def _scenario_review_required_then_completed(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    accepted_payload = context.canonical_payload("accepted_completion")
     review_payload = {
         "request": deepcopy(accepted_payload["request"]),
     }
     review_payload["request"]["task_envelope"]["status"] = "blocked"
     review_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
     review_payload["request"]["review_request"] = _review_request_payload(review_payload["request"]["task_envelope"]["id"])
-    review_payload["request"]["external_facts"] = deepcopy(_canonical_payload("review_required")["request"]["external_facts"])
+    review_payload["request"]["external_facts"] = deepcopy(context.canonical_payload("review_required")["request"]["external_facts"])
 
     _submit_step(client, context, "submit", review_payload)
     _reevaluate_step(
@@ -401,9 +487,19 @@ def _scenario_review_required_then_completed(client: HarnessSimulatorClient) -> 
     return SimulationResult("review_required_then_completed", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
 
-def _scenario_contradictory_facts_rollback(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    accepted_payload = _canonical_payload("accepted_completion")
+def _scenario_contradictory_facts_rollback(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    accepted_payload = context.canonical_payload("accepted_completion")
     _submit_step(client, context, "submit", accepted_payload)
     _reevaluate_step(
         client,
@@ -411,7 +507,7 @@ def _scenario_contradictory_facts_rollback(client: HarnessSimulatorClient) -> Si
         "introduce_contradictory_facts",
         {
             "request": {
-                "external_facts": deepcopy(_canonical_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
+                "external_facts": deepcopy(context.canonical_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
                 "claimed_completion": True,
                 "acceptance_criteria_satisfied": True,
                 "runtime_facts": deepcopy(accepted_payload["request"]["runtime_facts"]),
@@ -435,9 +531,19 @@ def _scenario_contradictory_facts_rollback(client: HarnessSimulatorClient) -> Si
     return SimulationResult("contradictory_facts_rollback", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
 
-def _scenario_contradictory_facts_blocked(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    accepted_payload = _canonical_payload("accepted_completion")
+def _scenario_contradictory_facts_blocked(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    accepted_payload = context.canonical_payload("accepted_completion")
     _submit_step(client, context, "submit", accepted_payload)
     _reevaluate_step(
         client,
@@ -445,7 +551,7 @@ def _scenario_contradictory_facts_blocked(client: HarnessSimulatorClient) -> Sim
         "introduce_contradictory_facts",
         {
             "request": {
-                "external_facts": deepcopy(_canonical_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
+                "external_facts": deepcopy(context.canonical_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
                 "claimed_completion": True,
                 "acceptance_criteria_satisfied": True,
                 "runtime_facts": deepcopy(accepted_payload["request"]["runtime_facts"]),
@@ -463,9 +569,19 @@ def _scenario_contradictory_facts_blocked(client: HarnessSimulatorClient) -> Sim
     )
 
 
-def _scenario_long_running_handoff(client: HarnessSimulatorClient) -> SimulationResult:
-    context = _ScenarioContext()
-    initial_payload = _canonical_payload("blocked_insufficient_evidence")
+def _scenario_long_running_handoff(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    initial_payload = context.canonical_payload("blocked_insufficient_evidence")
     _submit_step(client, context, "submit", initial_payload)
     _reevaluate_step(
         client,
@@ -509,7 +625,7 @@ def _scenario_long_running_handoff(client: HarnessSimulatorClient) -> Simulation
                         "artifact-review-note-sim-1",
                     ]
                 },
-                "external_facts": deepcopy(_canonical_payload("accepted_completion")["request"]["external_facts"]),
+                "external_facts": deepcopy(context.canonical_payload("accepted_completion")["request"]["external_facts"]),
                 "claimed_completion": True,
                 "acceptance_criteria_satisfied": True,
                 "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
@@ -537,12 +653,24 @@ def list_scenarios() -> tuple[str, ...]:
     return tuple(_SCENARIOS.keys())
 
 
-def run_scenario(scenario_name: str, *, base_url: str = "http://127.0.0.1:8000") -> SimulationResult:
+def run_scenario(
+    scenario_name: str,
+    *,
+    base_url: str = "http://127.0.0.1:8000",
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
     """Run one simulator scenario entirely through the public Harness HTTP API."""
 
     if scenario_name not in _SCENARIOS:
         raise ValueError(f"Unknown simulator scenario {scenario_name!r}")
-    return _SCENARIOS[scenario_name](HarnessSimulatorClient(base_url))
+    return _SCENARIOS[scenario_name](
+        HarnessSimulatorClient(base_url),
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
 
 
 def _format_step(step: SimulationStepResult) -> str:
