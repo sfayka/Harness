@@ -328,6 +328,7 @@ If `HARNESS_API_BASE_URL` is missing or the backend cannot be reached, the dashb
 
 - Set `HARNESS_API_BASE_URL` in the preview environment to a reachable Harness API if you want real inspection data.
 - If that variable is not set, preview builds still succeed, but the dashboard will render labeled sample data instead of pretending to be live.
+- [vercel.json](./vercel.json) explicitly marks this repo as a Next.js deployment target so Vercel does not mis-detect the root `requirements.txt` as a Python app entrypoint.
 - The backend inspection endpoints the dashboard expects are:
   - `GET /tasks`
   - `GET /tasks/<task_id>/read-model`
