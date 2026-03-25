@@ -1,5 +1,7 @@
 # Harness
 
+> Agents do work, Linear tracks intent, GitHub proves execution, Harness decides what is actually true
+
 Harness is a control plane and reliability layer for AI-assisted work.
 
 It is designed to sit underneath work surfaces such as Linear, not replace them.
