@@ -12,3 +12,5 @@ node_modules/
 .next/
 .env.local
 .env.*.local
+.docker-store/
+.docker-demo-output/

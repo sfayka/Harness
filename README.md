@@ -93,35 +93,15 @@ Current implementation highlights:
 - `docs/setup/`
   Local development and run guidance.
 
-## Quickstart
+## Run Modes
 
-If you want the fastest useful local run:
+Harness supports three operational modes with the same control-plane behavior and the same file-backed store model.
 
-1. create a Python virtual environment and install backend deps
-2. install frontend deps with `pnpm`
-3. run the one-command demo bootstrap
+### Run Mode 1: Native Local Development
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-pnpm install --frozen-lockfile
-python -m modules.demo_bootstrap
-```
+Use this mode for fast iteration, backend changes, frontend changes, and direct test execution.
 
-That command:
-
-- clears demo state
-- starts the local API
-- starts the dashboard
-- seeds deterministic demo tasks
-- prints the dashboard URL and direct task links
-
-See [docs/setup/local-development.md](docs/setup/local-development.md) for the full local workflow.
-
-## Python Environment Setup
-
-Harness backend commands assume a local virtual environment.
+Backend setup:
 
 ```bash
 python3 -m venv .venv
@@ -129,30 +109,23 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Backend validation typically uses:
-
-```bash
-.venv/bin/python -m unittest discover -s tests
-```
-
-## Frontend / Dashboard Setup
-
-Install frontend dependencies:
+Frontend setup:
 
 ```bash
 pnpm install --frozen-lockfile
-```
-
-Create a local frontend env file:
-
-```bash
 cp .env.example .env.local
 ```
 
-Set the backend URL in `.env.local`:
+Set the dashboard proxy target:
 
 ```bash
 HARNESS_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Run the API:
+
+```bash
+.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
 ```
 
 Run the dashboard:
@@ -161,37 +134,13 @@ Run the dashboard:
 pnpm dev
 ```
 
-The dashboard is currently read-only. It is built on the canonical read-model and timeline APIs, not ad hoc frontend-only state.
-
-## Running The API
-
-Start the local API:
-
-```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
-```
-
-The API is intentionally thin. It wraps the existing evaluator and persistence scaffolding rather than introducing a second enforcement path.
-
-## Running The Dashboard
-
-With the API running and `HARNESS_API_BASE_URL` configured:
-
-```bash
-pnpm dev
-```
-
-The dashboard uses a same-origin Next proxy at `/api/harness/*`, so browser code never needs to know the raw backend URL directly.
-
-## Running The Demo Bootstrap
-
-For the lowest-friction local demo path:
+Run the one-command demo bootstrap:
 
 ```bash
 python -m modules.demo_bootstrap
 ```
 
-Useful options:
+Useful bootstrap variants:
 
 ```bash
 python -m modules.demo_bootstrap --exit-after-seed
@@ -199,16 +148,56 @@ python -m modules.demo_bootstrap --json --exit-after-seed
 python -m modules.demo_bootstrap successful_completion review_required_then_completed
 ```
 
+### Run Mode 2: Docker
+
+Use this mode for a clean environment, reproducible demos, and onboarding without local Python or Node setup drift.
+
+Start the API and dashboard containers:
+
+```bash
+docker compose up --build
+```
+
+Seed the deterministic demo scenarios from inside the API container:
+
+```bash
+docker compose exec api python -m modules.demo_bootstrap --exit-after-seed
+```
+
+Docker mode details:
+
+- dashboard: [http://127.0.0.1:3000](http://127.0.0.1:3000)
+- API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- persisted store: `./.docker-store`
+- demo walkthrough artifacts: `./.docker-demo-output/walkthrough`
+- dashboard container uses `HARNESS_API_BASE_URL=http://api:8000`
+- the bootstrap command reuses the already-running Docker API and dashboard instead of starting duplicate processes
+
+Reset Docker demo data:
+
+```bash
+docker compose down
+rm -rf .docker-store .docker-demo-output
+docker compose up --build
+```
+
+### Run Mode 3: Vercel
+
+Vercel is frontend-only in this repository. The dashboard deploys independently, and the backend is not deployed there.
+
+Requirements for Vercel:
+
+- deploy the Next.js dashboard
+- set `HARNESS_API_BASE_URL` to a reachable Harness backend
+- expect clearly labeled sample or fallback behavior if no backend is reachable
+
+`vercel.json` already forces Next.js detection so the repo is not treated as a Python-only project.
+
 ## Demo Walkthrough
 
 Harness includes a deterministic seeded walkthrough for local product demos, screenshots, and operator narration.
 
-Key docs:
-
-- [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md)
-- [docs/setup/local-development.md](docs/setup/local-development.md)
-
-Key commands:
+Local/manual walkthrough commands:
 
 ```bash
 python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
@@ -218,6 +207,13 @@ python -m modules.demo_walkthrough seed \
   --base-url http://127.0.0.1:8000 \
   --dashboard-url http://127.0.0.1:3000 \
   --output-dir demo-output/walkthrough
+```
+
+Docker walkthrough commands:
+
+```bash
+docker compose up --build
+docker compose exec api python -m modules.demo_bootstrap --exit-after-seed
 ```
 
 Seeded tasks include:
@@ -230,15 +226,26 @@ Seeded tasks include:
 
 ## Environment Variables
 
-Current local/frontend variable surface:
-
 - `HARNESS_API_BASE_URL`
-  Required by the Next.js proxy route to reach a live backend.
+  Required by the Next.js proxy route. In local mode it usually points to `http://127.0.0.1:8000`. In Docker it is set to `http://api:8000`. In Vercel it must point to a reachable external Harness backend.
+- `HARNESS_DASHBOARD_URL`
+  Optional helper used by Docker demo bootstrap reuse mode so `modules.demo_bootstrap` can seed against the already-running dashboard service.
+- `HARNESS_DEMO_BOOTSTRAP_REUSE_SURFACES`
+  Optional helper flag. When set, `modules.demo_bootstrap` reuses existing API and dashboard URLs from the environment instead of starting local processes.
+- `HARNESS_STORE_ROOT`
+  Optional helper for Docker bootstrap reuse mode. It points the bootstrap command at the same file-backed store the API container is serving.
+- `HARNESS_DEMO_OUTPUT_DIR`
+  Optional helper for Docker bootstrap reuse mode. It controls where demo walkthrough artifacts are written inside the container.
 
-See:
+See [.env.example](.env.example) and [docs/setup/local-development.md](docs/setup/local-development.md).
 
-- [.env.example](.env.example)
-- [docs/setup/local-development.md](docs/setup/local-development.md)
+## Data / Store Behavior
+
+- native local API data defaults to `./.harness-store`
+- native local demo bootstrap defaults to `./.demo-store`
+- Docker API data persists in `./.docker-store`
+- Docker walkthrough artifacts persist in `./.docker-demo-output/walkthrough`
+- resetting demo state deletes persisted task snapshots and evaluation history for that chosen store root
 
 ## High-Level API Surface
 
@@ -382,6 +389,28 @@ Focused examples:
 - confirm the Python API is running
 - confirm `HARNESS_API_BASE_URL` is set in `.env.local`
 - confirm the task exists via `GET /tasks` or `GET /tasks/<task_id>`
+
+### Docker containers start but the dashboard is empty
+
+- run `docker compose exec api python -m modules.demo_bootstrap --exit-after-seed`
+- confirm the API returns tasks at [http://127.0.0.1:8000/tasks](http://127.0.0.1:8000/tasks)
+- confirm `./.docker-store` contains persisted task files
+
+### Docker reports port conflicts
+
+- confirm nothing else is already bound to `3000` or `8000`
+- stop conflicting local processes or change the published ports in `docker-compose.yml`
+
+### Docker rebuilds do not pick up changes
+
+- rerun `docker compose up --build`
+- if cached layers still cause confusion, run `docker compose build --no-cache`
+
+### Docker demo state needs a full reset
+
+- run `docker compose down`
+- remove `./.docker-store` and `./.docker-demo-output`
+- start again with `docker compose up --build`
 
 ### Vercel preview builds but shows no live backend data
 

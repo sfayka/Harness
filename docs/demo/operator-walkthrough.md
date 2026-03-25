@@ -55,6 +55,28 @@ This writes:
 - `demo-output/walkthrough/walkthrough.json`
 - per-scenario `.timeline.txt`, `.mmd`, and `.json` trace files
 
+## Docker Demo Flow
+
+1. Start the Docker services:
+
+```bash
+docker compose up --build
+```
+
+2. Seed the canonical scenarios through the running API container:
+
+```bash
+docker compose exec api python -m modules.demo_bootstrap --exit-after-seed
+```
+
+This writes:
+
+- `./.docker-demo-output/walkthrough/walkthrough.txt`
+- `./.docker-demo-output/walkthrough/walkthrough.json`
+- per-scenario `.timeline.txt`, `.mmd`, and `.json` trace files
+
+The dashboard remains available at `http://127.0.0.1:3000` and the API at `http://127.0.0.1:8000`.
+
 ## Operator Narrative
 
 Open the dashboard and inspect these seeded tasks:

@@ -1,14 +1,17 @@
 # Local Development
 
-This guide is the practical local runbook for Harness.
+This guide covers the practical local and container runbook for Harness.
 
 ## Prerequisites
 
 - Python 3
 - `pnpm`
 - a local virtual environment for backend work
+- Docker, if you want the containerized mode
 
-## Backend Setup
+## Native Local Development
+
+### Backend Setup
 
 ```bash
 python3 -m venv .venv
@@ -22,7 +25,7 @@ Run the backend test suite:
 .venv/bin/python -m unittest discover -s tests
 ```
 
-## Frontend Setup
+### Frontend Setup
 
 ```bash
 pnpm install --frozen-lockfile
@@ -42,13 +45,13 @@ pnpm lint
 pnpm build
 ```
 
-## Run The API
+### Run The API
 
 ```bash
 .venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
 ```
 
-## Run The Dashboard
+### Run The Dashboard
 
 ```bash
 pnpm dev
@@ -60,7 +63,7 @@ The dashboard is read-only and depends on the canonical inspection APIs:
 - `GET /tasks/<task_id>/read-model`
 - `GET /tasks/<task_id>/timeline`
 
-## One-Command Demo Bootstrap
+### One-Command Demo Bootstrap
 
 ```bash
 python -m modules.demo_bootstrap
@@ -68,7 +71,7 @@ python -m modules.demo_bootstrap
 
 That command prepares demo state, starts local services, seeds deterministic tasks, and prints direct URLs for operator walkthroughs.
 
-## Manual Walkthrough Flow
+### Manual Walkthrough Flow
 
 Reset:
 
@@ -96,6 +99,45 @@ python -m modules.demo_walkthrough seed \
   --dashboard-url http://127.0.0.1:3000 \
   --output-dir demo-output/walkthrough
 ```
+
+Use native local mode when you need fast edit-run-debug loops.
+
+## Docker Mode
+
+Start the API and dashboard:
+
+```bash
+docker compose up --build
+```
+
+Seed the deterministic demo scenarios:
+
+```bash
+docker compose exec api python -m modules.demo_bootstrap --exit-after-seed
+```
+
+Docker mode uses:
+
+- dashboard on `http://127.0.0.1:3000`
+- API on `http://127.0.0.1:8000`
+- persisted store at `./.docker-store`
+- walkthrough artifacts at `./.docker-demo-output/walkthrough`
+- bootstrap reuse variables are injected by `docker-compose.yml` so `docker compose exec api python -m modules.demo_bootstrap --exit-after-seed` targets the running API store instead of a second local store
+
+Reset Docker state:
+
+```bash
+docker compose down
+rm -rf .docker-store .docker-demo-output
+```
+
+Use Docker mode when you want a reproducible demo or clean onboarding environment.
+
+## Vercel Preview / Hosted Frontend
+
+Vercel is frontend-only for this repo. It hosts the Next.js dashboard and requires a reachable backend URL through `HARNESS_API_BASE_URL`.
+
+The backend remains a separate Harness process and is not deployed by `vercel.json`.
 
 ## Local Vs Preview Behavior
 
