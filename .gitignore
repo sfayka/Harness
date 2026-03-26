@@ -1,16 +1,79 @@
+# macOS and filesystem noise
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100/
+.Trashes/
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Python
 __pycache__/
 *.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-.coverage.*
+*.pyo
+*.pyd
+*.so
+.Python
 .python-version
 .venv/
 venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+build/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Test and local runtime output
+.tmp/
+tmp/
+temp/
+*.log
+
+# Node / frontend
 node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.parcel-cache/
 .next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment and local secrets
+.env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env.*.local
+!.env.example
+
+# Docker and local app state
 .docker-store/
 .docker-demo-output/
+*.pid
+*.seed
+
