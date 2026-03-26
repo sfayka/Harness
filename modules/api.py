@@ -92,6 +92,12 @@ def _optional_object_list(value: Any, *, field_name: str) -> tuple[dict[str, Any
     return tuple(result)
 
 
+def _require_non_empty_string(value: Any, *, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ApiRequestError(f"{field_name} is required")
+    return value.strip()
+
+
 def _parse_repository(payload: dict[str, Any] | None) -> RepositoryFact | None:
     if payload is None:
         return None
@@ -240,6 +246,7 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
+    _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
 
     return HarnessEvaluationRequest(
         task_envelope=task_envelope,

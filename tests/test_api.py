@@ -296,6 +296,13 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
+    def test_service_submit_rejects_missing_task_id_without_crashing(self) -> None:
+        status, payload = self.service.submit({"request": {"task_envelope": {"title": "Missing id"}}})
+
+        self.assertEqual(status, 400)
+        self.assertTrue(payload["invalid_input"])
+        self.assertIn("task_envelope.id is required", payload["error"])
+
     def test_service_can_submit_linear_ingress_payload_via_canonical_submission_path(self) -> None:
         status, payload = self.service.submit_linear_ingress(_linear_ingress_payload("accepted_completion"))
 
@@ -451,6 +458,13 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertTrue(payload["invalid_input"])
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_submit_rejects_missing_task_id_with_structured_400(self) -> None:
+        status, payload = self._post_json("/tasks", {"request": {"task_envelope": {"title": "Missing id"}}})
+
+        self.assertEqual(status, 400)
+        self.assertTrue(payload["invalid_input"])
+        self.assertIn("task_envelope.id is required", payload["error"])
 
     def test_api_submit_rejects_duplicate_task_id_with_conflict(self) -> None:
         initial_status, initial_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
