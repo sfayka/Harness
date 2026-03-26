@@ -365,9 +365,8 @@ def evaluate_http_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]
             "invalid_input": True,
         }
 
-    result = evaluate_task_case(request)
-    status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
-    return status, _to_jsonable(result)
+    status, response_payload, _ = _evaluate_request(request)
+    return status, response_payload
 
 
 def _task_path_components(path: str) -> tuple[str, ...]:
@@ -379,6 +378,19 @@ def _task_path_components(path: str) -> tuple[str, ...]:
 
 def _serialize_evaluation_record(record: EvaluationRecord) -> dict[str, Any]:
     return _to_jsonable(record)
+
+
+def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str, Any], HarnessEvaluationResult | None]:
+    try:
+        result = evaluate_task_case(request)
+    except (ApiRequestError, ValueError) as error:
+        return HTTPStatus.BAD_REQUEST, {
+            "error": str(error),
+            "invalid_input": True,
+        }, None
+
+    status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
+    return status, _to_jsonable(result), result
 
 
 class HarnessApiService:
@@ -415,9 +427,9 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             pass
 
-        result = evaluate_task_case(request)
-        status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
-        response_payload = _to_jsonable(result)
+        status, response_payload, result = _evaluate_request(request)
+        if result is None:
+            return status, response_payload
 
         if result.invalid_input:
             return status, response_payload
@@ -455,9 +467,9 @@ class HarnessApiService:
                 "invalid_input": True,
             }
 
-        result = evaluate_task_case(request)
-        status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
-        response_payload = _to_jsonable(result)
+        status, response_payload, result = _evaluate_request(request)
+        if result is None:
+            return status, response_payload
 
         if result.invalid_input:
             return status, response_payload
@@ -482,9 +494,9 @@ class HarnessApiService:
                 "invalid_input": True,
             }
 
-        result = evaluate_task_case(request)
-        status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
-        response_payload = _to_jsonable(result)
+        status, response_payload, result = _evaluate_request(request)
+        if result is None:
+            return status, response_payload
 
         if result.invalid_input:
             return status, response_payload

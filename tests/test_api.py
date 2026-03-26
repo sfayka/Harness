@@ -38,6 +38,15 @@ def _request_payload(case_name: str) -> dict:
     return {"request": _to_jsonable(build_demo_request(case_name))}
 
 
+def _schema_invalid_submission_payload() -> dict:
+    payload = _request_payload("accepted_completion")
+    completion_evidence = payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]
+    del completion_evidence["validated_at"]
+    del completion_evidence["validation_method"]
+    del completion_evidence["validator"]
+    return payload
+
+
 def _linear_ingress_payload(case_name: str, *, task_id: str | None = None) -> dict:
     canonical_request = _request_payload(case_name)["request"]
     task = deepcopy(canonical_request["task_envelope"])
@@ -223,6 +232,13 @@ class HarnessApiPayloadTests(unittest.TestCase):
         self.assertEqual(payload["action"], "invalid_input")
         self.assertTrue(payload["invalid_input"])
 
+    def test_rejects_schema_invalid_payload(self) -> None:
+        status, payload = evaluate_http_payload(_schema_invalid_submission_payload())
+
+        self.assertEqual(status, 400)
+        self.assertTrue(payload["invalid_input"])
+        self.assertIn("Invalid TaskEnvelope:", payload["error"])
+
 
 class HarnessApiServiceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -302,6 +318,13 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(payload["invalid_input"])
         self.assertIn("task_envelope.id is required", payload["error"])
+
+    def test_service_submit_rejects_schema_invalid_task_envelope_without_crashing(self) -> None:
+        status, payload = self.service.submit(_schema_invalid_submission_payload())
+
+        self.assertEqual(status, 400)
+        self.assertTrue(payload["invalid_input"])
+        self.assertIn("Invalid TaskEnvelope:", payload["error"])
 
     def test_service_can_submit_linear_ingress_payload_via_canonical_submission_path(self) -> None:
         status, payload = self.service.submit_linear_ingress(_linear_ingress_payload("accepted_completion"))
@@ -465,6 +488,13 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(payload["invalid_input"])
         self.assertIn("task_envelope.id is required", payload["error"])
+
+    def test_api_submit_rejects_schema_invalid_task_envelope_with_structured_400(self) -> None:
+        status, payload = self._post_json("/tasks", _schema_invalid_submission_payload())
+
+        self.assertEqual(status, 400)
+        self.assertTrue(payload["invalid_input"])
+        self.assertIn("Invalid TaskEnvelope:", payload["error"])
 
     def test_api_submit_rejects_duplicate_task_id_with_conflict(self) -> None:
         initial_status, initial_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
