@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import unittest
@@ -10,7 +11,7 @@ from enum import Enum
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from modules.api import HarnessApiService, evaluate_http_payload, run_server
+from modules.api import HarnessApiService, build_parser, evaluate_http_payload, run_server
 from modules.contracts.task_envelope_review import (
     ReviewOutcome,
     ReviewRequest,
@@ -238,6 +239,27 @@ class HarnessApiPayloadTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(payload["invalid_input"])
         self.assertIn("Invalid TaskEnvelope:", payload["error"])
+
+
+class HarnessApiCliTests(unittest.TestCase):
+    def test_parser_defaults_to_render_safe_host_and_port(self) -> None:
+        original_port = os.environ.pop("PORT", None)
+        self.addCleanup(lambda: os.environ.__setitem__("PORT", original_port) if original_port is not None else os.environ.pop("PORT", None))
+
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.host, "0.0.0.0")
+        self.assertEqual(args.port, 8000)
+
+    def test_parser_uses_port_environment_variable_when_present(self) -> None:
+        original_port = os.environ.get("PORT")
+        os.environ["PORT"] = "10000"
+        self.addCleanup(lambda: os.environ.__setitem__("PORT", original_port) if original_port is not None else os.environ.pop("PORT", None))
+
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.host, "0.0.0.0")
+        self.assertEqual(args.port, 10000)
 
 
 class HarnessApiServiceTests(unittest.TestCase):

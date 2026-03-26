@@ -125,8 +125,10 @@ HARNESS_API_BASE_URL=http://127.0.0.1:8000
 Run the API:
 
 ```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+.venv/bin/python -m modules.api --store-root .harness-store
 ```
+
+By default the API now binds to `0.0.0.0` and uses `PORT` when it is set, which matches Render-style deployment expectations. Locally you can still reach it via `http://127.0.0.1:8000`.
 
 Run the dashboard:
 
