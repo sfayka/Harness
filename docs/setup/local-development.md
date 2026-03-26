@@ -48,8 +48,10 @@ pnpm build
 ### Run The API
 
 ```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+.venv/bin/python -m modules.api --store-root .harness-store
 ```
+
+The API defaults to binding `0.0.0.0` and will honor the `PORT` environment variable when one is provided by a host such as Render. For local development, access it through `http://127.0.0.1:8000`.
 
 ### Run The Dashboard
 

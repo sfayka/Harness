@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 import json
+import os
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -640,7 +641,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
 def run_server(
     *,
-    host: str = "127.0.0.1",
+    host: str = "0.0.0.0",
     port: int = 8000,
     store_root: str = ".harness-store",
     service: HarnessApiService | None = None,
@@ -659,9 +660,10 @@ def run_server(
 def build_parser() -> argparse.ArgumentParser:
     """Build the minimal HTTP API CLI parser."""
 
+    default_port = int(os.environ.get("PORT", "8000"))
     parser = argparse.ArgumentParser(description="Run the minimal Harness HTTP API wrapper.")
-    parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind")
-    parser.add_argument("--port", type=int, default=8000, help="Port to bind")
+    parser.add_argument("--host", default="0.0.0.0", help="Host interface to bind")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to bind")
     parser.add_argument(
         "--store-root",
         default=".harness-store",
