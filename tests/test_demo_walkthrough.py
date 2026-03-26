@@ -62,8 +62,10 @@ class DemoWalkthroughTests(unittest.TestCase):
 
         reset_demo_state(store_root=str(self.store_root), output_dir=str(self.output_dir))
 
-        self.assertFalse(self.output_dir.exists())
-        self.assertFalse(self.store_root.exists())
+        self.assertTrue(self.output_dir.exists())
+        self.assertTrue(self.store_root.exists())
+        self.assertEqual(list(self.output_dir.iterdir()), [])
+        self.assertEqual(list(self.store_root.iterdir()), [])
 
     def test_cli_seed_emits_json_summary(self) -> None:
         exit_code, output = self._run_cli(

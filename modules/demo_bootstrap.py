@@ -47,7 +47,7 @@ def _wait_for_http_ready(url: str, *, timeout_seconds: float, interval_seconds: 
 
 
 def _default_dashboard_command(*, host: str, port: int) -> list[str]:
-    return ["pnpm", "dev", "--", "--hostname", host, "--port", str(port)]
+    return ["pnpm", "exec", "next", "dev", "--turbopack", "--hostname", host, "--port", str(port)]
 
 
 def _start_dashboard_process(
@@ -233,7 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dashboard-command",
         default=None,
-        help="Optional dashboard command override, for example 'pnpm dev -- --hostname 127.0.0.1 --port 3000'",
+        help="Optional dashboard command override, for example 'pnpm exec next dev --turbopack --hostname 127.0.0.1 --port 3000'",
     )
     parser.add_argument(
         "--readiness-timeout",

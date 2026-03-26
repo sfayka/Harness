@@ -112,6 +112,7 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
         return self._evaluation_task_dir(task_id) / f"{evaluation_id}.json"
 
     def _write_json(self, path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
 
     def _read_json(self, path: Path) -> dict[str, Any]:

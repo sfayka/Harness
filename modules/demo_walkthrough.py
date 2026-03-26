@@ -97,6 +97,17 @@ def _slug(value: str) -> str:
     return value.replace("_", "-")
 
 
+def _clear_directory_contents(path: Path) -> None:
+    """Remove all children of one directory while preserving the directory itself."""
+
+    path.mkdir(parents=True, exist_ok=True)
+    for child in path.iterdir():
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+
+
 def reset_demo_state(*, store_root: str | None = None, output_dir: str | None = None) -> None:
     """Remove persisted demo state and walkthrough artifacts."""
 
@@ -104,8 +115,7 @@ def reset_demo_state(*, store_root: str | None = None, output_dir: str | None = 
         if not target:
             continue
         path = Path(target)
-        if path.exists():
-            shutil.rmtree(path)
+        _clear_directory_contents(path)
 
 
 def _write_scenario_artifacts(output_dir: Path, result: SimulationResult) -> dict[str, str]:
