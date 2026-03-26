@@ -1,0 +1,64 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    command:
+      [
+        "python",
+        "-m",
+        "modules.api",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--store-root",
+        "/app/.harness-store",
+      ]
+    environment:
+      HARNESS_API_BASE_URL: http://api:8000
+      HARNESS_DASHBOARD_URL: http://dashboard:3000
+      HARNESS_DEMO_BOOTSTRAP_REUSE_SURFACES: "1"
+      HARNESS_STORE_ROOT: /app/.harness-store
+      HARNESS_DEMO_OUTPUT_DIR: /app/.docker-demo-output/walkthrough
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./.docker-store:/app/.harness-store
+      - ./.docker-demo-output:/app/.docker-demo-output
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 2s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      HARNESS_API_BASE_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/harness/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s

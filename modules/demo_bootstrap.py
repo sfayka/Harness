@@ -73,6 +73,18 @@ def _stop_dashboard_process(process: subprocess.Popen[str] | None) -> None:
         process.wait(timeout=5)
 
 
+def _env_flag(name: str) -> bool:
+    value = os.environ.get(name, "")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_or_default(name: str, default: str) -> str:
+    value = os.environ.get(name)
+    if value is None or not value.strip():
+        return default
+    return value
+
+
 def format_bootstrap_summary(result: DemoBootstrapResult) -> str:
     """Render the operator-facing bootstrap summary."""
 
@@ -168,14 +180,54 @@ def bootstrap_demo(
     return result, server, thread, dashboard_process
 
 
+def bootstrap_against_existing_surfaces(
+    *,
+    api_base_url: str,
+    dashboard_url: str,
+    store_root: str = ".demo-store",
+    output_dir: str = "demo-output/walkthrough",
+    scenario_names: tuple[str, ...] | None = None,
+    readiness_timeout_seconds: float = 90.0,
+) -> DemoBootstrapResult:
+    """Reset demo state and seed scenarios against existing API and dashboard surfaces."""
+
+    reset_demo_state(store_root=store_root, output_dir=output_dir)
+    _wait_for_http_ready(f"{api_base_url.rstrip('/')}/health", timeout_seconds=readiness_timeout_seconds)
+    _wait_for_http_ready(dashboard_url, timeout_seconds=readiness_timeout_seconds)
+
+    walkthrough = run_demo_walkthrough(
+        base_url=api_base_url,
+        output_dir=output_dir,
+        dashboard_url=dashboard_url,
+        scenario_names=scenario_names,
+    )
+    return DemoBootstrapResult(
+        api_base_url=api_base_url,
+        dashboard_url=dashboard_url,
+        store_root=store_root,
+        output_dir=output_dir,
+        walkthrough=walkthrough,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the local demo bootstrap CLI parser."""
 
     parser = argparse.ArgumentParser(description="Run the one-command Harness local demo bootstrap.")
     parser.add_argument("--api-host", default="127.0.0.1", help="Host interface for the Harness API")
     parser.add_argument("--api-port", type=int, default=8000, help="Port for the Harness API")
+    parser.add_argument(
+        "--api-base-url",
+        default=None,
+        help="Optional existing Harness API base URL to reuse instead of starting a local API server",
+    )
     parser.add_argument("--dashboard-host", default="127.0.0.1", help="Host for the dashboard dev server")
     parser.add_argument("--dashboard-port", type=int, default=3000, help="Port for the dashboard dev server")
+    parser.add_argument(
+        "--dashboard-url",
+        default=None,
+        help="Optional existing dashboard URL to reuse instead of starting a local dashboard process",
+    )
     parser.add_argument("--store-root", default=".demo-store", help="Directory for persisted demo task state")
     parser.add_argument("--output-dir", default="demo-output/walkthrough", help="Directory for walkthrough artifacts")
     parser.add_argument(
@@ -205,18 +257,36 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     scenario_names = tuple(args.scenario_names) if args.scenario_names else None
     dashboard_command = shlex.split(args.dashboard_command) if args.dashboard_command else None
+    reuse_existing_surfaces = _env_flag("HARNESS_DEMO_BOOTSTRAP_REUSE_SURFACES")
+    api_base_url = args.api_base_url or (os.environ.get("HARNESS_API_BASE_URL") if reuse_existing_surfaces else None)
+    dashboard_url = args.dashboard_url or (os.environ.get("HARNESS_DASHBOARD_URL") if reuse_existing_surfaces else None)
+    store_root = _env_or_default("HARNESS_STORE_ROOT", args.store_root) if reuse_existing_surfaces else args.store_root
+    output_dir = _env_or_default("HARNESS_DEMO_OUTPUT_DIR", args.output_dir) if reuse_existing_surfaces else args.output_dir
+    server = None
+    thread = None
+    dashboard_process = None
 
-    result, server, thread, dashboard_process = bootstrap_demo(
-        api_host=args.api_host,
-        api_port=args.api_port,
-        dashboard_host=args.dashboard_host,
-        dashboard_port=args.dashboard_port,
-        store_root=args.store_root,
-        output_dir=args.output_dir,
-        dashboard_command=dashboard_command,
-        scenario_names=scenario_names,
-        readiness_timeout_seconds=args.readiness_timeout,
-    )
+    if api_base_url and dashboard_url:
+        result = bootstrap_against_existing_surfaces(
+            api_base_url=api_base_url,
+            dashboard_url=dashboard_url,
+            store_root=store_root,
+            output_dir=output_dir,
+            scenario_names=scenario_names,
+            readiness_timeout_seconds=args.readiness_timeout,
+        )
+    else:
+        result, server, thread, dashboard_process = bootstrap_demo(
+            api_host=args.api_host,
+            api_port=args.api_port,
+            dashboard_host=args.dashboard_host,
+            dashboard_port=args.dashboard_port,
+            store_root=store_root,
+            output_dir=output_dir,
+            dashboard_command=dashboard_command,
+            scenario_names=scenario_names,
+            readiness_timeout_seconds=args.readiness_timeout,
+        )
 
     if args.as_json:
         print(json.dumps(asdict(result), indent=2, sort_keys=True))
@@ -225,9 +295,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.exit_after_seed:
         _stop_dashboard_process(dashboard_process)
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
+        if server is not None and thread is not None:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
         return 0
 
     print("")
@@ -235,16 +306,17 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         while True:
-            if dashboard_process.poll() is not None:
+            if dashboard_process is not None and dashboard_process.poll() is not None:
                 raise RuntimeError("Dashboard process exited unexpectedly")
             time.sleep(1)
     except KeyboardInterrupt:
         pass
     finally:
         _stop_dashboard_process(dashboard_process)
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=2)
+        if server is not None and thread is not None:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
 
     return 0
 
