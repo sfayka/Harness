@@ -51,6 +51,13 @@ pnpm build
 .venv/bin/python -m modules.api --store-root .harness-store
 ```
 
+To run the same backend against Supabase Postgres instead of the file-backed store:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export DATABASE_URL=postgresql://...
+.venv/bin/python -m modules.api
+```
 The API defaults to binding `0.0.0.0` and will honor the `PORT` environment variable when one is provided by a host such as Render. For local development, access it through `http://127.0.0.1:8000`.
 
 ### Run The Dashboard
@@ -140,6 +147,8 @@ Use Docker mode when you want a reproducible demo or clean onboarding environmen
 Vercel is frontend-only for this repo. It hosts the Next.js dashboard and requires a reachable backend URL through `HARNESS_API_BASE_URL`.
 
 The backend remains a separate Harness process and is not deployed by `vercel.json`.
+
+For durable hosted state behind the Vercel dashboard, deploy the Python backend separately on Render, set `HARNESS_STORE_BACKEND=postgres`, set `DATABASE_URL` to the Supabase Postgres connection string, and apply [`sql/postgres/001_harness_store.sql`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/sql/postgres/001_harness_store.sql) before first start.
 
 ## Local Vs Preview Behavior
 

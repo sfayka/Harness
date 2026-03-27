@@ -11,9 +11,12 @@ from .store import (
     EvaluationRecord,
     EvaluationRecordStore,
     FileBackedHarnessStore,
+    HarnessStore,
+    PostgresHarnessStore,
     StoreError,
     TaskEnvelopeNotFoundError,
     TaskEnvelopeStore,
+    build_harness_store,
 )
 
 __all__ = [
@@ -25,8 +28,11 @@ __all__ = [
     "EvaluationRecord",
     "EvaluationRecordStore",
     "FileBackedHarnessStore",
+    "HarnessStore",
+    "PostgresHarnessStore",
     "StoreError",
     "TaskEnvelopeNotFoundError",
     "TaskEnvelopeStore",
+    "build_harness_store",
     "evaluate_task_case",
 ]

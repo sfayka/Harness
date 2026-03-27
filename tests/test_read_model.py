@@ -1,19 +1,21 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import unittest
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from modules.api import HarnessApiService, run_server
 from modules.demo_cases import build_demo_request
 from modules.goal_to_work import GoalToWorkRequest, run_goal_to_work_flow
-from modules.store import FileBackedHarnessStore
+from modules.store import FileBackedHarnessStore, PostgresHarnessStore
 from modules.contracts.task_envelope_review import (
     ReviewOutcome,
     ReviewRequest,
@@ -33,6 +35,12 @@ def _to_jsonable(value):
     if isinstance(value, (list, tuple)):
         return [_to_jsonable(item) for item in value]
     return value
+
+
+POSTGRES_TEST_DATABASE_URL = os.environ.get("HARNESS_TEST_DATABASE_URL")
+POSTGRES_SCHEMA_SQL = (
+    Path(__file__).resolve().parents[1] / "sql" / "postgres" / "001_harness_store.sql"
+).read_text(encoding="utf-8")
 
 
 def _request_payload(case_name: str) -> dict:
@@ -254,6 +262,38 @@ class HarnessReadModelHttpApiTests(unittest.TestCase):
         self.assertIn("task_created", event_types)
         self.assertIn("evaluation_recorded", event_types)
         self.assertIn("status_transition", event_types)
+
+
+@unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres read-model tests")
+class PostgresBackedReadModelTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.store = PostgresHarnessStore(POSTGRES_TEST_DATABASE_URL or "")
+        with self.store._connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(POSTGRES_SCHEMA_SQL)
+                cursor.execute("DELETE FROM evaluation_records")
+                cursor.execute("DELETE FROM tasks")
+        self.service = HarnessApiService(store=self.store)
+
+    def tearDown(self) -> None:
+        with self.store._connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute("DELETE FROM evaluation_records")
+                cursor.execute("DELETE FROM tasks")
+
+    def test_postgres_store_preserves_read_model_and_timeline_surfaces(self) -> None:
+        submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))
+        task_id = submit_payload["task_envelope"]["id"]
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(timeline_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "completed")
+        self.assertEqual(read_payload["task"]["evaluation_summary"]["count"], 1)
+        self.assertGreaterEqual(timeline_payload["event_count"], 1)
 
 
 if __name__ == "__main__":

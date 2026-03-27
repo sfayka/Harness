@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from modules.store import EvaluationRecord, FileBackedHarnessStore, TaskEnvelopeNotFoundError
+from modules.store import EvaluationRecord, HarnessStore, TaskEnvelopeNotFoundError, build_harness_store
 
 TaskEnvelope = dict[str, Any]
 
@@ -268,8 +268,8 @@ class TaskReadModel:
 class HarnessReadModelService:
     """Build dashboard-friendly task inspection surfaces from persisted records."""
 
-    def __init__(self, *, store: FileBackedHarnessStore | None = None) -> None:
-        self.store = store or FileBackedHarnessStore(".harness-store")
+    def __init__(self, *, store: HarnessStore | None = None) -> None:
+        self.store = store or build_harness_store()
 
     def _load_task_and_records(self, task_id: str) -> tuple[TaskEnvelope, tuple[EvaluationRecord, ...]]:
         task = self.store.get_task(task_id)
