@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import unittest
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from modules.api import HarnessApiService, evaluate_http_payload, run_server
+from modules.api import HarnessApiService, build_parser, evaluate_http_payload, run_server
 from modules.contracts.task_envelope_review import (
     ReviewOutcome,
     ReviewRequest,
@@ -19,7 +21,46 @@ from modules.contracts.task_envelope_review import (
     resolve_review_request,
 )
 from modules.demo_cases import build_demo_request
-from modules.store import FileBackedHarnessStore
+from modules.store import FileBackedHarnessStore, PostgresHarnessStore
+
+
+POSTGRES_TEST_DATABASE_URL = os.environ.get("HARNESS_TEST_DATABASE_URL")
+
+
+class _FakeCursor:
+    def __init__(self, rows: list[tuple[object, ...]]) -> None:
+        self._rows = rows
+        self._index = 0
+
+    def __enter__(self) -> _FakeCursor:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    def execute(self, query: str, params: tuple[object, ...]) -> None:
+        del query, params
+
+    def fetchone(self) -> tuple[object, ...] | None:
+        if self._index >= len(self._rows):
+            return None
+        row = self._rows[self._index]
+        self._index += 1
+        return row
+
+
+class _FakeConnection:
+    def __init__(self, rows: list[tuple[object, ...]]) -> None:
+        self._rows = rows
+
+    def __enter__(self) -> _FakeConnection:
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        return None
+
+    def cursor(self) -> _FakeCursor:
+        return _FakeCursor(list(self._rows))
 
 
 def _to_jsonable(value):
@@ -240,6 +281,54 @@ class HarnessApiPayloadTests(unittest.TestCase):
         self.assertIn("Invalid TaskEnvelope:", payload["error"])
 
 
+class HarnessApiCliTests(unittest.TestCase):
+    def test_parser_defaults_to_render_safe_host_and_port(self) -> None:
+        original_port = os.environ.pop("PORT", None)
+        self.addCleanup(lambda: os.environ.__setitem__("PORT", original_port) if original_port is not None else os.environ.pop("PORT", None))
+
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.host, "0.0.0.0")
+        self.assertEqual(args.port, 8000)
+
+    def test_parser_uses_port_environment_variable_when_present(self) -> None:
+        original_port = os.environ.get("PORT")
+        os.environ["PORT"] = "10000"
+        self.addCleanup(lambda: os.environ.__setitem__("PORT", original_port) if original_port is not None else os.environ.pop("PORT", None))
+
+        args = build_parser().parse_args([])
+
+        self.assertEqual(args.host, "0.0.0.0")
+        self.assertEqual(args.port, 10000)
+
+    def test_service_defaults_to_file_store_backend(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+
+        with patch.dict(
+            os.environ,
+            {"HARNESS_STORE_BACKEND": "file", "HARNESS_STORE_ROOT": temp_dir.name},
+            clear=False,
+        ):
+            service = HarnessApiService()
+
+        self.assertIsInstance(service.store, FileBackedHarnessStore)
+
+    @unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres startup selection test")
+    def test_service_uses_postgres_store_backend_from_environment(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "HARNESS_STORE_BACKEND": "postgres",
+                "DATABASE_URL": POSTGRES_TEST_DATABASE_URL or "",
+            },
+            clear=False,
+        ):
+            service = HarnessApiService()
+
+        self.assertIsInstance(service.store, PostgresHarnessStore)
+
+
 class HarnessApiServiceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -371,6 +460,60 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertEqual(reevaluation_response["action"], "transition_applied")
 
+    def test_health_reports_file_store_without_database_configuration(self) -> None:
+        status, payload = self.service.health()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["store_backend"], "file")
+        self.assertFalse(payload["database_configured"])
+        self.assertIsNone(payload["database_host"])
+        self.assertIsNone(payload["database_schema_ready"])
+
+    def test_health_reports_postgres_schema_ready_without_exposing_credentials(self) -> None:
+        store = PostgresHarnessStore("postgresql://worker:super-secret@db.internal.example:5432/harness")
+        service = HarnessApiService(store=store)
+
+        with patch.object(store, "_connect", return_value=_FakeConnection([(True,), (True,)])):
+            status, payload = service.health()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["store_backend"], "postgres")
+        self.assertTrue(payload["database_configured"])
+        self.assertEqual(payload["database_host"], "db.internal.example")
+        self.assertTrue(payload["database_schema_ready"])
+        self.assertNotIn("super-secret", json.dumps(payload))
+        self.assertNotIn("worker", json.dumps(payload))
+
+    def test_health_reports_postgres_schema_not_ready_when_expected_tables_are_missing(self) -> None:
+        store = PostgresHarnessStore("postgresql://db.internal.example/harness")
+        service = HarnessApiService(store=store)
+
+        with patch.object(store, "_connect", return_value=_FakeConnection([(True,), (False,)])):
+            status, payload = service.health()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "degraded")
+        self.assertEqual(payload["store_backend"], "postgres")
+        self.assertTrue(payload["database_configured"])
+        self.assertEqual(payload["database_host"], "db.internal.example")
+        self.assertFalse(payload["database_schema_ready"])
+
+    def test_health_reports_postgres_schema_not_ready_when_database_is_unreachable(self) -> None:
+        store = PostgresHarnessStore("postgresql://db.internal.example/harness")
+        service = HarnessApiService(store=store)
+
+        with patch.object(store, "_connect", side_effect=RuntimeError("connection refused")):
+            status, payload = service.health()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "degraded")
+        self.assertEqual(payload["store_backend"], "postgres")
+        self.assertTrue(payload["database_configured"])
+        self.assertEqual(payload["database_host"], "db.internal.example")
+        self.assertFalse(payload["database_schema_ready"])
+
 
 class HarnessHttpApiTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -417,6 +560,10 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["store_backend"], "file")
+        self.assertFalse(payload["database_configured"])
+        self.assertIsNone(payload["database_host"])
+        self.assertIsNone(payload["database_schema_ready"])
 
     def test_api_submit_accepts_new_task_and_persists_initial_result(self) -> None:
         status, payload = self._post_json("/tasks", _request_payload("accepted_completion"))

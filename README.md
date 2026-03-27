@@ -95,7 +95,7 @@ Current implementation highlights:
 
 ## Run Modes
 
-Harness supports three operational modes with the same control-plane behavior and the same file-backed store model.
+Harness supports three operational modes with the same control-plane behavior. Local and test flows can keep the file-backed store, while hosted backends can switch to durable Postgres persistence.
 
 ### Run Mode 1: Native Local Development
 
@@ -125,8 +125,18 @@ HARNESS_API_BASE_URL=http://127.0.0.1:8000
 Run the API:
 
 ```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .harness-store
+.venv/bin/python -m modules.api --store-root .harness-store
 ```
+
+To use durable Postgres-backed persistence instead of local files:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export DATABASE_URL=postgresql://...
+.venv/bin/python -m modules.api
+```
+
+By default the API now binds to `0.0.0.0` and uses `PORT` when it is set, which matches Render-style deployment expectations. Locally you can still reach it via `http://127.0.0.1:8000`.
 
 Run the dashboard:
 
@@ -189,9 +199,23 @@ Requirements for Vercel:
 
 - deploy the Next.js dashboard
 - set `HARNESS_API_BASE_URL` to a reachable Harness backend
+- for durable hosted state, configure the backend with `HARNESS_STORE_BACKEND=postgres` and `DATABASE_URL`
 - expect clearly labeled sample or fallback behavior if no backend is reachable
 
 `vercel.json` already forces Next.js detection so the repo is not treated as a Python-only project.
+
+### Hosted Render + Supabase
+
+For hosted durability without changing the API surface:
+
+1. Create a Supabase project and copy the Postgres connection string into `DATABASE_URL`.
+2. Run [`sql/postgres/001_harness_store.sql`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/sql/postgres/001_harness_store.sql) through the Supabase SQL editor or `psql`.
+3. Deploy the Python backend to Render with:
+   `HARNESS_STORE_BACKEND=postgres`
+   `DATABASE_URL=<Supabase Postgres connection string>`
+4. Point Vercel at the Render backend with `HARNESS_API_BASE_URL=https://<render-service-url>`.
+
+This keeps `/tasks`, `/tasks/<task_id>/read-model`, and `/tasks/<task_id>/timeline` backed by durable Postgres state, so redeploys do not clear hosted task history.
 
 ## Demo Walkthrough
 
@@ -233,7 +257,11 @@ Seeded tasks include:
 - `HARNESS_DEMO_BOOTSTRAP_REUSE_SURFACES`
   Optional helper flag. When set, `modules.demo_bootstrap` reuses existing API and dashboard URLs from the environment instead of starting local processes.
 - `HARNESS_STORE_ROOT`
-  Optional helper for Docker bootstrap reuse mode. It points the bootstrap command at the same file-backed store the API container is serving.
+  Optional helper for Docker bootstrap reuse mode and local file-backed runs. It points the bootstrap command at the same file-backed store the API container is serving.
+- `HARNESS_STORE_BACKEND`
+  Optional backend selector for the API process. Supported values are `file` and `postgres`. Default is `file`.
+- `DATABASE_URL`
+  Required when `HARNESS_STORE_BACKEND=postgres`. Harness uses Supabase as plain Postgres only and stores canonical task and evaluation payloads as JSONB.
 - `HARNESS_DEMO_OUTPUT_DIR`
   Optional helper for Docker bootstrap reuse mode. It controls where demo walkthrough artifacts are written inside the container.
 
@@ -244,6 +272,7 @@ See [.env.example](.env.example) and [docs/setup/local-development.md](docs/setu
 - native local API data defaults to `./.harness-store`
 - native local demo bootstrap defaults to `./.demo-store`
 - Docker API data persists in `./.docker-store`
+- hosted durable API state can persist in Supabase Postgres when `HARNESS_STORE_BACKEND=postgres`
 - Docker walkthrough artifacts persist in `./.docker-demo-output/walkthrough`
 - resetting demo state deletes persisted task snapshots and evaluation history for that chosen store root
 
@@ -252,6 +281,7 @@ See [.env.example](.env.example) and [docs/setup/local-development.md](docs/setu
 Health and inspection:
 
 - `GET /health`
+  Returns `status`, `store_backend`, `database_configured`, `database_host`, and `database_schema_ready` so operators can confirm whether the backend is using the file store or Postgres and whether the expected schema is present without exposing credentials.
 - `GET /tasks`
 - `GET /tasks/<task_id>`
 - `GET /tasks/<task_id>/evaluations`

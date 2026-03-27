@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 import json
+import os
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -47,9 +48,11 @@ from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
 from modules.read_model import HarnessReadModelService
 from modules.store import (
     EvaluationRecord,
-    FileBackedHarnessStore,
+    HarnessStore,
+    PostgresHarnessStore,
     TaskEnvelopeAlreadyExistsError,
     TaskEnvelopeNotFoundError,
+    build_harness_store,
 )
 
 
@@ -380,6 +383,11 @@ def _serialize_evaluation_record(record: EvaluationRecord) -> dict[str, Any]:
     return _to_jsonable(record)
 
 
+def _parse_database_host(database_url: str) -> str | None:
+    parsed = urlparse(database_url)
+    return parsed.hostname
+
+
 def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str, Any], HarnessEvaluationResult | None]:
     try:
         result = evaluate_task_case(request)
@@ -396,9 +404,68 @@ def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str,
 class HarnessApiService:
     """Stateful HTTP-facing service that reuses the canonical evaluator and store."""
 
-    def __init__(self, *, store: FileBackedHarnessStore | None = None) -> None:
-        self.store = store or FileBackedHarnessStore(".harness-store")
+    def __init__(self, *, store: HarnessStore | None = None) -> None:
+        self.store = store or build_harness_store()
         self.read_model_service = HarnessReadModelService(store=self.store)
+
+    def _build_postgres_health_payload(self, store: PostgresHarnessStore) -> dict[str, Any]:
+        expected_tables = ("tasks", "evaluation_records")
+        schema_ready = False
+        status = "degraded"
+
+        try:
+            with store._connect() as connection:
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM information_schema.tables
+                            WHERE table_schema = 'public' AND table_name = %s
+                        )
+                        """,
+                        (expected_tables[0],),
+                    )
+                    tasks_exists_row = cursor.fetchone()
+                    cursor.execute(
+                        """
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM information_schema.tables
+                            WHERE table_schema = 'public' AND table_name = %s
+                        )
+                        """,
+                        (expected_tables[1],),
+                    )
+                    evaluation_records_exists_row = cursor.fetchone()
+        except Exception:
+            schema_ready = False
+        else:
+            tasks_exists = bool(tasks_exists_row and tasks_exists_row[0])
+            evaluation_records_exists = bool(
+                evaluation_records_exists_row and evaluation_records_exists_row[0]
+            )
+            schema_ready = tasks_exists and evaluation_records_exists
+            status = "ok" if schema_ready else "degraded"
+
+        return {
+            "status": status,
+            "store_backend": "postgres",
+            "database_configured": True,
+            "database_host": _parse_database_host(store.database_url),
+            "database_schema_ready": schema_ready,
+        }
+
+    def health(self) -> tuple[int, dict[str, Any]]:
+        if isinstance(self.store, PostgresHarnessStore):
+            return HTTPStatus.OK, self._build_postgres_health_payload(self.store)
+        return HTTPStatus.OK, {
+            "status": "ok",
+            "store_backend": "file",
+            "database_configured": False,
+            "database_host": None,
+            "database_schema_ready": None,
+        }
 
     def _upsert_task(self, task_envelope: dict[str, Any]) -> dict[str, Any]:
         task_id = str(task_envelope["id"])
@@ -578,7 +645,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         service = self.service or HarnessApiService()
 
         if path_components == ("health",):
-            self._write_json(HTTPStatus.OK, {"status": "ok"})
+            status, payload = service.health()
+            self._write_json(status, payload)
             return
 
         if path_components == ("tasks",):
@@ -640,14 +708,22 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
 def run_server(
     *,
-    host: str = "127.0.0.1",
+    host: str = "0.0.0.0",
     port: int = 8000,
     store_root: str = ".harness-store",
+    store_backend: str | None = None,
+    database_url: str | None = None,
     service: HarnessApiService | None = None,
 ) -> ThreadingHTTPServer:
     """Create and run the minimal HTTP API server."""
 
-    api_service = service or HarnessApiService(store=FileBackedHarnessStore(store_root))
+    api_service = service or HarnessApiService(
+        store=build_harness_store(
+            store_backend=store_backend,
+            store_root=store_root,
+            database_url=database_url,
+        )
+    )
 
     class _ConfiguredHarnessApiHandler(HarnessApiHandler):
         service = api_service
@@ -659,9 +735,10 @@ def run_server(
 def build_parser() -> argparse.ArgumentParser:
     """Build the minimal HTTP API CLI parser."""
 
+    default_port = int(os.environ.get("PORT", "8000"))
     parser = argparse.ArgumentParser(description="Run the minimal Harness HTTP API wrapper.")
-    parser.add_argument("--host", default="127.0.0.1", help="Host interface to bind")
-    parser.add_argument("--port", type=int, default=8000, help="Port to bind")
+    parser.add_argument("--host", default="0.0.0.0", help="Host interface to bind")
+    parser.add_argument("--port", type=int, default=default_port, help="Port to bind")
     parser.add_argument(
         "--store-root",
         default=".harness-store",
