@@ -1,4 +1,3 @@
-import { mockTasks } from "@/lib/mock-data";
 import type {
   ReconciliationStatus,
   ReviewDecision,
@@ -360,28 +359,15 @@ async function fetchJson(path: string): Promise<unknown> {
 
 export async function fetchDashboardTasks(): Promise<{
   tasks: Task[];
-  dataMode: "live" | "mock";
-  message: string | null;
 }> {
-  try {
-    const payload = (await fetchJson("/tasks")) as { tasks?: Record<string, unknown>[] };
-    return {
-      tasks: Array.isArray(payload.tasks)
-        ? payload.tasks.map((task) => mapTask(task))
-        : [],
-      dataMode: "live",
-      message: null,
-    };
-  } catch (error) {
-    return {
-      tasks: mockTasks,
-      dataMode: "mock",
-      message:
-        `Using sample dashboard data because the configured Harness API is unavailable: ${
-          error instanceof Error ? error.message : "unknown error"
-        }`,
-    };
-  }
+  const payload = (await fetchJson("/tasks")) as {
+    tasks?: Record<string, unknown>[];
+  };
+  return {
+    tasks: Array.isArray(payload.tasks)
+      ? payload.tasks.map((task) => mapTask(task))
+      : [],
+  };
 }
 
 export async function fetchTaskDetail(taskId: string): Promise<Task> {
