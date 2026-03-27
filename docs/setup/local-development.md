@@ -58,7 +58,6 @@ export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
 .venv/bin/python -m modules.api
 ```
-
 The API defaults to binding `0.0.0.0` and will honor the `PORT` environment variable when one is provided by a host such as Render. For local development, access it through `http://127.0.0.1:8000`.
 
 ### Run The Dashboard

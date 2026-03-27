@@ -328,7 +328,6 @@ class HarnessApiCliTests(unittest.TestCase):
 
         self.assertIsInstance(service.store, PostgresHarnessStore)
 
-
 class HarnessApiServiceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()

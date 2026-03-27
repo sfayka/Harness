@@ -135,7 +135,6 @@ export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
 .venv/bin/python -m modules.api
 ```
-
 By default the API now binds to `0.0.0.0` and uses `PORT` when it is set, which matches Render-style deployment expectations. Locally you can still reach it via `http://127.0.0.1:8000`.
 
 Run the dashboard:
