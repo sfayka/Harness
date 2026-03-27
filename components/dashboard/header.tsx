@@ -1,27 +1,40 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Activity, Settings, Bell } from "lucide-react";
 
 export function DashboardHeader() {
+  const pathname = usePathname();
+  const navItems = [
+    { href: "/tasks", label: "Tasks" },
+    { href: "/verification", label: "Verification" },
+    { href: "/reconciliation", label: "Reconciliation" },
+    { href: "/reviews", label: "Reviews" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center justify-between px-6">
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
+          <Link href="/tasks" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground">
               <Activity className="h-4 w-4 text-background" />
             </div>
             <span className="text-lg font-semibold tracking-tight">
               Harness
             </span>
-          </div>
+          </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <NavLink href="#" active>
-              Tasks
-            </NavLink>
-            <NavLink href="#">Verification</NavLink>
-            <NavLink href="#">Reconciliation</NavLink>
-            <NavLink href="#">Reviews</NavLink>
+            {navItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                active={pathname === item.href}
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
         </div>
         <div className="flex items-center gap-2">
@@ -52,7 +65,7 @@ function NavLink({
   children: React.ReactNode;
 }) {
   return (
-    <a
+    <Link
       href={href}
       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
         active
@@ -61,6 +74,6 @@ function NavLink({
       }`}
     >
       {children}
-    </a>
+    </Link>
   );
 }
