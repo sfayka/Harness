@@ -325,6 +325,15 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
         ? reviewSummary.decisions.map((decision) => mapReviewDecision(decision as Record<string, unknown>)).filter(Boolean) as ReviewDecision[]
         : [],
     },
+    evaluation_summary: {
+      count: Number(evaluationSummary.count ?? 0),
+      latest_action:
+        (evaluationSummary.latest_action as string | null | undefined) ?? null,
+      latest_recorded_at:
+        (evaluationSummary.latest_recorded_at as string | null | undefined) ?? null,
+      latest_target_status:
+        (evaluationSummary.latest_target_status as string | null | undefined) ?? null,
+    },
     timestamps: {
       created_at: String(timestamps.created_at ?? ""),
       updated_at: String(timestamps.updated_at ?? ""),
