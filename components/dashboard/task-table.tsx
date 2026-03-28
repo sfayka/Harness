@@ -2,12 +2,7 @@
 
 import type { Task } from "@/lib/types";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
-import {
-  ReconciliationBadge,
-  StatusBadge,
-  TruthStateBadge,
-  VerificationBadge,
-} from "@/components/ui/status-badge";
+import { StatusBadge, TruthStateBadge } from "@/components/ui/status-badge";
 import {
   AlertCircle,
   CheckCircle2,
@@ -100,8 +95,6 @@ function getHeaders(view: DashboardView) {
         { label: "Task" },
         { label: "Verification" },
         { label: "Evidence" },
-        { label: "Target Status", className: "hidden xl:table-cell" },
-        { label: "Evaluated", className: "hidden lg:table-cell" },
       ];
     case "reconciliation":
       return [
@@ -109,7 +102,6 @@ function getHeaders(view: DashboardView) {
         { label: "Status" },
         { label: "Blocking", className: "hidden md:table-cell" },
         { label: "Mismatch Categories", className: "hidden lg:table-cell" },
-        { label: "Reasons", className: "hidden xl:table-cell" },
       ];
     case "reviews":
       return [
@@ -134,15 +126,15 @@ function renderCells(task: Task, view: DashboardView) {
     case "verification":
       return (
         <>
-          <TaskIdentityCell task={task} subtitle={task.origin.source_id} />
+          <TaskIdentityCell
+            task={task}
+            subtitle={task.origin.source_id}
+            showTruthBadge={false}
+          />
           <td className="px-4 py-3">
             <div className="space-y-2">
-              <VerificationBadge status={task.verification_summary?.result ?? null} />
+              <StrictVerificationBadge task={task} />
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <BooleanState
-                  label="Accepted"
-                  value={task.verification_summary?.completion_accepted ?? false}
-                />
                 <BooleanState
                   label="Passed"
                   value={task.verification_summary?.verification_passed ?? false}
@@ -170,32 +162,19 @@ function renderCells(task: Task, view: DashboardView) {
               </div>
             </div>
           </td>
-          <td className="hidden px-4 py-3 xl:table-cell">
-            <span className="text-sm text-foreground">
-              {task.evaluation_summary.latest_target_status ?? "No target"}
-            </span>
-          </td>
-          <td className="hidden px-4 py-3 lg:table-cell">
-            <span className="text-xs text-muted-foreground">
-              {task.verification_summary
-                ? formatDateTime(task.verification_summary.evaluated_at)
-                : "Not evaluated"}
-            </span>
-          </td>
         </>
       );
     case "reconciliation":
       return (
         <>
-          <TaskIdentityCell task={task} subtitle={task.origin.source_id} />
+          <TaskIdentityCell
+            task={task}
+            subtitle={task.origin.source_id}
+            showTruthBadge={false}
+          />
           <td className="px-4 py-3">
             <div className="space-y-2">
-              <ReconciliationBadge
-                status={task.reconciliation_summary?.result ?? null}
-              />
-              <p className="text-xs text-muted-foreground">
-                Outcome: {task.reconciliation_summary?.outcome ?? "Not evaluated"}
-              </p>
+              <StrictReconciliationBadge task={task} />
             </div>
           </td>
           <td className="hidden px-4 py-3 md:table-cell">
@@ -210,12 +189,6 @@ function renderCells(task: Task, view: DashboardView) {
               emptyLabel="None"
             />
           </td>
-          <td className="hidden px-4 py-3 xl:table-cell">
-            <TextList
-              items={task.reconciliation_summary?.mismatches ?? []}
-              emptyLabel="No mismatch reasons"
-            />
-          </td>
         </>
       );
     case "reviews":
@@ -224,6 +197,7 @@ function renderCells(task: Task, view: DashboardView) {
           <TaskIdentityCell
             task={task}
             subtitle={task.review_summary.latest_request?.requested_by ?? task.origin.source_id}
+            showTruthBadge={false}
           />
           <td className="px-4 py-3">
             <div className="space-y-2">
@@ -269,7 +243,11 @@ function renderCells(task: Task, view: DashboardView) {
     default:
       return (
         <>
-          <TaskIdentityCell task={task} subtitle={task.origin.source_id} />
+          <TaskIdentityCell
+            task={task}
+            subtitle={task.origin.source_id}
+            showTruthBadge
+          />
           <td className="hidden px-4 py-3 lg:table-cell">
             <StatusBadge status={task.current_status} variant="task" />
           </td>
@@ -300,9 +278,11 @@ function renderCells(task: Task, view: DashboardView) {
 function TaskIdentityCell({
   task,
   subtitle,
+  showTruthBadge = false,
 }: {
   task: Task;
   subtitle: string;
+  showTruthBadge?: boolean;
 }) {
   const needsReview = task.review_summary.status === "requested";
 
@@ -334,7 +314,7 @@ function TaskIdentityCell({
             )}
           </div>
         </div>
-        <div className="hidden md:block">
+        <div className={showTruthBadge ? "hidden md:block" : "hidden"}>
           <TruthStateBadge
             verificationStatus={task.verification_summary?.result ?? null}
             reconciliationStatus={task.reconciliation_summary?.result ?? null}
@@ -342,6 +322,52 @@ function TaskIdentityCell({
         </div>
       </div>
     </td>
+  );
+}
+
+function StrictVerificationBadge({ task }: { task: Task }) {
+  const isAccepted = task.verification_summary?.completion_accepted ?? false;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
+        isAccepted
+          ? "bg-success/15 text-success"
+          : "bg-destructive/15 text-destructive"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          isAccepted ? "bg-success" : "bg-destructive"
+        }`}
+      />
+      {isAccepted ? "Accepted" : "Rejected"}
+    </span>
+  );
+}
+
+function StrictReconciliationBadge({ task }: { task: Task }) {
+  const summary = task.reconciliation_summary;
+  const isAligned =
+    summary?.result === "no_mismatch" &&
+    !summary.blocking &&
+    (summary.mismatch_categories?.length ?? 0) === 0;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
+        isAligned
+          ? "bg-success/15 text-success"
+          : "bg-warning/15 text-warning"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          isAligned ? "bg-success" : "bg-warning"
+        }`}
+      />
+      {isAligned ? "Aligned" : "Mismatch"}
+    </span>
   );
 }
 
