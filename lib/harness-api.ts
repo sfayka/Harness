@@ -372,10 +372,17 @@ export async function fetchDashboardTasks(): Promise<{
   const payload = (await fetchJson("/tasks")) as {
     tasks?: Record<string, unknown>[];
   };
+  const mappedTasks = Array.isArray(payload.tasks)
+    ? payload.tasks.map((task) => mapTask(task))
+    : [];
+  const uniqueTasks = new Map<string, Task>();
+
+  for (const task of mappedTasks) {
+    uniqueTasks.set(task.task_id, task);
+  }
+
   return {
-    tasks: Array.isArray(payload.tasks)
-      ? payload.tasks.map((task) => mapTask(task))
-      : [],
+    tasks: Array.from(uniqueTasks.values()),
   };
 }
 

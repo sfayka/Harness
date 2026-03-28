@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useMemo, useState } from "react";
+import { OutcomeSeverity } from "@/lib/outcome-severity";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -31,7 +32,7 @@ interface FocusStat {
   label: string;
   value: number;
   icon: React.ElementType;
-  tone: "success" | "warning" | "destructive" | "info";
+  tone: OutcomeSeverity;
 }
 
 interface ViewConfig {
@@ -48,8 +49,8 @@ interface ViewConfig {
 const toneClassNames: Record<FocusStat["tone"], string> = {
   success: "text-success",
   warning: "text-warning",
-  destructive: "text-destructive",
-  info: "text-info",
+  failure: "text-destructive",
+  neutral: "text-muted-foreground",
 };
 
 const viewConfig: Record<DashboardView, ViewConfig> = {
@@ -127,13 +128,13 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
             !task.verification_summary.completion_accepted,
         ).length,
         icon: XCircle,
-        tone: "destructive",
+        tone: "failure",
       },
       {
         label: "Evaluated",
         value: tasks.filter((task) => task.verification_summary !== null).length,
         icon: ShieldCheck,
-        tone: "info",
+        tone: "neutral",
       },
       {
         label: "Evidence Insufficient",
@@ -154,7 +155,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
           (task) => task.verification_summary?.evidence_is_valid === false,
         ).length,
         icon: XCircle,
-        tone: "destructive",
+        tone: "failure",
       },
     ],
   },
@@ -215,7 +216,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
         label: "Blocking",
         value: tasks.filter((task) => task.reconciliation_summary?.blocking).length,
         icon: AlertTriangle,
-        tone: "warning",
+        tone: "failure",
       },
       {
         label: "Contradictions",
@@ -224,13 +225,13 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
           return result === "contradictory_facts" || result === "wrong_target";
         }).length,
         icon: GitCompare,
-        tone: "destructive",
+        tone: "warning",
       },
       {
         label: "Blocks Completion",
         value: tasks.filter((task) => task.reconciliation_summary?.blocking).length,
         icon: Clock3,
-        tone: "info",
+        tone: "failure",
       },
     ],
   },
@@ -292,7 +293,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
           0,
         ),
         icon: Search,
-        tone: "info",
+        tone: "neutral",
       },
       {
         label: "Decisions",
@@ -301,7 +302,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
           0,
         ),
         icon: CheckCircle2,
-        tone: "info",
+        tone: "neutral",
       },
     ],
   },

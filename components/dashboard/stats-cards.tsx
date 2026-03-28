@@ -1,4 +1,5 @@
 import type { Task } from "@/lib/types";
+import { OutcomeSeverity, getSeverityClasses } from "@/lib/outcome-severity";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ShieldCheck,
@@ -77,7 +78,7 @@ export function StatsCards({ tasks }: StatsCardsProps) {
         label="Invalid"
         value={stats.invalidContradicted}
         icon={XOctagon}
-        variant="destructive"
+        variant="failure"
         sublabel="Contradicted"
       />
       <StatCard
@@ -90,7 +91,7 @@ export function StatsCards({ tasks }: StatsCardsProps) {
         label="Pending Verification"
         value={stats.pendingVerification}
         icon={Clock}
-        variant="info"
+        variant="warning"
         className="col-span-2 md:col-span-1"
       />
     </div>
@@ -101,7 +102,7 @@ interface StatCardProps {
   label: string;
   value: number;
   icon: React.ElementType;
-  variant: "success" | "warning" | "destructive" | "info";
+  variant: OutcomeSeverity;
   sublabel?: string;
   className?: string;
 }
@@ -114,12 +115,7 @@ function StatCard({
   sublabel,
   className,
 }: StatCardProps) {
-  const variantStyles = {
-    success: "text-success",
-    warning: "text-warning",
-    destructive: "text-destructive",
-    info: "text-info",
-  };
+  const severity = getSeverityClasses(variant);
 
   return (
     <Card className={className}>
@@ -133,7 +129,7 @@ function StatCard({
             <p className="text-2xl font-semibold mt-1">{value}</p>
           </div>
           <div
-            className={`flex h-10 w-10 items-center justify-center rounded-md bg-muted ${variantStyles[variant]}`}
+            className={`flex h-10 w-10 items-center justify-center rounded-md bg-muted ${severity.text}`}
           >
             <Icon className="h-5 w-5" />
           </div>
