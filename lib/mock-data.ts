@@ -63,6 +63,12 @@ export const mockTasks: Task[] = [
       requests: [],
       decisions: [],
     },
+    evaluation_summary: {
+      count: 1,
+      latest_action: "transition_applied",
+      latest_recorded_at: "2024-01-15T14:32:00Z",
+      latest_target_status: "completed",
+    },
     timestamps: {
       created_at: "2024-01-14T09:00:00Z",
       updated_at: "2024-01-15T14:35:00Z",
@@ -189,6 +195,12 @@ export const mockTasks: Task[] = [
       ],
       decisions: [],
     },
+    evaluation_summary: {
+      count: 1,
+      latest_action: "transition_applied",
+      latest_recorded_at: "2024-01-16T11:45:00Z",
+      latest_target_status: "blocked",
+    },
     timestamps: {
       created_at: "2024-01-15T10:00:00Z",
       updated_at: "2024-01-16T11:50:00Z",
@@ -311,6 +323,12 @@ export const mockTasks: Task[] = [
       latest_decision: null,
       requests: [],
       decisions: [],
+    },
+    evaluation_summary: {
+      count: 1,
+      latest_action: "no_op",
+      latest_recorded_at: "2024-01-17T08:00:00Z",
+      latest_target_status: null,
     },
     timestamps: {
       created_at: "2024-01-16T14:00:00Z",
@@ -450,6 +468,12 @@ export const mockTasks: Task[] = [
         },
       ],
     },
+    evaluation_summary: {
+      count: 2,
+      latest_action: "transition_applied",
+      latest_recorded_at: "2024-01-17T11:00:00Z",
+      latest_target_status: "failed",
+    },
     timestamps: {
       created_at: "2024-01-17T08:00:00Z",
       updated_at: "2024-01-17T11:00:00Z",
@@ -564,6 +588,12 @@ export const mockTasks: Task[] = [
       requests: [],
       decisions: [],
     },
+    evaluation_summary: {
+      count: 0,
+      latest_action: null,
+      latest_recorded_at: null,
+      latest_target_status: null,
+    },
     timestamps: {
       created_at: "2024-01-17T09:00:00Z",
       updated_at: "2024-01-17T09:30:00Z",
@@ -650,6 +680,12 @@ export const mockTasks: Task[] = [
       latest_decision: null,
       requests: [],
       decisions: [],
+    },
+    evaluation_summary: {
+      count: 1,
+      latest_action: "transition_applied",
+      latest_recorded_at: "2024-01-13T16:00:00Z",
+      latest_target_status: "completed",
     },
     timestamps: {
       created_at: "2024-01-12T10:00:00Z",

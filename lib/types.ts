@@ -168,6 +168,12 @@ export interface Task {
   verification_summary: VerificationSummary | null;
   reconciliation_summary: ReconciliationSummary | null;
   review_summary: ReviewSummary;
+  evaluation_summary: {
+    count: number;
+    latest_action: string | null;
+    latest_recorded_at: string | null;
+    latest_target_status: string | null;
+  };
   timestamps: {
     created_at: string;
     updated_at: string;
