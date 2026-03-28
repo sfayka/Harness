@@ -1,105 +1,123 @@
 # Harness
 
-> Linear tracks intended work, GitHub proves executed artifacts, Harness decides what is actually true.
+Harness is a control plane and reliability layer for AI-assisted work.
 
-Harness is a control plane and reliability layer for AI-assisted work. It sits underneath work surfaces such as Linear and ingress clients such as OpenClaw. It evaluates whether work is actually complete, evidence-backed, reconciled, and safe to accept.
+It does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
 
 ## What Harness Is
 
-Harness is a standalone service and library that:
+- A Python control-plane backend that evaluates canonical `TaskEnvelope` submissions.
+- A read-only Next.js dashboard over canonical inspection APIs.
+- A persistence layer for task snapshots and append-only evaluation history.
+- A thin integration boundary around Linear-shaped ingress and GitHub/Linear fact inputs.
 
-- normalizes work into a canonical `TaskEnvelope`
-- persists task state and append-only evaluation history
-- validates evidence and external facts
-- reconciles Harness state with Linear and GitHub
-- enforces lifecycle transitions and manual-review outcomes
-- exposes read-only inspection surfaces for operators and dashboards
+Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
-## What Harness Is Not
+## Current Architecture
 
-Harness is not:
+### Frontend
 
-- a PM tool
-- an agent runtime
-- a chatbot UI
-- a replacement for Linear's work-coordination surface
-- a replacement for GitHub as the artifact system of record
-- a place where agent-reported success is trusted by default
+- Next.js 16 app in [`app/`](app) with shared dashboard components in [`components/`](components).
+- Root route redirects to `/tasks`.
+- Main working views:
+  - `/tasks`
+  - `/verification`
+  - `/reconciliation`
+  - `/reviews`
+- Frontend reads backend data through the Next proxy route at [`app/api/harness/[...path]/route.ts`](app/api/harness/[...path]/route.ts).
+- The frontend requires `HARNESS_API_BASE_URL` to point at a reachable backend. If it is missing or unreachable, the UI shows an error; it does not silently switch to fake live data.
 
-Harness does not try to make agents smarter. It makes agent-driven work auditable and enforceable.
+### Backend
 
-## System Of Record Model
+- Minimal Python HTTP server in [`modules/api.py`](modules/api.py).
+- Canonical evaluation and enforcement logic in [`modules/evaluation.py`](modules/evaluation.py) and [`modules/contracts/`](modules/contracts).
+- Canonical inspection surfaces:
+  - `GET /health`
+  - `GET /tasks`
+  - `GET /tasks/<task_id>`
+  - `GET /tasks/<task_id>/evaluations`
+  - `GET /tasks/<task_id>/read-model`
+  - `GET /tasks/<task_id>/timeline`
+- Canonical mutation surfaces:
+  - `POST /tasks`
+  - `POST /tasks/<task_id>/reevaluate`
+- Integration helper surface:
+  - `POST /ingress/linear`
 
-- Linear = intended work
-- GitHub = execution artifacts
-- Harness = lifecycle truth, verification, reconciliation, and enforcement
+### Persistence
 
-That split is deliberate:
+- Store selection is controlled by `HARNESS_STORE_BACKEND`.
+- Supported backends:
+  - `file` for local JSON-backed development.
+  - `postgres` for durable hosted state.
+- Postgres storage is implemented in [`modules/store.py`](modules/store.py) and bootstrapped with [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql).
+- Current hosted deployment uses Supabase as plain Postgres. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
 
-- Linear remains the human and agent work surface
-- GitHub remains the artifact and code-change surface
-- Harness remains the control plane that decides whether completion is trustworthy
+## Hosted System
 
-## Core System Model
+These URLs were verified against the live deployment on March 28, 2026.
 
-The core product rule is simple:
+- Frontend: [https://harness-mzus2ext1-sean-fays-projects.vercel.app/](https://harness-mzus2ext1-sean-fays-projects.vercel.app/)
+- Backend: [https://harness-qeav.onrender.com](https://harness-qeav.onrender.com)
+- Health: [https://harness-qeav.onrender.com/health](https://harness-qeav.onrender.com/health)
 
-> Work is not complete because an agent says it is complete. Work is complete only when policy allows it based on evidence, reconciliation, and lifecycle enforcement.
+Current live health payload fields:
 
-That means:
+- `status`
+- `store_backend`
+- `database_configured`
+- `database_host`
+- `database_schema_ready`
 
-- agent-reported success is advisory only
-- completion must be evidence-backed when policy requires it
-- reconciliation mismatches must not be silently ignored
-- review decisions must be explicit and auditable
-- lifecycle state transitions are policy-enforced, not worker-defined
+The current hosted health response reports:
 
-## Architecture Overview
+- `status: "ok"`
+- `store_backend: "postgres"`
+- `database_configured: true`
+- `database_host: "aws-0-us-west-2.pooler.supabase.com"`
+- `database_schema_ready: true`
 
-At a high level:
+## Key Views And Routes
 
-1. an ingress client submits new work or updates
-2. Harness normalizes that input into a canonical `TaskEnvelope`
-3. Harness evaluates evidence, runtime facts, reconciliation facts, and review state
-4. Harness persists task snapshots and append-only evaluation records
-5. operators and the dashboard inspect canonical read-model and timeline APIs
+Frontend routes:
 
-Current implementation highlights:
+- `/tasks`: broad task inventory and detail panel.
+- `/verification`: tasks scoped and sorted around verification outcomes.
+- `/reconciliation`: tasks scoped and sorted around mismatch and blocking reconciliation outcomes.
+- `/reviews`: tasks with manual review activity.
 
-- Python backend for control-plane evaluation, persistence, and API surfaces
-- canonical `TaskEnvelope` and schema validation
-- evidence, reconciliation, verification, lifecycle, and manual-review primitives
-- stateful HTTP API with submission and reevaluation
-- dashboard-friendly read-model and timeline endpoints
-- Next.js read-only dashboard built on those canonical inspection APIs
-- demo, simulator, OpenClaw-style spike, and goal-to-work helper flows
+Backend inspection routes:
 
-## Repository Layout
+- `GET /tasks`: dashboard list surface.
+- `GET /tasks/<task_id>/read-model`: canonical detail surface for current task truth.
+- `GET /tasks/<task_id>/timeline`: canonical audit timeline.
 
-- `modules/`
-  Python control-plane implementation, connectors, API, persistence, simulator, demo helpers, and goal-to-work flow.
-- `app/`, `components/`, `lib/`
-  Next.js dashboard and frontend wiring.
-- `schemas/`
-  Canonical machine-readable contracts, including `TaskEnvelope`.
-- `tests/`
-  Python backend and integration tests.
-- `docs/architecture/`
-  Architecture, contract, and boundary docs.
-- `docs/demo/`
-  Demo walkthrough guidance.
-- `docs/integration/`
-  Integration notes such as the OpenClaw boundary spike.
-- `docs/setup/`
-  Local development and run guidance.
+## Storage And Environment
 
-## Run Modes
+Required frontend environment variable:
 
-Harness supports three operational modes with the same control-plane behavior. Local and test flows can keep the file-backed store, while hosted backends can switch to durable Postgres persistence.
+- `HARNESS_API_BASE_URL`
+  - Local example: `http://127.0.0.1:8000`
+  - Hosted example: `https://harness-qeav.onrender.com`
 
-### Run Mode 1: Native Local Development
+Backend storage environment variables:
 
-Use this mode for fast iteration, backend changes, frontend changes, and direct test execution.
+- `HARNESS_STORE_BACKEND`
+  - Supported values: `file`, `postgres`
+  - Default in [`.env.example`](.env.example): `file`
+- `DATABASE_URL`
+  - Required when `HARNESS_STORE_BACKEND=postgres`
+  - Expected to be a Postgres connection string
+  - Used for Supabase/Postgres in the hosted deployment
+
+Relevant supporting files:
+
+- [`.env.example`](.env.example)
+- [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql)
+- [`docs/setup/local-development.md`](docs/setup/local-development.md)
+- [`docs/setup/render-supabase.md`](docs/setup/render-supabase.md)
+
+## Local Development
 
 Backend setup:
 
@@ -109,6 +127,22 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Run the backend with the file store:
+
+```bash
+.venv/bin/python -m modules.api --store-root .harness-store
+```
+
+Run the backend with Postgres:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export DATABASE_URL=postgresql://...
+.venv/bin/python -m modules.api
+```
+
+The API binds to `0.0.0.0` by default and honors `PORT` when set. Local default access is `http://127.0.0.1:8000`.
+
 Frontend setup:
 
 ```bash
@@ -116,130 +150,40 @@ pnpm install --frozen-lockfile
 cp .env.example .env.local
 ```
 
-Set the dashboard proxy target:
+Set:
 
 ```bash
 HARNESS_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-Run the API:
-
-```bash
-.venv/bin/python -m modules.api --store-root .harness-store
-```
-
-To use durable Postgres-backed persistence instead of local files:
-
-```bash
-export HARNESS_STORE_BACKEND=postgres
-export DATABASE_URL=postgresql://...
-.venv/bin/python -m modules.api
-```
-By default the API now binds to `0.0.0.0` and uses `PORT` when it is set, which matches Render-style deployment expectations. Locally you can still reach it via `http://127.0.0.1:8000`.
-
-Run the dashboard:
+Run the frontend:
 
 ```bash
 pnpm dev
 ```
 
-Run the one-command demo bootstrap:
+Validation commands:
 
 ```bash
-python -m modules.demo_bootstrap
+.venv/bin/python -m unittest discover -s tests
+pnpm lint
+pnpm build
 ```
 
-Useful bootstrap variants:
+## Demo And Canonical Scenarios
 
-```bash
-python -m modules.demo_bootstrap --exit-after-seed
-python -m modules.demo_bootstrap --json --exit-after-seed
-python -m modules.demo_bootstrap successful_completion review_required_then_completed
-```
+### Local deterministic scenario pack
 
-### Run Mode 2: Docker
+The canonical demo runner in [`modules/demo_runner.py`](modules/demo_runner.py) defines these scenarios:
 
-Use this mode for a clean environment, reproducible demos, and onboarding without local Python or Node setup drift.
+- `successful_completion`
+- `missing_evidence_then_completed`
+- `wrong_target_corrected`
+- `review_required_then_completed`
+- `contradictory_facts_blocked`
+- `long_running_handoff`
 
-Start the API and dashboard containers:
-
-```bash
-docker compose up --build
-```
-
-Seed the deterministic demo scenarios from inside the API container:
-
-```bash
-docker compose exec api python -m modules.demo_bootstrap --exit-after-seed
-```
-
-Docker mode details:
-
-- dashboard: [http://127.0.0.1:3000](http://127.0.0.1:3000)
-- API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- persisted store: `./.docker-store`
-- demo walkthrough artifacts: `./.docker-demo-output/walkthrough`
-- dashboard container uses `HARNESS_API_BASE_URL=http://api:8000`
-- the bootstrap command reuses the already-running Docker API and dashboard instead of starting duplicate processes
-
-Reset Docker demo data:
-
-```bash
-docker compose down
-rm -rf .docker-store .docker-demo-output
-docker compose up --build
-```
-
-### Run Mode 3: Vercel
-
-Vercel is frontend-only in this repository. The dashboard deploys independently, and the backend is not deployed there.
-
-Requirements for Vercel:
-
-- deploy the Next.js dashboard
-- set `HARNESS_API_BASE_URL` to a reachable Harness backend
-- for durable hosted state, configure the backend with `HARNESS_STORE_BACKEND=postgres` and `DATABASE_URL`
-- expect clearly labeled sample or fallback behavior if no backend is reachable
-
-`vercel.json` already forces Next.js detection so the repo is not treated as a Python-only project.
-
-### Hosted Render + Supabase
-
-For hosted durability without changing the API surface:
-
-1. Create a Supabase project and copy the Postgres connection string into `DATABASE_URL`.
-2. Run [`sql/postgres/001_harness_store.sql`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/sql/postgres/001_harness_store.sql) through the Supabase SQL editor or `psql`.
-3. Deploy the Python backend to Render with:
-   `HARNESS_STORE_BACKEND=postgres`
-   `DATABASE_URL=<Supabase Postgres connection string>`
-4. Point Vercel at the Render backend with `HARNESS_API_BASE_URL=https://<render-service-url>`.
-
-This keeps `/tasks`, `/tasks/<task_id>/read-model`, and `/tasks/<task_id>/timeline` backed by durable Postgres state, so redeploys do not clear hosted task history.
-
-## Demo Walkthrough
-
-Harness includes a deterministic seeded walkthrough for local product demos, screenshots, and operator narration.
-
-Local/manual walkthrough commands:
-
-```bash
-python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
-pnpm dev
-python -m modules.demo_walkthrough seed \
-  --base-url http://127.0.0.1:8000 \
-  --dashboard-url http://127.0.0.1:3000 \
-  --output-dir demo-output/walkthrough
-```
-
-Docker walkthrough commands:
-
-```bash
-docker compose up --build
-docker compose exec api python -m modules.demo_bootstrap --exit-after-seed
-```
-
-Seeded tasks include:
+For local operator walkthroughs, the seeded demo task IDs are:
 
 - `demo-successful-completion`
 - `demo-missing-evidence-then-completed`
@@ -247,251 +191,74 @@ Seeded tasks include:
 - `demo-review-required-then-completed`
 - `demo-long-running-handoff`
 
-## Environment Variables
-
-- `HARNESS_API_BASE_URL`
-  Required by the Next.js proxy route. In local mode it usually points to `http://127.0.0.1:8000`. In Docker it is set to `http://api:8000`. In Vercel it must point to a reachable external Harness backend.
-- `HARNESS_DASHBOARD_URL`
-  Optional helper used by Docker demo bootstrap reuse mode so `modules.demo_bootstrap` can seed against the already-running dashboard service.
-- `HARNESS_DEMO_BOOTSTRAP_REUSE_SURFACES`
-  Optional helper flag. When set, `modules.demo_bootstrap` reuses existing API and dashboard URLs from the environment instead of starting local processes.
-- `HARNESS_STORE_ROOT`
-  Optional helper for Docker bootstrap reuse mode and local file-backed runs. It points the bootstrap command at the same file-backed store the API container is serving.
-- `HARNESS_STORE_BACKEND`
-  Optional backend selector for the API process. Supported values are `file` and `postgres`. Default is `file`.
-- `DATABASE_URL`
-  Required when `HARNESS_STORE_BACKEND=postgres`. Harness uses Supabase as plain Postgres only and stores canonical task and evaluation payloads as JSONB.
-- `HARNESS_DEMO_OUTPUT_DIR`
-  Optional helper for Docker bootstrap reuse mode. It controls where demo walkthrough artifacts are written inside the container.
-
-See [.env.example](.env.example) and [docs/setup/local-development.md](docs/setup/local-development.md).
-
-## Data / Store Behavior
-
-- native local API data defaults to `./.harness-store`
-- native local demo bootstrap defaults to `./.demo-store`
-- Docker API data persists in `./.docker-store`
-- hosted durable API state can persist in Supabase Postgres when `HARNESS_STORE_BACKEND=postgres`
-- Docker walkthrough artifacts persist in `./.docker-demo-output/walkthrough`
-- resetting demo state deletes persisted task snapshots and evaluation history for that chosen store root
-
-## High-Level API Surface
-
-Health and inspection:
-
-- `GET /health`
-  Returns `status`, `store_backend`, `database_configured`, `database_host`, and `database_schema_ready` so operators can confirm whether the backend is using the file store or Postgres and whether the expected schema is present without exposing credentials.
-- `GET /tasks`
-- `GET /tasks/<task_id>`
-- `GET /tasks/<task_id>/evaluations`
-- `GET /tasks/<task_id>/read-model`
-- `GET /tasks/<task_id>/timeline`
-
-Submission and reevaluation:
-
-- `POST /tasks`
-- `POST /tasks/<task_id>/reevaluate`
-- `POST /evaluate`
-- `POST /ingress/linear`
-
-Important behavior:
-
-- `POST /tasks` is the canonical submission path for new work
-- duplicate task IDs are rejected with `409 Conflict`
-- reevaluation is explicit and uses `POST /tasks/<task_id>/reevaluate`
-- read-model and timeline endpoints are the canonical inspection surfaces for the dashboard
-
-## Integration Model
-
-### Linear
-
-Linear is the work surface and structured-work system of record.
-
-Linear sends:
-
-- issue identity
-- title and description
-- optional labels and priority
-- optional linked artifacts or external references
-
-Harness derives:
-
-- canonical `TaskEnvelope`
-- required artifacts
-- verification expectations
-- reconciliation expectations
-
-Harness returns:
-
-- current control-plane outcome
-- evidence validation result
-- reconciliation result
-- required follow-up actions
-
-### GitHub
-
-GitHub is the source of truth for executed artifacts.
-
-Harness consumes normalized GitHub facts rather than raw vendor payloads. GitHub-backed artifacts such as commits and pull requests can support verification and reconciliation, but they do not bypass policy enforcement on their own.
-
-### OpenClaw And Other Ingress Clients
-
-OpenClaw and similar clients are ingress surfaces, not control-plane owners.
-
-Current state:
-
-- the OpenClaw integration spike showed the API boundary is clean
-- the remaining ingress friction is request construction ergonomics, not architecture failure
-- the thin request-builder adapter exists to reduce payload verbosity without redesigning `POST /tasks`
-
-See:
-
-- [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md)
-- [docs/integrations/overview.md](docs/integrations/overview.md)
-
-## Current Integration Status / Maturity
-
-What is mature enough to use locally:
-
-- canonical submission and reevaluation APIs
-- persisted task snapshots and append-only evaluation history
-- read-model and timeline inspection APIs
-- dashboard read-only inspection
-- simulator, demo bootstrap, and deterministic walkthroughs
-- Linear-shaped ingress adapter
-- thin OpenClaw-informed client spike
-
-What remains intentionally narrow:
-
-- no live GitHub polling or webhook integration
-- no live Linear synchronization service
-- no production auth or multi-tenant service layer
-- no production-grade database backend
-- no mutation UI in the dashboard
-
-## What Is Real Today Vs Simulated Today
-
-Real today:
-
-- backend evaluator and enforcement primitives
-- persistence store
-- HTTP API
-- dashboard read-model and timeline inspection
-- deterministic demo walkthrough and seeded tasks
-- request-builder and ingress adapters
-
-Simulated or intentionally narrow today:
-
-- OpenClaw-style client behavior is a spike, not a full runtime integration
-- Linear ingress is an adapter/example flow, not live Linear API creation
-- demo scenarios use canonical facts and seeded state, not live external systems
-- preview fallback data is sample data only
-
-Fallback data must always be clearly marked and must never silently impersonate live backend truth.
-
-## Testing / Validation Commands
-
-Backend:
+Seed locally with:
 
 ```bash
-.venv/bin/python -m unittest discover -s tests
+python -m modules.demo_bootstrap --exit-after-seed
 ```
 
-Frontend:
+Or use the full walkthrough flow in [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md).
 
-```bash
-pnpm lint
-pnpm build
-```
+### Current hosted examples
 
-Focused examples:
+As of March 28, 2026, the hosted backend currently contains these useful example tasks:
 
-```bash
-.venv/bin/python -m unittest tests.test_api tests.test_read_model tests.test_demo_walkthrough
-.venv/bin/python -m unittest tests.connectors.test_openclaw_harness_spike
-```
+- Happy path: `dryrun-e2e-test-kno-133-db-seed-v5`
+  - current status: `completed`
+  - verification outcome: `accepted_completion`
+  - reconciliation outcome: `no_mismatch`
+- Mismatch path: `dryrun-mismatch-kno-133-db-v1`
+  - current status: `failed`
+  - verification outcome: `terminal_invalid`
+  - reconciliation outcome: `wrong_target`
 
-## Troubleshooting
+These are live persisted tasks, not fixed seeded IDs, so they may change later.
 
-### Dashboard shows sample data instead of live tasks
+## Health Diagnostics
 
-- confirm the Python API is running
-- confirm `HARNESS_API_BASE_URL` is set in `.env.local`
-- confirm the task exists via `GET /tasks` or `GET /tasks/<task_id>`
+`GET /health` is the operator check for backend readiness and storage configuration.
 
-### Docker containers start but the dashboard is empty
+Current fields:
 
-- run `docker compose exec api python -m modules.demo_bootstrap --exit-after-seed`
-- confirm the API returns tasks at [http://127.0.0.1:8000/tasks](http://127.0.0.1:8000/tasks)
-- confirm `./.docker-store` contains persisted task files
+- `status`: overall service state for this probe.
+- `store_backend`: `file` or `postgres`.
+- `database_configured`: whether the process is configured for database-backed storage.
+- `database_host`: parsed hostname only, without credentials.
+- `database_schema_ready`: whether the required `tasks` and `evaluation_records` tables are present.
 
-### Docker reports port conflicts
+The health endpoint does not return raw `DATABASE_URL` values or credentials.
 
-- confirm nothing else is already bound to `3000` or `8000`
-- stop conflicting local processes or change the published ports in `docker-compose.yml`
+## Docs And Screenshots
 
-### Docker rebuilds do not pick up changes
+Useful docs:
 
-- rerun `docker compose up --build`
-- if cached layers still cause confusion, run `docker compose build --no-cache`
+- [`docs/architecture/system-context.md`](docs/architecture/system-context.md)
+- [`docs/architecture/module-boundaries.md`](docs/architecture/module-boundaries.md)
+- [`docs/architecture/task-envelope.md`](docs/architecture/task-envelope.md)
+- [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md)
+- [`docs/setup/local-development.md`](docs/setup/local-development.md)
 
-### Docker demo state needs a full reset
+Current screenshot assets:
 
-- run `docker compose down`
-- remove `./.docker-store` and `./.docker-demo-output`
-- start again with `docker compose up --build`
+- [`docs/demo/kno-133-happy-path/`](docs/demo/kno-133-happy-path)
 
-### Vercel preview builds but shows no live backend data
+## Known Limitations
 
-- set `HARNESS_API_BASE_URL` in the preview environment
-- if no backend is reachable, the dashboard should show clearly labeled sample data
+- The dashboard is read-only. There is no mutation UI for submissions, reevaluation, or review actions.
+- The frontend depends on a reachable backend via `HARNESS_API_BASE_URL`; it does not provide an offline sample-data mode in the current code path.
+- Live Linear and GitHub synchronization are still thin integration layers rather than full background sync services.
+- Review-required handling exists in evaluation, reevaluation, and dashboard summaries, but the hosted backend is not guaranteed to keep a review-required example task seeded at all times.
+- Hosted example task IDs are operational data and may change independently of the local deterministic scenario pack.
 
-### Vercel detects the repo as Python instead of Next.js
+## Repository Layout
 
-- this is handled by [vercel.json](vercel.json), which explicitly marks the repo as a Next.js deployment target
-
-### Duplicate task submission fails
-
-- this is expected behavior
-- `POST /tasks` is create-only and duplicate IDs return `409 Conflict`
-- use explicit reevaluation for an existing task instead
-
-## Contributing / Development Notes
-
-- start with the architecture docs before changing contracts or enforcement logic
-- prefer canonical submission, reevaluation, read-model, and timeline paths over one-off helpers
-- keep dashboard behavior read-only unless a task explicitly changes that product scope
-- keep mock or sample data clearly labeled and only as fallback when the backend is unavailable
-- update docs when changing contracts, invariants, or public API expectations
-
-Useful references:
-
-- [AGENTS.md](AGENTS.md)
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [docs/architecture/system-context.md](docs/architecture/system-context.md)
-- [docs/architecture/linear-harness-boundary.md](docs/architecture/linear-harness-boundary.md)
-- [docs/architecture/task-envelope.md](docs/architecture/task-envelope.md)
-
-## Architecture Docs
-
-Core docs:
-
-- [docs/architecture/system-context.md](docs/architecture/system-context.md)
-- [docs/architecture/linear-harness-boundary.md](docs/architecture/linear-harness-boundary.md)
-- [docs/architecture/task-envelope.md](docs/architecture/task-envelope.md)
-- [docs/architecture/artifact-and-completion-evidence.md](docs/architecture/artifact-and-completion-evidence.md)
-- [docs/architecture/reconciliation-rules.md](docs/architecture/reconciliation-rules.md)
-- [docs/architecture/state-transition-enforcement.md](docs/architecture/state-transition-enforcement.md)
-- [docs/architecture/operator-and-manual-review.md](docs/architecture/operator-and-manual-review.md)
-- [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md)
-
-Supporting docs:
-
-- [docs/setup/local-development.md](docs/setup/local-development.md)
-- [docs/integrations/overview.md](docs/integrations/overview.md)
-- [docs/demo/operator-walkthrough.md](docs/demo/operator-walkthrough.md)
-- [docs/integration/openclaw-harness-spike.md](docs/integration/openclaw-harness-spike.md)
+- [`modules/`](modules): backend API, evaluation logic, persistence, demo tooling, connectors.
+- [`app/`](app): Next.js routes and proxy handler.
+- [`components/`](components): dashboard UI components.
+- [`lib/`](lib): frontend API mapping and types.
+- [`schemas/`](schemas): canonical machine-readable contracts.
+- [`tests/`](tests): backend and integration tests.
 
 ## License
 
-Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+Licensed under the Apache License 2.0. See [`LICENSE`](LICENSE).

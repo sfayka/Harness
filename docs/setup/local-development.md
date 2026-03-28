@@ -148,10 +148,10 @@ Vercel is frontend-only for this repo. It hosts the Next.js dashboard and requir
 
 The backend remains a separate Harness process and is not deployed by `vercel.json`.
 
-For durable hosted state behind the Vercel dashboard, deploy the Python backend separately on Render, set `HARNESS_STORE_BACKEND=postgres`, set `DATABASE_URL` to the Supabase Postgres connection string, and apply [`sql/postgres/001_harness_store.sql`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/sql/postgres/001_harness_store.sql) before first start.
+For durable hosted state behind the Vercel dashboard, deploy the Python backend separately on Render, set `HARNESS_STORE_BACKEND=postgres`, set `DATABASE_URL` to the Supabase Postgres connection string, and apply [`sql/postgres/001_harness_store.sql`](../../sql/postgres/001_harness_store.sql) before first start.
 
-## Local Vs Preview Behavior
+## Local Vs Hosted Behavior
 
-Local mode should use a real backend whenever possible.
+Local and hosted frontend deployments both depend on a reachable Harness backend through `HARNESS_API_BASE_URL`.
 
-Preview mode may use clearly labeled sample data if no backend is reachable. That fallback must remain explicit and must never impersonate live control-plane truth.
+If the backend is unreachable or `HARNESS_API_BASE_URL` is missing, the current frontend shows an error from the proxy route instead of silently substituting sample data.

@@ -13,7 +13,7 @@ Leave `HARNESS_STORE_ROOT` unset for this mode.
 
 ## Database Bootstrap
 
-Apply [`sql/postgres/001_harness_store.sql`](/Users/ssbob/Documents/Developer/Knox_Analytics/Harness/sql/postgres/001_harness_store.sql) to the Supabase database before the first backend start.
+Apply [`sql/postgres/001_harness_store.sql`](../../sql/postgres/001_harness_store.sql) to the Supabase database before the first backend start.
 
 You can do that from the Supabase SQL editor or with `psql`:
 
