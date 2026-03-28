@@ -1,6 +1,15 @@
 "use client";
 
 import type { Task } from "@/lib/types";
+import {
+  getBlockingSeverity,
+  getBooleanOutcomeSeverity,
+  getEvidenceSeverity,
+  getMismatchSeverity,
+  getReviewSeverity,
+  getSeverityClasses,
+  getVerificationSeverity,
+} from "@/lib/outcome-severity";
 import { formatDateTime, formatRelativeTime } from "@/lib/utils";
 import { StatusBadge, TruthStateBadge } from "@/components/ui/status-badge";
 import {
@@ -164,17 +173,20 @@ function renderCells(task: Task, view: DashboardView) {
             </div>
           </td>
           <td className="hidden px-4 py-3 md:table-cell">
-            <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
-                task.reconciliation_summary?.blocking
-                  ? "bg-warning/15 text-warning"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {task.reconciliation_summary?.blocking
-                ? "Blocks completion"
-                : "No completion block"}
-            </span>
+            {(() => {
+              const severity = getSeverityClasses(
+                getBlockingSeverity(task.reconciliation_summary?.blocking ?? null),
+              );
+              return (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${severity.soft}`}
+                >
+                  {task.reconciliation_summary?.blocking
+                    ? "Blocks completion"
+                    : "No completion block"}
+                </span>
+              );
+            })()}
           </td>
           <td className="hidden px-4 py-3 lg:table-cell">
             <TextList
@@ -194,7 +206,7 @@ function renderCells(task: Task, view: DashboardView) {
           />
           <td className="px-4 py-3">
             <div className="space-y-2">
-              <StatusBadge status={task.review_summary.status} variant="review" />
+              <StrictReviewBadge task={task} />
               <p className="text-xs text-muted-foreground">
                 {task.review_summary.status === "requested"
                   ? "Requires explicit manual decision"
@@ -328,22 +340,15 @@ function StrictVerificationBadge({ task }: { task: Task }) {
   const summary = task.verification_summary;
   const isAccepted = summary?.completion_accepted ?? false;
   const label = summary ? (isAccepted ? "Accepted" : "Rejected") : "Not evaluated";
+  const severity = getSeverityClasses(
+    summary ? getVerificationSeverity(isAccepted ? "accepted" : "rejected") : "neutral",
+  );
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
-        !summary
-          ? "bg-muted text-muted-foreground"
-          : isAccepted
-          ? "bg-success/15 text-success"
-          : "bg-destructive/15 text-destructive"
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          !summary ? "bg-muted-foreground" : isAccepted ? "bg-success" : "bg-destructive"
-        }`}
-      />
+      <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
       {label}
     </span>
   );
@@ -352,9 +357,10 @@ function StrictVerificationBadge({ task }: { task: Task }) {
 function StrictReconciliationBadge({ task }: { task: Task }) {
   const summary = task.reconciliation_summary;
   if (!summary) {
+    const severity = getSeverityClasses("neutral");
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+      <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}>
+        <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
         Not reconciled
       </span>
     );
@@ -363,20 +369,13 @@ function StrictReconciliationBadge({ task }: { task: Task }) {
     summary?.result === "no_mismatch" &&
     !summary.blocking &&
     (summary.mismatch_categories?.length ?? 0) === 0;
+  const severity = getSeverityClasses(getMismatchSeverity(!isAligned));
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
-        isAligned
-          ? "bg-success/15 text-success"
-          : "bg-warning/15 text-warning"
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          isAligned ? "bg-success" : "bg-warning"
-        }`}
-      />
+      <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
       {isAligned ? "Aligned" : "Mismatch"}
     </span>
   );
@@ -386,27 +385,35 @@ function StrictEvidenceBadge({ task }: { task: Task }) {
   const summary = task.verification_summary;
   const isSufficient =
     summary?.evidence_is_sufficient ?? summary?.evidence_sufficient ?? false;
+  const severity = getSeverityClasses(
+    getEvidenceSeverity(summary ? isSufficient : null),
+  );
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
-        !summary
-          ? "bg-muted text-muted-foreground"
-          : isSufficient
-            ? "bg-success/15 text-success"
-            : "bg-warning/15 text-warning"
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
     >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          !summary
-            ? "bg-muted-foreground"
-            : isSufficient
-              ? "bg-success"
-              : "bg-warning"
-        }`}
-      />
+      <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
       {!summary ? "No evidence status" : isSufficient ? "Sufficient" : "Insufficient"}
+    </span>
+  );
+}
+
+function StrictReviewBadge({ task }: { task: Task }) {
+  const severity = getSeverityClasses(getReviewSeverity(task.review_summary.status));
+  const label =
+    task.review_summary.status === "requested"
+      ? "Review Required"
+      : task.review_summary.status === "resolved"
+        ? "Reviewed"
+        : "No Review";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
+      {label}
     </span>
   );
 }
@@ -418,13 +425,10 @@ function BooleanState({
   label: string;
   value: boolean;
 }) {
+  const severity = getSeverityClasses(getBooleanOutcomeSeverity(value));
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
-        value
-          ? "bg-success/15 text-success"
-          : "bg-muted text-muted-foreground"
-      }`}
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${severity.soft}`}
     >
       {value ? (
         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -437,11 +441,10 @@ function BooleanState({
 }
 
 function InlineBoolean({ value }: { value: boolean }) {
+  const severity = getSeverityClasses(getBooleanOutcomeSeverity(value));
   return (
     <span
-      className={`inline-flex items-center gap-1 font-medium ${
-        value ? "text-success" : "text-muted-foreground"
-      }`}
+      className={`inline-flex items-center gap-1 font-medium ${severity.text}`}
     >
       {value ? (
         <CheckCircle2 className="h-3.5 w-3.5" />
@@ -466,8 +469,8 @@ function TextList({
 
   return (
     <div className="space-y-1">
-      {items.slice(0, 2).map((item) => (
-        <div key={item} className="text-xs text-foreground">
+      {items.slice(0, 2).map((item, index) => (
+        <div key={`${item}-${index}`} className="text-xs text-foreground">
           {item}
         </div>
       ))}

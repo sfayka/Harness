@@ -1,4 +1,5 @@
 import type { ReviewSummary } from "@/lib/types";
+import { getSeverityClasses } from "@/lib/outcome-severity";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDateTime } from "@/lib/utils";
@@ -68,9 +69,9 @@ export function ReviewPanel({ review }: ReviewPanelProps) {
 
           {/* Latest Request */}
           {review.latest_request && (
-            <div className="p-3 rounded-md bg-warning/10 border border-warning/20">
+            <div className={`rounded-md border p-3 ${getSeverityClasses("warning").border}`}>
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="h-4 w-4 text-warning" />
+                <AlertCircle className={`h-4 w-4 ${getSeverityClasses("warning").text}`} />
                 <span className="text-sm font-medium text-foreground">
                   Review Requested
                 </span>
@@ -88,19 +89,19 @@ export function ReviewPanel({ review }: ReviewPanelProps) {
           {/* Latest Decision */}
           {review.latest_decision && (
             <div
-              className={`p-3 rounded-md border ${
+              className={`rounded-md border p-3 ${
                 review.latest_decision.outcome === "approved"
-                  ? "bg-success/10 border-success/20"
+                  ? getSeverityClasses("success").border
                   : review.latest_decision.outcome === "rejected"
-                    ? "bg-destructive/10 border-destructive/20"
-                    : "bg-muted border-border"
+                    ? getSeverityClasses("failure").border
+                    : getSeverityClasses("neutral").border
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
                 {review.latest_decision.outcome === "approved" ? (
-                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <CheckCircle2 className={`h-4 w-4 ${getSeverityClasses("success").text}`} />
                 ) : review.latest_decision.outcome === "rejected" ? (
-                  <XCircle className="h-4 w-4 text-destructive" />
+                  <XCircle className={`h-4 w-4 ${getSeverityClasses("failure").text}`} />
                 ) : (
                   <Clock className="h-4 w-4 text-muted-foreground" />
                 )}

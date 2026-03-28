@@ -1,4 +1,5 @@
 import type { VerificationSummary } from "@/lib/types";
+import { getEvidenceSeverity, getSeverityClasses, getVerificationSeverity } from "@/lib/outcome-severity";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/ui/status-badge";
 import { formatDateTime } from "@/lib/utils";
@@ -30,6 +31,13 @@ export function VerificationCard({ summary }: VerificationCardProps) {
     );
   }
 
+  const decisionSeverity = getSeverityClasses(getVerificationSeverity(summary.result));
+  const evidenceSeverity = getSeverityClasses(
+    getEvidenceSeverity(
+      summary.evidence_is_sufficient ?? summary.evidence_sufficient ?? null,
+    ),
+  );
+
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -47,9 +55,9 @@ export function VerificationCard({ summary }: VerificationCardProps) {
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
               {(summary.verification_passed ?? summary.completion_accepted) ? (
-                <CheckCircle2 className="h-4 w-4 text-success" />
+                <CheckCircle2 className={`h-4 w-4 ${decisionSeverity.text}`} />
               ) : (
-                <XCircle className="h-4 w-4 text-destructive" />
+                <XCircle className={`h-4 w-4 ${decisionSeverity.text}`} />
               )}
               <span className="text-muted-foreground">
                 Completion {(summary.verification_passed ?? summary.completion_accepted) ? "Accepted" : "Not Accepted"}
@@ -57,9 +65,9 @@ export function VerificationCard({ summary }: VerificationCardProps) {
             </div>
             <div className="flex items-center gap-1.5">
               {(summary.evidence_is_sufficient ?? summary.evidence_sufficient) ? (
-                <FileSearch className="h-4 w-4 text-success" />
+                <FileSearch className={`h-4 w-4 ${evidenceSeverity.text}`} />
               ) : (
-                <FileSearch className="h-4 w-4 text-warning" />
+                <FileSearch className={`h-4 w-4 ${evidenceSeverity.text}`} />
               )}
               <span className="text-muted-foreground">
                 Evidence {(summary.evidence_is_sufficient ?? summary.evidence_sufficient) ? "Sufficient" : "Insufficient"}

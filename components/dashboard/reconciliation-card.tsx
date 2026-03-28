@@ -1,4 +1,5 @@
 import type { EvidenceSummary, ReconciliationSummary, TimelineEvent } from "@/lib/types";
+import { getSeverityClasses } from "@/lib/outcome-severity";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ReconciliationBadge } from "@/components/ui/status-badge";
 import { formatDateTime } from "@/lib/utils";
@@ -105,10 +106,10 @@ export function ReconciliationCard({
 
   const statusStyles = {
     ok: {
-      bg: "bg-success/10 border-success/30",
+      bg: getSeverityClasses("success").border,
       icon: CheckCircle2,
-      iconColor: "text-success",
-      stateColor: "text-success",
+      iconColor: getSeverityClasses("success").text,
+      stateColor: getSeverityClasses("success").text,
     },
     missing: {
       bg: "bg-muted/50 border-border",
@@ -117,10 +118,10 @@ export function ReconciliationCard({
       stateColor: "text-muted-foreground",
     },
     mismatch: {
-      bg: "bg-warning/10 border-warning/30",
+      bg: getSeverityClasses("warning").border,
       icon: AlertCircle,
-      iconColor: "text-warning",
-      stateColor: "text-warning",
+      iconColor: getSeverityClasses("warning").text,
+      stateColor: getSeverityClasses("warning").text,
     },
     unknown: {
       bg: "bg-muted/50 border-border",
@@ -130,16 +131,14 @@ export function ReconciliationCard({
     },
   } as const;
 
+  const cardSeverity = isContradictory
+    ? getSeverityClasses("failure").border
+    : hasMismatches
+      ? getSeverityClasses("warning").border
+      : "";
+
   return (
-    <Card
-      className={
-        isContradictory
-          ? "border-destructive/50 bg-destructive/5"
-          : hasMismatches
-            ? "border-warning/50 bg-warning/5"
-            : ""
-      }
-    >
+    <Card className={cardSeverity}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
@@ -176,15 +175,15 @@ export function ReconciliationCard({
 
           {/* Contradiction Banner */}
           {isContradictory && (
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/20 border border-destructive/40">
+            <div className={`flex items-center gap-2 rounded-lg border p-3 ${getSeverityClasses("failure").border}`}>
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/30">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertTriangle className={`h-4 w-4 ${getSeverityClasses("failure").text}`} />
               </div>
               <div>
-                <p className="text-sm font-semibold text-destructive">
+                <p className={`text-sm font-semibold ${getSeverityClasses("failure").text}`}>
                   Systems Disagree
                 </p>
-                <p className="text-xs text-destructive/80">
+                <p className={`text-xs ${getSeverityClasses("failure").text}/80`}>
                   Truth cannot be established - human review required
                 </p>
               </div>
@@ -193,10 +192,10 @@ export function ReconciliationCard({
 
           {/* Mismatch Details */}
           {hasMismatches && !isContradictory && (
-            <div className="p-2.5 rounded-lg bg-warning/10 border border-warning/30">
+            <div className={`rounded-lg border p-2.5 ${getSeverityClasses("warning").border}`}>
               <div className="flex items-center gap-1.5 mb-1.5">
-                <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-                <span className="text-xs font-semibold text-warning">
+                <AlertTriangle className={`h-3.5 w-3.5 ${getSeverityClasses("warning").text}`} />
+                <span className={`text-xs font-semibold ${getSeverityClasses("warning").text}`}>
                   Mismatches Detected
                 </span>
               </div>
@@ -206,7 +205,7 @@ export function ReconciliationCard({
                     key={index}
                     className="text-xs text-foreground flex items-start gap-1.5"
                   >
-                    <span className="text-warning mt-0.5">-</span>
+                    <span className={`mt-0.5 ${getSeverityClasses("warning").text}`}>-</span>
                     {mismatch}
                   </li>
                 ))}
@@ -216,9 +215,9 @@ export function ReconciliationCard({
 
           {/* All Aligned Banner */}
           {!hasMismatches && summary.outcome === "no_mismatch" && !summary.blocking && (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-success/10 border border-success/30">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span className="text-sm font-medium text-success">
+            <div className={`flex items-center gap-2 rounded-lg border p-2.5 ${getSeverityClasses("success").border}`}>
+              <CheckCircle2 className={`h-4 w-4 ${getSeverityClasses("success").text}`} />
+              <span className={`text-sm font-medium ${getSeverityClasses("success").text}`}>
                 All systems aligned
               </span>
             </div>
