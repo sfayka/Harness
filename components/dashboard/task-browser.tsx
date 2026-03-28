@@ -120,9 +120,18 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
         tone: "success",
       },
       {
-        label: "Verification Passed",
-        value: tasks.filter((task) => task.verification_summary?.verification_passed)
-          .length,
+        label: "Rejected",
+        value: tasks.filter(
+          (task) =>
+            task.verification_summary !== null &&
+            !task.verification_summary.completion_accepted,
+        ).length,
+        icon: XCircle,
+        tone: "destructive",
+      },
+      {
+        label: "Evaluated",
+        value: tasks.filter((task) => task.verification_summary !== null).length,
         icon: ShieldCheck,
         tone: "info",
       },
@@ -209,14 +218,6 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
         tone: "warning",
       },
       {
-        label: "Pending",
-        value: tasks.filter(
-          (task) => task.reconciliation_summary?.result === "pending",
-        ).length,
-        icon: Clock3,
-        tone: "info",
-      },
-      {
         label: "Contradictions",
         value: tasks.filter((task) => {
           const result = task.reconciliation_summary?.result;
@@ -224,6 +225,12 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
         }).length,
         icon: GitCompare,
         tone: "destructive",
+      },
+      {
+        label: "Blocks Completion",
+        value: tasks.filter((task) => task.reconciliation_summary?.blocking).length,
+        icon: Clock3,
+        tone: "info",
       },
     ],
   },

@@ -93,14 +93,14 @@ function getHeaders(view: DashboardView) {
     case "verification":
       return [
         { label: "Task" },
-        { label: "Verification" },
+        { label: "Decision" },
         { label: "Evidence" },
       ];
     case "reconciliation":
       return [
         { label: "Task" },
         { label: "Status" },
-        { label: "Blocking", className: "hidden md:table-cell" },
+        { label: "Outcome", className: "hidden md:table-cell" },
         { label: "Mismatch Categories", className: "hidden lg:table-cell" },
       ];
     case "reviews":
@@ -115,7 +115,9 @@ function getHeaders(view: DashboardView) {
       return [
         { label: "Task" },
         { label: "Status", className: "hidden lg:table-cell" },
-        { label: "Origin", className: "hidden md:table-cell" },
+        { label: "Verification", className: "hidden md:table-cell" },
+        { label: "Reconciliation", className: "hidden lg:table-cell" },
+        { label: "Origin", className: "hidden xl:table-cell" },
         { label: "Updated", className: "hidden md:table-cell" },
       ];
   }
@@ -134,32 +136,16 @@ function renderCells(task: Task, view: DashboardView) {
           <td className="px-4 py-3">
             <div className="space-y-2">
               <StrictVerificationBadge task={task} />
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <BooleanState
-                  label="Passed"
-                  value={task.verification_summary?.verification_passed ?? false}
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {task.verification_summary
+                  ? `Evaluated ${formatDateTime(task.verification_summary.evaluated_at)}`
+                  : "Not evaluated"}
+              </p>
             </div>
           </td>
           <td className="px-4 py-3">
             <div className="space-y-1 text-xs text-muted-foreground">
-              <div>
-                Sufficient:{" "}
-                <InlineBoolean
-                  value={
-                    task.verification_summary?.evidence_is_sufficient ??
-                    task.verification_summary?.evidence_sufficient ??
-                    false
-                  }
-                />
-              </div>
-              <div>
-                Valid:{" "}
-                <InlineBoolean
-                  value={task.verification_summary?.evidence_is_valid ?? false}
-                />
-              </div>
+              <StrictEvidenceBadge task={task} />
             </div>
           </td>
         </>
@@ -178,10 +164,17 @@ function renderCells(task: Task, view: DashboardView) {
             </div>
           </td>
           <td className="hidden px-4 py-3 md:table-cell">
-            <BooleanState
-              label={task.reconciliation_summary?.blocking ? "Blocking" : "Non-blocking"}
-              value={task.reconciliation_summary?.blocking ?? false}
-            />
+            <span
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
+                task.reconciliation_summary?.blocking
+                  ? "bg-warning/15 text-warning"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {task.reconciliation_summary?.blocking
+                ? "Blocks completion"
+                : "No completion block"}
+            </span>
           </td>
           <td className="hidden px-4 py-3 lg:table-cell">
             <TextList
@@ -246,12 +239,18 @@ function renderCells(task: Task, view: DashboardView) {
           <TaskIdentityCell
             task={task}
             subtitle={task.origin.source_id}
-            showTruthBadge
+            showTruthBadge={false}
           />
           <td className="hidden px-4 py-3 lg:table-cell">
             <StatusBadge status={task.current_status} variant="task" />
           </td>
           <td className="hidden px-4 py-3 md:table-cell">
+            <StrictVerificationBadge task={task} />
+          </td>
+          <td className="hidden px-4 py-3 lg:table-cell">
+            <StrictReconciliationBadge task={task} />
+          </td>
+          <td className="hidden px-4 py-3 xl:table-cell">
             <div className="space-y-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <ExternalLink className="h-3 w-3" />
@@ -326,28 +325,40 @@ function TaskIdentityCell({
 }
 
 function StrictVerificationBadge({ task }: { task: Task }) {
-  const isAccepted = task.verification_summary?.completion_accepted ?? false;
+  const summary = task.verification_summary;
+  const isAccepted = summary?.completion_accepted ?? false;
+  const label = summary ? (isAccepted ? "Accepted" : "Rejected") : "Not evaluated";
 
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
-        isAccepted
+        !summary
+          ? "bg-muted text-muted-foreground"
+          : isAccepted
           ? "bg-success/15 text-success"
           : "bg-destructive/15 text-destructive"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          isAccepted ? "bg-success" : "bg-destructive"
+          !summary ? "bg-muted-foreground" : isAccepted ? "bg-success" : "bg-destructive"
         }`}
       />
-      {isAccepted ? "Accepted" : "Rejected"}
+      {label}
     </span>
   );
 }
 
 function StrictReconciliationBadge({ task }: { task: Task }) {
   const summary = task.reconciliation_summary;
+  if (!summary) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+        Not reconciled
+      </span>
+    );
+  }
   const isAligned =
     summary?.result === "no_mismatch" &&
     !summary.blocking &&
@@ -367,6 +378,35 @@ function StrictReconciliationBadge({ task }: { task: Task }) {
         }`}
       />
       {isAligned ? "Aligned" : "Mismatch"}
+    </span>
+  );
+}
+
+function StrictEvidenceBadge({ task }: { task: Task }) {
+  const summary = task.verification_summary;
+  const isSufficient =
+    summary?.evidence_is_sufficient ?? summary?.evidence_sufficient ?? false;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${
+        !summary
+          ? "bg-muted text-muted-foreground"
+          : isSufficient
+            ? "bg-success/15 text-success"
+            : "bg-warning/15 text-warning"
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          !summary
+            ? "bg-muted-foreground"
+            : isSufficient
+              ? "bg-success"
+              : "bg-warning"
+        }`}
+      />
+      {!summary ? "No evidence status" : isSufficient ? "Sufficient" : "Insufficient"}
     </span>
   );
 }
