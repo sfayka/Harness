@@ -126,7 +126,8 @@ function getHeaders(view: DashboardView) {
         { label: "Status", className: "hidden lg:table-cell" },
         { label: "Verification", className: "hidden md:table-cell" },
         { label: "Reconciliation", className: "hidden lg:table-cell" },
-        { label: "Origin", className: "hidden xl:table-cell" },
+        { label: "Outcome", className: "hidden xl:table-cell" },
+        { label: "Origin", className: "hidden 2xl:table-cell" },
         { label: "Updated", className: "hidden md:table-cell" },
       ];
   }
@@ -182,8 +183,8 @@ function renderCells(task: Task, view: DashboardView) {
                   className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${severity.soft}`}
                 >
                   {task.reconciliation_summary?.blocking
-                    ? "Blocks completion"
-                    : "No completion block"}
+                    ? "Blocking"
+                    : "Non-blocking"}
                 </span>
               );
             })()}
@@ -263,6 +264,9 @@ function renderCells(task: Task, view: DashboardView) {
             <StrictReconciliationBadge task={task} />
           </td>
           <td className="hidden px-4 py-3 xl:table-cell">
+            <DerivedOutcomeBadge task={task} />
+          </td>
+          <td className="hidden px-4 py-3 2xl:table-cell">
             <div className="space-y-1 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 <ExternalLink className="h-3 w-3" />
@@ -376,7 +380,7 @@ function StrictReconciliationBadge({ task }: { task: Task }) {
       className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
-      {isAligned ? "Aligned" : "Mismatch"}
+      {isAligned ? "Aligned" : "Mismatch (non-aligned)"}
     </span>
   );
 }
@@ -395,6 +399,37 @@ function StrictEvidenceBadge({ task }: { task: Task }) {
     >
       <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
       {!summary ? "No evidence status" : isSufficient ? "Sufficient" : "Insufficient"}
+    </span>
+  );
+}
+
+function DerivedOutcomeBadge({ task }: { task: Task }) {
+  const hasBlockingOutcome =
+    task.current_status === "blocked" ||
+    task.current_status === "failed" ||
+    task.verification_summary?.result === "rejected" ||
+    task.reconciliation_summary?.blocking === true ||
+    (task.reconciliation_summary !== null &&
+      (task.reconciliation_summary.result !== "no_mismatch" ||
+        (task.reconciliation_summary.mismatch_categories?.length ?? 0) > 0));
+  const isSafe =
+    task.verification_summary?.result === "accepted" &&
+    (task.reconciliation_summary === null ||
+      (task.reconciliation_summary.result === "no_mismatch" &&
+        task.reconciliation_summary.blocking === false &&
+        (task.reconciliation_summary.mismatch_categories?.length ?? 0) === 0));
+
+  const severity = getSeverityClasses(
+    hasBlockingOutcome ? "failure" : isSafe ? "success" : "neutral",
+  );
+  const label = hasBlockingOutcome ? "Blocked" : isSafe ? "Safe" : "Pending";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
+      {label}
     </span>
   );
 }

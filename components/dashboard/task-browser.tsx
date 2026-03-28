@@ -5,7 +5,6 @@ import { OutcomeSeverity } from "@/lib/outcome-severity";
 import {
   AlertTriangle,
   CheckCircle2,
-  Clock3,
   Filter,
   GitCompare,
   RefreshCw,
@@ -213,24 +212,22 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
         tone: "success",
       },
       {
-        label: "Blocking",
-        value: tasks.filter((task) => task.reconciliation_summary?.blocking).length,
-        icon: AlertTriangle,
-        tone: "failure",
-      },
-      {
-        label: "Contradictions",
+        label: "Mismatch",
         value: tasks.filter((task) => {
-          const result = task.reconciliation_summary?.result;
-          return result === "contradictory_facts" || result === "wrong_target";
+          const summary = task.reconciliation_summary;
+          return (
+            summary !== null &&
+            (summary.result !== "no_mismatch" ||
+              (summary.mismatch_categories?.length ?? 0) > 0)
+          );
         }).length,
         icon: GitCompare,
         tone: "warning",
       },
       {
-        label: "Blocks Completion",
+        label: "Blocking",
         value: tasks.filter((task) => task.reconciliation_summary?.blocking).length,
-        icon: Clock3,
+        icon: AlertTriangle,
         tone: "failure",
       },
     ],
