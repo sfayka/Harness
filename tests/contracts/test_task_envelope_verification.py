@@ -232,7 +232,7 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
 
         self.assertEqual(result.outcome, VerificationOutcome.REVIEW_REQUIRED)
         self.assertTrue(result.requires_review)
-        self.assertEqual(result.target_status, "blocked")
+        self.assertEqual(result.target_status, "in_review")
 
     def test_returns_blocked_when_verification_conditions_are_unresolved(self) -> None:
         result = _evaluate(

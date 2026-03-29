@@ -268,6 +268,8 @@ class HarnessEvaluationEntryPointTests(unittest.TestCase):
 
         self.assertEqual(result.action, EnforcementAction.REVIEW_REQUIRED)
         self.assertTrue(result.requires_review)
+        self.assertEqual(result.target_status, "in_review")
+        self.assertEqual(result.task_envelope["status"], "in_review")
         self.assertEqual(result.enforcement_result.verification_result.outcome, VerificationOutcome.REVIEW_REQUIRED)
 
     def test_rejects_invalid_input(self) -> None:

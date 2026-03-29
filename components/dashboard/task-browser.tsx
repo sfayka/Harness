@@ -80,6 +80,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
     filterTask: (task) =>
       task.verification_summary !== null ||
       task.current_status === "executing" ||
+      task.current_status === "in_review" ||
       task.current_status === "completed",
     sortTasks: (tasks) =>
       [...tasks].sort((left, right) => {

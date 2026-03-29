@@ -311,6 +311,9 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.action, EnforcementAction.REVIEW_REQUIRED)
         self.assertEqual(result.review_request.review_request_id, "review-request-1")
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.REVIEW_REQUIRED)
+        self.assertEqual(result.target_status, "in_review")
+        self.assertEqual(result.task_envelope["status"], "in_review")
+        self.assertIsNotNone(result.transition_result)
 
     def test_review_outcome_can_authorize_follow_up_action(self) -> None:
         task = _base_task(status="blocked")

@@ -44,6 +44,9 @@ const taskStatusConfig: Record<
   blocked: {
     label: "Blocked",
   },
+  in_review: {
+    label: "In Review",
+  },
   completed: {
     label: "Completed",
   },

@@ -406,6 +406,7 @@ function StrictEvidenceBadge({ task }: { task: Task }) {
 function DerivedOutcomeBadge({ task }: { task: Task }) {
   const hasBlockingOutcome =
     task.current_status === "blocked" ||
+    task.current_status === "in_review" ||
     task.current_status === "failed" ||
     task.verification_summary?.result === "rejected" ||
     task.reconciliation_summary?.blocking === true ||

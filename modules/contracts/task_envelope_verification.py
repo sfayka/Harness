@@ -179,7 +179,7 @@ def evaluate_verification_decision(
         return VerificationDecisionResult(
             task_id=task_id,
             outcome=VerificationOutcome.REVIEW_REQUIRED,
-            target_status="blocked",
+            target_status="in_review",
             claimed_completion=True,
             accepted_completion=False,
             requires_review=True,

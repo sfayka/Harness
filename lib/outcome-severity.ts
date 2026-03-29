@@ -46,6 +46,8 @@ export function getTaskStatusSeverity(status: TaskStatus): OutcomeSeverity {
   switch (status) {
     case "completed":
       return "success";
+    case "in_review":
+      return "warning";
     case "blocked":
     case "failed":
       return "failure";

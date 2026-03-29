@@ -256,7 +256,7 @@ Typical cases:
 - reconciliation sources disagree in a way policy cannot resolve automatically
 - acceptance criteria require human judgment that cannot be reduced to current automatic checks
 
-For current architecture purposes, `requires_review` is a verification outcome even if it is not yet a first-class lifecycle enum.
+`requires_review` is a verification outcome that moves the task into the explicit `in_review` lifecycle state.
 
 Manual review is non-terminal unless and until a later explicit decision resolves it.
 

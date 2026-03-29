@@ -276,6 +276,8 @@ class EndToEndEnforcementTests(unittest.TestCase):
         self.assertEqual(result.action, EnforcementAction.REVIEW_REQUIRED)
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.REVIEW_REQUIRED)
         self.assertEqual(result.review_request.review_request_id, "review-request-e2e-1")
+        self.assertEqual(result.task_envelope["status"], "in_review")
+        self.assertEqual(result.target_status, "in_review")
 
     def test_wrong_target_execution_fails_when_normalized_github_facts_point_to_other_branch(self) -> None:
         task = _base_task(status="executing")

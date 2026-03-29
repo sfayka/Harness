@@ -53,7 +53,7 @@ flowchart LR
 - translates that work into canonical control-plane contracts
 - decomposes work into manageable tasks when needed
 - delegates execution to replaceable workers
-- enforces explicit lifecycle semantics, including blocked and failed states
+- enforces explicit lifecycle semantics, including blocked, in-review, and failed states
 - verifies completion against artifacts and system-of-record state
 - aggregates verified outcomes for upstream reporting and work-surface reconciliation
 
