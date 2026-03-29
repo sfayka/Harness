@@ -63,6 +63,7 @@ class HarnessSimulatorTests(unittest.TestCase):
 
         self.assertEqual(result.final_task_status, "completed")
         self.assertEqual(result.steps[0].action, "review_required")
+        self.assertEqual(result.steps[0].task_status, "in_review")
         self.assertIn(result.steps[1].action, {"transition_applied", "follow_up_authorized"})
         self.assertEqual(len(result.evaluation_history), 2)
 

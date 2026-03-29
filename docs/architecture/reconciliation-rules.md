@@ -259,7 +259,9 @@ Typical when:
 
 Manual review is a reconciliation outcome, not a substitute for explicit lifecycle semantics. Future implementation may represent this through a dedicated review flag or mismatch record while preserving the underlying task state.
 
-For current architecture purposes, `requires_review` should be treated as an explicit reconciliation outcome even if it is not yet a first-class lifecycle enum in `TaskEnvelope`.
+Current implementation maps reconciliation-driven manual review to the explicit `in_review` lifecycle state. A task that requires review must not remain `completed`.
+
+`linear_record_not_found` is intentionally classified as `review_required` rather than an automatic mismatch. The missing record may mean the task reference is unresolved, stale, or ambiguous, and Harness should not guess which contradiction applies without human review.
 
 ### Task May Become Failed
 

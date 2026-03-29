@@ -45,6 +45,7 @@ class HarnessCliTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertIn("requires_review: True", output)
         self.assertIn("action: review_required", output)
+        self.assertIn("task_status: in_review", output)
 
     def test_runs_invalid_input_case(self) -> None:
         exit_code, output = self._run_cli("run", "invalid_input", "--json")

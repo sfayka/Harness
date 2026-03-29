@@ -199,6 +199,8 @@ python -m modules.demo_bootstrap --exit-after-seed
 
 Or use the full walkthrough flow in [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md).
 
+`review_required_then_completed` now uses the explicit `in_review` lifecycle state. A review-required evaluation does not leave the task in `completed`; manual review is what resolves it back to a terminal or follow-up state.
+
 ### Current hosted examples
 
 As of March 28, 2026, the hosted backend currently contains these useful example tasks:

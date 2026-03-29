@@ -86,7 +86,7 @@ Harness derives:
 
 Harness returns:
 
-- control-plane outcome: `completed`, `blocked`, `failed`, or `review_required`
+- control-plane outcome: `completed`, `blocked`, `in_review`, or `failed`
 - evidence validation result
 - reconciliation result
 - required follow-up actions
@@ -119,9 +119,9 @@ This keeps review-required cases explicit: unresolved Linear identity is represe
 
 ## Boundary Note
 
-`review_required` should be understood as a control-plane outcome returned to Linear.
+`review_required` should be understood as the decision outcome that moves Harness into the explicit `in_review` lifecycle state.
 
-It does not require Linear and Harness to share the same internal lifecycle enum. Harness may still keep the underlying task in a blocked state until review is resolved.
+Linear does not need to share the same internal enum, but Harness must not keep the underlying task in `completed` once review is required.
 
 ## Non-Goals
 

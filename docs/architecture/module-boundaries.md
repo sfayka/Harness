@@ -17,7 +17,7 @@ Each module below has one owner. Ownership here means responsibility for the mod
 | Artifact evidence sync | GitHub integration layer | collect pull request, commit, and review evidence, reconcile artifact state with task state, expose evidence facts to Harness | lifecycle policy, planning decisions |
 | Assignment and routing | Harness core | choose executor type, assign work, reassign stalled tasks, enforce assignment rules | executor implementation details, user-facing clarification |
 | Execution gateway | Executor integration layer | send tasks to Codex or future workers, collect outputs, normalize execution events | planning, source-of-truth ownership, completion authority |
-| Verification and completion enforcement | Harness core | require artifact-backed completion where applicable, enforce blocked, failed, and completed semantics, reconcile evidence before terminal state changes | executor implementation details, ingress behavior |
+| Verification and completion enforcement | Harness core | require artifact-backed completion where applicable, enforce blocked, in-review, failed, and completed semantics, reconcile evidence before terminal state changes | executor implementation details, ingress behavior |
 | Workflow runtime adapter | Workflow substrate layer | persist workflow checkpoints, resume interrupted runs, model orchestration progress through durable state | user-facing ingress, structured work definitions |
 | Reporting and summarization | Harness core | aggregate verified task outcomes and expose upstream progress summaries | direct executor control, source-of-truth ownership |
 

@@ -167,6 +167,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
 
         initial_status, initial_response = self.service.evaluate(initial_payload)
         task_id = initial_response["task_envelope"]["id"]
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
 
         reevaluation_status, _ = self.service.reevaluate(
             task_id,

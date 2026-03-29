@@ -29,6 +29,7 @@ export function StatsCards({ tasks }: StatsCardsProps) {
     blockedUnresolved: tasks.filter(
       (t) =>
         t.current_status === "blocked" ||
+        t.current_status === "in_review" ||
         (t.reconciliation_summary?.result === "stale_evidence")
     ).length,
 
@@ -44,6 +45,7 @@ export function StatsCards({ tasks }: StatsCardsProps) {
     // Review Required: explicit review requested OR insufficient evidence
     reviewRequired: tasks.filter(
       (t) =>
+        t.current_status === "in_review" ||
         t.review_summary.status === "requested" ||
         t.verification_summary?.result === "insufficient_evidence"
     ).length,
@@ -52,7 +54,8 @@ export function StatsCards({ tasks }: StatsCardsProps) {
     pendingVerification: tasks.filter(
       (t) =>
         (t.current_status === "executing" ||
-          t.current_status === "completed") &&
+          t.current_status === "completed" ||
+          t.current_status === "in_review") &&
         (!t.verification_summary ||
           t.verification_summary.result === "pending" ||
           t.verification_summary.result === "deferred")

@@ -82,6 +82,7 @@ TaskEnvelope uses the following canonical states:
 | `assigned` | task has an executor selected but execution has not yet started |
 | `executing` | executor has started work |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
+| `in_review` | automatic policy could not safely accept completion and the task is awaiting explicit manual review |
 | `completed` | task satisfied its acceptance criteria and has a provisional completed outcome pending successful reconciliation where reconciliation is required |
 | `failed` | task reached a terminal unsuccessful outcome |
 | `canceled` | task was intentionally stopped and should not continue |
@@ -103,17 +104,27 @@ Canonical transitions:
 - `assigned` -> `failed`
 - `assigned` -> `canceled`
 - `executing` -> `completed`
+- `executing` -> `in_review`
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `executing` -> `canceled`
 - `completed` -> `blocked`
+- `completed` -> `in_review`
 - `blocked` -> `intake_ready`
 - `blocked` -> `planned`
 - `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
 - `blocked` -> `executing`
+- `blocked` -> `in_review`
 - `blocked` -> `completed`
 - `blocked` -> `canceled`
+- `in_review` -> `planned`
+- `in_review` -> `dispatch_ready`
+- `in_review` -> `assigned`
+- `in_review` -> `blocked`
+- `in_review` -> `completed`
+- `in_review` -> `failed`
+- `in_review` -> `canceled`
 
 Terminal states:
 
@@ -127,6 +138,8 @@ Allowed transitions are not sufficient by themselves. Each transition must also 
 For tasks with required completion evidence, transition to `completed` is only valid after `artifacts.completion_evidence.status` reaches `satisfied`.
 
 `completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
+
+If verification or reconciliation determines that completion requires explicit human judgment, the task must move to `in_review` rather than remaining `completed`.
 
 `blocked` may also move back to `completed` when the blocking condition was specifically about unresolved completion acceptance and later verification or manual review resolves that blocker with sufficient evidence and non-blocking reconciliation.
 

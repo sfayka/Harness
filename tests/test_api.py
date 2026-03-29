@@ -610,9 +610,11 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["action"], "review_required")
+        self.assertEqual(payload["target_status"], "in_review")
         self.assertTrue(payload["requires_review"])
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["id"], task_id)
+        self.assertEqual(task_payload["task"]["status"], "in_review")
         self.assertEqual(history_status, 200)
         self.assertEqual(history_payload["evaluations"][0]["result"]["action"], "review_required")
 
@@ -763,9 +765,11 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["action"], "review_required")
+        self.assertEqual(payload["target_status"], "in_review")
         self.assertTrue(payload["requires_review"])
         self.assertEqual(task_status, 200)
-        self.assertEqual(task_payload["task"]["status"], payload["task_envelope"]["status"])
+        self.assertEqual(task_payload["task"]["status"], "in_review")
+        self.assertEqual(payload["task_envelope"]["status"], "in_review")
         self.assertEqual(history_status, 200)
         self.assertEqual(history_payload["evaluations"][0]["result"]["action"], "review_required")
 
@@ -916,6 +920,7 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(initial_status, 200)
         self.assertEqual(initial_response["action"], "review_required")
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
         self.assertEqual(reevaluation_status, 200)
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertIn(reevaluation_response["action"], {"transition_applied", "follow_up_authorized"})

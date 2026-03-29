@@ -5,6 +5,7 @@ export type TaskStatus =
   | "assigned"
   | "executing"
   | "blocked"
+  | "in_review"
   | "completed"
   | "failed"
   | "canceled";

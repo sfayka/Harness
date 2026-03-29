@@ -212,6 +212,20 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.status, ReconciliationStatus.REVIEW_REQUIRED)
         self.assertTrue(result.blocking)
 
+    def test_classifies_missing_linear_record_as_review_required_not_mismatch(self) -> None:
+        result = _evaluate(
+            _base_task_envelope(),
+            linear_facts=LinearFacts(
+                record_found=False,
+                reasons=("Linear sync has not resolved the matching record identity.",),
+            ),
+        )
+
+        self.assertEqual(result.outcome, ReconciliationOutcome.REVIEW_REQUIRED)
+        self.assertEqual(result.status, ReconciliationStatus.REVIEW_REQUIRED)
+        self.assertTrue(result.blocking)
+        self.assertIn(MismatchCategory.LINEAR_RECORD_NOT_FOUND, result.mismatch_categories)
+
     def test_returns_pending_when_reconciliation_facts_are_still_pending(self) -> None:
         result = _evaluate(
             _base_task_envelope(),

@@ -199,6 +199,24 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
         self.assertIsNone(result.task_envelope["timestamps"]["completed_at"])
         self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "completed")
 
+    def test_completed_to_in_review_clears_completed_timestamp(self) -> None:
+        task = _base_task()
+        task["status"] = "completed"
+        task["timestamps"]["completed_at"] = "2026-03-25T12:30:00Z"
+
+        result = apply_task_transition(
+            task,
+            to_status="in_review",
+            actor="verification",
+            reason="Reconciliation requires explicit manual review.",
+            now="2026-03-25T12:35:00Z",
+        )
+
+        self.assertEqual(result.task_envelope["status"], "in_review")
+        self.assertIsNone(result.task_envelope["timestamps"]["completed_at"])
+        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "completed")
+        self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "in_review")
+
     def test_blocked_to_completed_is_allowed_when_verification_later_resolves_the_blocker(self) -> None:
         task = _base_task()
         task["status"] = "blocked"
@@ -234,6 +252,56 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
         self.assertEqual(result.task_envelope["status"], "completed")
         self.assertEqual(result.task_envelope["timestamps"]["completed_at"], "2026-03-25T12:41:00Z")
         self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "blocked")
+        self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
+
+    def test_in_review_to_completed_requires_manual_review_authority(self) -> None:
+        task = _base_task()
+        task["status"] = "in_review"
+        task["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "satisfied",
+            "required_artifact_types": ["commit"],
+            "validated_artifact_ids": ["artifact-1"],
+            "validation_method": "external_reconciliation",
+            "validated_at": "2026-03-25T12:40:00Z",
+            "validator": {
+                "source_system": "harness",
+                "source_type": "verification",
+                "source_id": "verification-2",
+                "captured_by": "verification",
+            },
+            "notes": "Manual review accepted the completion claim.",
+        }
+
+        with self.assertRaisesRegex(TransitionAuthorityError, "not authorized"):
+            validate_task_transition(
+                task,
+                to_status="completed",
+                actor="verification",
+                reason="Verification alone should not resolve in-review tasks.",
+                facts={
+                    "verification_passed": True,
+                    "acceptance_criteria_satisfied": True,
+                    "reconciliation_passed": True,
+                },
+            )
+
+        result = apply_task_transition(
+            task,
+            to_status="completed",
+            actor="manual_review",
+            reason="Manual review accepted the completion claim.",
+            now="2026-03-25T12:41:00Z",
+            facts={
+                "verification_passed": True,
+                "acceptance_criteria_satisfied": True,
+                "reconciliation_passed": True,
+            },
+        )
+
+        self.assertEqual(result.task_envelope["status"], "completed")
+        self.assertEqual(result.task_envelope["timestamps"]["completed_at"], "2026-03-25T12:41:00Z")
+        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "in_review")
         self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
 
     def test_blocked_to_planned_rejects_unresolved_clarification(self) -> None:

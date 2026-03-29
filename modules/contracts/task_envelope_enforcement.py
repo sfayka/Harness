@@ -292,15 +292,37 @@ def enforce_task_envelope(
                     verification_result=verification_result,
                 )
 
+        transition_result = None
+        transitioned_task = task_envelope
+        if verification_result.target_status and task_envelope["status"] != verification_result.target_status:
+            try:
+                transition_result = apply_task_transition(
+                    task_envelope,
+                    to_status=verification_result.target_status,
+                    actor="verification",
+                    reason="; ".join(verification_result.reasons),
+                )
+            except LifecycleTransitionError as error:
+                return _result_with_error(
+                    task_envelope,
+                    action=EnforcementAction.TRANSITION_REJECTED,
+                    error=error,
+                    evidence_result=evidence_result,
+                    reconciliation_result=reconciliation_result,
+                    verification_result=verification_result,
+                    review_request=review_request,
+                )
+            transitioned_task = transition_result.task_envelope
+
         return EnforcementResult(
             action=EnforcementAction.REVIEW_REQUIRED,
-            task_envelope=task_envelope,
+            task_envelope=transitioned_task,
             evidence_result=evidence_result,
             reconciliation_result=reconciliation_result,
             verification_result=verification_result,
             review_request=review_request,
             review_decision=None,
-            transition_result=None,
+            transition_result=transition_result,
             target_status=verification_result.target_status,
             reasons=verification_result.reasons,
         )

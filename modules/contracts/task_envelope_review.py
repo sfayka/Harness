@@ -107,6 +107,7 @@ _ALLOWED_STATUSES = {
     "assigned",
     "executing",
     "blocked",
+    "in_review",
     "completed",
     "failed",
     "canceled",

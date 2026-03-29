@@ -56,6 +56,7 @@ Do not casually turn this repo into:
 8. Public API clients must go through canonical submission and reevaluation paths rather than internal shortcuts.
 9. Evaluation history remains append-only and auditable.
 10. Manual review remains explicit and auditable, not an informal bypass.
+11. `requires_review=true` must move the task into the explicit `in_review` lifecycle state; it must not remain `completed`.
 
 ## Rules For Modifying TaskEnvelope And Schema
 
@@ -80,6 +81,7 @@ Files under `modules/contracts/`, `modules/evaluation.py`, `modules/api.py`, and
 When changing them:
 
 - preserve the distinction between invalid, insufficient, mismatched, blocked, deferred, review-required, and accepted outcomes
+- preserve the distinction between contradiction (`mismatch`), unresolved ambiguity (`pending` / unresolved facts), and explicit manual-review escalation (`review_required`)
 - do not let worker events authorize arbitrary lifecycle transitions
 - do not bypass verification or reconciliation because a demo path wants a simpler result
 - keep evaluation and persistence boundaries explicit
