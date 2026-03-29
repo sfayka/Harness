@@ -91,6 +91,17 @@ Harness returns:
 - reconciliation result
 - required follow-up actions
 
+## Linear Facts Contract
+
+When Harness receives normalized `linear_facts` through the public API:
+
+- `record_found=false` means the Linear record is unresolved, and `workflow` must be `null` or omitted
+- `record_found=true` means the record is resolved, and `workflow` must be an object containing:
+  - `workflow_id`
+  - `workflow_name`
+
+This keeps review-required cases explicit: unresolved Linear identity is represented with `record_found=false`, not with a partially populated workflow object.
+
 ## Example: Feature Implementation Task
 
 1. A Linear issue is created for a feature implementation task.

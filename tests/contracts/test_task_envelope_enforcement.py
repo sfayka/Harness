@@ -13,6 +13,7 @@ from modules.contracts.task_envelope_external_facts import (
     CommitFact,
     GitHubArtifactFacts,
     LinearFacts,
+    LinearWorkflowFact,
     PullRequestFact,
     RepositoryFact,
 )
@@ -203,7 +204,12 @@ def _aligned_reconciliation_input(
             pull_request=PullRequestFact(number=200, review_state="approved"),
             changed_files=ChangedFilesSummary(matches_expected_scope=True),
         ),
-        linear_facts=LinearFacts(record_found=True, issue_id="lin-1", state=linear_state),
+        linear_facts=LinearFacts(
+            record_found=True,
+            issue_id="lin-1",
+            state=linear_state,
+            workflow=LinearWorkflowFact(workflow_id="workflow-linear-1", workflow_name=linear_state),
+        ),
     )
 
 

@@ -8,47 +8,28 @@ import json
 import shutil
 import subprocess
 import sys
-from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
-from enum import Enum
 from pathlib import Path
 from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from modules.connectors.openclaw_harness_spike import (  # noqa: E402
-    OpenClawSourceContext,
-    OpenClawTaskIntent,
-    build_task_submission_payload,
-)
-from modules.demo_cases import build_demo_request  # noqa: E402
 
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "exports" / "agent-contract"
+DEFAULT_EXAMPLES_DIR = REPO_ROOT / "examples" / "api"
 SOURCE_PATHS = (
     "AGENTS.md",
     "README.md",
+    "docs/api/agent-api-usage.md",
     "docs/architecture/runtime-execution-contract.md",
     "docs/integration/openclaw-harness-spike.md",
-    "modules/connectors/ingress_request_builder.py",
-    "modules/connectors/openclaw_harness_spike.py",
-    "modules/demo_cases.py",
+    "examples/api/create-task.json",
+    "examples/api/evaluate-happy-path.json",
+    "examples/api/evaluate-mismatch.json",
+    "examples/api/evaluate-review-required.json",
+    "scripts/render_api_examples.py",
 )
-
-
-def _to_jsonable(value: Any) -> Any:
-    if is_dataclass(value):
-        return {key: _to_jsonable(item) for key, item in asdict(value).items()}
-    if isinstance(value, Enum):
-        return value.value
-    if isinstance(value, dict):
-        return {str(key): _to_jsonable(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_to_jsonable(item) for item in value]
-    return value
 
 
 def _repo_head_sha(repo_root: Path) -> str:
@@ -63,32 +44,6 @@ def _repo_head_sha(repo_root: Path) -> str:
 
 def _write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _build_create_task_example() -> dict[str, Any]:
-    return build_task_submission_payload(
-        intent=OpenClawTaskIntent(
-            task_id="task-openclaw-spike-1",
-            title="Validate Harness API boundary from OpenClaw",
-            description="Submit a task through the canonical Harness API boundary.",
-            acceptance_criteria=(
-                "Harness accepts the canonical task envelope at POST /tasks.",
-                "The stored task preserves ingress provenance for later evaluation.",
-            ),
-            objective_summary="Prove that ingress clients can submit work through the canonical Harness API.",
-            deliverable_type="api_submission",
-            success_signal="Harness stores the task and returns the canonical inspection surfaces.",
-            requested_by="operator@example.com",
-        ),
-        context=OpenClawSourceContext(
-            conversation_id="conv-openclaw-spike-1",
-            message_id="msg-openclaw-spike-1",
-            channel="cli",
-            workspace_id="workspace-openclaw-spike",
-            user_id="operator@example.com",
-            agent_id="openclaw-assistant",
-        ),
-    )
 
 
 def _bundle_readme(*, commit_sha: str, generated_at: str) -> str:
@@ -134,6 +89,9 @@ def export_agent_contract(output_dir: Path) -> Path:
     if output_dir.exists():
         shutil.rmtree(output_dir)
 
+    render_examples_script = REPO_ROOT / "scripts" / "render_api_examples.py"
+    subprocess.run([sys.executable, str(render_examples_script)], cwd=REPO_ROOT, check=True)
+
     examples_dir = output_dir / "examples"
     examples_dir.mkdir(parents=True, exist_ok=True)
 
@@ -152,16 +110,13 @@ def export_agent_contract(output_dir: Path) -> Path:
         encoding="utf-8",
     )
 
-    _write_json(examples_dir / "create-task.json", _build_create_task_example())
-    _write_json(examples_dir / "evaluate-happy-path.json", {"request": _to_jsonable(build_demo_request("accepted_completion"))})
-    _write_json(
-        examples_dir / "evaluate-mismatch.json",
-        {"request": _to_jsonable(build_demo_request("blocked_reconciliation_mismatch"))},
-    )
-    _write_json(
-        examples_dir / "evaluate-review-required.json",
-        {"request": _to_jsonable(build_demo_request("review_required"))},
-    )
+    for example_name in (
+        "create-task.json",
+        "evaluate-happy-path.json",
+        "evaluate-mismatch.json",
+        "evaluate-review-required.json",
+    ):
+        shutil.copy2(DEFAULT_EXAMPLES_DIR / example_name, examples_dir / example_name)
 
     return output_dir
 

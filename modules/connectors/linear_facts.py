@@ -140,6 +140,10 @@ def translate_linear_facts(payload: Mapping[str, Any]) -> LinearFacts:
         state_name = workflow.workflow_name
     elif raw_state_payload is not None:
         state_name = _optional_string(raw_state_payload)
+        if record_found:
+            raise LinearConnectorInputError(
+                "record_found=true requires workflow/state to be an object with id and name"
+            )
 
     linear_facts = LinearFacts(
         record_found=record_found,

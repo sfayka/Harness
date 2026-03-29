@@ -920,6 +920,51 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertIn(reevaluation_response["action"], {"transition_applied", "follow_up_authorized"})
 
+    def test_api_accepts_review_required_linear_facts_with_null_workflow_when_record_not_found(self) -> None:
+        payload = _request_payload("review_required")
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "review_required")
+
+    def test_api_accepts_review_required_linear_facts_with_omitted_workflow_when_record_not_found(self) -> None:
+        payload = _request_payload("review_required")
+        del payload["request"]["external_facts"]["linear_facts"]["workflow"]
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "review_required")
+
+    def test_api_rejects_record_found_linear_facts_without_workflow(self) -> None:
+        payload = _request_payload("accepted_completion")
+        del payload["request"]["external_facts"]["linear_facts"]["workflow"]
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertEqual(
+            response["error"],
+            "Invalid external_facts.linear_facts.workflow: must be null/omitted when record_found=false, or an object with workflow_id and workflow_name when record_found=true",
+        )
+
+    def test_api_rejects_record_found_linear_facts_with_incomplete_workflow(self) -> None:
+        payload = _request_payload("accepted_completion")
+        payload["request"]["external_facts"]["linear_facts"]["workflow"] = {
+            "workflow_id": "workflow-in-progress",
+        }
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertEqual(
+            response["error"],
+            "Invalid external_facts.linear_facts.workflow: must be null/omitted when record_found=false, or an object with workflow_id and workflow_name when record_found=true",
+        )
+
     def test_api_can_reevaluate_pending_task_to_completed_when_external_facts_arrive(self) -> None:
         initial_payload = _request_payload("accepted_completion")
         initial_payload["request"]["external_facts"] = None
