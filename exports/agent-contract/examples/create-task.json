@@ -1,0 +1,95 @@
+{
+  "request": {
+    "acceptance_criteria_satisfied": false,
+    "claimed_completion": false,
+    "external_facts": {},
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "Harness accepts the canonical task envelope at POST /tasks.",
+          "id": "ac-1",
+          "required": true
+        },
+        {
+          "description": "The stored task preserves ingress provenance for later evaluation.",
+          "id": "ac-2",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": null,
+          "policy": "deferred",
+          "required_artifact_types": [],
+          "status": "deferred",
+          "validated_artifact_ids": [],
+          "validated_at": null,
+          "validation_method": "deferred",
+          "validator": null
+        },
+        "items": []
+      },
+      "assigned_executor": null,
+      "child_task_ids": [],
+      "constraints": [],
+      "dependencies": [],
+      "description": "Submit a task through the canonical Harness API boundary.",
+      "extensions": {
+        "openclaw": {
+          "agent_id": "openclaw-assistant",
+          "channel": "cli",
+          "conversation_id": "conv-openclaw-spike-1",
+          "message_id": "msg-openclaw-spike-1",
+          "user_id": "operator@example.com",
+          "workspace_id": "workspace-openclaw-spike"
+        }
+      },
+      "id": "task-openclaw-spike-1",
+      "objective": {
+        "deliverable_type": "api_submission",
+        "success_signal": "Harness stores the task and returns the canonical inspection surfaces.",
+        "summary": "Prove that ingress clients can submit work through the canonical Harness API."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": "conv-openclaw-spike-1",
+        "ingress_name": "OpenClaw",
+        "requested_by": "operator@example.com",
+        "source_id": "msg-openclaw-spike-1",
+        "source_system": "openclaw",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "required_capabilities": [],
+      "status": "intake_ready",
+      "status_history": [],
+      "timestamps": {
+        "completed_at": null,
+        "created_at": "2026-03-29T15:38:47.354685Z",
+        "updated_at": "2026-03-29T15:38:47.354685Z"
+      },
+      "title": "Validate Harness API boundary from OpenClaw"
+    }
+  }
+}
