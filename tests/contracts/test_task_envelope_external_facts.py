@@ -99,10 +99,23 @@ class NormalizedExternalFactModelTests(unittest.TestCase):
             issue_id=None,
             issue_key=None,
             state="in_progress",
+            workflow=LinearWorkflowFact(workflow_id="wf-2", workflow_name="In Progress"),
         )
 
         with self.assertRaisesRegex(ExternalFactValidationError, "issue_id or issue_key"):
             validate_linear_facts(linear_facts)
+
+    def test_accepts_record_not_found_with_null_workflow(self) -> None:
+        validated = validate_linear_facts(
+            LinearFacts(
+                record_found=False,
+                workflow=None,
+                reasons=("Linear record is not yet resolvable.",),
+            )
+        )
+
+        self.assertFalse(validated.record_found)
+        self.assertIsNone(validated.workflow)
 
     def test_rejects_linear_facts_when_record_not_found_still_carries_state(self) -> None:
         linear_facts = LinearFacts(
@@ -111,6 +124,28 @@ class NormalizedExternalFactModelTests(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(ExternalFactValidationError, "record_found=False"):
+            validate_linear_facts(linear_facts)
+
+    def test_rejects_record_found_true_without_workflow(self) -> None:
+        linear_facts = LinearFacts(
+            record_found=True,
+            issue_id="lin_124",
+            state="completed",
+            workflow=None,
+        )
+
+        with self.assertRaisesRegex(ExternalFactValidationError, "workflow with workflow_id and workflow_name"):
+            validate_linear_facts(linear_facts)
+
+    def test_rejects_record_found_true_with_incomplete_workflow(self) -> None:
+        linear_facts = LinearFacts(
+            record_found=True,
+            issue_id="lin_125",
+            state="completed",
+            workflow=LinearWorkflowFact(workflow_id="", workflow_name="Done"),
+        )
+
+        with self.assertRaisesRegex(ExternalFactValidationError, "linear.workflow.workflow_id"):
             validate_linear_facts(linear_facts)
 
 

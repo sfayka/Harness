@@ -124,16 +124,14 @@ class LinearConnectorTranslationTests(unittest.TestCase):
         self.assertEqual(facts.project.project_id, "project_1")
         self.assertEqual(facts.task_reference.harness_task_id, "task-linear-1")
 
-    def test_allows_string_state_without_workflow_object(self) -> None:
-        facts = translate_linear_facts(
-            {
-                "issue": {"id": "lin_124"},
-                "state": "in_progress",
-            }
-        )
-
-        self.assertEqual(facts.state, "in_progress")
-        self.assertIsNone(facts.workflow)
+    def test_rejects_string_state_without_workflow_object(self) -> None:
+        with self.assertRaisesRegex(LinearConnectorInputError, "record_found=true requires workflow/state"):
+            translate_linear_facts(
+                {
+                    "issue": {"id": "lin_124"},
+                    "state": "in_progress",
+                }
+            )
 
     def test_rejects_missing_issue_identity(self) -> None:
         with self.assertRaises(LinearConnectorInputError):
@@ -199,7 +197,12 @@ class LinearConnectorTranslationTests(unittest.TestCase):
                     claimed_completion=True,
                     evidence_policy="required",
                     evidence_status="satisfied",
-                    linear_facts=LinearFacts(record_found=True, issue_id="lin_128", state=None),
+                    linear_facts=LinearFacts(
+                        record_found=True,
+                        issue_id="lin_128",
+                        state=None,
+                        workflow=None,
+                    ),
                 ),
             )
 

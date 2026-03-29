@@ -8,6 +8,7 @@ from modules.contracts.task_envelope_external_facts import (
     CommitFact,
     GitHubArtifactFacts,
     LinearFacts,
+    LinearWorkflowFact,
     PullRequestFact,
     RepositoryFact,
 )
@@ -137,7 +138,12 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
                 pull_request=PullRequestFact(number=100, review_state="approved"),
                 changed_files=ChangedFilesSummary(matches_expected_scope=True),
             ),
-            linear_facts=LinearFacts(record_found=True, issue_id="lin-1", state="completed"),
+            linear_facts=LinearFacts(
+                record_found=True,
+                issue_id="lin-1",
+                state="completed",
+                workflow=LinearWorkflowFact(workflow_id="workflow-done", workflow_name="completed"),
+            ),
         )
 
         self.assertEqual(result.outcome, ReconciliationOutcome.NO_MISMATCH)
@@ -184,7 +190,12 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
     def test_returns_contradictory_facts_for_linear_status_conflict(self) -> None:
         result = _evaluate(
             _base_task_envelope(),
-            linear_facts=LinearFacts(record_found=True, issue_id="lin-1", state="in_progress"),
+            linear_facts=LinearFacts(
+                record_found=True,
+                issue_id="lin-1",
+                state="in_progress",
+                workflow=LinearWorkflowFact(workflow_id="workflow-active", workflow_name="in_progress"),
+            ),
         )
 
         self.assertEqual(result.outcome, ReconciliationOutcome.CONTRADICTORY_FACTS)

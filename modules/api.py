@@ -25,6 +25,7 @@ from modules.contracts.task_envelope_external_facts import (
     ChangedFileFact,
     ChangedFilesSummary,
     CommitFact,
+    ExternalFactValidationError,
     GitHubArtifactFacts,
     LinearFacts,
     LinearProjectFact,
@@ -32,6 +33,7 @@ from modules.contracts.task_envelope_external_facts import (
     LinearWorkflowFact,
     PullRequestFact,
     RepositoryFact,
+    validate_linear_facts,
 )
 from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
 from modules.contracts.task_envelope_review import (
@@ -58,6 +60,12 @@ from modules.store import (
 
 class ApiRequestError(ValueError):
     """Raised when the HTTP API receives malformed request payloads."""
+
+
+LINEAR_WORKFLOW_CONTRACT_ERROR = (
+    "Invalid external_facts.linear_facts.workflow: must be null/omitted when record_found=false, "
+    "or an object with workflow_id and workflow_name when record_found=true"
+)
 
 
 def _iso_now() -> str:
@@ -156,19 +164,48 @@ def _parse_linear_facts(payload: dict[str, Any] | None) -> LinearFacts | None:
     if payload is None:
         return None
     linear_payload = _require_mapping(payload, field_name="external_facts.linear_facts")
-    workflow_payload = _optional_mapping(linear_payload.get("workflow"), field_name="workflow")
+    record_found = linear_payload.get("record_found", True)
+    if not isinstance(record_found, bool):
+        raise ApiRequestError("external_facts.linear_facts.record_found must be a boolean")
+
+    raw_workflow_payload = linear_payload.get("workflow")
+    workflow = None
+    if record_found:
+        workflow_payload = _optional_mapping(raw_workflow_payload, field_name="external_facts.linear_facts.workflow")
+        if workflow_payload is None:
+            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
+        workflow_id = workflow_payload.get("workflow_id")
+        workflow_name = workflow_payload.get("workflow_name")
+        if not isinstance(workflow_id, str) or not workflow_id.strip():
+            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
+        if not isinstance(workflow_name, str) or not workflow_name.strip():
+            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
+        workflow = LinearWorkflowFact(
+            workflow_id=workflow_id.strip(),
+            workflow_name=workflow_name.strip(),
+            state_type=workflow_payload.get("state_type"),
+        )
+    elif raw_workflow_payload is not None:
+        raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
+
     project_payload = _optional_mapping(linear_payload.get("project"), field_name="project")
     task_reference_payload = _optional_mapping(linear_payload.get("task_reference"), field_name="task_reference")
-    return LinearFacts(
-        record_found=linear_payload.get("record_found", True),
+    linear_facts = LinearFacts(
+        record_found=record_found,
         issue_id=linear_payload.get("issue_id"),
         issue_key=linear_payload.get("issue_key"),
         state=linear_payload.get("state"),
-        workflow=LinearWorkflowFact(**workflow_payload) if workflow_payload is not None else None,
+        workflow=workflow,
         project=LinearProjectFact(**project_payload) if project_payload is not None else None,
         task_reference=LinearTaskReference(**task_reference_payload) if task_reference_payload is not None else None,
         reasons=_optional_string_tuple(linear_payload.get("reasons"), field_name="external_facts.linear_facts.reasons"),
     )
+    try:
+        return validate_linear_facts(linear_facts)
+    except ExternalFactValidationError as error:
+        if "workflow" in str(error):
+            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR) from error
+        raise ApiRequestError(str(error)) from error
 
 
 def _parse_external_facts(payload: dict[str, Any] | None) -> CanonicalExternalFactBundle | None:

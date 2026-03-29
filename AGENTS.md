@@ -141,6 +141,7 @@ When changing Linear, OpenClaw, or ingress-side helpers:
 
 - keep raw vendor payloads out of policy code
 - translate into canonical TaskEnvelope and normalized fact models
+- keep `external_facts.linear_facts.workflow` conditional on `record_found`
 - preserve ingress metadata without coupling Harness to client internals
 - prefer thin builders/adapters over API redesign
 

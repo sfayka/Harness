@@ -132,13 +132,11 @@ def build_linear_completion_facts(
     if not record_found:
         return LinearFacts(record_found=False, reasons=reasons)
 
-    workflow = None
-    if workflow_id or workflow_name or workflow_state_type:
-        workflow = LinearWorkflowFact(
-            workflow_id=workflow_id or "workflow-default",
-            workflow_name=workflow_name or state or "unknown",
-            state_type=workflow_state_type,
-        )
+    workflow = LinearWorkflowFact(
+        workflow_id=workflow_id or f"workflow-{(state or 'unknown').replace(' ', '-').lower()}",
+        workflow_name=workflow_name or state or "unknown",
+        state_type=workflow_state_type,
+    )
 
     project = None
     if project_id or project_name:

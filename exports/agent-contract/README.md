@@ -24,14 +24,17 @@ This bundle was generated from these Harness source files:
 
 - `AGENTS.md`
 - `README.md`
+- `docs/api/agent-api-usage.md`
 - `docs/architecture/runtime-execution-contract.md`
 - `docs/integration/openclaw-harness-spike.md`
-- `modules/connectors/ingress_request_builder.py`
-- `modules/connectors/openclaw_harness_spike.py`
-- `modules/demo_cases.py`
+- `examples/api/create-task.json`
+- `examples/api/evaluate-happy-path.json`
+- `examples/api/evaluate-mismatch.json`
+- `examples/api/evaluate-review-required.json`
+- `scripts/render_api_examples.py`
 
 ## Provenance
 
 - source repo: `Harness`
-- source commit: `e46be111b793ea88f8ca0133f009c4f442931c59`
-- generated at: `2026-03-29T15:38:47Z`
+- source commit: `2bc380c9dfce3293a7e1362737fd8194389d0fc1`
+- generated at: `2026-03-29T16:59:32Z`

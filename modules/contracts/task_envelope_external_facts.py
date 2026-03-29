@@ -274,9 +274,12 @@ def validate_linear_facts(linear_facts: LinearFacts) -> LinearFacts:
         raise ExternalFactValidationError("Linear facts require issue_id or issue_key when record_found=True")
     if linear_facts.state is None:
         raise ExternalFactValidationError("Linear facts require state when record_found=True")
-    if linear_facts.workflow is not None:
-        _require_non_empty(linear_facts.workflow.workflow_id, field_name="linear.workflow.workflow_id")
-        _require_non_empty(linear_facts.workflow.workflow_name, field_name="linear.workflow.workflow_name")
+    if linear_facts.workflow is None:
+        raise ExternalFactValidationError(
+            "Linear facts require workflow with workflow_id and workflow_name when record_found=True"
+        )
+    _require_non_empty(linear_facts.workflow.workflow_id, field_name="linear.workflow.workflow_id")
+    _require_non_empty(linear_facts.workflow.workflow_name, field_name="linear.workflow.workflow_name")
     if linear_facts.project is not None:
         _require_non_empty(linear_facts.project.project_id, field_name="linear.project.project_id")
     if linear_facts.task_reference is not None:
