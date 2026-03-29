@@ -1,0 +1,224 @@
+{
+  "request": {
+    "acceptance_criteria_satisfied": true,
+    "claimed_completion": true,
+    "external_facts": {
+      "expected_code_context": {
+        "base_branch": "main",
+        "branch_name": "codex/demo",
+        "repository_host": "github.com",
+        "repository_name": "Harness",
+        "repository_owner": "sfayka"
+      },
+      "github_facts": {
+        "artifact_found": true,
+        "artifact_refs": [],
+        "branch": {
+          "base_branch": "main",
+          "head_commit_sha": "abcdef1234567890",
+          "name": "codex/demo"
+        },
+        "changed_files": {
+          "files": [],
+          "matches_expected_scope": true
+        },
+        "commit": {
+          "message_summary": null,
+          "sha": "abcdef1234567890",
+          "url": null
+        },
+        "pull_request": {
+          "merged": null,
+          "number": 300,
+          "review_state": "approved",
+          "state": null,
+          "url": null
+        },
+        "reasons": [],
+        "repository": {
+          "external_id": null,
+          "host": "github.com",
+          "name": "Harness",
+          "owner": "sfayka"
+        }
+      },
+      "linear_facts": {
+        "issue_id": null,
+        "issue_key": null,
+        "project": null,
+        "reasons": [
+          "Linear record is not yet resolvable."
+        ],
+        "record_found": false,
+        "state": null,
+        "task_reference": null,
+        "workflow": null
+      }
+    },
+    "review_decision": null,
+    "review_reasons": [],
+    "review_request": {
+      "allowed_outcomes": [
+        "accept_completion",
+        "keep_blocked"
+      ],
+      "metadata": {},
+      "presented_sections": [
+        "task_state",
+        "evidence",
+        "reconciliation"
+      ],
+      "prior_review_ids": [],
+      "requested_at": "2026-03-24T20:20:00Z",
+      "requested_by": "verification",
+      "review_request_id": "review-request-demo-1",
+      "summary": "Linear record needs manual judgment.",
+      "task_id": "task-demo-completed-1",
+      "trigger": "reconciliation"
+    },
+    "runtime_facts": {
+      "attempt_count": 0,
+      "executor_reported_failure": false,
+      "executor_reported_success": true,
+      "latest_attempt_outcome": null,
+      "terminal_failure": false
+    },
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "Completion is backed by valid evidence and normalized external facts.",
+          "id": "ac-1",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "policy": "required",
+          "required_artifact_types": [
+            "pull_request",
+            "commit"
+          ],
+          "status": "satisfied",
+          "validated_artifact_ids": [
+            "artifact-pr-1",
+            "artifact-commit-1"
+          ],
+          "validated_at": "2026-03-24T20:14:00Z",
+          "validation_method": "external_reconciliation",
+          "validator": {
+            "captured_by": "github-sync",
+            "source_id": "verification-run-demo-1",
+            "source_system": "harness",
+            "source_type": "verification"
+          }
+        },
+        "items": [
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "abcdef1234567890",
+              "name": "codex/demo"
+            },
+            "captured_at": "2026-03-24T20:10:00Z",
+            "changed_files": [],
+            "commit_sha": null,
+            "content_type": null,
+            "description": null,
+            "external_id": "PR-300",
+            "external_refs": [],
+            "id": "artifact-pr-1",
+            "location": "https://github.com/example/harness/pull/300",
+            "metadata": {},
+            "provenance": {
+              "captured_by": "github-sync",
+              "source_id": "pull/300",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": 300,
+            "repository": {
+              "external_id": "repo-123",
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": "approved",
+            "title": "Harness demo case",
+            "type": "pull_request",
+            "verification_status": "verified"
+          },
+          {
+            "branch": null,
+            "captured_at": "2026-03-24T20:11:00Z",
+            "changed_files": [],
+            "commit_sha": "abcdef1234567890",
+            "content_type": null,
+            "description": null,
+            "external_id": "commit-abcdef1234567890",
+            "external_refs": [],
+            "id": "artifact-commit-1",
+            "location": "https://github.com/example/harness/commit/abcdef1234567890",
+            "metadata": {},
+            "provenance": {
+              "captured_by": "github-sync",
+              "source_id": "commit/abcdef1234567890",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": null,
+            "repository": {
+              "external_id": "repo-123",
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": null,
+            "title": null,
+            "type": "commit",
+            "verification_status": "verified"
+          }
+        ]
+      },
+      "assigned_executor": null,
+      "child_task_ids": [],
+      "constraints": [],
+      "dependencies": [],
+      "description": "Task used to demonstrate the Harness evaluation entry point.",
+      "id": "task-demo-completed-1",
+      "objective": {
+        "deliverable_type": "code_change",
+        "success_signal": "The evaluator returns a structured control-plane result.",
+        "summary": "Demonstrate the Harness evaluation path."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {},
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": null,
+        "ingress_name": "OpenClaw",
+        "requested_by": null,
+        "source_id": "req-demo-1",
+        "source_system": "openclaw",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "required_capabilities": [],
+      "status": "completed",
+      "status_history": [],
+      "timestamps": {
+        "completed_at": "2026-03-24T20:15:00Z",
+        "created_at": "2026-03-24T20:00:00Z",
+        "updated_at": "2026-03-24T20:05:00Z"
+      },
+      "title": "Harness demo task"
+    },
+    "unresolved_conditions": []
+  }
+}
