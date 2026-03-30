@@ -30,6 +30,7 @@ class HarnessEvaluationRequest:
     review_reasons: tuple[str, ...] = ()
     review_request: ReviewRequest | None = None
     review_decision: ReviewDecisionResult | None = None
+    review_is_active: bool = False
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,7 @@ class HarnessEvaluator:
                 review_reasons=request.review_reasons,
                 review_request=request.review_request,
                 review_decision=request.review_decision,
+                review_is_active=request.review_is_active,
             ),
         )
 

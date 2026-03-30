@@ -57,6 +57,7 @@ Do not casually turn this repo into:
 9. Evaluation history remains append-only and auditable.
 10. Manual review remains explicit and auditable, not an informal bypass.
 11. `requires_review=true` must move the task into the explicit `in_review` lifecycle state; it must not remain `completed`.
+12. An active manual review gate is sticky until an explicit review decision resolves it; automatic reevaluation must not clear it.
 
 ## Rules For Modifying TaskEnvelope And Schema
 

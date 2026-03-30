@@ -183,6 +183,33 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["review_summary"]["request_count"], 1)
         self.assertEqual(read_payload["task"]["review_summary"]["decision_count"], 1)
 
+    def test_read_model_keeps_review_requested_tasks_in_review_until_manual_resolution(self) -> None:
+        initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(_request_payload("accepted_completion")["request"]["runtime_facts"]),
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "in_review")
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(read_payload["task"]["review_summary"]["request_count"], 1)
+        self.assertEqual(read_payload["task"]["review_summary"]["decision_count"], 0)
+
     def test_read_model_handles_goal_to_work_ingested_task(self) -> None:
         flow_result = run_goal_to_work_flow(_goal_request(), auto_approve=True, service=self.service)
         ingested_task_id = next(

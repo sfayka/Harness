@@ -63,6 +63,7 @@ class EnforcementInput:
     review_reasons: tuple[str, ...] = ()
     review_request: ReviewRequest | None = None
     review_decision: ReviewDecisionResult | None = None
+    review_is_active: bool = False
 
 
 @dataclass(frozen=True)
@@ -80,6 +81,11 @@ class EnforcementResult:
     target_status: str | None
     reasons: tuple[str, ...]
     error: str | None = None
+
+
+_ACTIVE_REVIEW_GATE_REASON = (
+    "Manual review is active and must be resolved explicitly before completion can be accepted"
+)
 
 
 def _automatic_transition_facts(
@@ -198,9 +204,33 @@ def enforce_task_envelope(
             evidence_result=evidence_result,
         )
 
+    review_gate_active = bool(
+        enforcement_input.review_is_active
+        or enforcement_input.review_request is not None
+        or task_envelope.get("status") == "in_review"
+    )
+
     if enforcement_input.review_decision is not None:
         review_decision = enforcement_input.review_decision
         reason = review_decision.record.reasoning
+        if review_gate_active and review_decision.recommended_target_status == task_envelope["status"]:
+            action = (
+                EnforcementAction.FOLLOW_UP_AUTHORIZED
+                if review_decision.follow_up_action.value != "none"
+                else EnforcementAction.TRANSITION_APPLIED
+            )
+            return EnforcementResult(
+                action=action,
+                task_envelope=task_envelope,
+                evidence_result=evidence_result,
+                reconciliation_result=None,
+                verification_result=None,
+                review_request=review_decision.request,
+                review_decision=review_decision,
+                transition_result=None,
+                target_status=review_decision.recommended_target_status,
+                reasons=(reason,),
+            )
         review_transition_facts = {"terminal_failure": review_decision.record.outcome.value == "mark_failed"}
         if review_decision.recommended_target_status == "completed":
             review_transition_facts.update(
@@ -238,6 +268,9 @@ def enforce_task_envelope(
     reconciliation_facts = (
         reconciliation_result.to_verification_facts() if reconciliation_result is not None else ReconciliationFacts()
     )
+    review_reasons = enforcement_input.review_reasons
+    if review_gate_active and enforcement_input.review_decision is None:
+        review_reasons = (*review_reasons, _ACTIVE_REVIEW_GATE_REASON)
 
     try:
         verification_result = evaluate_verification_decision(
@@ -249,7 +282,7 @@ def enforce_task_envelope(
                 runtime_facts=enforcement_input.runtime_facts,
                 reconciliation_facts=reconciliation_facts,
                 unresolved_conditions=enforcement_input.unresolved_conditions,
-                review_reasons=enforcement_input.review_reasons,
+                review_reasons=review_reasons,
             ),
         )
     except Exception as error:

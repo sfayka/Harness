@@ -56,6 +56,7 @@
       }
     },
     "review_decision": null,
+    "review_is_active": false,
     "review_reasons": [],
     "review_request": {
       "allowed_outcomes": [

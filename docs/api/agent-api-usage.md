@@ -7,11 +7,17 @@ This document is the source-of-truth API usage guide for execution agents and do
 - `POST /tasks`: submit a new canonical task payload
 - `POST /tasks/<task_id>/reevaluate`: submit new facts, artifacts, or review decisions for an existing task
 
+For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
+
+- Existing-task reevaluation uses the stored task snapshot as the source of truth.
+- Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state.
+
 ## Review-Required Lifecycle Rule
 
 - If verification returns `requires_review=true`, Harness moves the task into `in_review`.
 - A review-required result must not leave the task in `completed`.
 - Manual review is what resolves `in_review` back to `completed`, `blocked`, `failed`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
+- Once review is active, automatic reevaluation, artifact sync, or external reconciliation must keep the task in `in_review` until an explicit manual decision resolves it.
 
 ## Reconciliation Classification Rule
 

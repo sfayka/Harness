@@ -141,6 +141,8 @@ For tasks with required completion evidence, transition to `completed` is only v
 
 If verification or reconciliation determines that completion requires explicit human judgment, the task must move to `in_review` rather than remaining `completed`.
 
+Once a task is `in_review`, only an explicit manual review decision may transition it to `completed`, `failed`, `blocked`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
+
 `blocked` may also move back to `completed` when the blocking condition was specifically about unresolved completion acceptance and later verification or manual review resolves that blocker with sufficient evidence and non-blocking reconciliation.
 
 `completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
