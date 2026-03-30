@@ -14,8 +14,10 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 
 ## Review-Required Lifecycle Rule
 
-- If verification returns `requires_review=true`, Harness moves the task into `in_review`.
+- If verification returns `requires_review=true`, Harness moves an active non-terminal task into `in_review`.
 - A review-required result must not leave the task in `completed`.
+- Automatic review escalation is allowed from active lifecycle states such as `intake_ready`, `planned`, `dispatch_ready`, `assigned`, `executing`, and `blocked`.
+- Automatic paths do not reopen `completed`, `failed`, or `canceled` tasks into review.
 - Manual review is what resolves `in_review` back to `completed`, `blocked`, `failed`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
 - Once review is active, automatic reevaluation, artifact sync, or external reconciliation must keep the task in `in_review` until an explicit manual decision resolves it.
 

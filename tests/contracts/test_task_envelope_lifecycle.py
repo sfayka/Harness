@@ -199,10 +199,8 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
         self.assertIsNone(result.task_envelope["timestamps"]["completed_at"])
         self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "completed")
 
-    def test_completed_to_in_review_clears_completed_timestamp(self) -> None:
+    def test_intake_ready_to_in_review_is_allowed_for_verification(self) -> None:
         task = _base_task()
-        task["status"] = "completed"
-        task["timestamps"]["completed_at"] = "2026-03-25T12:30:00Z"
 
         result = apply_task_transition(
             task,
@@ -214,8 +212,42 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
 
         self.assertEqual(result.task_envelope["status"], "in_review")
         self.assertIsNone(result.task_envelope["timestamps"]["completed_at"])
-        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "completed")
+        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "intake_ready")
         self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "in_review")
+
+    def test_assigned_to_in_review_is_allowed_for_verification(self) -> None:
+        task = _base_task()
+        task["status"] = "assigned"
+        task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-1",
+            "assignment_reason": "Assigned before review escalation.",
+        }
+
+        result = apply_task_transition(
+            task,
+            to_status="in_review",
+            actor="verification",
+            reason="Assigned work needs explicit human review.",
+            now="2026-03-25T12:35:00Z",
+        )
+
+        self.assertEqual(result.task_envelope["status"], "in_review")
+        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "assigned")
+        self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "in_review")
+
+    def test_completed_to_in_review_is_forbidden(self) -> None:
+        task = _base_task()
+        task["status"] = "completed"
+        task["timestamps"]["completed_at"] = "2026-03-25T12:30:00Z"
+
+        with self.assertRaisesRegex(ForbiddenTransitionError, "Forbidden lifecycle transition completed -> in_review"):
+            validate_task_transition(
+                task,
+                to_status="in_review",
+                actor="verification",
+                reason="Automatic review escalation must not reopen completed tasks.",
+            )
 
     def test_blocked_to_completed_is_allowed_when_verification_later_resolves_the_blocker(self) -> None:
         task = _base_task()

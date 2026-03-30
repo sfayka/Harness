@@ -230,7 +230,7 @@ def build_demo_request(case_name: str) -> HarnessEvaluationRequest:
         )
 
     if case_name == "review_required":
-        task = _base_task(status="completed")
+        task = _base_task(status="intake_ready")
         review_request = ReviewRequest(
             review_request_id="review-request-demo-1",
             task_id=task["id"],

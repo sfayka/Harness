@@ -239,7 +239,7 @@ class HarnessEvaluationEntryPointTests(unittest.TestCase):
         self.assertEqual(result.enforcement_result.verification_result.outcome, VerificationOutcome.EXTERNAL_MISMATCH)
 
     def test_returns_review_required_result(self) -> None:
-        task = _base_task(status="completed")
+        task = _base_task(status="intake_ready")
         review_request = ReviewRequest(
             review_request_id="review-request-eval-1",
             task_id=task["id"],
@@ -271,6 +271,7 @@ class HarnessEvaluationEntryPointTests(unittest.TestCase):
         self.assertEqual(result.target_status, "in_review")
         self.assertEqual(result.task_envelope["status"], "in_review")
         self.assertEqual(result.enforcement_result.verification_result.outcome, VerificationOutcome.REVIEW_REQUIRED)
+        self.assertNotEqual(result.action, EnforcementAction.TRANSITION_REJECTED)
 
     def test_rejects_invalid_input(self) -> None:
         task = _base_task(status="completed")
