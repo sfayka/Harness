@@ -74,7 +74,7 @@
       "requested_by": "verification",
       "review_request_id": "review-request-demo-1",
       "summary": "Linear record needs manual judgment.",
-      "task_id": "task-demo-completed-1",
+      "task_id": "task-demo-intake_ready-1",
       "trigger": "reconciliation"
     },
     "runtime_facts": {
@@ -185,7 +185,7 @@
       "constraints": [],
       "dependencies": [],
       "description": "Task used to demonstrate the Harness evaluation entry point.",
-      "id": "task-demo-completed-1",
+      "id": "task-demo-intake_ready-1",
       "objective": {
         "deliverable_type": "code_change",
         "success_signal": "The evaluator returns a structured control-plane result.",
@@ -211,10 +211,10 @@
       "parent_task_id": null,
       "priority": "normal",
       "required_capabilities": [],
-      "status": "completed",
+      "status": "intake_ready",
       "status_history": [],
       "timestamps": {
-        "completed_at": "2026-03-24T20:15:00Z",
+        "completed_at": null,
         "created_at": "2026-03-24T20:00:00Z",
         "updated_at": "2026-03-24T20:05:00Z"
       },

@@ -820,6 +820,19 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(history_payload["evaluations"][0]["result"]["action"], "review_required")
 
+    def test_api_review_required_intake_ready_request_does_not_reject_transition(self) -> None:
+        payload = _request_payload("review_required")
+
+        self.assertEqual(payload["request"]["task_envelope"]["status"], "intake_ready")
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "review_required")
+        self.assertEqual(response["target_status"], "in_review")
+        self.assertEqual(response["task_envelope"]["status"], "in_review")
+        self.assertNotEqual(response["action"], "transition_rejected")
+
     def test_api_rejects_invalid_input_without_persisting_state(self) -> None:
         invalid_payload = _request_payload("invalid_input")
         task_id = invalid_payload["request"]["task_envelope"]["id"]

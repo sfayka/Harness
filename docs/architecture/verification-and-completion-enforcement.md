@@ -148,6 +148,10 @@ Only then may the task be treated as durably completed.
 
 If a task is already marked `completed`, it must not simply remain completed by inertia. It remains completed only if the current verification decision passes under policy.
 
+If verification or reconciliation requires explicit human judgment before acceptance, the automatic path must escalate an active non-terminal task into `in_review`.
+
+Automatic enforcement does not reopen terminal tasks into review. A previously completed task that later fails policy should move to `blocked`, and manual review remains the only authority that can resolve `in_review` back into `completed` or another follow-up state.
+
 ## Verification Output Contract
 
 Verification output is a structured decision bundle, not a freeform opinion.

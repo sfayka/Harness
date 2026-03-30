@@ -284,7 +284,7 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.EXTERNAL_MISMATCH)
 
     def test_task_requiring_manual_review_returns_review_required(self) -> None:
-        task = _base_task(status="completed")
+        task = _base_task(status="intake_ready")
         review_request = ReviewRequest(
             review_request_id="review-request-1",
             task_id=task["id"],
@@ -311,6 +311,41 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.action, EnforcementAction.REVIEW_REQUIRED)
         self.assertEqual(result.review_request.review_request_id, "review-request-1")
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.REVIEW_REQUIRED)
+        self.assertEqual(result.target_status, "in_review")
+        self.assertEqual(result.task_envelope["status"], "in_review")
+        self.assertIsNotNone(result.transition_result)
+
+    def test_task_requiring_manual_review_can_escalate_from_assigned(self) -> None:
+        task = _base_task(status="assigned")
+        task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-1",
+            "assignment_reason": "Coverage for active-state review escalation.",
+        }
+        review_request = ReviewRequest(
+            review_request_id="review-request-2",
+            task_id=task["id"],
+            requested_at="2026-03-24T16:20:00Z",
+            requested_by="verification",
+            trigger=ReviewTrigger.RECONCILIATION,
+            summary="External facts require manual judgment before execution can continue.",
+            presented_sections=("task_state", "evidence", "reconciliation"),
+            allowed_outcomes=(ReviewOutcome.ACCEPT_COMPLETION, ReviewOutcome.KEEP_BLOCKED),
+        )
+
+        result = enforce_task_envelope(
+            task,
+            enforcement_input=EnforcementInput(
+                claimed_completion=True,
+                acceptance_criteria_satisfied=True,
+                runtime_facts=RuntimeVerificationFacts(executor_reported_success=True),
+                reconciliation_input=_aligned_reconciliation_input(),
+                review_reasons=("External facts require manual judgment before execution can continue.",),
+                review_request=review_request,
+            ),
+        )
+
+        self.assertEqual(result.action, EnforcementAction.REVIEW_REQUIRED)
         self.assertEqual(result.target_status, "in_review")
         self.assertEqual(result.task_envelope["status"], "in_review")
         self.assertIsNotNone(result.transition_result)

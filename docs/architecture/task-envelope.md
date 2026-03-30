@@ -93,23 +93,26 @@ Canonical transitions:
 
 - `intake_ready` -> `blocked`
 - `intake_ready` -> `planned`
+- `intake_ready` -> `in_review`
 - `planned` -> `dispatch_ready`
 - `planned` -> `blocked`
 - `planned` -> `canceled`
+- `planned` -> `in_review`
 - `dispatch_ready` -> `assigned`
 - `dispatch_ready` -> `blocked`
 - `dispatch_ready` -> `canceled`
+- `dispatch_ready` -> `in_review`
 - `assigned` -> `executing`
 - `assigned` -> `blocked`
 - `assigned` -> `failed`
 - `assigned` -> `canceled`
+- `assigned` -> `in_review`
 - `executing` -> `completed`
 - `executing` -> `in_review`
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `executing` -> `canceled`
 - `completed` -> `blocked`
-- `completed` -> `in_review`
 - `blocked` -> `intake_ready`
 - `blocked` -> `planned`
 - `blocked` -> `dispatch_ready`
@@ -139,7 +142,9 @@ For tasks with required completion evidence, transition to `completed` is only v
 
 `completed` must be treated as provisional until required reconciliation succeeds. If reconciliation later detects a blocking mismatch, the task may move back to `blocked` rather than remaining permanently completed.
 
-If verification or reconciliation determines that completion requires explicit human judgment, the task must move to `in_review` rather than remaining `completed`.
+If verification or reconciliation determines that work requires explicit human judgment, an active non-terminal task may escalate to `in_review` rather than proceeding toward automatic completion.
+
+`completed` is not reopened into `in_review` by automatic paths. If a completed task later fails verification or reconciliation, it may move back to `blocked`; explicit manual review then decides any next terminal or follow-up state.
 
 Once a task is `in_review`, only an explicit manual review decision may transition it to `completed`, `failed`, `blocked`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
 

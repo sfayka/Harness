@@ -246,7 +246,7 @@ class EndToEndEnforcementTests(unittest.TestCase):
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.EXTERNAL_MISMATCH)
 
     def test_returns_review_required_when_normalized_facts_require_human_review(self) -> None:
-        task = _base_task(status="completed")
+        task = _base_task(status="intake_ready")
         review_request = ReviewRequest(
             review_request_id="review-request-e2e-1",
             task_id=task["id"],
