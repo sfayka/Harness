@@ -260,6 +260,8 @@ Typical cases:
 
 Manual review is non-terminal unless and until a later explicit decision resolves it.
 
+While review is active, automatic reevaluation remains gated. New artifacts, external facts, or aligned reconciliation may inform the eventual decision, but they must not move the task out of `in_review` by themselves.
+
 That later decision may:
 
 - accept completion

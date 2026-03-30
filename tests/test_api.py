@@ -459,6 +459,53 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertEqual(reevaluation_response["action"], "transition_applied")
 
+    def test_service_evaluate_existing_review_required_task_cannot_be_overwritten_to_completed(self) -> None:
+        initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        overwrite_payload = _request_payload("accepted_completion")
+        overwrite_payload["request"]["task_envelope"]["id"] = task_id
+        overwrite_payload["request"]["task_envelope"]["status"] = "completed"
+        overwrite_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = "2026-03-24T18:00:00Z"
+
+        overwrite_status, overwrite_response = self.service.evaluate(overwrite_payload)
+        task_status, task_payload = self.service.get_task(task_id)
+        history_status, history_payload = self.service.get_evaluation_history(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(overwrite_status, 200)
+        self.assertEqual(overwrite_response["action"], "review_required")
+        self.assertEqual(overwrite_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "in_review")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 2)
+
+    def test_service_can_resolve_legacy_completed_review_gate_via_manual_decision(self) -> None:
+        initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+        stored_task = deepcopy(self.service.store.get_task(task_id))
+        stored_task["status"] = "completed"
+        stored_task["timestamps"]["completed_at"] = "2026-03-24T18:05:00Z"
+        self.service.store.update_task(stored_task)
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {"request": {"review_decision": _review_decision_payload(task_id)}},
+        )
+        task_status, task_payload = self.service.get_task(task_id)
+        history_status, history_payload = self.service.get_evaluation_history(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["task_envelope"]["status"], "completed")
+        self.assertEqual(resolution_response["target_status"], "completed")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "completed")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 2)
+
     def test_health_reports_file_store_without_database_configuration(self) -> None:
         status, payload = self.service.health()
 
@@ -924,6 +971,51 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_status, 200)
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertIn(reevaluation_response["action"], {"transition_applied", "follow_up_authorized"})
+
+    def test_api_cannot_reevaluate_in_review_task_to_completed_without_manual_decision(self) -> None:
+        initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(_request_payload("accepted_completion")["request"]["runtime_facts"]),
+                }
+            },
+        )
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["action"], "review_required")
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "in_review")
+
+    def test_api_cannot_bypass_active_review_gate_via_evaluate_upsert(self) -> None:
+        initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        overwrite_payload = _request_payload("accepted_completion")
+        overwrite_payload["request"]["task_envelope"]["id"] = task_id
+        overwrite_payload["request"]["task_envelope"]["status"] = "completed"
+        overwrite_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = "2026-03-24T18:00:00Z"
+
+        overwrite_status, overwrite_response = self._post_json("/evaluate", overwrite_payload)
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(overwrite_status, 200)
+        self.assertEqual(overwrite_response["action"], "review_required")
+        self.assertEqual(overwrite_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "in_review")
 
     def test_api_accepts_review_required_linear_facts_with_null_workflow_when_record_not_found(self) -> None:
         payload = _request_payload("review_required")

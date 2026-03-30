@@ -6,7 +6,7 @@ import argparse
 from copy import deepcopy
 import json
 import os
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, is_dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
 from http import HTTPStatus
@@ -70,6 +70,12 @@ LINEAR_WORKFLOW_CONTRACT_ERROR = (
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _parse_iso_timestamp(value: str | None) -> datetime:
+    if not value:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
 
 
 def _require_mapping(value: Any, *, field_name: str) -> dict[str, Any]:
@@ -382,6 +388,52 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
     )
 
 
+def _collect_review_activity(records: tuple[EvaluationRecord, ...]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    requests: list[dict[str, Any]] = []
+    decisions: list[dict[str, Any]] = []
+
+    for record in records:
+        result_payload = record.result if isinstance(record.result, dict) else {}
+        request_payload = record.request if isinstance(record.request, dict) else {}
+        enforcement_result = dict(result_payload.get("enforcement_result") or {})
+
+        review_request = enforcement_result.get("review_request") or request_payload.get("review_request")
+        if isinstance(review_request, dict):
+            requests.append(review_request)
+
+        review_decision = enforcement_result.get("review_decision") or request_payload.get("review_decision")
+        if isinstance(review_decision, dict):
+            review_record = review_decision.get("record")
+            if isinstance(review_record, dict):
+                decisions.append(review_record)
+
+    return requests, decisions
+
+
+def _review_status_from_activity(
+    *,
+    requests: list[dict[str, Any]],
+    decisions: list[dict[str, Any]],
+) -> str:
+    if not requests and not decisions:
+        return "none"
+    if not decisions:
+        return "requested"
+
+    latest_request_at = max((_parse_iso_timestamp(item.get("requested_at")) for item in requests), default=None)
+    latest_decision_at = max((_parse_iso_timestamp(item.get("reviewed_at")) for item in decisions), default=None)
+    if latest_request_at is not None and (latest_decision_at is None or latest_request_at > latest_decision_at):
+        return "requested"
+    return "resolved"
+
+
+def _review_gate_is_active(task_envelope: dict[str, Any], records: tuple[EvaluationRecord, ...]) -> bool:
+    if task_envelope.get("status") == "in_review":
+        return True
+    requests, decisions = _collect_review_activity(records)
+    return _review_status_from_activity(requests=requests, decisions=decisions) == "requested"
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -571,6 +623,19 @@ class HarnessApiService:
                 "invalid_input": True,
             }
 
+        task_id = str(request.task_envelope["id"])
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            pass
+        else:
+            existing_records = self.store.list_evaluation_records(task_id)
+            request = replace(
+                request,
+                task_envelope=deepcopy(stored_task),
+                review_is_active=_review_gate_is_active(stored_task, existing_records),
+            )
+
         status, response_payload, result = _evaluate_request(request)
         if result is None:
             return status, response_payload
@@ -597,6 +662,14 @@ class HarnessApiService:
                 "error": str(error),
                 "invalid_input": True,
             }
+
+        request = replace(
+            request,
+            review_is_active=_review_gate_is_active(
+                stored_task,
+                self.store.list_evaluation_records(task_id),
+            ),
+        )
 
         status, response_payload, result = _evaluate_request(request)
         if result is None:

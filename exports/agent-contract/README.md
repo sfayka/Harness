@@ -36,5 +36,5 @@ This bundle was generated from these Harness source files:
 ## Provenance
 
 - source repo: `Harness`
-- source commit: `7fd115c17e60f9ad7e27ef8f25e499942c88e65d`
-- generated at: `2026-03-29T17:36:30Z`
+- source commit: `676e41f9a5bb8613e9159afe324f811bad80139c`
+- generated at: `2026-03-30T14:40:42Z`

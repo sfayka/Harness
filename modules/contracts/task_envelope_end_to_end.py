@@ -53,6 +53,7 @@ class CanonicalCaseInput:
     review_reasons: tuple[str, ...] = ()
     review_request: ReviewRequest | None = None
     review_decision: ReviewDecisionResult | None = None
+    review_is_active: bool = False
 
 
 def build_expected_code_context(
@@ -226,6 +227,7 @@ def enforce_canonical_task_case(
             review_reasons=case_input.review_reasons,
             review_request=case_input.review_request,
             review_decision=case_input.review_decision,
+            review_is_active=case_input.review_is_active,
         ),
     )
 

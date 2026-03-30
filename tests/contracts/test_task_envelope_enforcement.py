@@ -315,6 +315,60 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.task_envelope["status"], "in_review")
         self.assertIsNotNone(result.transition_result)
 
+    def test_active_review_gate_prevents_automatic_completion_until_manual_resolution(self) -> None:
+        task = _base_task(status="in_review")
+
+        result = enforce_task_envelope(
+            task,
+            enforcement_input=EnforcementInput(
+                claimed_completion=True,
+                acceptance_criteria_satisfied=True,
+                runtime_facts=RuntimeVerificationFacts(executor_reported_success=True),
+                reconciliation_input=_aligned_reconciliation_input(),
+                review_is_active=True,
+            ),
+        )
+
+        self.assertEqual(result.action, EnforcementAction.REVIEW_REQUIRED)
+        self.assertEqual(result.target_status, "in_review")
+        self.assertEqual(result.task_envelope["status"], "in_review")
+        self.assertIsNone(result.transition_result)
+        self.assertEqual(result.verification_result.outcome, VerificationOutcome.REVIEW_REQUIRED)
+
+    def test_manual_review_can_resolve_legacy_completed_task_without_extra_transition(self) -> None:
+        task = _base_task(status="completed")
+        review_request = ReviewRequest(
+            review_request_id="review-request-legacy-1",
+            task_id=task["id"],
+            requested_at="2026-03-24T16:20:00Z",
+            requested_by="verification",
+            trigger=ReviewTrigger.VERIFICATION,
+            summary="Completion requires explicit manual approval.",
+            presented_sections=("task_state", "evidence", "reconciliation"),
+            allowed_outcomes=(ReviewOutcome.ACCEPT_COMPLETION,),
+        )
+        review_decision = resolve_review_request(
+            review_request,
+            review_id="review-legacy-1",
+            reviewer=_reviewer(),
+            outcome=ReviewOutcome.ACCEPT_COMPLETION,
+            reasoning="Manual review resolves the existing completion gate.",
+        )
+
+        result = enforce_task_envelope(
+            task,
+            enforcement_input=EnforcementInput(
+                review_decision=review_decision,
+                review_is_active=True,
+            ),
+        )
+
+        self.assertEqual(result.action, EnforcementAction.TRANSITION_APPLIED)
+        self.assertEqual(result.target_status, "completed")
+        self.assertEqual(result.task_envelope["status"], "completed")
+        self.assertIsNone(result.transition_result)
+        self.assertEqual(result.review_decision.record.review_id, "review-legacy-1")
+
     def test_review_outcome_can_authorize_follow_up_action(self) -> None:
         task = _base_task(status="blocked")
         review_request = ReviewRequest(
