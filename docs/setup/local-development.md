@@ -19,7 +19,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Run the backend test suite:
+Run the dedicated runtime scenario suite:
+
+```bash
+.venv/bin/python -m unittest discover -s tests/e2e -p 'test_*.py'
+```
+
+Run the full backend test suite:
 
 ```bash
 .venv/bin/python -m unittest discover -s tests

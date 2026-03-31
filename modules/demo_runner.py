@@ -26,7 +26,7 @@ class DemoScenarioSpec:
 CANONICAL_DEMO_SCENARIOS: tuple[DemoScenarioSpec, ...] = (
     DemoScenarioSpec("successful_completion", "Accepted Completion", "A task is submitted with aligned evidence and accepted immediately."),
     DemoScenarioSpec("missing_evidence_then_completed", "Blocked To Completed", "A task is blocked for insufficient evidence, then resolved with additional artifacts."),
-    DemoScenarioSpec("wrong_target_corrected", "Wrong Target Corrected", "A task starts with wrong repo or branch facts, then is corrected and accepted."),
+    DemoScenarioSpec("wrong_target_corrected", "Wrong Target Corrected", "A task starts blocked while target facts are being corrected, then is reevaluated with aligned facts and accepted."),
     DemoScenarioSpec("review_required_then_completed", "Review Required To Completed", "A task enters manual review, then completes after an explicit review decision."),
     DemoScenarioSpec("contradictory_facts_blocked", "Contradictory Facts Rollback", "A task is accepted, then contradictory external facts force a rollback to blocked."),
     DemoScenarioSpec("long_running_handoff", "Long-Running Handoff", "A task accumulates progress and handoff artifacts over time before final completion."),

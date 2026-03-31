@@ -431,7 +431,12 @@ def _scenario_wrong_target_corrected(
     wrong_target_payload = deepcopy(initial_payload)
     wrong_target_payload["request"]["task_envelope"]["status"] = "blocked"
     wrong_target_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
-    wrong_target_payload["request"]["external_facts"]["github_facts"]["branch"]["name"] = "codex/wrong-target"
+    wrong_target_payload["request"]["external_facts"] = None
+    wrong_target_payload["request"]["claimed_completion"] = False
+    wrong_target_payload["request"]["acceptance_criteria_satisfied"] = False
+    wrong_target_payload["request"]["unresolved_conditions"] = (
+        "Execution target is still being corrected before completion can be evaluated",
+    )
 
     _submit_step(client, context, "submit", wrong_target_payload)
     _reevaluate_step(
