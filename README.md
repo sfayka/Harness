@@ -191,6 +191,56 @@ pnpm lint
 pnpm build
 ```
 
+## Unattended Dry-Run Runner
+
+Use [`scripts/run_unattended_dryruns.py`](scripts/run_unattended_dryruns.py) to repeatedly execute the three canonical runtime scenarios against the hosted backend:
+
+- `happy_path`
+- `mismatch`
+- `review_required`
+
+The runner reuses the same scenario builders used by the runtime E2E suite instead of maintaining a second set of hand-built payloads.
+
+Expected environment:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+Optional configuration:
+
+```bash
+export HARNESS_DRYRUN_BASE_URL=https://harness-qeav.onrender.com
+export HARNESS_DRYRUN_OUTPUT_DIR=runs
+export HARNESS_DRYRUN_INTERVAL_SECONDS=300
+export HARNESS_DRYRUN_ITERATIONS=0
+```
+
+Run once:
+
+```bash
+.venv/bin/python scripts/run_unattended_dryruns.py --iterations 1
+```
+
+Run unattended in tmux:
+
+```bash
+tmux new -s harness-dryruns '.venv/bin/python scripts/run_unattended_dryruns.py --interval-seconds 300'
+```
+
+Stop or restart:
+
+- stop with `Ctrl-C` in the tmux pane
+- restart by rerunning the same command
+
+Inspect logs and raw responses:
+
+```bash
+tail -f runs/log.jsonl
+find runs/raw -type f | sort
+```
+
 ## Demo And Canonical Scenarios
 
 ### Local deterministic scenario pack
