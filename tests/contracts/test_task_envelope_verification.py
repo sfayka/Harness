@@ -209,6 +209,27 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.target_status, "blocked")
         self.assertFalse(result.accepted_completion)
 
+    def test_reports_concrete_reason_when_evidence_policy_is_deferred(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": [],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+
+        result = _evaluate(task_envelope)
+
+        self.assertEqual(result.outcome, VerificationOutcome.INSUFFICIENT_EVIDENCE)
+        self.assertIn(
+            "Completion evidence policy is deferred and does not yet authorize completion",
+            result.reasons,
+        )
+
     def test_returns_external_mismatch_when_reconciliation_conflicts(self) -> None:
         result = _evaluate(
             _base_task_envelope(),

@@ -202,6 +202,26 @@ class ReconciliationPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.status, ReconciliationStatus.MISMATCH)
         self.assertIn(MismatchCategory.LINEAR_STATE_CONFLICT, result.mismatch_categories)
 
+    def test_allows_linear_completed_state_when_claimed_completion_is_under_verification(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["status"] = "executing"
+        task_envelope["timestamps"]["completed_at"] = None
+
+        result = _evaluate(
+            task_envelope,
+            claimed_completion=True,
+            linear_facts=LinearFacts(
+                record_found=True,
+                issue_id="lin-1",
+                state="completed",
+                workflow=LinearWorkflowFact(workflow_id="workflow-done", workflow_name="completed"),
+            ),
+        )
+
+        self.assertEqual(result.outcome, ReconciliationOutcome.NO_MISMATCH)
+        self.assertEqual(result.status, ReconciliationStatus.PASSED)
+        self.assertEqual(result.mismatch_categories, ())
+
     def test_returns_review_required_for_review_worthy_external_facts(self) -> None:
         result = _evaluate(
             _base_task_envelope(),
