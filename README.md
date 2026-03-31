@@ -162,11 +162,31 @@ Run the frontend:
 pnpm dev
 ```
 
-Validation commands:
+## Test Execution
+
+Install backend and frontend dependencies first:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+pnpm install --frozen-lockfile
+```
+
+Run only the dedicated end-to-end runtime scenario suite:
 
 ```bash
 .venv/bin/python -m unittest discover -s tests/e2e -p 'test_*.py'
+```
+
+Run the full Python test suite:
+
+```bash
 .venv/bin/python -m unittest discover -s tests
+```
+
+Run frontend validation:
+
+```bash
 pnpm lint
 pnpm build
 ```
