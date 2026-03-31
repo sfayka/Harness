@@ -170,6 +170,60 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
         self.assertEqual(result.task_envelope["timestamps"]["completed_at"], "2026-03-25T12:21:00Z")
         self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
 
+    def test_allows_verified_completion_from_active_non_terminal_states(self) -> None:
+        active_statuses = (
+            "intake_ready",
+            "planned",
+            "dispatch_ready",
+            "assigned",
+            "executing",
+            "blocked",
+        )
+
+        for status in active_statuses:
+            with self.subTest(status=status):
+                task = _base_task()
+                task["status"] = status
+                task["artifacts"]["completion_evidence"] = {
+                    "policy": "required",
+                    "status": "satisfied",
+                    "required_artifact_types": ["commit"],
+                    "validated_artifact_ids": ["artifact-1"],
+                    "validation_method": "external_reconciliation",
+                    "validated_at": "2026-03-25T12:20:00Z",
+                    "validator": {
+                        "source_system": "harness",
+                        "source_type": "manual",
+                        "source_id": "verification-1",
+                        "captured_by": "verification",
+                    },
+                    "notes": None,
+                }
+                if status == "assigned":
+                    task["assigned_executor"] = {
+                        "executor_type": "codex",
+                        "executor_id": "executor-1",
+                        "assignment_reason": "Capability match.",
+                    }
+
+                result = apply_task_transition(
+                    task,
+                    to_status="completed",
+                    actor="verification",
+                    reason="Verification accepted the completed outcome.",
+                    now="2026-03-25T12:21:00Z",
+                    facts={
+                        "verification_passed": True,
+                        "acceptance_criteria_satisfied": True,
+                        "reconciliation_passed": True,
+                    },
+                )
+
+                self.assertEqual(result.task_envelope["status"], "completed")
+                self.assertEqual(result.task_envelope["timestamps"]["completed_at"], "2026-03-25T12:21:00Z")
+                self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], status)
+                self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
+
     def test_rejects_completion_without_verification_preconditions(self) -> None:
         task = _base_task()
         task["status"] = "executing"

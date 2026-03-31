@@ -633,6 +633,54 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertEqual(reevaluation_response["action"], "transition_applied")
 
+    def test_service_evaluate_existing_task_reapplies_top_level_overlays(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+
+        submit_status, submit_response = self.service.submit(submit_payload)
+        evaluate_status, evaluate_response = self.service.evaluate(payload)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
+        self.assertEqual(evaluate_status, 200)
+        self.assertEqual(evaluate_response["action"], "transition_applied")
+        self.assertTrue(evaluate_response["accepted_completion"])
+        self.assertEqual(evaluate_response["task_envelope"]["status"], "completed")
+        self.assertEqual(
+            evaluate_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
+            True,
+        )
+
+    def test_service_can_reevaluate_intake_ready_task_to_completed_when_evidence_arrives(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+        reevaluation_payload = {
+            "request": {
+                "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                "external_facts": deepcopy(payload["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+            }
+        }
+
+        reevaluation_status, reevaluation_response = self.service.reevaluate(task_id, reevaluation_payload)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["action"], "transition_applied")
+        self.assertTrue(reevaluation_response["accepted_completion"])
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(
+            reevaluation_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
+            True,
+        )
+
     def test_service_evaluate_existing_review_required_task_cannot_be_overwritten_to_completed(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
         task_id = initial_response["task_envelope"]["id"]
@@ -961,6 +1009,24 @@ class HarnessHttpApiTests(unittest.TestCase):
             "accepted_completion",
         )
 
+    def test_api_evaluate_existing_task_reapplies_top_level_overlays(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        evaluate_status, evaluate_response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
+        self.assertEqual(evaluate_status, 200)
+        self.assertEqual(evaluate_response["action"], "transition_applied")
+        self.assertTrue(evaluate_response["accepted_completion"])
+        self.assertEqual(evaluate_response["task_envelope"]["status"], "completed")
+        self.assertEqual(
+            evaluate_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
+            True,
+        )
+
     def test_api_persists_blocked_result(self) -> None:
         status, payload = self._post_json("/evaluate", _request_payload("blocked_insufficient_evidence"))
         task_id = payload["task_envelope"]["id"]
@@ -1115,6 +1181,35 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 2)
+
+    def test_api_can_reevaluate_intake_ready_task_to_completed_when_evidence_arrives(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+        reevaluation_payload = {
+            "request": {
+                "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                "external_facts": deepcopy(payload["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+            }
+        }
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            reevaluation_payload,
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["action"], "transition_applied")
+        self.assertTrue(reevaluation_response["accepted_completion"])
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
 
     def test_api_can_reevaluate_completed_task_back_to_blocked_for_contradictory_facts(self) -> None:
         initial_payload = _request_payload("accepted_completion")
