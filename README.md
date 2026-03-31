@@ -165,6 +165,7 @@ pnpm dev
 Validation commands:
 
 ```bash
+.venv/bin/python -m unittest discover -s tests/e2e -p 'test_*.py'
 .venv/bin/python -m unittest discover -s tests
 pnpm lint
 pnpm build
@@ -179,6 +180,7 @@ The canonical demo runner in [`modules/demo_runner.py`](modules/demo_runner.py) 
 - `successful_completion`
 - `missing_evidence_then_completed`
 - `wrong_target_corrected`
+  - starts blocked while target facts are corrected, then completes after reevaluation with aligned facts
 - `review_required_then_completed`
 - `contradictory_facts_blocked`
 - `long_running_handoff`

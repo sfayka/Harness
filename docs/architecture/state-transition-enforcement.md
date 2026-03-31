@@ -55,15 +55,18 @@ No module may cause lifecycle movement outside its authority just because it obs
 | From | To | Allowed | Primary authority | Preconditions |
 | --- | --- | --- | --- | --- |
 | `intake_ready` | `planned` | yes | planner | task is valid, clarification is absent or resolved, planning preconditions are satisfied |
-| `intake_ready` | `blocked` | yes | intake or clarification handling | missing information, ambiguity, or another control-plane blocker prevents safe planning |
+| `intake_ready` | `blocked` | yes | intake, clarification handling, or verification | missing information, ambiguity, pending external truth, or another control-plane blocker prevents safe continuation |
 | `intake_ready` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
+| `intake_ready` | `failed` | yes | verification | a terminal invalid decision is reached before intermediate runtime states were explicitly persisted |
 | `planned` | `dispatch_ready` | yes | planner or control-plane planning finalization | decomposition is complete enough for routing, dependencies/checkpoints are defined |
 | `planned` | `blocked` | yes | planner or verification/control plane | unresolved dependency, clarification, or planning-detected blocker exists |
 | `planned` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
+| `planned` | `failed` | yes | verification | a terminal invalid decision is reached before intermediate runtime states were explicitly persisted |
 | `planned` | `canceled` | yes | operator or authorized control-plane policy | task is intentionally stopped |
 | `dispatch_ready` | `assigned` | yes | dispatcher | dispatch preconditions hold, executor selected, assignment recorded |
-| `dispatch_ready` | `blocked` | yes | dispatcher or operator | dependencies unresolved, clarification unresolved, no valid executor, or policy forbids dispatch |
+| `dispatch_ready` | `blocked` | yes | dispatcher, operator, or verification | dependencies unresolved, clarification unresolved, no valid executor, or policy forbids dispatch or acceptance |
 | `dispatch_ready` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
+| `dispatch_ready` | `failed` | yes | verification | a terminal invalid decision is reached before intermediate runtime states were explicitly persisted |
 | `dispatch_ready` | `canceled` | yes | operator or authorized control-plane policy | task is intentionally stopped |
 | `assigned` | `executing` | yes | runtime | real execution-start fact exists |
 | `assigned` | `blocked` | yes | dispatcher, runtime, or operator | assignment cannot safely proceed, start failed, clarification reopened, or review/policy blocks execution |
@@ -76,6 +79,7 @@ No module may cause lifecycle movement outside its authority just because it obs
 | `executing` | `canceled` | yes | operator or authorized control-plane policy | execution is intentionally stopped |
 | `completed` | `blocked` | yes | verification or reconciliation-driven control-plane policy | later verification/reconciliation shows outcome is provisional, insufficient, or contradictory |
 | `blocked` | `completed` | yes | verification or manual review | the task was blocked on unresolved completion acceptance and later evidence/reconciliation resolves that blocker |
+| `blocked` | `failed` | yes | verification or manual review | later facts show the blocked task is terminally invalid rather than merely unresolved |
 | `blocked` | `intake_ready` | yes | clarification handling or operator | blocked intake task has newly resolved clarification and must resume normalization |
 | `blocked` | `planned` | yes | planner, clarification handling, or operator | planning blocker resolved and task should return to planned state |
 | `blocked` | `dispatch_ready` | yes | dispatcher or operator | dispatch blocker resolved and task is ready for assignment |
@@ -139,17 +143,26 @@ Runtime may report success facts, but verification decides whether completion is
 
 May cause:
 
+- `intake_ready` -> `blocked`
 - `intake_ready` -> `completed`
+- `intake_ready` -> `failed`
+- `planned` -> `blocked`
 - `planned` -> `completed`
+- `planned` -> `failed`
+- `dispatch_ready` -> `blocked`
 - `dispatch_ready` -> `completed`
+- `dispatch_ready` -> `failed`
+- `assigned` -> `blocked`
 - `assigned` -> `completed`
+- `assigned` -> `failed`
 - `executing` -> `completed`
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `completed` -> `blocked`
 - `blocked` -> `completed`
+- `blocked` -> `failed`
 
-Verification owns completion acceptance policy and may reverse a provisional completed state when later facts invalidate it.
+Verification owns completion acceptance policy and may drive active non-terminal tasks into `blocked`, `failed`, `in_review`, or `completed` based on the policy outcome. It may also reverse a provisional completed state when later facts invalidate it.
 
 ### Manual Review / Operator
 
@@ -223,6 +236,7 @@ This transition is always provisional until verification and required reconcilia
 - runtime stall
 - verification insufficiency
 - reconciliation mismatch
+- pending external truth
 - manual review pending
 
 `blocked` must never be a silent dumping ground for unknown conditions.
