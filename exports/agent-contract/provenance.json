@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-03-30T17:59:26Z",
+  "generated_at": "2026-03-31T15:58:11Z",
   "generator": "scripts/export_agent_contract.py",
-  "source_commit_sha": "29b5c3c2dc0c32780cf0482245115806cf54f4ec",
+  "source_commit_sha": "9287fa2b089a282927202a28ef8b5204f565d009",
   "source_paths": [
     "AGENTS.md",
     "README.md",
