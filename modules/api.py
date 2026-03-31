@@ -90,6 +90,12 @@ def _optional_mapping(value: Any, *, field_name: str) -> dict[str, Any] | None:
     return _require_mapping(value, field_name=field_name)
 
 
+def _optional_non_empty_string(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    return _require_non_empty_string(value, field_name=field_name)
+
+
 def _optional_string_tuple(value: Any, *, field_name: str) -> tuple[str, ...]:
     if value is None:
         return ()
@@ -287,12 +293,46 @@ def _parse_review_decision(payload: dict[str, Any] | None) -> ReviewDecisionResu
     )
 
 
+def _apply_submission_task_overlays(
+    task_envelope: dict[str, Any],
+    *,
+    request_payload: dict[str, Any],
+) -> dict[str, Any]:
+    merged_task = deepcopy(task_envelope)
+
+    task_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
+    if task_status is not None:
+        merged_task["status"] = task_status
+        merged_task["timestamps"]["completed_at"] = (
+            merged_task["timestamps"]["updated_at"] if task_status == "completed" else None
+        )
+
+    assigned_executor = _optional_mapping(request_payload.get("assigned_executor"), field_name="assigned_executor")
+    if assigned_executor is not None:
+        merged_task["assigned_executor"] = dict(assigned_executor)
+
+    linked_artifacts_payload = request_payload.get("linked_artifacts")
+    if linked_artifacts_payload is not None:
+        linked_artifacts = _optional_object_list(linked_artifacts_payload, field_name="linked_artifacts")
+        merged_task["artifacts"]["items"] = [deepcopy(artifact) for artifact in linked_artifacts]
+
+    completion_evidence_update = _optional_mapping(
+        request_payload.get("completion_evidence"),
+        field_name="completion_evidence",
+    )
+    if completion_evidence_update is not None:
+        merged_task["artifacts"]["completion_evidence"].update(dict(completion_evidence_update))
+
+    return merged_task
+
+
 def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationRequest:
     """Parse a canonical HTTP evaluation request into the public evaluator input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
+    task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
 
     return HarnessEvaluationRequest(
         task_envelope=task_envelope,

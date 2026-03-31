@@ -292,6 +292,7 @@ def evaluate_reconciliation(
     internal_status = str(task_envelope["status"])
     if linear_facts and linear_facts.state:
         linear_done_states = {"done", "completed", "canceled"}
+        linear_completed_states = {"done", "completed"}
         harness_done_states = {"completed", "canceled", "failed"}
         if internal_status == "completed" and linear_facts.state not in linear_done_states:
             _append_category(
@@ -300,7 +301,11 @@ def evaluate_reconciliation(
                 category=MismatchCategory.LINEAR_STATE_CONFLICT,
                 reason="Harness marks the task completed while Linear still reports active work",
             )
-        elif internal_status in {"executing", "assigned", "planned", "dispatch_ready", "blocked"} and linear_facts.state == "completed":
+        elif (
+            internal_status in {"intake_ready", "executing", "assigned", "planned", "dispatch_ready", "blocked"}
+            and linear_facts.state in linear_completed_states
+            and not reconciliation_input.claimed_completion
+        ):
             _append_category(
                 categories,
                 reasons,

@@ -21,6 +21,7 @@ from modules.contracts.task_envelope_review import (
     resolve_review_request,
 )
 from modules.demo_cases import build_demo_request
+from modules.intake import create_task_envelope
 from modules.store import FileBackedHarnessStore, PostgresHarnessStore
 
 
@@ -77,6 +78,179 @@ def _to_jsonable(value):
 
 def _request_payload(case_name: str) -> dict:
     return {"request": _to_jsonable(build_demo_request(case_name))}
+
+
+def _manual_happy_path_overlay_payload() -> dict:
+    task_envelope = create_task_envelope(
+        {
+            "id": "task-http-happy-overlay-1",
+            "title": "Dry-run happy path overlay",
+            "description": "Exercise /evaluate with top-level evidence overlays.",
+            "origin": {
+                "source_system": "openclaw",
+                "source_type": "ingress_request",
+                "source_id": "req-happy-overlay-1",
+            },
+            "acceptance_criteria": [
+                {
+                    "id": "ac-1",
+                    "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+                    "required": True,
+                }
+            ],
+        },
+        now="2026-03-31T14:30:00Z",
+    )
+
+    return {
+        "request": {
+            "task_envelope": task_envelope,
+            "task_status": "executing",
+            "assigned_executor": {
+                "executor_type": "codex",
+                "executor_id": "executor-e2e-1",
+                "assignment_reason": "Manual dry-run overlay payload.",
+            },
+            "linked_artifacts": [
+                {
+                    "id": "artifact-pr-dryrun-1",
+                    "type": "pull_request",
+                    "title": "HARNESS-DRYRUN PR",
+                    "description": None,
+                    "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                    "content_type": None,
+                    "external_id": "PR-2",
+                    "commit_sha": None,
+                    "pull_request_number": 2,
+                    "review_state": "approved",
+                    "provenance": {
+                        "source_system": "github",
+                        "source_type": "api",
+                        "source_id": "pull/2",
+                        "captured_by": "github-sync",
+                    },
+                    "verification_status": "verified",
+                    "repository": {
+                        "host": "github.com",
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN",
+                        "external_id": "repo-dryrun-1",
+                    },
+                    "branch": {
+                        "name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    },
+                    "changed_files": [],
+                    "external_refs": [],
+                    "captured_at": "2026-03-31T14:31:00Z",
+                    "metadata": {},
+                },
+                {
+                    "id": "artifact-commit-dryrun-1",
+                    "type": "commit",
+                    "title": None,
+                    "description": None,
+                    "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "content_type": None,
+                    "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "pull_request_number": None,
+                    "review_state": None,
+                    "provenance": {
+                        "source_system": "github",
+                        "source_type": "api",
+                        "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "captured_by": "github-sync",
+                    },
+                    "verification_status": "verified",
+                    "repository": {
+                        "host": "github.com",
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN",
+                        "external_id": "repo-dryrun-1",
+                    },
+                    "branch": None,
+                    "changed_files": [],
+                    "external_refs": [],
+                    "captured_at": "2026-03-31T14:31:10Z",
+                    "metadata": {},
+                },
+            ],
+            "completion_evidence": {
+                "policy": "required",
+                "status": "satisfied",
+                "required_artifact_types": ["pull_request", "commit"],
+                "validated_artifact_ids": ["artifact-pr-dryrun-1", "artifact-commit-dryrun-1"],
+                "validation_method": "external_reconciliation",
+                "validated_at": "2026-03-31T14:31:30Z",
+                "validator": {
+                    "source_system": "harness",
+                    "source_type": "verification",
+                    "source_id": "verification-dryrun-1",
+                    "captured_by": "github-sync",
+                },
+            },
+            "external_facts": {
+                "expected_code_context": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "base_branch": "main",
+                },
+                "github_facts": {
+                    "artifact_found": True,
+                    "repository": {
+                        "host": "github.com",
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN",
+                        "external_id": "repo-dryrun-1",
+                    },
+                    "branch": {
+                        "name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    },
+                    "commit": {
+                        "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    },
+                    "pull_request": {
+                        "number": 2,
+                        "review_state": "approved",
+                    },
+                    "changed_files": {
+                        "matches_expected_scope": True,
+                        "files": [
+                            {
+                                "path": "modules/api.py",
+                                "change_type": "modified",
+                            }
+                        ],
+                    },
+                    "reasons": [],
+                },
+                "linear_facts": {
+                    "record_found": True,
+                    "issue_id": "lin-dryrun-1",
+                    "issue_key": "HAR-2",
+                    "state": "completed",
+                    "workflow": {
+                        "workflow_id": "workflow-completed",
+                        "workflow_name": "completed",
+                        "state_type": "completed",
+                    },
+                    "reasons": [],
+                },
+            },
+            "claimed_completion": True,
+            "acceptance_criteria_satisfied": True,
+            "runtime_facts": {
+                "executor_reported_success": True,
+                "attempt_count": 1,
+            },
+        }
+    }
 
 
 def _schema_invalid_submission_payload() -> dict:
@@ -771,6 +945,21 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
         self.assertEqual(history_payload["evaluations"][0]["result"]["task_envelope"]["status"], "completed")
+
+    def test_api_accepts_manual_happy_path_overlay_payload(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "transition_applied")
+        self.assertEqual(response["target_status"], "completed")
+        self.assertTrue(response["accepted_completion"])
+        self.assertEqual(response["task_envelope"]["status"], "completed")
+        self.assertEqual(
+            response["enforcement_result"]["verification_result"]["outcome"],
+            "accepted_completion",
+        )
 
     def test_api_persists_blocked_result(self) -> None:
         status, payload = self._post_json("/evaluate", _request_payload("blocked_insufficient_evidence"))

@@ -110,6 +110,33 @@ def _base_reasons(task_id: str, decision_input: VerificationDecisionInput) -> li
     return reasons
 
 
+def _evidence_insufficiency_reasons(
+    task_envelope: TaskEnvelope,
+    evidence_result: CompletionEvidenceValidationResult,
+) -> tuple[str, ...]:
+    evidence = dict(task_envelope.get("artifacts", {}).get("completion_evidence", {}) or {})
+    policy = evidence.get("policy")
+    status = evidence.get("status")
+
+    if evidence_result.missing_required_artifact_types:
+        missing = ", ".join(sorted(evidence_result.missing_required_artifact_types))
+        return (f"Completion evidence is missing required artifact types: {missing}",)
+
+    if policy == "deferred":
+        return ("Completion evidence policy is deferred and does not yet authorize completion",)
+
+    if policy == "required" and status != "satisfied":
+        return (f"Completion evidence uses required policy but status is {status!r}",)
+
+    if policy == "not_applicable":
+        return ("Completion evidence policy is not_applicable and does not authorize completion",)
+
+    if policy == "required" and not evidence_result.validated_artifact_ids:
+        return ("Required completion evidence does not cite any validated artifact ids",)
+
+    return ("Validated evidence is not sufficient for the declared evidence policy",)
+
+
 def evaluate_verification_decision(
     task_envelope: TaskEnvelope,
     *,
@@ -269,7 +296,7 @@ def evaluate_verification_decision(
         )
 
     if not evidence_result.is_sufficient:
-        reasons.append("Validated evidence is not sufficient for the declared evidence policy")
+        reasons.extend(_evidence_insufficiency_reasons(task_envelope, evidence_result))
         return VerificationDecisionResult(
             task_id=task_id,
             outcome=VerificationOutcome.INSUFFICIENT_EVIDENCE,

@@ -12,6 +12,15 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
 - Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state.
 
+For new-task submission and one-shot evaluation, the canonical contract remains `request.task_envelope`. Harness also accepts ingress-style top-level overlays for convenience on initial requests:
+
+- `request.task_status`
+- `request.assigned_executor`
+- `request.linked_artifacts`
+- `request.completion_evidence`
+
+Those overlays are merged into `request.task_envelope` before evaluation. They do not mutate existing stored tasks; use `POST /tasks/<task_id>/reevaluate` for that path.
+
 ## Review-Required Lifecycle Rule
 
 - If verification returns `requires_review=true`, Harness moves an active non-terminal task into `in_review`.
