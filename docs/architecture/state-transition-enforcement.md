@@ -56,14 +56,18 @@ No module may cause lifecycle movement outside its authority just because it obs
 | --- | --- | --- | --- | --- |
 | `intake_ready` | `planned` | yes | planner | task is valid, clarification is absent or resolved, planning preconditions are satisfied |
 | `intake_ready` | `blocked` | yes | intake or clarification handling | missing information, ambiguity, or another control-plane blocker prevents safe planning |
+| `intake_ready` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
 | `planned` | `dispatch_ready` | yes | planner or control-plane planning finalization | decomposition is complete enough for routing, dependencies/checkpoints are defined |
 | `planned` | `blocked` | yes | planner or verification/control plane | unresolved dependency, clarification, or planning-detected blocker exists |
+| `planned` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
 | `planned` | `canceled` | yes | operator or authorized control-plane policy | task is intentionally stopped |
 | `dispatch_ready` | `assigned` | yes | dispatcher | dispatch preconditions hold, executor selected, assignment recorded |
 | `dispatch_ready` | `blocked` | yes | dispatcher or operator | dependencies unresolved, clarification unresolved, no valid executor, or policy forbids dispatch |
+| `dispatch_ready` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
 | `dispatch_ready` | `canceled` | yes | operator or authorized control-plane policy | task is intentionally stopped |
 | `assigned` | `executing` | yes | runtime | real execution-start fact exists |
 | `assigned` | `blocked` | yes | dispatcher, runtime, or operator | assignment cannot safely proceed, start failed, clarification reopened, or review/policy blocks execution |
+| `assigned` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
 | `assigned` | `failed` | yes | runtime or verification | startup or execution attempt is terminally unsuccessful under policy |
 | `assigned` | `canceled` | yes | operator or authorized control-plane policy | assignment or task is intentionally stopped |
 | `executing` | `completed` | yes | verification | runtime facts, evidence, and reconciliation satisfy completion policy |
@@ -135,6 +139,10 @@ Runtime may report success facts, but verification decides whether completion is
 
 May cause:
 
+- `intake_ready` -> `completed`
+- `planned` -> `completed`
+- `dispatch_ready` -> `completed`
+- `assigned` -> `completed`
 - `executing` -> `completed`
 - `executing` -> `blocked`
 - `executing` -> `failed`
@@ -196,11 +204,12 @@ Assignment alone is not enough.
 
 Required:
 
-- runtime facts indicate an execution outcome exists
 - acceptance criteria are satisfied strongly enough for policy
 - required evidence is satisfied
 - reconciliation is non-blocking where required
 - verification accepts the result
+
+Verification may accept completion from any active non-terminal state when the control plane has enough evidence and reconciliation support to conclude the work is already complete. Harness does not require a separate state bump just to preserve an otherwise valid completion claim.
 
 This transition is always provisional until verification and required reconciliation pass.
 

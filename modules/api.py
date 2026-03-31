@@ -670,9 +670,10 @@ class HarnessApiService:
             pass
         else:
             existing_records = self.store.list_evaluation_records(task_id)
+            request_payload = _require_mapping(payload.get("request"), field_name="request")
             request = replace(
                 request,
-                task_envelope=deepcopy(stored_task),
+                task_envelope=_apply_submission_task_overlays(stored_task, request_payload=request_payload),
                 review_is_active=_review_gate_is_active(stored_task, existing_records),
             )
 

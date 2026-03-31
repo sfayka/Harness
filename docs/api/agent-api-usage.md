@@ -10,7 +10,8 @@ This document is the source-of-truth API usage guide for execution agents and do
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
 
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
-- Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state.
+- `POST /evaluate` may still be used as an evaluation surface for an existing task id, but Harness evaluates against the stored task snapshot and only reapplies the supported top-level overlays listed below.
+- Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state by supplying a different nested `request.task_envelope`.
 
 For new-task submission and one-shot evaluation, the canonical contract remains `request.task_envelope`. Harness also accepts ingress-style top-level overlays for convenience on initial requests:
 
@@ -19,7 +20,7 @@ For new-task submission and one-shot evaluation, the canonical contract remains 
 - `request.linked_artifacts`
 - `request.completion_evidence`
 
-Those overlays are merged into `request.task_envelope` before evaluation. They do not mutate existing stored tasks; use `POST /tasks/<task_id>/reevaluate` for that path.
+Those overlays are merged into `request.task_envelope` before evaluation. For existing tasks evaluated through `POST /evaluate`, the same overlay fields are reapplied onto the stored task snapshot before policy evaluation. For canonical persisted updates, prefer `POST /tasks/<task_id>/reevaluate`.
 
 ## Review-Required Lifecycle Rule
 

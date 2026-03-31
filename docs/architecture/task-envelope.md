@@ -94,19 +94,23 @@ Canonical transitions:
 - `intake_ready` -> `blocked`
 - `intake_ready` -> `planned`
 - `intake_ready` -> `in_review`
+- `intake_ready` -> `completed`
 - `planned` -> `dispatch_ready`
 - `planned` -> `blocked`
 - `planned` -> `canceled`
 - `planned` -> `in_review`
+- `planned` -> `completed`
 - `dispatch_ready` -> `assigned`
 - `dispatch_ready` -> `blocked`
 - `dispatch_ready` -> `canceled`
 - `dispatch_ready` -> `in_review`
+- `dispatch_ready` -> `completed`
 - `assigned` -> `executing`
 - `assigned` -> `blocked`
 - `assigned` -> `failed`
 - `assigned` -> `canceled`
 - `assigned` -> `in_review`
+- `assigned` -> `completed`
 - `executing` -> `completed`
 - `executing` -> `in_review`
 - `executing` -> `blocked`
@@ -154,7 +158,7 @@ Once a task is `in_review`, only an explicit manual review decision may transiti
 
 `blocked` is a lifecycle state, not a root cause. Clarification, external dependencies, and reconciliation failures may all use `blocked`, but they must be distinguished by the relevant contract fields rather than inferred from the state name alone.
 
-State movement is policy-enforced. Executor-reported events may supply inputs, but they do not independently authorize lifecycle transitions such as `assigned` -> `executing` or `executing` -> `completed`.
+State movement is policy-enforced. Executor-reported events may supply inputs, but they do not independently authorize lifecycle transitions such as `assigned` -> `executing` or automatic completion into `completed`.
 
 Manual review is an explicit control-plane function, not an informal override path. Review outcomes must remain auditable and must still respect state transition enforcement rules.
 
