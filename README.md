@@ -243,6 +243,7 @@ Useful docs:
 Current screenshot assets:
 
 - [`docs/demo/kno-133-happy-path/`](docs/demo/kno-133-happy-path)
+- [`docs/demo/review-needed/`](docs/demo/review-needed)
 
 ## Known Limitations
 
