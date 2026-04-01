@@ -215,6 +215,9 @@ export HARNESS_DRYRUN_BASE_URL=https://harness-qeav.onrender.com
 export HARNESS_DRYRUN_OUTPUT_DIR=runs
 export HARNESS_DRYRUN_INTERVAL_SECONDS=300
 export HARNESS_DRYRUN_ITERATIONS=0
+export HARNESS_DRYRUN_MAX_RETRIES=2
+export HARNESS_DRYRUN_DIAGNOSTICS_ENABLED=true
+export HARNESS_DRYRUN_MAX_E2E_SUITE_RUNS=1
 ```
 
 Run once:
@@ -238,7 +241,21 @@ Inspect logs and raw responses:
 
 ```bash
 tail -f runs/log.jsonl
+find runs/reports -type f | sort
 find runs/raw -type f | sort
+```
+
+Self-heal behavior:
+
+- each scenario compares its actual outcome to the canonical expected outcome
+- transient transport and backend availability failures are retried up to the bounded retry limit
+- runtime regressions can trigger the local E2E suite once per runner session
+- unexpected failures write structured reports under `runs/reports/`
+
+Disable retry and diagnostics:
+
+```bash
+.venv/bin/python scripts/run_unattended_dryruns.py --max-retries 0 --disable-diagnostics --max-e2e-suite-runs 0
 ```
 
 ## Demo And Canonical Scenarios

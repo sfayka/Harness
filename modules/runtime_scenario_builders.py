@@ -25,6 +25,7 @@ class RuntimeScenarioDefinition:
 
     name: str
     description: str
+    expected_outcome: dict[str, Any]
     build_evaluate_payload: Callable[[dict[str, Any]], dict[str, Any]]
 
 
@@ -473,16 +474,31 @@ CANONICAL_UNATTENDED_SCENARIOS: tuple[RuntimeScenarioDefinition, ...] = (
     RuntimeScenarioDefinition(
         name="happy_path",
         description="Evidence-backed completion should be accepted.",
+        expected_outcome={
+            "accepted_completion": True,
+            "final_status": "completed",
+            "requires_review": False,
+        },
         build_evaluate_payload=build_happy_path_evaluate_payload,
     ),
     RuntimeScenarioDefinition(
         name="mismatch",
         description="Wrong-target reconciliation mismatch should fail terminally.",
+        expected_outcome={
+            "accepted_completion": False,
+            "final_status": "failed",
+            "requires_review": False,
+        },
         build_evaluate_payload=build_mismatch_evaluate_payload,
     ),
     RuntimeScenarioDefinition(
         name="review_required",
         description="Unresolved external truth should require manual review.",
+        expected_outcome={
+            "accepted_completion": False,
+            "final_status": "in_review",
+            "requires_review": True,
+        },
         build_evaluate_payload=build_review_required_payload,
     ),
 )
