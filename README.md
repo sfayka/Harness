@@ -13,6 +13,18 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
+## Planned Capabilities
+
+The repository also carries planning-only scaffolds for two future capabilities:
+
+- the Harness Evolution Engine (HEE), an advisory subsystem for diagnosing recurring failures and proposing reviewed improvements
+- an OpenClaw executor adapter, a future execution boundary that would keep completion truth, verification, and lifecycle enforcement inside Harness
+
+See:
+
+- [`docs/architecture/harness-evolution-engine.md`](docs/architecture/harness-evolution-engine.md)
+- [`docs/architecture/openclaw-executor-adapter.md`](docs/architecture/openclaw-executor-adapter.md)
+
 ## Current Architecture
 
 ### Frontend
