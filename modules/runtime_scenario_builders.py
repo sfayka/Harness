@@ -7,13 +7,6 @@ from dataclasses import asdict, dataclass, is_dataclass
 from enum import Enum
 from typing import Any, Callable
 
-from modules.contracts.execution_advisory import (
-    AdvisoryCompletionClaim,
-    ExecutionEvent,
-    ExecutionEventType,
-    ExecutionProvenance,
-    derive_runtime_advisory_facts,
-)
 from modules.contracts.task_envelope_review import ReviewOutcome, ReviewTrigger
 from modules.intake import create_task_envelope
 
@@ -279,73 +272,10 @@ def build_runtime_facts(
     executor_reported_failure: bool = False,
     attempt_count: int = 1,
 ) -> dict:
-    events: list[ExecutionEvent] = []
-    for index in range(max(attempt_count, 0)):
-        attempt_id = f"attempt-{index + 1}"
-        events.append(
-            ExecutionEvent(
-                event_id=f"event-{attempt_id}-started",
-                task_id="runtime-scenario",
-                attempt_id=attempt_id,
-                event_type=ExecutionEventType.EXECUTION_STARTED,
-                occurred_at=DEFAULT_NOW,
-                provenance=ExecutionProvenance(
-                    source_system="openclaw",
-                    source_type="executor_event",
-                    source_id=f"started-{attempt_id}",
-                    captured_by="runtime-scenario-builder",
-                ),
-                metadata={"attempt_index": index + 1},
-            )
-        )
-
-    if attempt_count > 0 and executor_reported_success:
-        last_attempt = f"attempt-{attempt_count}"
-        events.append(
-            ExecutionEvent(
-                event_id=f"event-{last_attempt}-succeeded",
-                task_id="runtime-scenario",
-                attempt_id=last_attempt,
-                event_type=ExecutionEventType.EXECUTION_SUCCEEDED,
-                occurred_at=DEFAULT_NOW,
-                provenance=ExecutionProvenance(
-                    source_system="openclaw",
-                    source_type="executor_event",
-                    source_id=f"succeeded-{last_attempt}",
-                    captured_by="runtime-scenario-builder",
-                ),
-                advisory_completion=AdvisoryCompletionClaim(
-                    claim_id=f"claim-{last_attempt}",
-                    reported_complete=True,
-                    confidence="high",
-                ),
-            )
-        )
-
-    if attempt_count > 0 and executor_reported_failure:
-        last_attempt = f"attempt-{attempt_count}"
-        events.append(
-            ExecutionEvent(
-                event_id=f"event-{last_attempt}-failed",
-                task_id="runtime-scenario",
-                attempt_id=last_attempt,
-                event_type=ExecutionEventType.EXECUTION_FAILED,
-                occurred_at=DEFAULT_NOW,
-                provenance=ExecutionProvenance(
-                    source_system="openclaw",
-                    source_type="executor_event",
-                    source_id=f"failed-{last_attempt}",
-                    captured_by="runtime-scenario-builder",
-                ),
-            )
-        )
-
-    derived_facts = derive_runtime_advisory_facts(tuple(events))
     return {
-        "executor_reported_success": derived_facts.executor_reported_success,
-        "executor_reported_failure": derived_facts.executor_reported_failure,
-        "terminal_failure": derived_facts.terminal_failure,
-        "attempt_count": derived_facts.attempt_count,
+        "executor_reported_success": executor_reported_success,
+        "executor_reported_failure": executor_reported_failure,
+        "attempt_count": attempt_count,
     }
 
 

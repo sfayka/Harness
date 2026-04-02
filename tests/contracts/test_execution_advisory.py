@@ -11,7 +11,7 @@ from modules.contracts.execution_advisory import (
     ExecutionEvent,
     ExecutionEventType,
     ExecutionProvenance,
-    derive_runtime_advisory_facts,
+    validate_artifact_reference,
     validate_execution_event,
 )
 
@@ -68,10 +68,32 @@ class ExecutionAdvisoryModelTests(unittest.TestCase):
                         ArtifactReference(
                             artifact_type="pull_request",
                             reference_id="artifact-pr-1",
+                            provenance=self._provenance(),
                         ),
                     ),
                 )
             )
+
+    def test_validate_artifact_reference_requires_provenance(self) -> None:
+        with self.assertRaises(TypeError):
+            ArtifactReference(
+                artifact_type="pull_request",
+                reference_id="artifact-pr-1",
+                location="https://github.com/sfayka/Harness/pull/1",
+            )
+
+    def test_validate_artifact_reference_accepts_provenance_and_locator(self) -> None:
+        artifact = ArtifactReference(
+            artifact_type="pull_request",
+            reference_id="artifact-pr-1",
+            provenance=self._provenance(),
+            location="https://github.com/sfayka/Harness/pull/1",
+        )
+
+        validated = validate_artifact_reference(artifact)
+
+        self.assertEqual(validated.reference_id, "artifact-pr-1")
+        self.assertEqual(validated.provenance.source_system, "openclaw")
 
     def test_validate_execution_event_rejects_completion_claim_lifecycle_authority(self) -> None:
         with self.assertRaises(ExecutionAdvisoryValidationError):
@@ -90,30 +112,6 @@ class ExecutionAdvisoryModelTests(unittest.TestCase):
                     ),
                 )
             )
-
-    def test_derive_runtime_advisory_facts_aggregates_attempts_and_outcomes(self) -> None:
-        facts = derive_runtime_advisory_facts(
-            (
-                self._event(ExecutionEventType.EXECUTION_STARTED),
-                ExecutionEvent(
-                    event_id="event-2",
-                    task_id="task-1",
-                    attempt_id="attempt-2",
-                    event_type=ExecutionEventType.EXECUTION_SUCCEEDED,
-                    occurred_at="2026-04-01T00:01:00Z",
-                    provenance=self._provenance(),
-                    advisory_completion=AdvisoryCompletionClaim(
-                        claim_id="claim-1",
-                        reported_complete=True,
-                    ),
-                ),
-            )
-        )
-
-        self.assertTrue(facts.executor_reported_success)
-        self.assertFalse(facts.executor_reported_failure)
-        self.assertFalse(facts.terminal_failure)
-        self.assertEqual(facts.attempt_count, 2)
 
 
 if __name__ == "__main__":
