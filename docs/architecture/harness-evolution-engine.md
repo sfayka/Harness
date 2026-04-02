@@ -110,7 +110,13 @@ Timeline remains canonical audit surface for task progression. HEE may reference
 
 Execution traces are descriptive evidence of what happened during attempts. HEE may use them for diagnosis but they never become authoritative completion proof by themselves.
 
-Trace minimum-field expectations for future HEE inputs are defined in `modules/evolution/contracts/execution-trace-requirements.contract.md`.
+Trace minimum-field expectations for future HEE inputs are defined in `modules/evolution/contracts/execution-trace-requirements.contract.md`
+
+Failure diagnosis shape and taxonomy expectations are defined in:
+
+- `modules/evolution/contracts/failure-diagnosis.contract.md`
+- `modules/evolution/diagnostics/failure-taxonomy.v1.md`
+
 
 ### Artifacts And Completion Evidence
 

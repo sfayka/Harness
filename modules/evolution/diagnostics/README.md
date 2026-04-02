@@ -2,10 +2,14 @@
 
 This directory is reserved for future failure-diagnosis logic, taxonomies, and supporting notes.
 
+Current planning artifacts:
+
+- `failure-taxonomy.v1.md` defines the initial diagnosis taxonomy contract surface.
+
 Future work here should focus on:
 
 - recurring failure pattern identification
 - taxonomy definitions grounded in canonical outcomes
 - diagnosis generation backed by trace and evaluation evidence
 
-It should not become a hidden policy engine or a place where lifecycle truth is reassigned outside Harness core.
+It must not become a hidden policy engine or a place where lifecycle truth is reassigned outside Harness core.
