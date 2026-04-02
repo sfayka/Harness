@@ -1,18 +1,20 @@
-# OpenClaw Executor Adapter Scaffold
+# OpenClaw Executor Adapter
 
-This directory reserves a future home for an execution adapter that lets Harness use OpenClaw as a worker backend.
+This directory contains a minimal real OpenClaw executor adapter path.
 
-Its intended boundary is executor-facing only:
+Current scope:
 
-- map assigned Harness work into an OpenClaw execution request
-- normalize OpenClaw execution events back into Harness execution facts
-- preserve artifact and trace references for later verification
+- project canonical `ExecutorDispatchInput` into a minimal OpenClaw request payload
+- call an OpenClaw runtime client through a thin transport protocol
+- normalize OpenClaw events/artifacts into canonical advisory execution models
+- preserve advisory-only completion semantics for Harness lifecycle enforcement
 
-This directory is distinct from the current ingress/client spike in `modules/connectors/openclaw_harness_spike.py`.
+The adapter intentionally keeps OpenClaw-specific request/response fields local to translation code in `executor_adapter.py`.
 
-It does not currently implement:
+This directory remains distinct from ingress/client code in `modules/connectors/openclaw_harness_spike.py`.
 
-- API wiring
-- runtime dispatch
-- execution logic
-- completion acceptance
+Non-goals for this module:
+
+- broad OpenClaw orchestration support
+- lifecycle mutation from executor output
+- bypassing canonical completion interception or reevaluation paths

@@ -7,6 +7,7 @@ from .executor_adapter import (
     ExecutorDispatchOutput,
     StubExecutorAdapter,
 )
+from .openclaw import OpenClawAdapterError, OpenClawExecutorAdapter, OpenClawRuntimeClient
 
 __all__ = [
     "ExecutorAdapter",
@@ -14,4 +15,7 @@ __all__ = [
     "ExecutorDispatchInput",
     "ExecutorDispatchOutput",
     "StubExecutorAdapter",
+    "OpenClawAdapterError",
+    "OpenClawExecutorAdapter",
+    "OpenClawRuntimeClient",
 ]
