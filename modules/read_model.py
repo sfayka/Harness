@@ -281,8 +281,18 @@ class HarnessReadModelService:
         )
         return task, records
 
-    def build_task_read_model(self, task_id: str) -> TaskReadModel:
-        task, records = self._load_task_and_records(task_id)
+    def _build_task_read_model_from_loaded(
+        self,
+        *,
+        task: TaskEnvelope,
+        records: tuple[EvaluationRecord, ...],
+    ) -> TaskReadModel:
+        records = tuple(
+            sorted(
+                records,
+                key=lambda record: (_parse_iso_timestamp(record.recorded_at), record.evaluation_id),
+            )
+        )
         verification_summary = _latest_mapping(records, ("enforcement_result", "verification_result"))
         reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
         review_summary = _build_review_summary(records)
@@ -326,6 +336,10 @@ class HarnessReadModelService:
             timeline=timeline,
         )
 
+    def build_task_read_model(self, task_id: str) -> TaskReadModel:
+        task, records = self._load_task_and_records(task_id)
+        return self._build_task_read_model_from_loaded(task=task, records=records)
+
     def build_task_timeline(self, task_id: str) -> dict[str, Any]:
         task, records = self._load_task_and_records(task_id)
         timeline = _build_timeline(task, records)
@@ -337,7 +351,16 @@ class HarnessReadModelService:
         }
 
     def list_task_read_models(self) -> tuple[TaskReadModel, ...]:
-        return tuple(self.build_task_read_model(str(task["id"])) for task in self.store.list_tasks())
+        tasks = self.store.list_tasks()
+        task_ids = tuple(str(task["id"]) for task in tasks)
+        records_by_task_id = self.store.list_evaluation_records_for_tasks(task_ids)
+        return tuple(
+            self._build_task_read_model_from_loaded(
+                task=task,
+                records=records_by_task_id.get(str(task["id"]), ()),
+            )
+            for task in tasks
+        )
 
 
 __all__ = [

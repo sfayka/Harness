@@ -96,6 +96,10 @@ class EvaluationRecordStore(Protocol):
 
     def list_evaluation_records(self, task_id: str) -> tuple[EvaluationRecord, ...]: ...
 
+    def list_evaluation_records_for_tasks(
+        self, task_ids: tuple[str, ...]
+    ) -> dict[str, tuple[EvaluationRecord, ...]]: ...
+
 
 class HarnessStore(TaskEnvelopeStore, EvaluationRecordStore, Protocol):
     """Combined persistence boundary for canonical task and evaluation state."""
@@ -209,6 +213,12 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
             )
         records.sort(key=lambda record: (record.recorded_at, record.evaluation_id))
         return tuple(records)
+
+    def list_evaluation_records_for_tasks(self, task_ids: tuple[str, ...]) -> dict[str, tuple[EvaluationRecord, ...]]:
+        grouped_records: dict[str, tuple[EvaluationRecord, ...]] = {}
+        for task_id in task_ids:
+            grouped_records[task_id] = self.list_evaluation_records(task_id)
+        return grouped_records
 
 
 def _parse_iso_timestamp(value: str | None) -> datetime:
@@ -381,6 +391,39 @@ class PostgresHarnessStore(HarnessStore):
             )
             for row in rows
         )
+
+    def list_evaluation_records_for_tasks(self, task_ids: tuple[str, ...]) -> dict[str, tuple[EvaluationRecord, ...]]:
+        if not task_ids:
+            return {}
+
+        grouped_records: dict[str, list[EvaluationRecord]] = {task_id: [] for task_id in task_ids}
+
+        with self._connect() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT evaluation_id, task_id, recorded_at, request_json, result_json
+                    FROM evaluation_records
+                    WHERE task_id = ANY(%s)
+                    ORDER BY task_id ASC, recorded_at ASC, evaluation_id ASC
+                    """,
+                    (list(task_ids),),
+                )
+                rows = cursor.fetchall()
+
+        for row in rows:
+            task_id = str(row[1])
+            grouped_records.setdefault(task_id, []).append(
+                EvaluationRecord(
+                    evaluation_id=str(row[0]),
+                    task_id=task_id,
+                    recorded_at=cast(datetime, row[2]).astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+                    request=cast(dict[str, Any], row[3]),
+                    result=cast(dict[str, Any], row[4]),
+                )
+            )
+
+        return {task_id: tuple(records) for task_id, records in grouped_records.items()}
 
 
 def build_harness_store(
