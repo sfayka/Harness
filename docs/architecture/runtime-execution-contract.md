@@ -195,6 +195,8 @@ The initial execution event family should include:
 
 These names are architecture-level semantics. Exact implementation enums can be finalized later.
 
+These canonical event semantics are now represented in code via `modules/contracts/task_envelope_execution.py` so adapters can emit normalized append-only events without granting lifecycle authority.
+
 ### Execution Started
 
 Represents the first trustworthy signal that work actually began.

@@ -35,6 +35,17 @@ from .task_envelope_external_facts import (
     validate_pull_request_fact,
     validate_repository_fact,
 )
+from .task_envelope_execution import (
+    AdvisoryCompletionClaim,
+    ExecutionArtifactReference,
+    ExecutionEvent,
+    ExecutionModelValidationError,
+    ExecutionProvenance,
+    validate_advisory_completion_claim,
+    validate_execution_artifact_reference,
+    validate_execution_event,
+    validate_execution_provenance,
+)
 from .task_envelope_enforcement import (
     EnforcementAction,
     EnforcementInput,
@@ -99,6 +110,7 @@ from .task_envelope_validation import assert_valid_task_envelope, validate_task_
 __all__ = [
     "ArtifactReferenceFact",
     "ArtifactValidationError",
+    "AdvisoryCompletionClaim",
     "ArtifactValidationResult",
     "BranchFact",
     "CanonicalCaseInput",
@@ -108,6 +120,10 @@ __all__ = [
     "CommitFact",
     "CompletionEvidenceValidationError",
     "CompletionEvidenceValidationResult",
+    "ExecutionArtifactReference",
+    "ExecutionEvent",
+    "ExecutionModelValidationError",
+    "ExecutionProvenance",
     "EnforcementAction",
     "EnforcementInput",
     "EnforcementResult",
@@ -153,6 +169,10 @@ __all__ = [
     "assert_valid_artifact_record",
     "assert_valid_completion_evidence",
     "assert_valid_task_envelope",
+    "validate_advisory_completion_claim",
+    "validate_execution_artifact_reference",
+    "validate_execution_event",
+    "validate_execution_provenance",
     "append_review_record",
     "build_canonical_fact_bundle",
     "build_expected_code_context",
