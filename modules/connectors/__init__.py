@@ -10,6 +10,15 @@ from .github_facts import (
     translate_github_pull_request,
     translate_github_repository,
 )
+from .github_artifact_validation import (
+    GitHubArtifactLookup,
+    GitHubArtifactValidationError,
+    GitHubArtifactValidationIssue,
+    GitHubArtifactValidationItemResult,
+    GitHubArtifactValidationResult,
+    GitHubRestArtifactLookup,
+    validate_github_artifact_references,
+)
 from .linear_facts import (
     LinearConnectorInputError,
     translate_linear_facts,
@@ -39,6 +48,12 @@ from .openclaw_harness_spike import (
 
 __all__ = [
     "GitHubConnectorInputError",
+    "GitHubArtifactLookup",
+    "GitHubArtifactValidationError",
+    "GitHubArtifactValidationIssue",
+    "GitHubArtifactValidationItemResult",
+    "GitHubArtifactValidationResult",
+    "GitHubRestArtifactLookup",
     "IngressRequestBuilderError",
     "IngressSourceContext",
     "IngressTaskIntent",
@@ -53,6 +68,7 @@ __all__ = [
     "build_task_submission_payload",
     "run_openclaw_spike_flow",
     "translate_github_artifact_facts",
+    "validate_github_artifact_references",
     "translate_github_artifact_references",
     "translate_github_branch",
     "translate_github_changed_files",
