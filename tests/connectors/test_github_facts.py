@@ -186,6 +186,30 @@ class GitHubConnectorScaffoldingTests(unittest.TestCase):
 
         self.assertEqual(result.outcome, ReconciliationOutcome.NO_MISMATCH)
 
+    def test_accepts_canonical_changed_files_and_artifact_refs(self) -> None:
+        github_facts = translate_github_artifact_facts(
+            {
+                "repository": {"host": "github.com", "owner": "sfayka", "name": "Harness"},
+                "branch": {"name": "codex/github-connector"},
+                "changed_files": {
+                    "files": [{"path": "modules/api.py", "change_type": "modified", "additions": 10, "deletions": 2}],
+                    "matches_expected_scope": True,
+                },
+                "artifact_refs": [
+                    {
+                        "artifact_type": "pull_request",
+                        "external_id": "PR-111",
+                        "url": "https://github.com/sfayka/Harness/pull/111",
+                    }
+                ],
+            }
+        )
+
+        self.assertTrue(github_facts.changed_files_match)
+        self.assertEqual(len(github_facts.changed_files.files), 1)
+        self.assertEqual(len(github_facts.artifact_refs), 1)
+        self.assertEqual(github_facts.artifact_refs[0].external_id, "PR-111")
+
 
 if __name__ == "__main__":
     unittest.main()

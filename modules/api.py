@@ -15,26 +15,15 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from modules.connectors import (
+    GitHubConnectorInputError,
     LinearConnectorInputError,
     LinearIngressInputError,
+    translate_github_artifact_facts,
+    translate_linear_facts,
     translate_linear_submission_payload,
 )
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
-from modules.contracts.task_envelope_external_facts import (
-    BranchFact,
-    ChangedFileFact,
-    ChangedFilesSummary,
-    CommitFact,
-    ExternalFactValidationError,
-    GitHubArtifactFacts,
-    LinearFacts,
-    LinearProjectFact,
-    LinearTaskReference,
-    LinearWorkflowFact,
-    PullRequestFact,
-    RepositoryFact,
-    validate_linear_facts,
-)
+from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
 from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
 from modules.contracts.task_envelope_review import (
     ReviewDecisionResult,
@@ -121,100 +110,23 @@ def _require_non_empty_string(value: Any, *, field_name: str) -> str:
     return value.strip()
 
 
-def _parse_repository(payload: dict[str, Any] | None) -> RepositoryFact | None:
-    if payload is None:
-        return None
-    return RepositoryFact(**_require_mapping(payload, field_name="external_facts.github_facts.repository"))
-
-
-def _parse_branch(payload: dict[str, Any] | None) -> BranchFact | None:
-    if payload is None:
-        return None
-    return BranchFact(**_require_mapping(payload, field_name="external_facts.github_facts.branch"))
-
-
-def _parse_commit(payload: dict[str, Any] | None) -> CommitFact | None:
-    if payload is None:
-        return None
-    return CommitFact(**_require_mapping(payload, field_name="external_facts.github_facts.commit"))
-
-
-def _parse_pull_request(payload: dict[str, Any] | None) -> PullRequestFact | None:
-    if payload is None:
-        return None
-    return PullRequestFact(**_require_mapping(payload, field_name="external_facts.github_facts.pull_request"))
-
-
-def _parse_changed_files(payload: dict[str, Any] | None) -> ChangedFilesSummary | None:
-    if payload is None:
-        return None
-    changed_files_payload = _require_mapping(payload, field_name="external_facts.github_facts.changed_files")
-    files = tuple(ChangedFileFact(**item) for item in changed_files_payload.get("files", []))
-    return ChangedFilesSummary(
-        files=files,
-        matches_expected_scope=changed_files_payload.get("matches_expected_scope"),
-    )
-
-
 def _parse_github_facts(payload: dict[str, Any] | None) -> GitHubArtifactFacts | None:
     if payload is None:
         return None
     github_payload = _require_mapping(payload, field_name="external_facts.github_facts")
-    return GitHubArtifactFacts(
-        artifact_found=github_payload.get("artifact_found", True),
-        repository=_parse_repository(_optional_mapping(github_payload.get("repository"), field_name="repository")),
-        branch=_parse_branch(_optional_mapping(github_payload.get("branch"), field_name="branch")),
-        commit=_parse_commit(_optional_mapping(github_payload.get("commit"), field_name="commit")),
-        pull_request=_parse_pull_request(_optional_mapping(github_payload.get("pull_request"), field_name="pull_request")),
-        changed_files=_parse_changed_files(_optional_mapping(github_payload.get("changed_files"), field_name="changed_files")),
-        artifact_refs=tuple(),
-        reasons=_optional_string_tuple(github_payload.get("reasons"), field_name="external_facts.github_facts.reasons"),
-    )
+    try:
+        return translate_github_artifact_facts(github_payload)
+    except (GitHubConnectorInputError, ExternalFactValidationError) as error:
+        raise ApiRequestError(str(error)) from error
 
 
 def _parse_linear_facts(payload: dict[str, Any] | None) -> LinearFacts | None:
     if payload is None:
         return None
     linear_payload = _require_mapping(payload, field_name="external_facts.linear_facts")
-    record_found = linear_payload.get("record_found", True)
-    if not isinstance(record_found, bool):
-        raise ApiRequestError("external_facts.linear_facts.record_found must be a boolean")
-
-    raw_workflow_payload = linear_payload.get("workflow")
-    workflow = None
-    if record_found:
-        workflow_payload = _optional_mapping(raw_workflow_payload, field_name="external_facts.linear_facts.workflow")
-        if workflow_payload is None:
-            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
-        workflow_id = workflow_payload.get("workflow_id")
-        workflow_name = workflow_payload.get("workflow_name")
-        if not isinstance(workflow_id, str) or not workflow_id.strip():
-            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
-        if not isinstance(workflow_name, str) or not workflow_name.strip():
-            raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
-        workflow = LinearWorkflowFact(
-            workflow_id=workflow_id.strip(),
-            workflow_name=workflow_name.strip(),
-            state_type=workflow_payload.get("state_type"),
-        )
-    elif raw_workflow_payload is not None:
-        raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR)
-
-    project_payload = _optional_mapping(linear_payload.get("project"), field_name="project")
-    task_reference_payload = _optional_mapping(linear_payload.get("task_reference"), field_name="task_reference")
-    linear_facts = LinearFacts(
-        record_found=record_found,
-        issue_id=linear_payload.get("issue_id"),
-        issue_key=linear_payload.get("issue_key"),
-        state=linear_payload.get("state"),
-        workflow=workflow,
-        project=LinearProjectFact(**project_payload) if project_payload is not None else None,
-        task_reference=LinearTaskReference(**task_reference_payload) if task_reference_payload is not None else None,
-        reasons=_optional_string_tuple(linear_payload.get("reasons"), field_name="external_facts.linear_facts.reasons"),
-    )
     try:
-        return validate_linear_facts(linear_facts)
-    except ExternalFactValidationError as error:
+        return translate_linear_facts(linear_payload)
+    except (LinearConnectorInputError, ExternalFactValidationError) as error:
         if "workflow" in str(error):
             raise ApiRequestError(LINEAR_WORKFLOW_CONTRACT_ERROR) from error
         raise ApiRequestError(str(error)) from error

@@ -115,6 +115,35 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
         self.assertTrue(flow.reevaluate_response["accepted_completion"])
         self.assertEqual(flow.final_fetch_response["task"]["status"], "completed")
 
+    def test_reevaluate_normalizes_github_and_linear_vendor_shaped_facts(self) -> None:
+        create_payload = build_create_task_payload("e2e-reevaluate-normalized-facts")
+        happy_overlays = build_happy_path_overlays()
+        flow = self.run_create_fetch_reevaluate_fetch(
+            create_payload=create_payload,
+            reevaluate_payload_builder=lambda _task: build_reevaluate_payload(
+                new_artifacts=happy_overlays["linked_artifacts"],
+                completion_evidence=happy_overlays["completion_evidence"],
+                external_facts={
+                    "expected_code_context": build_expected_code_context(),
+                    "github_facts": {
+                        "repository": {"full_name": "KnoxAnalytics/HARNESS-DRYRUN"},
+                        "branch": {"ref": "codex/e2e-test", "baseRefName": "main"},
+                        "commit": {"sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"},
+                        "pull_request": {"number": 2, "reviewDecision": "approved"},
+                    },
+                    "linear_facts": {
+                        "issue": {"id": "lin_42", "identifier": "HAR-42"},
+                        "state": {"id": "workflow_done", "name": "completed", "type": "completed"},
+                    },
+                },
+                runtime_facts=happy_overlays["runtime_facts"],
+            ),
+        )
+
+        self.assertEqual(flow.reevaluate_status, 200)
+        self.assertTrue(flow.reevaluate_response["accepted_completion"])
+        self.assertEqual(flow.final_fetch_response["task"]["status"], "completed")
+
     def test_valid_but_insufficient_evidence_emits_concrete_reason(self) -> None:
         create_payload = build_create_task_payload("e2e-insufficient-valid")
 

@@ -124,6 +124,25 @@ class LinearConnectorTranslationTests(unittest.TestCase):
         self.assertEqual(facts.project.project_id, "project_1")
         self.assertEqual(facts.task_reference.harness_task_id, "task-linear-1")
 
+    def test_accepts_canonical_linear_payload_identifiers(self) -> None:
+        facts = translate_linear_facts(
+            {
+                "issue_id": "lin_910",
+                "issue_key": "HAR-910",
+                "state": "completed",
+                "workflow": {
+                    "workflow_id": "wf_done",
+                    "workflow_name": "completed",
+                    "state_type": "completed",
+                },
+            }
+        )
+
+        self.assertEqual(facts.issue_id, "lin_910")
+        self.assertEqual(facts.issue_key, "HAR-910")
+        self.assertEqual(facts.workflow.workflow_id, "wf_done")
+        self.assertEqual(facts.state, "completed")
+
     def test_rejects_string_state_without_workflow_object(self) -> None:
         with self.assertRaisesRegex(LinearConnectorInputError, "record_found=true requires workflow/state"):
             translate_linear_facts(
