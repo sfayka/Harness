@@ -129,6 +129,19 @@ This document intentionally does **not** define:
 
 Those decisions may vary by implementation, but must conform to this contract.
 
+## Canonical In-Code Model Mapping
+
+Harness now codifies this contract in `modules/contracts/execution_advisory.py` with four distinct model groups:
+
+- `ExecutionEvent` + `ExecutionEventType` for append-only execution event history
+- `ArtifactReference` for emitted artifact pointers that still require later validation
+- `ExecutionProvenance` for source attribution on events and artifacts
+- `AdvisoryCompletionClaim` for non-authoritative executor completion claims
+
+Validation enforces non-empty provenance and explicitly rejects lifecycle-authority fields (`target_status`, `canonical_status`, `lifecycle_status`, `authorized_transition`) in advisory payload metadata so adapters cannot self-authorize canonical transitions.
+
+`derive_runtime_advisory_facts(...)` projects normalized event streams into runtime verification facts (`executor_reported_success`, `executor_reported_failure`, `terminal_failure`, `attempt_count`) consumed by existing enforcement logic.
+
 ## Compliance Checklist
 
 An `ExecutorAdapter` implementation is contract-compliant only if all statements below hold:
