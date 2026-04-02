@@ -71,6 +71,8 @@ Every real Codex Cloud task must begin by returning raw preflight output for:
 - `git remote -v`
 - `cat .codex-bootstrap-proof`
 
+No repository changes or execution steps may occur before preflight output is returned. Preflight output must be generated in the same execution session as the task; cached or prior-session preflight output is invalid.
+
 If preflight shows the wrong repo path, missing or incorrect `origin`, missing bootstrap proof, or incomplete fetch/auth/bootstrap state, the task must report `BLOCKED` and stop.
 
 Final task completion must return concrete external artifact identifiers:
@@ -81,6 +83,7 @@ Final task completion must return concrete external artifact identifiers:
 - `PR URL`
 
 Executor summaries are advisory only. External artifacts remain the proof of completion.
+If `Repository`, `Branch`, `Commit SHA`, and `PR URL` are not all present, the task is considered invalid and not executed (not partial and not completed with issues).
 
 ## Rules For Modifying TaskEnvelope And Schema
 
