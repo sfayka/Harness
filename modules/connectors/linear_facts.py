@@ -73,9 +73,12 @@ def translate_linear_workflow(workflow_payload: Mapping[str, Any]) -> LinearWork
 
     workflow_payload = _require_mapping(workflow_payload, field_name="workflow")
     return LinearWorkflowFact(
-        workflow_id=_require_string(workflow_payload.get("id"), field_name="workflow.id"),
+        workflow_id=_require_string(
+            workflow_payload.get("workflow_id") or workflow_payload.get("id"),
+            field_name="workflow.id",
+        ),
         workflow_name=_require_string(
-            workflow_payload.get("name") or workflow_payload.get("label"),
+            workflow_payload.get("workflow_name") or workflow_payload.get("name") or workflow_payload.get("label"),
             field_name="workflow.name",
         ),
         state_type=_optional_string(
@@ -91,7 +94,7 @@ def translate_linear_project(project_payload: Mapping[str, Any]) -> LinearProjec
 
     project_payload = _require_mapping(project_payload, field_name="project")
     return LinearProjectFact(
-        project_id=_require_string(project_payload.get("id"), field_name="project.id"),
+        project_id=_require_string(project_payload.get("project_id") or project_payload.get("id"), field_name="project.id"),
         project_name=_optional_string(project_payload.get("name")),
     )
 
@@ -132,10 +135,16 @@ def translate_linear_facts(payload: Mapping[str, Any]) -> LinearFacts:
             or issue_payload.get("key")
             or issue_payload.get("issueKey")
         )
+    issue_id = issue_id or _optional_string(payload.get("issue_id"))
+    issue_key = issue_key or _optional_string(payload.get("issue_key"))
 
     state_name = _optional_string(payload.get("state_name"))
     workflow = None
-    if isinstance(raw_state_payload, Mapping):
+    canonical_workflow_payload = _optional_mapping(payload.get("workflow"), field_name="workflow")
+    if canonical_workflow_payload is not None:
+        workflow = translate_linear_workflow(canonical_workflow_payload)
+        state_name = _optional_string(payload.get("state")) or workflow.workflow_name
+    elif isinstance(raw_state_payload, Mapping):
         workflow = translate_linear_workflow(raw_state_payload)
         state_name = workflow.workflow_name
     elif raw_state_payload is not None:

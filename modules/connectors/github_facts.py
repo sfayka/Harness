@@ -196,11 +196,42 @@ def translate_github_changed_files(files_payload: Sequence[Mapping[str, Any]] | 
     return ChangedFilesSummary(files=tuple(files))
 
 
+def _translate_changed_files_summary(payload: Any) -> ChangedFilesSummary | None:
+    if payload is None:
+        return None
+    if isinstance(payload, Mapping):
+        changed_files_payload = _require_mapping(payload, field_name="changed_files")
+        files = translate_github_changed_files(changed_files_payload.get("files"))
+        matches_expected_scope = _optional_bool(changed_files_payload.get("matches_expected_scope"))
+        if files is None:
+            return ChangedFilesSummary(matches_expected_scope=matches_expected_scope)
+        return ChangedFilesSummary(
+            files=files.files,
+            matches_expected_scope=matches_expected_scope,
+        )
+    return translate_github_changed_files(payload)
+
+
 def translate_github_artifact_references(payload: Mapping[str, Any]) -> tuple[ArtifactReferenceFact, ...]:
     """Translate GitHub-shaped commit/PR references into normalized artifact refs."""
 
     payload = _require_mapping(payload, field_name="github_payload")
     refs: list[ArtifactReferenceFact] = []
+
+    raw_artifact_refs = payload.get("artifact_refs")
+    if raw_artifact_refs is not None:
+        if not isinstance(raw_artifact_refs, Sequence) or isinstance(raw_artifact_refs, (str, bytes, bytearray)):
+            raise GitHubConnectorInputError("artifact_refs must be a sequence of mappings")
+        for index, raw_ref in enumerate(raw_artifact_refs):
+            ref_payload = _require_mapping(raw_ref, field_name=f"artifact_refs[{index}]")
+            refs.append(
+                ArtifactReferenceFact(
+                    artifact_type=_require_string(ref_payload.get("artifact_type"), field_name=f"artifact_refs[{index}].artifact_type"),
+                    external_id=_require_string(ref_payload.get("external_id"), field_name=f"artifact_refs[{index}].external_id"),
+                    url=_optional_string(ref_payload.get("url")),
+                )
+            )
+        return tuple(refs)
 
     pull_request_payload = _optional_mapping(payload.get("pull_request"), field_name="pull_request")
     if pull_request_payload is not None:
@@ -239,7 +270,9 @@ def translate_github_artifact_facts(payload: Mapping[str, Any]) -> GitHubArtifac
     branch_payload = _optional_mapping(payload.get("branch"), field_name="branch")
     commit_payload = _optional_mapping(payload.get("commit"), field_name="commit")
     pull_request_payload = _optional_mapping(payload.get("pull_request"), field_name="pull_request")
-    changed_files_payload = payload.get("files")
+    changed_files_payload = payload.get("changed_files")
+    if changed_files_payload is None:
+        changed_files_payload = payload.get("files")
 
     github_facts = GitHubArtifactFacts(
         artifact_found=artifact_found,
@@ -247,7 +280,7 @@ def translate_github_artifact_facts(payload: Mapping[str, Any]) -> GitHubArtifac
         branch=translate_github_branch(branch_payload) if branch_payload is not None else None,
         commit=translate_github_commit(commit_payload) if commit_payload is not None else None,
         pull_request=translate_github_pull_request(pull_request_payload) if pull_request_payload is not None else None,
-        changed_files=translate_github_changed_files(changed_files_payload),
+        changed_files=_translate_changed_files_summary(changed_files_payload),
         artifact_refs=translate_github_artifact_references(payload),
         reasons=tuple(payload.get("reasons", ())),
     )
