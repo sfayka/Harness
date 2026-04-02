@@ -100,3 +100,10 @@ This future adapter would be separate and executor-facing. It should not reuse t
 OpenClaw may become a future execution backend.
 
 Harness still owns truth.
+
+## Related References
+
+- [`completion-interception-and-artifact-validation-boundary.md`](./completion-interception-and-artifact-validation-boundary.md)
+- [`task-envelope-openclaw-mapping.md`](./task-envelope-openclaw-mapping.md)
+- [`codex-cloud-execution.md`](./codex-cloud-execution.md)
+

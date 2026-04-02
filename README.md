@@ -24,6 +24,7 @@ See:
 
 - [`docs/architecture/harness-evolution-engine.md`](docs/architecture/harness-evolution-engine.md)
 - [`docs/architecture/openclaw-executor-adapter.md`](docs/architecture/openclaw-executor-adapter.md)
+- [`docs/architecture/completion-interception-and-artifact-validation-boundary.md`](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
 
 ## Current Architecture
 
