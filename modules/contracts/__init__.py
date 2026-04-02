@@ -35,6 +35,18 @@ from .task_envelope_external_facts import (
     validate_pull_request_fact,
     validate_repository_fact,
 )
+from .execution_advisory import (
+    AdvisoryCompletionClaim,
+    ArtifactReference,
+    ExecutionAdvisoryValidationError,
+    ExecutionEvent,
+    ExecutionEventType,
+    ExecutionProvenance,
+    validate_advisory_completion_claim,
+    validate_artifact_reference,
+    validate_execution_event,
+    validate_execution_provenance,
+)
 from .task_envelope_enforcement import (
     EnforcementAction,
     EnforcementInput,
@@ -98,6 +110,8 @@ from .task_envelope_validation import assert_valid_task_envelope, validate_task_
 
 __all__ = [
     "ArtifactReferenceFact",
+    "AdvisoryCompletionClaim",
+    "ArtifactReference",
     "ArtifactValidationError",
     "ArtifactValidationResult",
     "BranchFact",
@@ -113,6 +127,10 @@ __all__ = [
     "EnforcementResult",
     "EvidenceValidationError",
     "ExpectedCodeContext",
+    "ExecutionAdvisoryValidationError",
+    "ExecutionEvent",
+    "ExecutionEventType",
+    "ExecutionProvenance",
     "ExternalFactValidationError",
     "ForbiddenTransitionError",
     "GitHubArtifactFacts",
@@ -164,6 +182,10 @@ __all__ = [
     "evaluate_verification_decision",
     "resolve_review_request",
     "validate_artifact_record",
+    "validate_advisory_completion_claim",
+    "validate_artifact_reference",
+    "validate_execution_event",
+    "validate_execution_provenance",
     "validate_branch_fact",
     "validate_changed_files_summary",
     "validate_commit_fact",
