@@ -1,100 +1,133 @@
-# Harness Evolution Engine
+# Harness Evolution Engine (HEE)
+
+## Status
+
+Planning architecture only.
+
+This document defines boundaries for a future advisory subsystem. It does not authorize new runtime capabilities in current Harness releases.
 
 ## Purpose
 
-Define the future advisory subsystem that learns from real Harness execution traces, evaluation outcomes, and manual review decisions to diagnose recurring failure modes and later propose improvements.
+Harness Evolution Engine (HEE) is the future advisory layer that analyzes historical Harness outcomes to produce operator-reviewable diagnoses and evolution proposals.
 
-This document is planning-only. It does not authorize runtime mutation, autonomous code changes, or any change to current end-to-end automation behavior.
+HEE exists to help humans improve Harness over time while preserving existing control-plane invariants:
 
-## Why It Exists
+- task truth remains canonical in Harness lifecycle and read-model surfaces
+- completion remains evidence-backed and policy-enforced
+- external systems (Linear, GitHub, executors) remain fact sources, not truth authorities
 
-Harness already records append-only task state, evaluation history, timelines, artifacts, and review outcomes.
+## Scope
 
-If those records remain structured and auditable, they can later support:
+HEE scope is intentionally narrow:
 
-- diagnosis of recurring failure patterns
-- operator-visible suggestions about weak contracts or missing evidence
-- evidence-backed proposals for improving Harness policy, adapters, or execution handling
+1. ingest canonical historical records from Harness-owned stores
+2. derive recurring failure/quality patterns from those records
+3. emit structured, inspectable advisory outputs with provenance
+4. route those outputs into explicit human review workflows
 
-The goal is to turn observed outcomes into better future design inputs without changing the rule that Harness remains the control plane and source of lifecycle truth.
+HEE does not change live task outcomes.
 
-## Responsibilities
+## Non-Goals
 
-The future Harness Evolution Engine (HEE) should own only advisory work such as:
+HEE explicitly does **not** include:
 
-- collecting or referencing canonical execution traces and outcomes
-- producing structured failure diagnoses from repeated task results
-- producing structured evolution candidates or proposals for human review
-- preserving provenance from traces, evaluations, artifacts, and review decisions
-- exposing advisory outputs for inspection without mutating task truth
+- model training, model selection, or autonomous learning loops
+- automatic code edits, PR creation, merge, or deployment
+- runtime mutation of task lifecycle or policy decisions
+- replacement of evaluator, verifier, reconciler, or manual review controls
 
-## Explicit Non-Responsibilities
+## Control-Plane Boundary
 
-HEE must not:
+HEE sits **outside** canonical lifecycle enforcement.
 
-- change live task state or lifecycle semantics on its own
-- bypass `TaskEnvelope`, reevaluation, or canonical enforcement paths
-- act as an executor, planner, or ingress surface
-- auto-generate pull requests or merge code changes
-- auto-edit prompts, policies, schemas, or adapter behavior in production
-- treat executor self-report as completion truth
-- replace human review for high-risk control-plane changes
+- Harness core remains responsible for `TaskEnvelope` validation, evaluation, reconciliation, and lifecycle transitions.
+- HEE can read canonical historical facts and publish advisory artifacts.
+- HEE cannot write canonical task truth (`status`, lifecycle state, completion decision, reconciliation decision).
 
-## Inputs
+If HEE is unavailable, Harness task execution and enforcement must remain fully functional.
 
-Future HEE inputs should come from canonical Harness records, not ad hoc side channels.
+## Data Contract Boundaries
 
-Expected inputs:
+### Canonical Inputs (read-only)
 
-- `TaskEnvelope` snapshots and identifiers
-- evaluation history records
+HEE may consume only canonical records or explicit derived snapshots from:
+
+- `TaskEnvelope` snapshots/identifiers
+- evaluation history (append-only)
 - task timeline entries
-- normalized execution trace facts and attempt outcomes
-- artifact metadata and proof-of-completion evidence references
-- reconciliation results and mismatch records
-- manual review decisions and review notes
+- verification, evidence, and reconciliation summaries
+- artifact metadata and completion-proof references
+- execution trace summaries
+- manual review decisions and reviewer notes
 
-## Outputs
+### Required Input Semantics
 
-HEE outputs should be advisory artifacts that can be inspected and reviewed.
+- executor-reported success remains advisory
+- mismatches, insufficiency, and review gates remain distinct classes
+- manual-review gates remain sticky until explicit human resolution
 
-Expected outputs:
+HEE must preserve those distinctions in any diagnosis output.
 
-- structured failure diagnosis records
-- structured evolution candidate records
-- operator-facing summaries or recommendations
-- references to the evidence used to justify the diagnosis or proposal
+## Advisory Output Model
 
-These outputs are not lifecycle decisions and do not authorize runtime behavior changes by themselves.
+HEE outputs are advisory records, not state transitions.
 
-## Relationship To Existing Harness Concepts
+Minimum output shape expectations:
 
-### TaskEnvelope
+- stable advisory identifier
+- advisory type (`diagnosis`, `proposal`)
+- confidence/explanation metadata
+- provenance list referencing source records
+- impacted boundary area (`schema`, `policy`, `adapter`, `operator_runbook`, etc.)
+- explicit recommendation for human review action
 
-`TaskEnvelope` remains the canonical task contract. HEE may analyze completed or in-flight records derived from it, but it does not redefine task meaning.
+Outputs must be append-only and auditable.
 
-### Lifecycle States
+## Review And Decision Flow
 
-Lifecycle state remains policy-enforced by Harness core. HEE may reference outcomes such as `blocked`, `completed`, `failed`, or `in_review`, but it does not assign them.
+1. HEE publishes advisory record.
+2. Operators/reviewers inspect provenance and rationale.
+3. Humans decide whether to create a tracked change (issue/PR/policy update).
+4. Any accepted change re-enters Harness through normal repo and deployment processes.
+
+No advisory output is self-executing.
+
+## Relationship To Core Harness Concepts
+
+### `TaskEnvelope`
+
+`TaskEnvelope` remains canonical task contract and submission surface. HEE may analyze envelopes historically but cannot redefine or bypass the contract.
+
+### Evaluation History
+
+Evaluation history remains append-only truth for policy outcomes. HEE may aggregate repeated patterns but cannot overwrite or collapse historical records.
+
+### Timeline
+
+Timeline remains canonical audit surface for task progression. HEE may reference timeline events as evidence but cannot retroactively alter event ordering or meaning.
 
 ### Execution Traces
 
-Execution traces are a future evidence source for HEE. They should describe what happened during task attempts without being treated as correctness proof on their own.
+Execution traces are descriptive evidence of what happened during attempts. HEE may use them for diagnosis but they never become authoritative completion proof by themselves.
 
-### Artifacts And Proof Of Completion
+### Artifacts And Completion Evidence
 
-Artifacts, verification summaries, reconciliation summaries, and review decisions remain the basis for trusted completion. HEE may learn from those results, but it cannot replace them.
+Artifacts and verification/reconciliation outcomes remain completion authority under policy. HEE can propose improvements to artifact requirements, but cannot grant completion.
 
-## Future Implementation Notes
+### Manual Review Decisions
 
-- Keep HEE outputs append-only and auditable, similar to evaluation history.
-- Separate diagnosis from proposal generation so observed failures and recommended changes do not collapse into one opaque step.
-- Prefer explicit contracts for diagnoses and proposals before building any model or scoring logic.
-- Start with operator-reviewed outputs before considering any workflow that could draft code or policy changes.
-- Use canonical inspection surfaces and stored facts where possible rather than introducing a parallel truth store.
+Manual review remains explicit human governance. HEE may suggest escalation patterns but cannot clear or resolve review gates.
+
+## Failure-Containment Requirements
+
+Any future HEE implementation must fail safe:
+
+- no write path from HEE into lifecycle transition handlers
+- no implicit coupling that blocks canonical submission (`POST /tasks`) or reevaluation (`POST /tasks/<task_id>/reevaluate`)
+- advisory generation failures must degrade to “no advice available,” not policy bypass
 
 ## Boundary Summary
 
-HEE is a future advisory subsystem for diagnosis and proposal generation.
+Harness Evolution Engine is a planning-stage, advisory-only architecture for diagnosis and proposal generation.
 
-It is not a runtime mutation engine.
+Harness lifecycle truth, policy enforcement, and completion authority remain outside HEE.
