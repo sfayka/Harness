@@ -45,11 +45,15 @@ git remote -v
 cat .codex-bootstrap-proof
 ```
 
+No repository changes or execution steps may occur before preflight output is returned. Preflight output must be generated within the same execution session as the task.
+
 This preflight is required because it proves:
 
 - the task is running in the expected repository root
 - the repository remote matches the canonical GitHub repository
 - repo-owned bootstrap completed and recorded the expected proof
+
+Preflight output from a previous session, cached output, or copied output is invalid. Each task run must independently prove its execution context before any repository-modifying action, including branch creation, file writes, commits, and pushes.
 
 A task must stop and report `BLOCKED` if any of the following are true:
 
@@ -61,6 +65,8 @@ A task must stop and report `BLOCKED` if any of the following are true:
 
 The preflight contract is intentionally strict. It prevents delegated work from proceeding on a sandbox that only looks plausible but is not actually connected to the external repository state Harness relies on.
 
+Successful preflight validation is a prerequisite for any lifecycle transition from `assigned` to `in_progress`.
+
 ## Completion Artifact Contract
 
 A Codex Cloud task is not complete unless it returns concrete external artifact identifiers:
@@ -71,6 +77,8 @@ A Codex Cloud task is not complete unless it returns concrete external artifact 
 - `PR URL`
 
 These identifiers are the minimum operator-facing proof that the claimed work exists outside the executor summary. If those identifiers do not exist, the task is not complete regardless of how confident the executor summary sounds.
+
+If `Repository`, `Branch`, `Commit SHA`, and `PR URL` are not all present, the task is considered invalid and not executed (not partial and not completed with issues).
 
 This is consistent with Harness architecture:
 
