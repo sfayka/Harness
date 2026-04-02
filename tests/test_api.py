@@ -253,6 +253,18 @@ def _manual_happy_path_overlay_payload() -> dict:
     }
 
 
+def _completion_claim_payload(*, claim_id: str = "claim-1") -> dict:
+    return {
+        "completion_claim": {
+            "claim_id": claim_id,
+            "reported_at": "2026-04-01T08:00:00Z",
+            "reported_by": "stub-executor",
+            "reason": "executor reported completion",
+            "metadata": {"attempt_id": "attempt-1"},
+        }
+    }
+
+
 def _schema_invalid_submission_payload() -> dict:
     payload = _request_payload("accepted_completion")
     completion_evidence = payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]
@@ -680,6 +692,60 @@ class HarnessApiServiceTests(unittest.TestCase):
             reevaluation_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
             True,
         )
+
+    def test_service_completion_claim_is_intercepted_and_cannot_directly_complete_task(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-intercepted-1"),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertFalse(claim_response["accepted_completion"])
+        self.assertNotEqual(claim_response["task_envelope"]["status"], "completed")
+        claims = claim_response["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
+        self.assertEqual(claims[-1]["claim_id"], "claim-intercepted-1")
+
+    def test_service_completion_claim_routes_into_canonical_evaluation_and_can_complete_when_evidence_aligns(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-complete-1"),
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+        history_status, history_payload = self.service.get_evaluation_history(task_id)
+        latest_request = history_payload["evaluations"][-1]["request"]
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertTrue(claim_response["accepted_completion"])
+        self.assertEqual(claim_response["task_envelope"]["status"], "completed")
+        self.assertEqual(history_status, 200)
+        self.assertTrue(latest_request["claimed_completion"])
+        claims = latest_request["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
+        self.assertEqual(claims[-1]["claim_id"], "claim-complete-1")
 
     def test_service_evaluate_existing_review_required_task_cannot_be_overwritten_to_completed(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
@@ -1210,6 +1276,33 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["action"], "transition_applied")
         self.assertTrue(reevaluation_response["accepted_completion"])
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+
+    def test_api_completion_claim_endpoint_intercepts_claim_and_routes_to_evaluation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self._post_json(
+            f"/tasks/{task_id}/completion-claims",
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-api-1"),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertFalse(claim_response["accepted_completion"])
+        self.assertNotEqual(claim_response["task_envelope"]["status"], "completed")
+        self.assertEqual(history_status, 200)
+        claims = history_payload["evaluations"][-1]["request"]["task_envelope"]["observability"]["execution_metadata"][
+            "advisory_completion_claims"
+        ]
+        self.assertEqual(claims[-1]["claim_id"], "claim-api-1")
 
     def test_api_can_reevaluate_completed_task_back_to_blocked_for_contradictory_facts(self) -> None:
         initial_payload = _request_payload("accepted_completion")

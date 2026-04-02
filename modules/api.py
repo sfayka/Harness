@@ -380,6 +380,88 @@ def _merge_completion_evidence(
     return merged_task
 
 
+def _parse_completion_claim(payload: dict[str, Any]) -> dict[str, Any]:
+    claim_payload = _require_mapping(payload.get("completion_claim"), field_name="completion_claim")
+    claim_id = _require_non_empty_string(claim_payload.get("claim_id"), field_name="completion_claim.claim_id")
+    reported_at = _require_non_empty_string(claim_payload.get("reported_at"), field_name="completion_claim.reported_at")
+    reported_by = _optional_non_empty_string(claim_payload.get("reported_by"), field_name="completion_claim.reported_by")
+    reason = _optional_non_empty_string(claim_payload.get("reason"), field_name="completion_claim.reason")
+    metadata = _optional_mapping(claim_payload.get("metadata"), field_name="completion_claim.metadata") or {}
+
+    return {
+        "claim_id": claim_id,
+        "reported_at": reported_at,
+        "reported_by": reported_by,
+        "reason": reason,
+        "metadata": dict(metadata),
+    }
+
+
+def _with_advisory_completion_claim(task_envelope: dict[str, Any], *, claim: dict[str, Any]) -> dict[str, Any]:
+    merged_task = deepcopy(task_envelope)
+    execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
+    existing_claims = execution_metadata.get("advisory_completion_claims")
+    if existing_claims is None:
+        advisory_claims: list[dict[str, Any]] = []
+    elif isinstance(existing_claims, list):
+        advisory_claims = [deepcopy(item) for item in existing_claims]
+    else:
+        raise ApiRequestError("observability.execution_metadata.advisory_completion_claims must be an array")
+
+    advisory_claims.append(deepcopy(claim))
+    execution_metadata["advisory_completion_claims"] = advisory_claims
+    merged_task["observability"]["execution_metadata"] = execution_metadata
+    merged_task["timestamps"]["updated_at"] = _iso_now()
+    return merged_task
+
+
+def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[str, Any]) -> HarnessEvaluationRequest:
+    """Parse an executor completion claim into canonical reevaluation input."""
+
+    request_payload = _require_mapping(payload.get("request"), field_name="request")
+    completion_claim = _parse_completion_claim(request_payload)
+    merged_task = _with_advisory_completion_claim(task_envelope, claim=completion_claim)
+
+    new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
+    if new_artifacts:
+        merged_task = _merge_artifacts(merged_task, new_artifacts=new_artifacts)
+
+    completion_evidence_update = _optional_mapping(
+        request_payload.get("completion_evidence"),
+        field_name="completion_evidence",
+    )
+    if completion_evidence_update is not None:
+        merged_task = _merge_completion_evidence(
+            merged_task,
+            completion_evidence_update=completion_evidence_update,
+        )
+
+    review_request = _parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request"))
+    review_decision = _parse_review_decision(
+        _optional_mapping(request_payload.get("review_decision"), field_name="review_decision")
+    )
+
+    if review_request is not None and review_request.task_id != merged_task["id"]:
+        raise ApiRequestError("review_request.task_id must match the stored task id")
+    if review_decision is not None and review_decision.record.task_id != merged_task["id"]:
+        raise ApiRequestError("review_decision.record.task_id must match the stored task id")
+
+    return HarnessEvaluationRequest(
+        task_envelope=merged_task,
+        external_facts=_parse_external_facts(_optional_mapping(request_payload.get("external_facts"), field_name="external_facts")),
+        claimed_completion=True,
+        acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
+        runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
+        unresolved_conditions=_optional_string_tuple(
+            request_payload.get("unresolved_conditions"),
+            field_name="unresolved_conditions",
+        ),
+        review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
+        review_request=review_request,
+        review_decision=review_decision,
+    )
+
+
 def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str, Any]) -> HarnessEvaluationRequest:
     """Parse a reevaluation payload against an existing stored TaskEnvelope."""
 
@@ -725,6 +807,40 @@ class HarnessApiService:
         response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
+    def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        try:
+            request = parse_completion_claim_request(stored_task, payload)
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        request = replace(
+            request,
+            review_is_active=_review_gate_is_active(
+                stored_task,
+                self.store.list_evaluation_records(task_id),
+            ),
+        )
+
+        status, response_payload, result = _evaluate_request(request)
+        if result is None:
+            return status, response_payload
+        if result.invalid_input:
+            return status, response_payload
+
+        stored_task = self.store.update_task(result.task_envelope)
+        record = self.store.put_evaluation_record(request=request, result=result)
+        response_payload["task_envelope"] = _to_jsonable(stored_task)
+        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        return status, response_payload
+
     def get_task(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             task = self.store.get_task(task_id)
@@ -832,7 +948,9 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         request_path = urlparse(self.path).path
 
         if request_path not in {"/evaluate", "/tasks", "/ingress/linear"} and not (
-            len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "reevaluate"
+            len(path_components) == 3
+            and path_components[0] == "tasks"
+            and path_components[2] in {"reevaluate", "completion-claims"}
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
@@ -852,6 +970,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             status, response_payload = service.submit_linear_ingress(payload)
         elif request_path == "/evaluate":
             status, response_payload = service.evaluate(payload)
+        elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "completion-claims":
+            status, response_payload = service.submit_completion_claim(path_components[1], payload)
         else:
             status, response_payload = service.reevaluate(path_components[1], payload)
         self._write_json(status, response_payload)
