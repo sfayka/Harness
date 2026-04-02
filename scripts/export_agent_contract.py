@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Generate the minimal execution-facing contract bundle for sync consumers."""
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ def _bundle_readme(*, commit_sha: str, generated_at: str) -> str:
 
 This directory is generated from the canonical Harness repository for execution agents and sync consumers such as `HARNESS-DRYRUN`.
 
-Do not edit files in this directory manually. Re-run `.venv/bin/python scripts/export_agent_contract.py` from the Harness repo instead.
+Do not edit files in this directory manually. Re-run `python scripts/export_agent_contract.py` from the Harness repo instead.
 
 ## Canonical API Surface
 

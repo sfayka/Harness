@@ -23,7 +23,7 @@ python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir d
 2. Start the Harness API against the demo store:
 
 ```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
+python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
 ```
 
 3. Start the dashboard in a separate terminal:

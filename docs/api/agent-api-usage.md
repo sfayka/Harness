@@ -73,11 +73,11 @@ Generated source-of-truth payloads live under `examples/api/`:
 Regenerate them with:
 
 ```bash
-.venv/bin/python scripts/render_api_examples.py
+python scripts/render_api_examples.py
 ```
 
 If you also need the synced execution bundle under `exports/agent-contract/`, regenerate that with:
 
 ```bash
-.venv/bin/python scripts/export_agent_contract.py
+python scripts/export_agent_contract.py
 ```

@@ -137,15 +137,15 @@ Relevant supporting files:
 Backend setup:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Harness and Codex Cloud assume system Python is available as `python`. Do not assume or require a `.venv`.
 
 Run the backend with the file store:
 
 ```bash
-.venv/bin/python -m modules.api --store-root .harness-store
+python -m modules.api --store-root .harness-store
 ```
 
 Run the backend with Postgres:
@@ -153,7 +153,7 @@ Run the backend with Postgres:
 ```bash
 export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
-.venv/bin/python -m modules.api
+python -m modules.api
 ```
 
 The API binds to `0.0.0.0` by default and honors `PORT` when set. Local default access is `http://127.0.0.1:8000`.
@@ -182,21 +182,20 @@ pnpm dev
 Install backend and frontend dependencies first:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+pip install -r requirements.txt
 pnpm install --frozen-lockfile
 ```
 
 Run only the dedicated end-to-end runtime scenario suite:
 
 ```bash
-.venv/bin/python -m unittest discover -s tests/e2e -p 'test_*.py'
+python -m unittest discover -s tests/e2e -p 'test_*.py'
 ```
 
 Run the full Python test suite:
 
 ```bash
-.venv/bin/python -m unittest discover -s tests
+python -m unittest discover -s tests
 ```
 
 Run frontend validation:
@@ -219,8 +218,7 @@ The runner reuses the same scenario builders used by the runtime E2E suite inste
 Expected environment:
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Optional configuration:
@@ -238,13 +236,13 @@ export HARNESS_DRYRUN_MAX_E2E_SUITE_RUNS=1
 Run once:
 
 ```bash
-.venv/bin/python scripts/run_unattended_dryruns.py --iterations 1
+python scripts/run_unattended_dryruns.py --iterations 1
 ```
 
 Run unattended in tmux:
 
 ```bash
-tmux new -s harness-dryruns '.venv/bin/python scripts/run_unattended_dryruns.py --interval-seconds 300'
+tmux new -s harness-dryruns 'python scripts/run_unattended_dryruns.py --interval-seconds 300'
 ```
 
 Stop or restart:
@@ -270,7 +268,7 @@ Self-heal behavior:
 Disable retry and diagnostics:
 
 ```bash
-.venv/bin/python scripts/run_unattended_dryruns.py --max-retries 0 --disable-diagnostics --max-e2e-suite-runs 0
+python scripts/run_unattended_dryruns.py --max-retries 0 --disable-diagnostics --max-e2e-suite-runs 0
 ```
 
 ## Demo And Canonical Scenarios
