@@ -9,6 +9,13 @@ This document is the source-of-truth API usage guide for execution agents and do
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
 
+### Completion Claim Interception Helper
+
+- `POST /tasks/<task_id>/completion-claims` is an executor-facing helper for advisory completion claims.
+- This helper persists the claim under `task_envelope.observability.execution_metadata.advisory_completion_claims` and then runs canonical reevaluation.
+- A completion claim is treated as `claimed_completion=true` advisory input; it does not directly authorize a lifecycle transition.
+- The canonical lifecycle outcome still comes from verification/reconciliation/review enforcement.
+
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
 - `POST /evaluate` may still be used as an evaluation surface for an existing task id, but Harness evaluates against the stored task snapshot and only reapplies the supported top-level overlays listed below.
 - Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state by supplying a different nested `request.task_envelope`.

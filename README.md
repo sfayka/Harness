@@ -54,6 +54,8 @@ See:
 - Canonical mutation surfaces:
   - `POST /tasks`
   - `POST /tasks/<task_id>/reevaluate`
+- Completion-claim interception helper (delegates into canonical reevaluation semantics):
+  - `POST /tasks/<task_id>/completion-claims`
 - Integration helper surface:
   - `POST /ingress/linear`
 
