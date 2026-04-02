@@ -1,0 +1,25 @@
+{
+  // Local-only starting point for deterministic Harness bring-up.
+  gateway: {
+    mode: "local",
+    bind: "__OPENCLAW_GATEWAY_BIND__",
+    port: __OPENCLAW_GATEWAY_PORT__,
+    auth: {
+      mode: "none",
+    },
+  },
+
+  // Keep one explicit local agent with a repo-scoped workspace.
+  agents: {
+    defaults: {
+      workspace: "__OPENCLAW_WORKSPACE_PATH__",
+      skipBootstrap: true,
+    },
+    list: [
+      {
+        id: "__OPENCLAW_AGENT_ID__",
+        workspace: "__OPENCLAW_WORKSPACE_PATH__",
+      },
+    ],
+  },
+}

@@ -71,6 +71,8 @@ coverage/
 .env.production.local
 .env.*.local
 !.env.example
+config/openclaw/.env.local
+config/openclaw/openclaw.local.json5
 
 # Docker and local app state
 .docker-store/
