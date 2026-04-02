@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Run unattended dry-run scenarios against the deployed Harness backend.
 
 Tmux:
-  tmux new -s harness-dryruns '.venv/bin/python scripts/run_unattended_dryruns.py --interval-seconds 300'
+  tmux new -s harness-dryruns 'python scripts/run_unattended_dryruns.py --interval-seconds 300'
 
 Environment:
   HARNESS_DRYRUN_BASE_URL=https://harness-qeav.onrender.com

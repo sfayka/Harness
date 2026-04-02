@@ -2,7 +2,7 @@
 
 This directory is generated from the canonical Harness repository for execution agents and sync consumers such as `HARNESS-DRYRUN`.
 
-Do not edit files in this directory manually. Re-run `.venv/bin/python scripts/export_agent_contract.py` from the Harness repo instead.
+Do not edit files in this directory manually. Re-run `python scripts/export_agent_contract.py` from the Harness repo instead.
 
 ## Canonical API Surface
 

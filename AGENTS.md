@@ -85,6 +85,8 @@ Final task completion must return concrete external artifact identifiers:
 Executor summaries are advisory only. External artifacts remain the proof of completion.
 If `Repository`, `Branch`, `Commit SHA`, and `PR URL` are not all present, the task is considered invalid and not executed (not partial and not completed with issues).
 
+Codex Cloud uses system Python. Do not assume `.venv` exists, do not create `.venv`, and write Python commands so they run as `python ...`.
+
 ## Rules For Modifying TaskEnvelope And Schema
 
 When changing `TaskEnvelope` or `schemas/task_envelope.schema.json`:
@@ -205,7 +207,7 @@ Do not add separate frontend-only truth sources for evidence, verification, reco
 At minimum, run the validation that matches your change:
 
 - docs-only: verify file paths, commands, and references
-- backend Python changes: `.venv/bin/python -m unittest discover -s tests`
+- backend Python changes: `python -m unittest discover -s tests`
 - frontend changes: `pnpm lint` and `pnpm build`
 - mixed changes: run both backend and frontend validation as relevant
 

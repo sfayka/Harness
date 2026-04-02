@@ -25,6 +25,8 @@ That script is responsible for:
 - installing likely-needed Node dependencies from the detected lockfile or `package.json`
 - writing `.codex-bootstrap-proof`
 
+Codex Cloud uses system Python for this bootstrap path. Repository scripts and operator commands must be runnable as `python ...` without assuming a `.venv` exists or activating one.
+
 The proof file is environment evidence, not task-completion evidence. It proves that bootstrap ran successfully in the expected repository context. It does not prove that a task produced an external commit or pull request.
 
 ## Why The Bootstrap Script Exists
@@ -34,6 +36,8 @@ The bootstrap script exists because interactive terminal success was not enough 
 Before this flow was verified, a human could be in a healthy local shell while a fresh Codex Cloud task sandbox still lacked the git remote, authentication, or fetch state needed to produce real external artifacts. That mismatch allowed task summaries to sound complete even when the repository context was not fully initialized for delegated execution.
 
 Harness cannot accept that kind of ambiguity. Delegated task execution needs explicit proof of execution context before any completion claim is trusted.
+
+That includes interpreter assumptions. A task that only works after manually activating `.venv` is not portable across Codex Cloud sandboxes, so Harness standardizes Python execution on the system `python` command and system-level dependency installation via `pip install -r requirements.txt`.
 
 ## Task Preflight Contract
 

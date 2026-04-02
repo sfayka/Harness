@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """Render canonical API examples from Harness source-of-truth builders."""
 
 from __future__ import annotations

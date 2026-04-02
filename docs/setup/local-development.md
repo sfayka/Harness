@@ -6,7 +6,6 @@ This guide covers the practical local and container runbook for Harness.
 
 - Python 3
 - `pnpm`
-- a local virtual environment for backend work
 - Docker, if you want the containerized mode
 
 ## Native Local Development
@@ -14,21 +13,21 @@ This guide covers the practical local and container runbook for Harness.
 ### Backend Setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+Harness and Codex Cloud assume system Python is available as `python`. Do not assume or require a `.venv`.
 
 Run the dedicated runtime scenario suite:
 
 ```bash
-.venv/bin/python -m unittest discover -s tests/e2e -p 'test_*.py'
+python -m unittest discover -s tests/e2e -p 'test_*.py'
 ```
 
 Run the full backend test suite:
 
 ```bash
-.venv/bin/python -m unittest discover -s tests
+python -m unittest discover -s tests
 ```
 
 ### Frontend Setup
@@ -54,7 +53,7 @@ pnpm build
 ### Run The API
 
 ```bash
-.venv/bin/python -m modules.api --store-root .harness-store
+python -m modules.api --store-root .harness-store
 ```
 
 To run the same backend against Supabase Postgres instead of the file-backed store:
@@ -62,7 +61,7 @@ To run the same backend against Supabase Postgres instead of the file-backed sto
 ```bash
 export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
-.venv/bin/python -m modules.api
+python -m modules.api
 ```
 The API defaults to binding `0.0.0.0` and will honor the `PORT` environment variable when one is provided by a host such as Render. For local development, access it through `http://127.0.0.1:8000`.
 
@@ -97,7 +96,7 @@ python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir d
 Start API:
 
 ```bash
-.venv/bin/python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
+python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
 ```
 
 Start dashboard:

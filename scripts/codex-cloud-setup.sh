@@ -28,13 +28,27 @@ run_install_command() {
 }
 
 resolve_python() {
+  if have_command python; then
+    printf '%s\n' "python"
+    return 0
+  fi
+
   if have_command python3; then
     printf '%s\n' "python3"
     return 0
   fi
 
-  if have_command python; then
-    printf '%s\n' "python"
+  return 1
+}
+
+resolve_pip() {
+  if have_command pip; then
+    printf '%s\n' "pip"
+    return 0
+  fi
+
+  if have_command pip3; then
+    printf '%s\n' "pip3"
     return 0
   fi
 
@@ -43,15 +57,24 @@ resolve_python() {
 
 install_python_dependencies() {
   local python_bin="$1"
+  local pip_bin="${2:-}"
 
   if [[ -f requirements.txt ]]; then
-    if ! "$python_bin" -m pip install -q -r requirements.txt >/dev/null 2>&1; then
+    if [[ -n "${pip_bin}" ]]; then
+      if ! "${pip_bin}" install -q -r requirements.txt >/dev/null 2>&1; then
+        log "requirements.txt installation failed; continuing"
+      fi
+    elif ! "$python_bin" -m pip install -q -r requirements.txt >/dev/null 2>&1; then
       log "requirements.txt installation failed; continuing"
     fi
   fi
 
   if [[ -f requirements-dev.txt ]]; then
-    if ! "$python_bin" -m pip install -q -r requirements-dev.txt >/dev/null 2>&1; then
+    if [[ -n "${pip_bin}" ]]; then
+      if ! "${pip_bin}" install -q -r requirements-dev.txt >/dev/null 2>&1; then
+        log "requirements-dev.txt installation failed; continuing"
+      fi
+    elif ! "$python_bin" -m pip install -q -r requirements-dev.txt >/dev/null 2>&1; then
       log "requirements-dev.txt installation failed; continuing"
     fi
   fi
@@ -190,6 +213,11 @@ else
   blocked "python is required to configure GitHub authentication"
 fi
 
+pip_bin=""
+if ! pip_bin="$(resolve_pip 2>/dev/null)"; then
+  pip_bin=""
+fi
+
 github_extraheader="$("${python_bin}" - <<'PY'
 import base64
 import os
@@ -236,7 +264,7 @@ if have_command gh || install_gh_cli; then
   fi
 fi
 
-install_python_dependencies "${python_bin}"
+install_python_dependencies "${python_bin}" "${pip_bin}"
 install_node_dependencies
 
 cat > "${PROOF_FILE}" <<EOF
