@@ -19,6 +19,14 @@ have_command() {
   command -v "$1" >/dev/null 2>&1
 }
 
+run_install_command() {
+  if "$@" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  return 1
+}
+
 resolve_python() {
   if have_command python3; then
     printf '%s\n' "python3"
@@ -94,6 +102,48 @@ install_node_dependencies() {
   fi
 }
 
+install_gh_cli() {
+  if have_command gh; then
+    return 0
+  fi
+
+  if have_command apt-get; then
+    if run_install_command apt-get update; then
+      if run_install_command apt-get install -y gh; then
+        return 0
+      fi
+    fi
+  fi
+
+  if have_command apk; then
+    if run_install_command apk add --no-cache gh; then
+      return 0
+    fi
+  fi
+
+  if have_command brew; then
+    if run_install_command brew install gh; then
+      return 0
+    fi
+  fi
+
+  log "gh install skipped or failed"
+  return 1
+}
+
+authenticate_gh_cli() {
+  if ! have_command gh; then
+    return 1
+  fi
+
+  if gh auth login --with-token >/dev/null 2>&1 <<<"${GH_AUTH}"; then
+    return 0
+  fi
+
+  log "gh authentication failed; continuing"
+  return 1
+}
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_ROOT}"
@@ -164,6 +214,8 @@ fi
 node_available=false
 pnpm_available=false
 npm_available=false
+gh_available=false
+gh_authenticated=false
 
 if have_command node; then
   node_available=true
@@ -175,6 +227,13 @@ fi
 
 if have_command npm; then
   npm_available=true
+fi
+
+if have_command gh || install_gh_cli; then
+  gh_available=true
+  if authenticate_gh_cli; then
+    gh_authenticated=true
+  fi
 fi
 
 install_python_dependencies "${python_bin}"
@@ -189,6 +248,8 @@ python_available=${python_available}
 node_available=${node_available}
 pnpm_available=${pnpm_available}
 npm_available=${npm_available}
+gh_available=${gh_available}
+gh_authenticated=${gh_authenticated}
 fetched_origin=true
 bootstrap_complete=true
 EOF
