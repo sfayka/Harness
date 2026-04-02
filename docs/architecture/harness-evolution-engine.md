@@ -117,6 +117,11 @@ Failure diagnosis shape and taxonomy expectations are defined in:
 - `modules/evolution/contracts/failure-diagnosis.contract.md`
 - `modules/evolution/diagnostics/failure-taxonomy.v1.md`
 
+Evolution candidate and proposal planning contracts are defined in:
+
+- `modules/evolution/contracts/evolution-candidate.contract.md`
+- `modules/evolution/contracts/evolution-proposal.contract.md`
+
 
 ### Artifacts And Completion Evidence
 
@@ -125,6 +130,14 @@ Artifacts and verification/reconciliation outcomes remain completion authority u
 ### Manual Review Decisions
 
 Manual review remains explicit human governance. HEE may suggest escalation patterns but cannot clear or resolve review gates.
+
+### Candidate And Proposal Governance
+
+Evolution candidates and proposals are planning artifacts only.
+
+- Candidate/proposal acceptance is a review/planning decision, not runtime mutation authority.
+- No candidate/proposal state may directly alter task lifecycle, verification, reconciliation, or completion outcomes.
+- Implementation must still flow through normal issue, PR, and release processes.
 
 ## Failure-Containment Requirements
 

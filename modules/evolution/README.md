@@ -7,6 +7,7 @@ The intended role is advisory only:
 - analyze execution traces and task outcomes
 - produce structured failure diagnoses
 - produce structured evolution candidates for human review
+- produce structured evolution proposals that remain advisory until humans accept and implement through normal workflows
 
 This module does not currently implement:
 
