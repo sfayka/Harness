@@ -57,7 +57,12 @@ export OPENCLAW_STATE_DIR
 
 if "${OPENCLAW_BIN}" gateway status >/dev/null 2>&1; then
   "${OPENCLAW_BIN}" gateway status
-  "${OPENCLAW_BIN}" health
+
+  if "${OPENCLAW_BIN}" gateway probe >/dev/null 2>&1; then
+    "${OPENCLAW_BIN}" health
+  else
+    log "gateway is configured but unreachable; skipping health check"
+  fi
 else
   log "gateway is not running; skipping gateway status output and health check"
 fi
