@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from modules.contracts.failure_classification import FailureClassification, classify_verification_outcome
 from modules.contracts.task_envelope_evidence import CompletionEvidenceValidationResult
 from modules.contracts.task_envelope_validation import assert_valid_task_envelope
 
@@ -99,6 +100,7 @@ class VerificationDecisionResult:
     evidence_is_sufficient: bool
     reconciliation_status: ReconciliationStatus
     reasons: tuple[str, ...]
+    failure_classification: FailureClassification
 
 
 def _base_reasons(task_id: str, decision_input: VerificationDecisionInput) -> list[str]:
@@ -167,9 +169,10 @@ def evaluate_verification_decision(
         # a final completion-policy decision. This is deferred evaluation, not a
         # blocked control-plane outcome.
         reasons.append("No completion claim is currently being evaluated")
+        outcome = VerificationOutcome.VERIFICATION_DEFERRED
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.VERIFICATION_DEFERRED,
+            outcome=outcome,
             target_status=None,
             claimed_completion=False,
             accepted_completion=False,
@@ -180,13 +183,19 @@ def evaluate_verification_decision(
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     if decision_input.runtime_facts.terminal_failure:
         reasons.append("Runtime facts indicate terminal execution failure")
+        outcome = VerificationOutcome.TERMINAL_INVALID
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.TERMINAL_INVALID,
+            outcome=outcome,
             target_status="failed",
             claimed_completion=True,
             accepted_completion=False,
@@ -197,15 +206,21 @@ def evaluate_verification_decision(
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     if decision_input.review_reasons or decision_input.reconciliation_facts.status == ReconciliationStatus.REVIEW_REQUIRED:
         reasons.extend(decision_input.review_reasons)
         reasons.extend(decision_input.reconciliation_facts.reasons)
         reasons.append("Automatic verification cannot safely accept completion")
+        outcome = VerificationOutcome.REVIEW_REQUIRED
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.REVIEW_REQUIRED,
+            outcome=outcome,
             target_status="in_review",
             claimed_completion=True,
             accepted_completion=False,
@@ -216,15 +231,21 @@ def evaluate_verification_decision(
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     if decision_input.reconciliation_facts.status == ReconciliationStatus.MISMATCH:
         reasons.extend(decision_input.reconciliation_facts.reasons)
         if decision_input.reconciliation_facts.terminal:
             reasons.append("External mismatch is terminal under verification policy")
+            outcome = VerificationOutcome.TERMINAL_INVALID
             return VerificationDecisionResult(
                 task_id=task_id,
-                outcome=VerificationOutcome.TERMINAL_INVALID,
+                outcome=outcome,
                 target_status="failed",
                 claimed_completion=True,
                 accepted_completion=False,
@@ -235,12 +256,18 @@ def evaluate_verification_decision(
                 evidence_is_sufficient=evidence_result.is_sufficient,
                 reconciliation_status=decision_input.reconciliation_facts.status,
                 reasons=tuple(reasons),
+                failure_classification=classify_verification_outcome(
+                    outcome=outcome,
+                    runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                    reason=reasons[-1],
+                ),
             )
 
         reasons.append("External mismatch prevents completion from being preserved")
+        outcome = VerificationOutcome.EXTERNAL_MISMATCH
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.EXTERNAL_MISMATCH,
+            outcome=outcome,
             target_status="blocked",
             claimed_completion=True,
             accepted_completion=False,
@@ -251,6 +278,11 @@ def evaluate_verification_decision(
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     unresolved_conditions = list(decision_input.unresolved_conditions)
@@ -263,9 +295,10 @@ def evaluate_verification_decision(
         # should therefore remain blocked rather than merely deferred.
         reasons.extend(unresolved_conditions)
         reasons.append("Verification is blocked by unresolved conditions")
+        outcome = VerificationOutcome.BLOCKED_UNRESOLVED_CONDITIONS
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.BLOCKED_UNRESOLVED_CONDITIONS,
+            outcome=outcome,
             target_status="blocked",
             claimed_completion=True,
             accepted_completion=False,
@@ -276,13 +309,19 @@ def evaluate_verification_decision(
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     if not decision_input.acceptance_criteria_satisfied:
         reasons.append("Acceptance criteria are not yet satisfied strongly enough for completion")
+        outcome = VerificationOutcome.BLOCKED_UNRESOLVED_CONDITIONS
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.BLOCKED_UNRESOLVED_CONDITIONS,
+            outcome=outcome,
             target_status="blocked",
             claimed_completion=True,
             accepted_completion=False,
@@ -293,13 +332,19 @@ def evaluate_verification_decision(
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     if not evidence_result.is_sufficient:
         reasons.extend(_evidence_insufficiency_reasons(task_envelope, evidence_result))
+        outcome = VerificationOutcome.INSUFFICIENT_EVIDENCE
         return VerificationDecisionResult(
             task_id=task_id,
-            outcome=VerificationOutcome.INSUFFICIENT_EVIDENCE,
+            outcome=outcome,
             target_status="blocked",
             claimed_completion=True,
             accepted_completion=False,
@@ -310,12 +355,18 @@ def evaluate_verification_decision(
             evidence_is_sufficient=False,
             reconciliation_status=decision_input.reconciliation_facts.status,
             reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
         )
 
     reasons.append("Acceptance criteria, evidence, and reconciliation all support completion")
+    outcome = VerificationOutcome.ACCEPTED_COMPLETION
     return VerificationDecisionResult(
         task_id=task_id,
-        outcome=VerificationOutcome.ACCEPTED_COMPLETION,
+        outcome=outcome,
         target_status="completed",
         claimed_completion=True,
         accepted_completion=True,
@@ -326,6 +377,11 @@ def evaluate_verification_decision(
         evidence_is_sufficient=evidence_result.is_sufficient,
         reconciliation_status=decision_input.reconciliation_facts.status,
         reasons=tuple(reasons),
+        failure_classification=classify_verification_outcome(
+            outcome=outcome,
+            runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+            reason=reasons[-1],
+        ),
     )
 
 

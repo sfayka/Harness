@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from modules.contracts.failure_classification import FailureClassification
 from modules.contracts.task_envelope_end_to_end import (
     CanonicalCaseInput,
     CanonicalExternalFactBundle,
@@ -44,6 +45,7 @@ class HarnessEvaluationResult:
     accepted_completion: bool
     requires_review: bool
     invalid_input: bool
+    failure_classification: FailureClassification
     reasons: tuple[str, ...]
     error: str | None
 
@@ -80,6 +82,7 @@ class HarnessEvaluator:
             accepted_completion=bool(verification_result and verification_result.accepted_completion),
             requires_review=bool(verification_result and verification_result.requires_review),
             invalid_input=enforcement_result.action == EnforcementAction.INVALID_INPUT,
+            failure_classification=enforcement_result.failure_classification,
             reasons=enforcement_result.reasons,
             error=enforcement_result.error,
         )

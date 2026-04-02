@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 
+from modules.contracts.failure_classification import FailureCategory
 from modules.contracts.task_envelope_enforcement import (
     EnforcementAction,
     EnforcementInput,
@@ -227,6 +228,7 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.VERIFICATION_DEFERRED)
         self.assertIsNone(result.transition_result)
         self.assertIsNone(result.error)
+        self.assertEqual(result.failure_classification.category, FailureCategory.NONE)
 
     def test_claimed_completion_with_valid_evidence_transitions_to_completed(self) -> None:
         task = _base_task(status="executing")
@@ -264,6 +266,7 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.target_status, "blocked")
         self.assertEqual(result.task_envelope["status"], "blocked")
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.INSUFFICIENT_EVIDENCE)
+        self.assertEqual(result.failure_classification.category, FailureCategory.EVIDENCE_INSUFFICIENCY)
 
     def test_reconciliation_mismatch_moves_completed_task_back_to_blocked(self) -> None:
         task = _base_task(status="completed")
@@ -282,6 +285,7 @@ class IntegratedEnforcementTests(unittest.TestCase):
         self.assertEqual(result.action, EnforcementAction.TRANSITION_APPLIED)
         self.assertEqual(result.target_status, "blocked")
         self.assertEqual(result.verification_result.outcome, VerificationOutcome.EXTERNAL_MISMATCH)
+        self.assertEqual(result.failure_classification.category, FailureCategory.RECONCILIATION_MISMATCH)
 
     def test_task_requiring_manual_review_returns_review_required(self) -> None:
         task = _base_task(status="intake_ready")
@@ -511,6 +515,7 @@ class IntegratedEnforcementTests(unittest.TestCase):
 
         self.assertEqual(result.action, EnforcementAction.INVALID_INPUT)
         self.assertIsNotNone(result.error)
+        self.assertEqual(result.failure_classification.category, FailureCategory.ARTIFACT_VALIDATION_FAILURE)
 
 
 if __name__ == "__main__":

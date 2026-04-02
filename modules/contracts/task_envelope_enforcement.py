@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from modules.contracts.failure_classification import FailureCategory, FailureClassification, FailureNature
 from modules.contracts.task_envelope_evidence import (
     CompletionEvidenceValidationResult,
     validate_task_evidence,
@@ -80,6 +81,7 @@ class EnforcementResult:
     transition_result: TransitionResult | None
     target_status: str | None
     reasons: tuple[str, ...]
+    failure_classification: FailureClassification
     error: str | None = None
 
 
@@ -118,6 +120,19 @@ def _result_with_error(
     review_request: ReviewRequest | None = None,
     review_decision: ReviewDecisionResult | None = None,
 ) -> EnforcementResult:
+    message = str(error).lower()
+    if "bootstrap" in message or "environment" in message:
+        failure_category = FailureCategory.ENVIRONMENT_BOOTSTRAP_FAILURE
+        failure_nature = FailureNature.TRANSIENT
+        retryable = True
+    elif "evidence" in message or "artifact" in message:
+        failure_category = FailureCategory.ARTIFACT_VALIDATION_FAILURE
+        failure_nature = FailureNature.CONTRACT
+        retryable = False
+    else:
+        failure_category = FailureCategory.CONTRACT_VIOLATION
+        failure_nature = FailureNature.CONTRACT
+        retryable = False
     return EnforcementResult(
         action=action,
         task_envelope=task_envelope,
@@ -129,6 +144,12 @@ def _result_with_error(
         transition_result=None,
         target_status=None,
         reasons=(str(error),),
+        failure_classification=FailureClassification(
+            category=failure_category,
+            nature=failure_nature,
+            retryable=retryable,
+            reason=str(error),
+        ),
         error=str(error),
     )
 
@@ -180,6 +201,16 @@ def _apply_transition(
         transition_result=transition_result,
         target_status=to_status,
         reasons=(reason,),
+        failure_classification=(
+            verification_result.failure_classification
+            if verification_result is not None
+            else FailureClassification(
+                category=FailureCategory.NONE,
+                nature=FailureNature.NONE,
+                retryable=False,
+                reason=reason,
+            )
+        ),
     )
 
 
@@ -230,6 +261,12 @@ def enforce_task_envelope(
                 transition_result=None,
                 target_status=review_decision.recommended_target_status,
                 reasons=(reason,),
+                failure_classification=FailureClassification(
+                    category=FailureCategory.NONE,
+                    nature=FailureNature.NONE,
+                    retryable=False,
+                    reason=reason,
+                ),
             )
         review_transition_facts = {"terminal_failure": review_decision.record.outcome.value == "mark_failed"}
         if review_decision.recommended_target_status == "completed":
@@ -308,6 +345,7 @@ def enforce_task_envelope(
             transition_result=None,
             target_status=None,
             reasons=verification_result.reasons,
+            failure_classification=verification_result.failure_classification,
         )
 
     if verification_result.outcome == VerificationOutcome.REVIEW_REQUIRED:
@@ -358,6 +396,7 @@ def enforce_task_envelope(
             transition_result=transition_result,
             target_status=verification_result.target_status,
             reasons=verification_result.reasons,
+            failure_classification=verification_result.failure_classification,
         )
 
     target_status = verification_result.target_status
@@ -374,6 +413,7 @@ def enforce_task_envelope(
             transition_result=None,
             target_status=target_status,
             reasons=verification_result.reasons,
+            failure_classification=verification_result.failure_classification,
         )
 
     return _apply_transition(
