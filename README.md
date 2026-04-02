@@ -130,6 +130,7 @@ Relevant supporting files:
 - [`.env.example`](.env.example)
 - [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql)
 - [`docs/setup/local-development.md`](docs/setup/local-development.md)
+- [`docs/setup/openclaw-local.md`](docs/setup/openclaw-local.md)
 - [`docs/setup/render-supabase.md`](docs/setup/render-supabase.md)
 
 ## Local Development
