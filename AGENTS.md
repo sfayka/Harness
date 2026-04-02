@@ -59,6 +59,29 @@ Do not casually turn this repo into:
 11. `requires_review=true` must move the task into the explicit `in_review` lifecycle state; it must not remain `completed`.
 12. An active manual review gate is sticky until an explicit review decision resolves it; automatic reevaluation must not clear it.
 
+## Codex Cloud Execution Requirements
+
+Codex Cloud tasks for Harness must run in the Harness environment and that environment must execute the repo-owned bootstrap script:
+
+- `bash /workspace/Harness/scripts/codex-cloud-setup.sh`
+
+Every real Codex Cloud task must begin by returning raw preflight output for:
+
+- `pwd`
+- `git remote -v`
+- `cat .codex-bootstrap-proof`
+
+If preflight shows the wrong repo path, missing or incorrect `origin`, missing bootstrap proof, or incomplete fetch/auth/bootstrap state, the task must report `BLOCKED` and stop.
+
+Final task completion must return concrete external artifact identifiers:
+
+- `Repository`
+- `Branch`
+- `Commit SHA`
+- `PR URL`
+
+Executor summaries are advisory only. External artifacts remain the proof of completion.
+
 ## Rules For Modifying TaskEnvelope And Schema
 
 When changing `TaskEnvelope` or `schemas/task_envelope.schema.json`:
@@ -211,6 +234,7 @@ Rules:
 
 - [README.md](README.md)
 - [docs/setup/local-development.md](docs/setup/local-development.md)
+- [docs/architecture/codex-cloud-execution.md](docs/architecture/codex-cloud-execution.md)
 - [docs/architecture/system-context.md](docs/architecture/system-context.md)
 - [docs/architecture/task-envelope.md](docs/architecture/task-envelope.md)
 - [docs/architecture/module-boundaries.md](docs/architecture/module-boundaries.md)
