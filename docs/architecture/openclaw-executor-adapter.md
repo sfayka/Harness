@@ -6,6 +6,14 @@ Define the future adapter boundary that would allow Harness to use OpenClaw as a
 
 This document is planning-only. It does not add a working OpenClaw execution integration.
 
+## Scope
+
+This architecture definition is limited to:
+
+- executor-side boundary definition for a future OpenClaw adapter
+- separation between ingress/client behavior and executor behavior
+- explicit constraints that preserve Harness as lifecycle and completion authority
+
 ## Why It Exists
 
 The repository already contains an ingress-side OpenClaw spike proving that OpenClaw can act as a thin client against Harness's public API.
@@ -42,6 +50,14 @@ The adapter must not:
 - act as the system of record for task truth
 - absorb planning, decomposition, or verification responsibilities
 - couple Harness control-plane rules to OpenClaw-specific runtime internals
+
+## Non-Goals
+
+This architecture definition explicitly does **not** include:
+
+- implementing OpenClaw API wiring
+- implementing a production-ready OpenClaw runtime integration
+- making OpenClaw the source of lifecycle truth, completion truth, or policy decisions
 
 ## Inputs
 
@@ -87,6 +103,15 @@ The existing spike in [`modules/connectors/openclaw_harness_spike.py`](../../mod
 
 This future adapter would be separate and executor-facing. It should not reuse the ingress spike as a runtime implementation shortcut.
 
+## Replaceability Constraints
+
+To preserve executor replaceability:
+
+- Harness-facing adapter APIs should remain executor-generic instead of OpenClaw-specific.
+- OpenClaw-specific request/response details should stay inside adapter translation code.
+- Control-plane policies (evaluation outcomes, lifecycle transitions, review gates, reconciliation) must remain in Harness modules.
+- Any future executor can implement the same canonical adapter contract without changing TaskEnvelope semantics.
+
 ## Future Implementation Notes
 
 - Define a stable executor-adapter contract before any OpenClaw API wiring.
@@ -104,6 +129,5 @@ Harness still owns truth.
 ## Related References
 
 - [`completion-interception-and-artifact-validation-boundary.md`](./completion-interception-and-artifact-validation-boundary.md)
-- [`task-envelope-openclaw-mapping.md`](./task-envelope-openclaw-mapping.md)
+- [`task-envelope-to-openclaw-mapping.md`](./task-envelope-to-openclaw-mapping.md)
 - [`codex-cloud-execution.md`](./codex-cloud-execution.md)
-
