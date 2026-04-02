@@ -116,7 +116,7 @@ No adapter-private shortcut may bypass canonical validation, persistence, or eva
 This boundary document complements:
 
 - `openclaw-executor-adapter.md` (future executor adapter scope)
-- `task-envelope-openclaw-mapping.md` (canonical envelope mapping boundary)
+- `task-envelope-to-openclaw-mapping.md` (canonical envelope mapping boundary)
 - `codex-cloud-execution.md` (execution artifact and completion-proof requirements)
 
 Together, these documents keep execution plumbing replaceable while preserving Harness as the control-plane authority.
