@@ -38,6 +38,28 @@ def _latest_mapping(records: tuple[EvaluationRecord, ...], path: tuple[str, ...]
     return None
 
 
+def _latest_failure_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
+    for record in reversed(records):
+        payload = record.result if isinstance(record.result, dict) else {}
+        failure = payload.get("failure_classification")
+        if not isinstance(failure, dict):
+            continue
+        failure_type = failure.get("failure_type") or failure.get("category")
+        if failure_type in (None, "none"):
+            continue
+        return {
+            "state": "failed",
+            "failure_type": failure_type,
+            "failure_source": failure.get("source") or "evaluation",
+            "failure_reason": failure.get("reason"),
+            "terminal": bool(failure.get("terminal")),
+            "recoverable": bool(failure.get("recoverable") or failure.get("retryable")),
+            "recorded_at": record.recorded_at,
+            "evaluation_id": record.evaluation_id,
+        }
+    return {"state": "clear", "failure_type": "none", "failure_source": "none", "terminal": False, "recoverable": False}
+
+
 def _review_status(
     *,
     requests: list[dict[str, Any]],
@@ -150,7 +172,6 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 },
             }
         )
-
     for index, entry in enumerate(task_envelope.get("status_history") or []):
         if not isinstance(entry, dict):
             continue
@@ -164,7 +185,6 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 "details": dict(entry),
             }
         )
-
     artifacts = list(((task_envelope.get("artifacts") or {}).get("items") or []))
     for artifact in artifacts:
         if not isinstance(artifact, dict):
@@ -299,6 +319,27 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 },
             }
         )
+        failure = result_payload.get("failure_classification")
+        if isinstance(failure, dict):
+            failure_type = failure.get("failure_type") or failure.get("category")
+            if failure_type not in (None, "none"):
+                events.append(
+                    {
+                        "event_id": f"{task_envelope['id']}:failure:{record.evaluation_id}",
+                        "event_type": "failure_recorded",
+                        "occurred_at": record.recorded_at,
+                        "summary": f"Failure recorded: {failure_type}",
+                        "source": failure.get("source") or "evaluation",
+                        "details": {
+                            "failure_recorded": True,
+                            "failure_type": failure_type,
+                            "failure_source": failure.get("source") or "evaluation",
+                            "failure_reason": failure.get("reason"),
+                            "terminal": bool(failure.get("terminal")),
+                            "recoverable": bool(failure.get("recoverable") or failure.get("retryable")),
+                        },
+                    }
+                )
 
         review_request = enforcement_result.get("review_request") or (
             record.request.get("review_request") if isinstance(record.request, dict) else None
@@ -340,7 +381,8 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
         "review_requested": 2,
         "review_decided": 3,
         "evaluation_recorded": 4,
-        "status_transition": 5,
+        "failure_recorded": 5,
+        "status_transition": 6,
     }
     return sorted(
         events,
@@ -370,6 +412,7 @@ class TaskReadModel:
     reconciliation_summary: dict[str, Any] | None
     review_summary: dict[str, Any]
     execution_summary: dict[str, Any]
+    failure_summary: dict[str, Any] | None
     evaluation_summary: dict[str, Any]
     lifecycle_history: list[dict[str, Any]]
     timestamps: dict[str, Any]
@@ -409,6 +452,7 @@ class HarnessReadModelService:
         reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
         review_summary = _build_review_summary(records)
         execution_summary = _build_execution_summary(task)
+        failure_summary = _latest_failure_summary(records)
         timeline = _build_timeline(task, records)
 
         return TaskReadModel(
@@ -434,6 +478,7 @@ class HarnessReadModelService:
             reconciliation_summary=reconciliation_summary,
             review_summary=review_summary,
             execution_summary=execution_summary,
+            failure_summary=failure_summary,
             evaluation_summary={
                 "count": len(records),
                 "latest_recorded_at": records[-1].recorded_at if records else None,
