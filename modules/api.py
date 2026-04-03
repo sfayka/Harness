@@ -332,6 +332,33 @@ def _parse_completion_claim(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _parse_execution_attempt(payload: dict[str, Any], *, completion_claim: dict[str, Any]) -> dict[str, Any] | None:
+    attempt_payload = _optional_mapping(payload.get("execution_attempt"), field_name="execution_attempt")
+    if attempt_payload is None:
+        return None
+
+    attempt_id = _require_non_empty_string(attempt_payload.get("attempt_id"), field_name="execution_attempt.attempt_id")
+    recorded_at = _optional_non_empty_string(attempt_payload.get("recorded_at"), field_name="execution_attempt.recorded_at")
+    status = _optional_non_empty_string(attempt_payload.get("status"), field_name="execution_attempt.status") or "reported"
+    reported_by = _optional_non_empty_string(attempt_payload.get("reported_by"), field_name="execution_attempt.reported_by")
+    artifact_references = _optional_object_list(
+        attempt_payload.get("artifact_references"),
+        field_name="execution_attempt.artifact_references",
+    )
+    metadata = _optional_mapping(attempt_payload.get("metadata"), field_name="execution_attempt.metadata") or {}
+
+    return {
+        "attempt_id": attempt_id,
+        "recorded_at": recorded_at or completion_claim["reported_at"],
+        "status": status,
+        "reported_by": reported_by or completion_claim.get("reported_by"),
+        "completion_claim_id": completion_claim["claim_id"],
+        "artifact_references": [deepcopy(artifact) for artifact in artifact_references],
+        "metadata": dict(metadata),
+        "reevaluation": {},
+    }
+
+
 def _with_advisory_completion_claim(task_envelope: dict[str, Any], *, claim: dict[str, Any]) -> dict[str, Any]:
     merged_task = deepcopy(task_envelope)
     execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
@@ -350,12 +377,71 @@ def _with_advisory_completion_claim(task_envelope: dict[str, Any], *, claim: dic
     return merged_task
 
 
+def _with_execution_attempt_record(task_envelope: dict[str, Any], *, attempt: dict[str, Any]) -> dict[str, Any]:
+    merged_task = deepcopy(task_envelope)
+    execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
+    existing_attempts = execution_metadata.get("execution_attempts")
+    if existing_attempts is None:
+        execution_attempts: list[dict[str, Any]] = []
+    elif isinstance(existing_attempts, list):
+        execution_attempts = [deepcopy(item) for item in existing_attempts]
+    else:
+        raise ApiRequestError("observability.execution_metadata.execution_attempts must be an array")
+
+    execution_attempts.append(deepcopy(attempt))
+    execution_metadata["execution_attempts"] = execution_attempts
+    merged_task["observability"]["execution_metadata"] = execution_metadata
+    merged_task["timestamps"]["updated_at"] = _iso_now()
+    return merged_task
+
+
+def _with_reevaluation_linked_execution_attempt(
+    task_envelope: dict[str, Any],
+    *,
+    completion_claim_id: str,
+    evaluation_record: EvaluationRecord | None,
+) -> dict[str, Any]:
+    if evaluation_record is None:
+        return task_envelope
+
+    merged_task = deepcopy(task_envelope)
+    execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
+    existing_attempts = execution_metadata.get("execution_attempts")
+    if existing_attempts is None:
+        return merged_task
+    if not isinstance(existing_attempts, list):
+        raise ApiRequestError("observability.execution_metadata.execution_attempts must be an array")
+
+    updated_attempts: list[Any] = [deepcopy(item) for item in existing_attempts]
+    for attempt in reversed(updated_attempts):
+        if not isinstance(attempt, dict):
+            continue
+        if attempt.get("completion_claim_id") != completion_claim_id:
+            continue
+        reevaluation = dict(attempt.get("reevaluation") or {})
+        reevaluation["evaluation_id"] = evaluation_record.evaluation_id
+        reevaluation["linked_at"] = evaluation_record.recorded_at
+        reevaluation["action"] = (evaluation_record.result if isinstance(evaluation_record.result, dict) else {}).get("action")
+        attempt["reevaluation"] = reevaluation
+        break
+    else:
+        return merged_task
+
+    execution_metadata["execution_attempts"] = updated_attempts
+    merged_task["observability"]["execution_metadata"] = execution_metadata
+    merged_task["timestamps"]["updated_at"] = _iso_now()
+    return merged_task
+
+
 def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[str, Any]) -> HarnessEvaluationRequest:
     """Parse an executor completion claim into canonical reevaluation input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
     completion_claim = _parse_completion_claim(request_payload)
     merged_task = _with_advisory_completion_claim(task_envelope, claim=completion_claim)
+    execution_attempt = _parse_execution_attempt(request_payload, completion_claim=completion_claim)
+    if execution_attempt is not None:
+        merged_task = _with_execution_attempt_record(merged_task, attempt=execution_attempt)
 
     new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
     if new_artifacts:
@@ -861,6 +947,20 @@ class HarnessApiService:
         record = None
         for attempt_request, attempt_result in attempts:
             record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
+        latest_claim_id = (
+            request.task_envelope.get("observability", {})
+            .get("execution_metadata", {})
+            .get("advisory_completion_claims", [{}])[-1]
+            .get("claim_id")
+        )
+        if isinstance(latest_claim_id, str) and latest_claim_id:
+            stored_task = self.store.update_task(
+                _with_reevaluation_linked_execution_attempt(
+                    stored_task,
+                    completion_claim_id=latest_claim_id,
+                    evaluation_record=record,
+                )
+            )
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)

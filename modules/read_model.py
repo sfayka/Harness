@@ -164,6 +164,28 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
             }
         )
 
+    execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    for index, attempt in enumerate(execution_attempts):
+        if not isinstance(attempt, dict):
+            continue
+        reevaluation = attempt.get("reevaluation") if isinstance(attempt.get("reevaluation"), dict) else {}
+        events.append(
+            {
+                "event_id": f"{task_envelope['id']}:execution_attempt:{attempt.get('attempt_id') or index}",
+                "event_type": "execution_attempt_recorded",
+                "occurred_at": attempt.get("recorded_at") or timestamps.get("updated_at"),
+                "summary": f"Execution attempt recorded: {attempt.get('attempt_id')}",
+                "source": attempt.get("reported_by") or "executor",
+                "details": {
+                    "attempt_id": attempt.get("attempt_id"),
+                    "status": attempt.get("status"),
+                    "completion_claim_id": attempt.get("completion_claim_id"),
+                    "artifact_references": list(attempt.get("artifact_references") or []),
+                    "reevaluation": dict(reevaluation or {}),
+                },
+            }
+        )
+
     for record in records:
         result_payload = record.result if isinstance(record.result, dict) else {}
         enforcement_result = dict(result_payload.get("enforcement_result") or {})
