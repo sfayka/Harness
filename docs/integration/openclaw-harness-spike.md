@@ -89,3 +89,9 @@ This spike does not implement:
 - live OpenClaw message/channel wiring
 
 It is intentionally a narrow proof that OpenClaw can remain a client and Harness can remain a standalone service.
+
+## Hosted Proof Artifact Attribution Note (KNO-167)
+
+For the hosted ingress validation follow-up, see [`docs/demo/kno-167-hosted-proof/README.md`](../demo/kno-167-hosted-proof/README.md).
+
+That note records an artifact-contract correction: the hosted verification run did not create a branch/commit/PR, so historical PRs must not be used as substitute proof for that run.
