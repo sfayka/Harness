@@ -1,0 +1,153 @@
+{
+  "request": {
+    "claimed_completion": true,
+    "acceptance_criteria_satisfied": true,
+    "runtime_facts": {
+      "executor_reported_success": true,
+      "executor_reported_failure": false,
+      "attempt_count": 1
+    },
+    "new_artifacts": [
+      {
+        "id": "artifact-pr-bridge-1",
+        "type": "pull_request",
+        "title": "Harness persisted real task proof",
+        "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+        "location": "https://github.com/sfayka/Harness/pull/121",
+        "content_type": null,
+        "external_id": "PR-121",
+        "commit_sha": null,
+        "pull_request_number": 121,
+        "review_state": "approved",
+        "provenance": {
+          "source_system": "github",
+          "source_type": "api",
+          "source_id": "pull/121",
+          "captured_by": "github-sync"
+        },
+        "verification_status": "verified",
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness",
+          "external_id": "repo-kno-166-proof"
+        },
+        "branch": {
+          "name": "codex/real-task-proof",
+          "base_branch": "main",
+          "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95"
+        },
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-04-03T10:20:00Z",
+        "metadata": {}
+      },
+      {
+        "id": "artifact-commit-bridge-1",
+        "type": "commit",
+        "title": null,
+        "description": null,
+        "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+        "content_type": null,
+        "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+        "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+        "pull_request_number": null,
+        "review_state": null,
+        "provenance": {
+          "source_system": "github",
+          "source_type": "api",
+          "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+          "captured_by": "github-sync"
+        },
+        "verification_status": "verified",
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness",
+          "external_id": "repo-kno-166-proof"
+        },
+        "branch": null,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-04-03T10:20:05Z",
+        "metadata": {}
+      }
+    ],
+    "completion_evidence": {
+      "policy": "required",
+      "status": "satisfied",
+      "required_artifact_types": [
+        "pull_request",
+        "commit"
+      ],
+      "validated_artifact_ids": [
+        "artifact-pr-bridge-1",
+        "artifact-commit-bridge-1"
+      ],
+      "validation_method": "external_reconciliation",
+      "validated_at": "2026-04-03T10:20:15Z",
+      "validator": {
+        "source_system": "harness",
+        "source_type": "verification",
+        "source_id": "verification-kno-166-bridge-1",
+        "captured_by": "harness-api"
+      }
+    },
+    "external_facts": {
+      "github_facts": {
+        "artifact_found": true,
+        "reasons": [],
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness",
+          "external_id": "repo-kno-166-proof"
+        },
+        "branch": {
+          "name": "codex/real-task-proof",
+          "base_branch": "main",
+          "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95"
+        },
+        "commit": {
+          "sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95"
+        },
+        "pull_request": {
+          "number": 121,
+          "review_state": "approved"
+        },
+        "changed_files": {
+          "matches_expected_scope": true,
+          "files": [
+            {
+              "path": "modules/connectors/openclaw_ingress.py",
+              "change_type": "modified"
+            },
+            {
+              "path": "modules/api.py",
+              "change_type": "modified"
+            }
+          ]
+        }
+      },
+      "linear_facts": {
+        "record_found": true,
+        "reasons": [],
+        "issue_id": "KNO-166",
+        "issue_key": "KNO-166",
+        "state": "in_progress",
+        "workflow": {
+          "workflow_id": "workflow-in_progress",
+          "workflow_name": "In Progress",
+          "state_type": "in_progress"
+        }
+      },
+      "expected_code_context": {
+        "repository_host": "github.com",
+        "repository_owner": "sfayka",
+        "repository_name": "Harness",
+        "base_branch": "main",
+        "branch_name": "codex/real-task-proof"
+      }
+    }
+  }
+}

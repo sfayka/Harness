@@ -1,0 +1,34 @@
+{
+  "context": {
+    "conversation_id": "conv-kno-166-bridge-1",
+    "message_id": "msg-kno-166-bridge-1",
+    "channel": "cli",
+    "workspace_id": "workspace-harness",
+    "user_id": "operator@example.com",
+    "agent_id": "openclaw-assistant"
+  },
+  "task_id": "kno-166-openclaw-bridge-2026-04-03",
+  "task": {
+    "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle",
+    "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+    "acceptance_criteria": [
+      "Task persists in Harness with OpenClaw provenance.",
+      "Execution and evaluation records are appended in canonical history.",
+      "Task is visible in read-model, timeline, and task list surfaces used by the dashboard."
+    ],
+    "constraints": [
+      "Use canonical Harness submission and reevaluation paths.",
+      "Keep OpenClaw metadata in ingress extensions without making it canonical truth."
+    ],
+    "priority": "high"
+  },
+  "metadata": {
+    "request_kind": "kno-166-bridge-proof",
+    "linear_issue": "KNO-166"
+  },
+  "runtime_facts": {
+    "attempt_count": 1
+  },
+  "claimed_completion": false,
+  "acceptance_criteria_satisfied": false
+}

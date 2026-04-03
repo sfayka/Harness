@@ -1,0 +1,385 @@
+{
+    "tasks": [
+        {
+            "assigned_executor": null,
+            "coordination_summary": {
+                "linear": {
+                    "issue_id": "KNO-166",
+                    "issue_key": "KNO-166",
+                    "project": null,
+                    "provenance": {
+                        "linked_at": "2026-04-03T19:05:46.803444Z",
+                        "linked_by": "reevaluation",
+                        "source": "reevaluation_request.external_facts"
+                    },
+                    "reasons": [],
+                    "record_found": true,
+                    "state": "in_progress",
+                    "task_reference": null,
+                    "workflow": {
+                        "state_type": "in_progress",
+                        "workflow_id": "workflow-in_progress",
+                        "workflow_name": "In Progress"
+                    }
+                }
+            },
+            "current_status": "completed",
+            "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+            "evaluation_summary": {
+                "count": 2,
+                "history": [
+                    {
+                        "action": "no_op",
+                        "evaluation_id": "0de1c18c-bc52-475b-af4b-51b6a46bb53b",
+                        "recorded_at": "2026-04-03T19:05:43.862477Z",
+                        "target_status": null
+                    },
+                    {
+                        "action": "transition_applied",
+                        "evaluation_id": "83eaac42-491c-4984-a28f-a058e4f89c79",
+                        "recorded_at": "2026-04-03T19:05:46.857295Z",
+                        "target_status": "completed"
+                    }
+                ],
+                "latest_action": "transition_applied",
+                "latest_recorded_at": "2026-04-03T19:05:46.857295Z",
+                "latest_target_status": "completed"
+            },
+            "evidence_summary": {
+                "artifact_count": 2,
+                "artifact_type_counts": {
+                    "commit": 1,
+                    "pull_request": 1
+                },
+                "completion_evidence": {
+                    "policy": "required",
+                    "required_artifact_types": [
+                        "pull_request",
+                        "commit"
+                    ],
+                    "status": "satisfied",
+                    "validated_artifact_ids": [
+                        "artifact-pr-bridge-1",
+                        "artifact-commit-bridge-1"
+                    ],
+                    "validated_at": "2026-04-03T10:20:15Z",
+                    "validation_method": "external_reconciliation",
+                    "validator": {
+                        "captured_by": "harness-api",
+                        "source_id": "verification-kno-166-bridge-1",
+                        "source_system": "harness",
+                        "source_type": "verification"
+                    }
+                },
+                "validated_artifact_count": 2,
+                "verification_status_counts": {
+                    "verified": 2
+                }
+            },
+            "extensions": {
+                "openclaw": {
+                    "agent_id": "openclaw-assistant",
+                    "channel": "cli",
+                    "conversation_id": "conv-kno-166-bridge-1",
+                    "message_id": "msg-kno-166-bridge-1",
+                    "metadata": {
+                        "linear_issue": "KNO-166",
+                        "request_kind": "kno-166-bridge-proof"
+                    },
+                    "user_id": "operator@example.com",
+                    "workspace_id": "workspace-harness"
+                }
+            },
+            "lifecycle_history": [
+                {
+                    "changed_at": "2026-04-03T19:05:46.847639Z",
+                    "changed_by": "verification",
+                    "from_status": "intake_ready",
+                    "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                    "to_status": "completed"
+                }
+            ],
+            "objective_summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+            "origin": {
+                "ingress_id": "conv-kno-166-bridge-1",
+                "ingress_name": "OpenClaw",
+                "requested_by": "operator@example.com",
+                "source_id": "msg-kno-166-bridge-1",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+            },
+            "reconciliation_summary": {
+                "blocking": false,
+                "mismatch_categories": [],
+                "outcome": "no_mismatch",
+                "reasons": [
+                    "Reconciliation evaluated task 'kno-166-openclaw-bridge-2026-04-03' against normalized external facts",
+                    "No blocking reconciliation mismatch was detected"
+                ],
+                "status": "passed",
+                "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                "terminal": false
+            },
+            "relationships": {
+                "child_task_ids": [],
+                "dependencies": [],
+                "parent_task_id": null
+            },
+            "review_summary": {
+                "decision_count": 0,
+                "decisions": [],
+                "latest_decision": null,
+                "latest_request": null,
+                "request_count": 0,
+                "requests": [],
+                "status": "none"
+            },
+            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+            "timeline": [
+                {
+                    "details": {
+                        "artifact_id": "artifact-pr-bridge-1",
+                        "branch": {
+                            "base_branch": "main",
+                            "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "name": "codex/real-task-proof"
+                        },
+                        "commit_sha": null,
+                        "pull_request_number": 121,
+                        "repository": {
+                            "external_id": "repo-kno-166-proof",
+                            "host": "github.com",
+                            "name": "Harness",
+                            "owner": "sfayka"
+                        },
+                        "title": "Harness persisted real task proof",
+                        "type": "pull_request",
+                        "verification_status": "verified"
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:artifact:artifact-pr-bridge-1",
+                    "event_type": "artifact_captured",
+                    "occurred_at": "2026-04-03T10:20:00Z",
+                    "source": "github",
+                    "summary": "Artifact captured: pull_request"
+                },
+                {
+                    "details": {
+                        "artifact_id": "artifact-commit-bridge-1",
+                        "branch": null,
+                        "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "pull_request_number": null,
+                        "repository": {
+                            "external_id": "repo-kno-166-proof",
+                            "host": "github.com",
+                            "name": "Harness",
+                            "owner": "sfayka"
+                        },
+                        "title": null,
+                        "type": "commit",
+                        "verification_status": "verified"
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:artifact:artifact-commit-bridge-1",
+                    "event_type": "artifact_captured",
+                    "occurred_at": "2026-04-03T10:20:05Z",
+                    "source": "github",
+                    "summary": "Artifact captured: commit"
+                },
+                {
+                    "details": {
+                        "origin": {
+                            "ingress_id": "conv-kno-166-bridge-1",
+                            "ingress_name": "OpenClaw",
+                            "requested_by": "operator@example.com",
+                            "source_id": "msg-kno-166-bridge-1",
+                            "source_system": "openclaw",
+                            "source_type": "ingress_request"
+                        },
+                        "status": "completed",
+                        "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:created",
+                    "event_type": "task_created",
+                    "occurred_at": "2026-04-03T19:05:43.822495Z",
+                    "source": "openclaw",
+                    "summary": "Task created"
+                },
+                {
+                    "details": {
+                        "accepted_completion": false,
+                        "action": "no_op",
+                        "evaluation_id": "0de1c18c-bc52-475b-af4b-51b6a46bb53b",
+                        "reasons": [
+                            "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy",
+                            "No completion claim is currently being evaluated"
+                        ],
+                        "reconciliation_result": {
+                            "blocking": false,
+                            "mismatch_categories": [],
+                            "outcome": "no_mismatch",
+                            "reasons": [
+                                "Reconciliation evaluated task 'kno-166-openclaw-bridge-2026-04-03' against normalized external facts",
+                                "No blocking reconciliation mismatch was detected"
+                            ],
+                            "status": "passed",
+                            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                            "terminal": false
+                        },
+                        "requires_review": false,
+                        "target_status": null,
+                        "verification_result": {
+                            "accepted_completion": false,
+                            "claimed_completion": false,
+                            "evidence_is_sufficient": false,
+                            "evidence_is_valid": true,
+                            "failure_classification": {
+                                "category": "none",
+                                "nature": "none",
+                                "reason": "No completion claim is currently being evaluated",
+                                "retryable": false
+                            },
+                            "is_terminal": false,
+                            "outcome": "verification_deferred",
+                            "reasons": [
+                                "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy",
+                                "No completion claim is currently being evaluated"
+                            ],
+                            "reconciliation_status": "passed",
+                            "requires_review": false,
+                            "target_status": null,
+                            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                            "verification_passed": false
+                        }
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:evaluation:0de1c18c-bc52-475b-af4b-51b6a46bb53b",
+                    "event_type": "evaluation_recorded",
+                    "occurred_at": "2026-04-03T19:05:43.862477Z",
+                    "source": "harness",
+                    "summary": "Evaluation recorded: no_op"
+                },
+                {
+                    "details": {
+                        "issue_id": "KNO-166",
+                        "issue_key": "KNO-166",
+                        "project": null,
+                        "provenance": {
+                            "linked_at": "2026-04-03T19:05:46.803444Z",
+                            "linked_by": "reevaluation",
+                            "source": "reevaluation_request.external_facts"
+                        },
+                        "reasons": [],
+                        "record_found": true,
+                        "state": "in_progress",
+                        "task_reference": null,
+                        "workflow": {
+                            "state_type": "in_progress",
+                            "workflow_id": "workflow-in_progress",
+                            "workflow_name": "In Progress"
+                        }
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:linear_linkage",
+                    "event_type": "linear_linkage_recorded",
+                    "occurred_at": "2026-04-03T19:05:46.803444Z",
+                    "source": "reevaluation",
+                    "summary": "Linear linkage recorded"
+                },
+                {
+                    "details": {
+                        "changed_at": "2026-04-03T19:05:46.847639Z",
+                        "changed_by": "verification",
+                        "from_status": "intake_ready",
+                        "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                        "to_status": "completed"
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:status:0",
+                    "event_type": "status_transition",
+                    "occurred_at": "2026-04-03T19:05:46.847639Z",
+                    "source": "verification",
+                    "summary": "Status changed intake_ready -> completed"
+                },
+                {
+                    "details": {
+                        "accepted_completion": true,
+                        "action": "transition_applied",
+                        "evaluation_id": "83eaac42-491c-4984-a28f-a058e4f89c79",
+                        "reasons": [
+                            "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+                        ],
+                        "reconciliation_result": {
+                            "blocking": false,
+                            "mismatch_categories": [],
+                            "outcome": "no_mismatch",
+                            "reasons": [
+                                "Reconciliation evaluated task 'kno-166-openclaw-bridge-2026-04-03' against normalized external facts",
+                                "No blocking reconciliation mismatch was detected"
+                            ],
+                            "status": "passed",
+                            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                            "terminal": false
+                        },
+                        "requires_review": false,
+                        "target_status": "completed",
+                        "verification_result": {
+                            "accepted_completion": true,
+                            "claimed_completion": true,
+                            "evidence_is_sufficient": true,
+                            "evidence_is_valid": true,
+                            "failure_classification": {
+                                "category": "none",
+                                "nature": "none",
+                                "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+                                "retryable": false
+                            },
+                            "is_terminal": false,
+                            "outcome": "accepted_completion",
+                            "reasons": [
+                                "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy",
+                                "Executor-reported success was treated as advisory input only",
+                                "Acceptance criteria, evidence, and reconciliation all support completion"
+                            ],
+                            "reconciliation_status": "passed",
+                            "requires_review": false,
+                            "target_status": "completed",
+                            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                            "verification_passed": true
+                        }
+                    },
+                    "event_id": "kno-166-openclaw-bridge-2026-04-03:evaluation:83eaac42-491c-4984-a28f-a058e4f89c79",
+                    "event_type": "evaluation_recorded",
+                    "occurred_at": "2026-04-03T19:05:46.857295Z",
+                    "source": "harness",
+                    "summary": "Evaluation recorded: transition_applied"
+                }
+            ],
+            "timestamps": {
+                "completed_at": "2026-04-03T19:05:46.847639Z",
+                "created_at": "2026-04-03T19:05:43.822495Z",
+                "updated_at": "2026-04-03T19:05:46.847639Z"
+            },
+            "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle",
+            "verification_summary": {
+                "accepted_completion": true,
+                "claimed_completion": true,
+                "evidence_is_sufficient": true,
+                "evidence_is_valid": true,
+                "failure_classification": {
+                    "category": "none",
+                    "nature": "none",
+                    "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+                    "retryable": false
+                },
+                "is_terminal": false,
+                "outcome": "accepted_completion",
+                "reasons": [
+                    "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy",
+                    "Executor-reported success was treated as advisory input only",
+                    "Acceptance criteria, evidence, and reconciliation all support completion"
+                ],
+                "reconciliation_status": "passed",
+                "requires_review": false,
+                "target_status": "completed",
+                "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                "verification_passed": true
+            }
+        }
+    ]
+}

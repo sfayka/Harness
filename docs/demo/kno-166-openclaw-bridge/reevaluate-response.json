@@ -1,0 +1,1802 @@
+{
+    "accepted_completion": true,
+    "action": "transition_applied",
+    "enforcement_result": {
+        "action": "transition_applied",
+        "error": null,
+        "evidence_result": {
+            "artifact_results": [
+                {
+                    "artifact_id": "artifact-pr-bridge-1",
+                    "artifact_type": "pull_request",
+                    "is_valid": true,
+                    "issues": []
+                },
+                {
+                    "artifact_id": "artifact-commit-bridge-1",
+                    "artifact_type": "commit",
+                    "is_valid": true,
+                    "issues": []
+                }
+            ],
+            "is_sufficient": true,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": [
+                "artifact-pr-bridge-1",
+                "artifact-commit-bridge-1"
+            ]
+        },
+        "failure_classification": {
+            "category": "none",
+            "nature": "none",
+            "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+            "retryable": false
+        },
+        "reasons": [
+            "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "reconciliation_result": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+                "Reconciliation evaluated task 'kno-166-openclaw-bridge-2026-04-03' against normalized external facts",
+                "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+            "terminal": false
+        },
+        "review_decision": null,
+        "review_request": null,
+        "target_status": "completed",
+        "task_envelope": {
+            "acceptance_criteria": [
+                {
+                    "description": "Task persists in Harness with OpenClaw provenance.",
+                    "id": "ac-1",
+                    "required": true
+                },
+                {
+                    "description": "Execution and evaluation records are appended in canonical history.",
+                    "id": "ac-2",
+                    "required": true
+                },
+                {
+                    "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                    "id": "ac-3",
+                    "required": true
+                }
+            ],
+            "artifacts": {
+                "completion_evidence": {
+                    "notes": null,
+                    "policy": "required",
+                    "required_artifact_types": [
+                        "pull_request",
+                        "commit"
+                    ],
+                    "status": "satisfied",
+                    "validated_artifact_ids": [
+                        "artifact-pr-bridge-1",
+                        "artifact-commit-bridge-1"
+                    ],
+                    "validated_at": "2026-04-03T10:20:15Z",
+                    "validation_method": "external_reconciliation",
+                    "validator": {
+                        "captured_by": "harness-api",
+                        "source_id": "verification-kno-166-bridge-1",
+                        "source_system": "harness",
+                        "source_type": "verification"
+                    }
+                },
+                "items": [
+                    {
+                        "branch": {
+                            "base_branch": "main",
+                            "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "name": "codex/real-task-proof"
+                        },
+                        "captured_at": "2026-04-03T10:20:00Z",
+                        "changed_files": [],
+                        "commit_sha": null,
+                        "content_type": null,
+                        "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                        "external_id": "PR-121",
+                        "external_refs": [],
+                        "id": "artifact-pr-bridge-1",
+                        "location": "https://github.com/sfayka/Harness/pull/121",
+                        "metadata": {},
+                        "provenance": {
+                            "captured_by": "github-sync",
+                            "source_id": "pull/121",
+                            "source_system": "github",
+                            "source_type": "api"
+                        },
+                        "pull_request_number": 121,
+                        "repository": {
+                            "external_id": "repo-kno-166-proof",
+                            "host": "github.com",
+                            "name": "Harness",
+                            "owner": "sfayka"
+                        },
+                        "review_state": "approved",
+                        "title": "Harness persisted real task proof",
+                        "type": "pull_request",
+                        "verification_status": "verified"
+                    },
+                    {
+                        "branch": null,
+                        "captured_at": "2026-04-03T10:20:05Z",
+                        "changed_files": [],
+                        "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "content_type": null,
+                        "description": null,
+                        "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "external_refs": [],
+                        "id": "artifact-commit-bridge-1",
+                        "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "metadata": {},
+                        "provenance": {
+                            "captured_by": "github-sync",
+                            "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "source_system": "github",
+                            "source_type": "api"
+                        },
+                        "pull_request_number": null,
+                        "repository": {
+                            "external_id": "repo-kno-166-proof",
+                            "host": "github.com",
+                            "name": "Harness",
+                            "owner": "sfayka"
+                        },
+                        "review_state": null,
+                        "title": null,
+                        "type": "commit",
+                        "verification_status": "verified"
+                    }
+                ]
+            },
+            "assigned_executor": null,
+            "child_task_ids": [],
+            "constraints": [
+                {
+                    "description": "Use canonical Harness submission and reevaluation paths.",
+                    "required": true,
+                    "type": "ingress_constraint"
+                },
+                {
+                    "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                    "required": true,
+                    "type": "ingress_constraint"
+                }
+            ],
+            "coordination": {
+                "linear": {
+                    "issue_id": "KNO-166",
+                    "issue_key": "KNO-166",
+                    "project": null,
+                    "provenance": {
+                        "linked_at": "2026-04-03T19:05:46.803444Z",
+                        "linked_by": "reevaluation",
+                        "source": "reevaluation_request.external_facts"
+                    },
+                    "reasons": [],
+                    "record_found": true,
+                    "state": "in_progress",
+                    "task_reference": null,
+                    "workflow": {
+                        "state_type": "in_progress",
+                        "workflow_id": "workflow-in_progress",
+                        "workflow_name": "In Progress"
+                    }
+                }
+            },
+            "dependencies": [],
+            "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+            "extensions": {
+                "openclaw": {
+                    "agent_id": "openclaw-assistant",
+                    "channel": "cli",
+                    "conversation_id": "conv-kno-166-bridge-1",
+                    "message_id": "msg-kno-166-bridge-1",
+                    "metadata": {
+                        "linear_issue": "KNO-166",
+                        "request_kind": "kno-166-bridge-proof"
+                    },
+                    "user_id": "operator@example.com",
+                    "workspace_id": "workspace-harness"
+                }
+            },
+            "id": "kno-166-openclaw-bridge-2026-04-03",
+            "objective": {
+                "deliverable_type": "unspecified",
+                "success_signal": "Task satisfies declared acceptance criteria.",
+                "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+            },
+            "observability": {
+                "errors": [],
+                "execution_metadata": {
+                    "schema_required_deferred_fields": [
+                        "parent_task_id",
+                        "child_task_ids",
+                        "dependencies",
+                        "assigned_executor",
+                        "required_capabilities",
+                        "priority",
+                        "artifacts.items",
+                        "artifacts.completion_evidence",
+                        "observability"
+                    ]
+                },
+                "retries": {
+                    "attempt_count": 0,
+                    "last_retry_at": null,
+                    "max_attempts": 0
+                }
+            },
+            "origin": {
+                "ingress_id": "conv-kno-166-bridge-1",
+                "ingress_name": "OpenClaw",
+                "requested_by": "operator@example.com",
+                "source_id": "msg-kno-166-bridge-1",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "high",
+            "required_capabilities": [],
+            "status": "completed",
+            "status_history": [
+                {
+                    "changed_at": "2026-04-03T19:05:46.847639Z",
+                    "changed_by": "verification",
+                    "from_status": "intake_ready",
+                    "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                    "to_status": "completed"
+                }
+            ],
+            "timestamps": {
+                "completed_at": "2026-04-03T19:05:46.847639Z",
+                "created_at": "2026-04-03T19:05:43.822495Z",
+                "updated_at": "2026-04-03T19:05:46.847639Z"
+            },
+            "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+        },
+        "transition_result": {
+            "actor": "verification",
+            "changed_at": "2026-04-03T19:05:46.847639Z",
+            "from_status": "intake_ready",
+            "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "status_history_entry": {
+                "changed_at": "2026-04-03T19:05:46.847639Z",
+                "changed_by": "verification",
+                "from_status": "intake_ready",
+                "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+            },
+            "task_envelope": {
+                "acceptance_criteria": [
+                    {
+                        "description": "Task persists in Harness with OpenClaw provenance.",
+                        "id": "ac-1",
+                        "required": true
+                    },
+                    {
+                        "description": "Execution and evaluation records are appended in canonical history.",
+                        "id": "ac-2",
+                        "required": true
+                    },
+                    {
+                        "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                        "id": "ac-3",
+                        "required": true
+                    }
+                ],
+                "artifacts": {
+                    "completion_evidence": {
+                        "notes": null,
+                        "policy": "required",
+                        "required_artifact_types": [
+                            "pull_request",
+                            "commit"
+                        ],
+                        "status": "satisfied",
+                        "validated_artifact_ids": [
+                            "artifact-pr-bridge-1",
+                            "artifact-commit-bridge-1"
+                        ],
+                        "validated_at": "2026-04-03T10:20:15Z",
+                        "validation_method": "external_reconciliation",
+                        "validator": {
+                            "captured_by": "harness-api",
+                            "source_id": "verification-kno-166-bridge-1",
+                            "source_system": "harness",
+                            "source_type": "verification"
+                        }
+                    },
+                    "items": [
+                        {
+                            "branch": {
+                                "base_branch": "main",
+                                "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "name": "codex/real-task-proof"
+                            },
+                            "captured_at": "2026-04-03T10:20:00Z",
+                            "changed_files": [],
+                            "commit_sha": null,
+                            "content_type": null,
+                            "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                            "external_id": "PR-121",
+                            "external_refs": [],
+                            "id": "artifact-pr-bridge-1",
+                            "location": "https://github.com/sfayka/Harness/pull/121",
+                            "metadata": {},
+                            "provenance": {
+                                "captured_by": "github-sync",
+                                "source_id": "pull/121",
+                                "source_system": "github",
+                                "source_type": "api"
+                            },
+                            "pull_request_number": 121,
+                            "repository": {
+                                "external_id": "repo-kno-166-proof",
+                                "host": "github.com",
+                                "name": "Harness",
+                                "owner": "sfayka"
+                            },
+                            "review_state": "approved",
+                            "title": "Harness persisted real task proof",
+                            "type": "pull_request",
+                            "verification_status": "verified"
+                        },
+                        {
+                            "branch": null,
+                            "captured_at": "2026-04-03T10:20:05Z",
+                            "changed_files": [],
+                            "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "content_type": null,
+                            "description": null,
+                            "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "external_refs": [],
+                            "id": "artifact-commit-bridge-1",
+                            "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "metadata": {},
+                            "provenance": {
+                                "captured_by": "github-sync",
+                                "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "source_system": "github",
+                                "source_type": "api"
+                            },
+                            "pull_request_number": null,
+                            "repository": {
+                                "external_id": "repo-kno-166-proof",
+                                "host": "github.com",
+                                "name": "Harness",
+                                "owner": "sfayka"
+                            },
+                            "review_state": null,
+                            "title": null,
+                            "type": "commit",
+                            "verification_status": "verified"
+                        }
+                    ]
+                },
+                "assigned_executor": null,
+                "child_task_ids": [],
+                "constraints": [
+                    {
+                        "description": "Use canonical Harness submission and reevaluation paths.",
+                        "required": true,
+                        "type": "ingress_constraint"
+                    },
+                    {
+                        "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                        "required": true,
+                        "type": "ingress_constraint"
+                    }
+                ],
+                "coordination": {
+                    "linear": {
+                        "issue_id": "KNO-166",
+                        "issue_key": "KNO-166",
+                        "project": null,
+                        "provenance": {
+                            "linked_at": "2026-04-03T19:05:46.803444Z",
+                            "linked_by": "reevaluation",
+                            "source": "reevaluation_request.external_facts"
+                        },
+                        "reasons": [],
+                        "record_found": true,
+                        "state": "in_progress",
+                        "task_reference": null,
+                        "workflow": {
+                            "state_type": "in_progress",
+                            "workflow_id": "workflow-in_progress",
+                            "workflow_name": "In Progress"
+                        }
+                    }
+                },
+                "dependencies": [],
+                "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+                "extensions": {
+                    "openclaw": {
+                        "agent_id": "openclaw-assistant",
+                        "channel": "cli",
+                        "conversation_id": "conv-kno-166-bridge-1",
+                        "message_id": "msg-kno-166-bridge-1",
+                        "metadata": {
+                            "linear_issue": "KNO-166",
+                            "request_kind": "kno-166-bridge-proof"
+                        },
+                        "user_id": "operator@example.com",
+                        "workspace_id": "workspace-harness"
+                    }
+                },
+                "id": "kno-166-openclaw-bridge-2026-04-03",
+                "objective": {
+                    "deliverable_type": "unspecified",
+                    "success_signal": "Task satisfies declared acceptance criteria.",
+                    "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+                },
+                "observability": {
+                    "errors": [],
+                    "execution_metadata": {
+                        "schema_required_deferred_fields": [
+                            "parent_task_id",
+                            "child_task_ids",
+                            "dependencies",
+                            "assigned_executor",
+                            "required_capabilities",
+                            "priority",
+                            "artifacts.items",
+                            "artifacts.completion_evidence",
+                            "observability"
+                        ]
+                    },
+                    "retries": {
+                        "attempt_count": 0,
+                        "last_retry_at": null,
+                        "max_attempts": 0
+                    }
+                },
+                "origin": {
+                    "ingress_id": "conv-kno-166-bridge-1",
+                    "ingress_name": "OpenClaw",
+                    "requested_by": "operator@example.com",
+                    "source_id": "msg-kno-166-bridge-1",
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request"
+                },
+                "parent_task_id": null,
+                "priority": "high",
+                "required_capabilities": [],
+                "status": "completed",
+                "status_history": [
+                    {
+                        "changed_at": "2026-04-03T19:05:46.847639Z",
+                        "changed_by": "verification",
+                        "from_status": "intake_ready",
+                        "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                        "to_status": "completed"
+                    }
+                ],
+                "timestamps": {
+                    "completed_at": "2026-04-03T19:05:46.847639Z",
+                    "created_at": "2026-04-03T19:05:43.822495Z",
+                    "updated_at": "2026-04-03T19:05:46.847639Z"
+                },
+                "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+            },
+            "to_status": "completed"
+        },
+        "verification_result": {
+            "accepted_completion": true,
+            "claimed_completion": true,
+            "evidence_is_sufficient": true,
+            "evidence_is_valid": true,
+            "failure_classification": {
+                "category": "none",
+                "nature": "none",
+                "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+                "retryable": false
+            },
+            "is_terminal": false,
+            "outcome": "accepted_completion",
+            "reasons": [
+                "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy",
+                "Executor-reported success was treated as advisory input only",
+                "Acceptance criteria, evidence, and reconciliation all support completion"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": "completed",
+            "task_id": "kno-166-openclaw-bridge-2026-04-03",
+            "verification_passed": true
+        }
+    },
+    "error": null,
+    "evaluation_record": {
+        "evaluation_id": "83eaac42-491c-4984-a28f-a058e4f89c79",
+        "recorded_at": "2026-04-03T19:05:46.857295Z",
+        "request": {
+            "acceptance_criteria_satisfied": true,
+            "claimed_completion": true,
+            "external_facts": {
+                "expected_code_context": {
+                    "base_branch": "main",
+                    "branch_name": "codex/real-task-proof",
+                    "repository_host": "github.com",
+                    "repository_name": "Harness",
+                    "repository_owner": "sfayka"
+                },
+                "github_facts": {
+                    "artifact_found": true,
+                    "artifact_refs": [
+                        {
+                            "artifact_type": "pull_request",
+                            "external_id": "PR-121",
+                            "url": null
+                        },
+                        {
+                            "artifact_type": "commit",
+                            "external_id": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "url": null
+                        }
+                    ],
+                    "branch": {
+                        "base_branch": "main",
+                        "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "name": "codex/real-task-proof"
+                    },
+                    "changed_files": {
+                        "files": [
+                            {
+                                "additions": null,
+                                "change_type": "unknown",
+                                "deletions": null,
+                                "path": "modules/connectors/openclaw_ingress.py",
+                                "previous_path": null
+                            },
+                            {
+                                "additions": null,
+                                "change_type": "unknown",
+                                "deletions": null,
+                                "path": "modules/api.py",
+                                "previous_path": null
+                            }
+                        ],
+                        "matches_expected_scope": true
+                    },
+                    "commit": {
+                        "message_summary": null,
+                        "sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "url": null
+                    },
+                    "pull_request": {
+                        "merged": null,
+                        "number": 121,
+                        "review_state": "approved",
+                        "state": null,
+                        "url": null
+                    },
+                    "reasons": [],
+                    "repository": {
+                        "external_id": null,
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                    }
+                },
+                "linear_facts": {
+                    "issue_id": "KNO-166",
+                    "issue_key": "KNO-166",
+                    "project": null,
+                    "reasons": [],
+                    "record_found": true,
+                    "state": "in_progress",
+                    "task_reference": null,
+                    "workflow": {
+                        "state_type": "in_progress",
+                        "workflow_id": "workflow-in_progress",
+                        "workflow_name": "In Progress"
+                    }
+                }
+            },
+            "retry_context": null,
+            "review_decision": null,
+            "review_is_active": false,
+            "review_reasons": [],
+            "review_request": null,
+            "runtime_facts": {
+                "attempt_count": 1,
+                "executor_reported_failure": false,
+                "executor_reported_success": true,
+                "latest_attempt_outcome": null,
+                "terminal_failure": false
+            },
+            "task_envelope": {
+                "acceptance_criteria": [
+                    {
+                        "description": "Task persists in Harness with OpenClaw provenance.",
+                        "id": "ac-1",
+                        "required": true
+                    },
+                    {
+                        "description": "Execution and evaluation records are appended in canonical history.",
+                        "id": "ac-2",
+                        "required": true
+                    },
+                    {
+                        "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                        "id": "ac-3",
+                        "required": true
+                    }
+                ],
+                "artifacts": {
+                    "completion_evidence": {
+                        "notes": null,
+                        "policy": "required",
+                        "required_artifact_types": [
+                            "pull_request",
+                            "commit"
+                        ],
+                        "status": "satisfied",
+                        "validated_artifact_ids": [
+                            "artifact-pr-bridge-1",
+                            "artifact-commit-bridge-1"
+                        ],
+                        "validated_at": "2026-04-03T10:20:15Z",
+                        "validation_method": "external_reconciliation",
+                        "validator": {
+                            "captured_by": "harness-api",
+                            "source_id": "verification-kno-166-bridge-1",
+                            "source_system": "harness",
+                            "source_type": "verification"
+                        }
+                    },
+                    "items": [
+                        {
+                            "branch": {
+                                "base_branch": "main",
+                                "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "name": "codex/real-task-proof"
+                            },
+                            "captured_at": "2026-04-03T10:20:00Z",
+                            "changed_files": [],
+                            "commit_sha": null,
+                            "content_type": null,
+                            "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                            "external_id": "PR-121",
+                            "external_refs": [],
+                            "id": "artifact-pr-bridge-1",
+                            "location": "https://github.com/sfayka/Harness/pull/121",
+                            "metadata": {},
+                            "provenance": {
+                                "captured_by": "github-sync",
+                                "source_id": "pull/121",
+                                "source_system": "github",
+                                "source_type": "api"
+                            },
+                            "pull_request_number": 121,
+                            "repository": {
+                                "external_id": "repo-kno-166-proof",
+                                "host": "github.com",
+                                "name": "Harness",
+                                "owner": "sfayka"
+                            },
+                            "review_state": "approved",
+                            "title": "Harness persisted real task proof",
+                            "type": "pull_request",
+                            "verification_status": "verified"
+                        },
+                        {
+                            "branch": null,
+                            "captured_at": "2026-04-03T10:20:05Z",
+                            "changed_files": [],
+                            "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "content_type": null,
+                            "description": null,
+                            "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "external_refs": [],
+                            "id": "artifact-commit-bridge-1",
+                            "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "metadata": {},
+                            "provenance": {
+                                "captured_by": "github-sync",
+                                "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "source_system": "github",
+                                "source_type": "api"
+                            },
+                            "pull_request_number": null,
+                            "repository": {
+                                "external_id": "repo-kno-166-proof",
+                                "host": "github.com",
+                                "name": "Harness",
+                                "owner": "sfayka"
+                            },
+                            "review_state": null,
+                            "title": null,
+                            "type": "commit",
+                            "verification_status": "verified"
+                        }
+                    ]
+                },
+                "assigned_executor": null,
+                "child_task_ids": [],
+                "constraints": [
+                    {
+                        "description": "Use canonical Harness submission and reevaluation paths.",
+                        "required": true,
+                        "type": "ingress_constraint"
+                    },
+                    {
+                        "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                        "required": true,
+                        "type": "ingress_constraint"
+                    }
+                ],
+                "coordination": {
+                    "linear": {
+                        "issue_id": "KNO-166",
+                        "issue_key": "KNO-166",
+                        "project": null,
+                        "provenance": {
+                            "linked_at": "2026-04-03T19:05:46.803444Z",
+                            "linked_by": "reevaluation",
+                            "source": "reevaluation_request.external_facts"
+                        },
+                        "reasons": [],
+                        "record_found": true,
+                        "state": "in_progress",
+                        "task_reference": null,
+                        "workflow": {
+                            "state_type": "in_progress",
+                            "workflow_id": "workflow-in_progress",
+                            "workflow_name": "In Progress"
+                        }
+                    }
+                },
+                "dependencies": [],
+                "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+                "extensions": {
+                    "openclaw": {
+                        "agent_id": "openclaw-assistant",
+                        "channel": "cli",
+                        "conversation_id": "conv-kno-166-bridge-1",
+                        "message_id": "msg-kno-166-bridge-1",
+                        "metadata": {
+                            "linear_issue": "KNO-166",
+                            "request_kind": "kno-166-bridge-proof"
+                        },
+                        "user_id": "operator@example.com",
+                        "workspace_id": "workspace-harness"
+                    }
+                },
+                "id": "kno-166-openclaw-bridge-2026-04-03",
+                "objective": {
+                    "deliverable_type": "unspecified",
+                    "success_signal": "Task satisfies declared acceptance criteria.",
+                    "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+                },
+                "observability": {
+                    "errors": [],
+                    "execution_metadata": {
+                        "schema_required_deferred_fields": [
+                            "parent_task_id",
+                            "child_task_ids",
+                            "dependencies",
+                            "assigned_executor",
+                            "required_capabilities",
+                            "priority",
+                            "artifacts.items",
+                            "artifacts.completion_evidence",
+                            "observability"
+                        ]
+                    },
+                    "retries": {
+                        "attempt_count": 0,
+                        "last_retry_at": null,
+                        "max_attempts": 0
+                    }
+                },
+                "origin": {
+                    "ingress_id": "conv-kno-166-bridge-1",
+                    "ingress_name": "OpenClaw",
+                    "requested_by": "operator@example.com",
+                    "source_id": "msg-kno-166-bridge-1",
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request"
+                },
+                "parent_task_id": null,
+                "priority": "high",
+                "required_capabilities": [],
+                "status": "intake_ready",
+                "status_history": [],
+                "timestamps": {
+                    "completed_at": null,
+                    "created_at": "2026-04-03T19:05:43.822495Z",
+                    "updated_at": "2026-04-03T19:05:46.802779Z"
+                },
+                "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+            },
+            "unresolved_conditions": []
+        },
+        "result": {
+            "accepted_completion": true,
+            "action": "transition_applied",
+            "enforcement_result": {
+                "action": "transition_applied",
+                "error": null,
+                "evidence_result": {
+                    "artifact_results": [
+                        {
+                            "artifact_id": "artifact-pr-bridge-1",
+                            "artifact_type": "pull_request",
+                            "is_valid": true,
+                            "issues": []
+                        },
+                        {
+                            "artifact_id": "artifact-commit-bridge-1",
+                            "artifact_type": "commit",
+                            "is_valid": true,
+                            "issues": []
+                        }
+                    ],
+                    "is_sufficient": true,
+                    "is_valid": true,
+                    "issues": [],
+                    "missing_required_artifact_types": [],
+                    "unknown_validated_artifact_ids": [],
+                    "validated_artifact_ids": [
+                        "artifact-pr-bridge-1",
+                        "artifact-commit-bridge-1"
+                    ]
+                },
+                "failure_classification": {
+                    "category": "none",
+                    "nature": "none",
+                    "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+                    "retryable": false
+                },
+                "reasons": [
+                    "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+                ],
+                "reconciliation_result": {
+                    "blocking": false,
+                    "mismatch_categories": [],
+                    "outcome": "no_mismatch",
+                    "reasons": [
+                        "Reconciliation evaluated task 'kno-166-openclaw-bridge-2026-04-03' against normalized external facts",
+                        "No blocking reconciliation mismatch was detected"
+                    ],
+                    "status": "passed",
+                    "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                    "terminal": false
+                },
+                "review_decision": null,
+                "review_request": null,
+                "target_status": "completed",
+                "task_envelope": {
+                    "acceptance_criteria": [
+                        {
+                            "description": "Task persists in Harness with OpenClaw provenance.",
+                            "id": "ac-1",
+                            "required": true
+                        },
+                        {
+                            "description": "Execution and evaluation records are appended in canonical history.",
+                            "id": "ac-2",
+                            "required": true
+                        },
+                        {
+                            "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                            "id": "ac-3",
+                            "required": true
+                        }
+                    ],
+                    "artifacts": {
+                        "completion_evidence": {
+                            "notes": null,
+                            "policy": "required",
+                            "required_artifact_types": [
+                                "pull_request",
+                                "commit"
+                            ],
+                            "status": "satisfied",
+                            "validated_artifact_ids": [
+                                "artifact-pr-bridge-1",
+                                "artifact-commit-bridge-1"
+                            ],
+                            "validated_at": "2026-04-03T10:20:15Z",
+                            "validation_method": "external_reconciliation",
+                            "validator": {
+                                "captured_by": "harness-api",
+                                "source_id": "verification-kno-166-bridge-1",
+                                "source_system": "harness",
+                                "source_type": "verification"
+                            }
+                        },
+                        "items": [
+                            {
+                                "branch": {
+                                    "base_branch": "main",
+                                    "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                    "name": "codex/real-task-proof"
+                                },
+                                "captured_at": "2026-04-03T10:20:00Z",
+                                "changed_files": [],
+                                "commit_sha": null,
+                                "content_type": null,
+                                "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                                "external_id": "PR-121",
+                                "external_refs": [],
+                                "id": "artifact-pr-bridge-1",
+                                "location": "https://github.com/sfayka/Harness/pull/121",
+                                "metadata": {},
+                                "provenance": {
+                                    "captured_by": "github-sync",
+                                    "source_id": "pull/121",
+                                    "source_system": "github",
+                                    "source_type": "api"
+                                },
+                                "pull_request_number": 121,
+                                "repository": {
+                                    "external_id": "repo-kno-166-proof",
+                                    "host": "github.com",
+                                    "name": "Harness",
+                                    "owner": "sfayka"
+                                },
+                                "review_state": "approved",
+                                "title": "Harness persisted real task proof",
+                                "type": "pull_request",
+                                "verification_status": "verified"
+                            },
+                            {
+                                "branch": null,
+                                "captured_at": "2026-04-03T10:20:05Z",
+                                "changed_files": [],
+                                "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "content_type": null,
+                                "description": null,
+                                "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "external_refs": [],
+                                "id": "artifact-commit-bridge-1",
+                                "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "metadata": {},
+                                "provenance": {
+                                    "captured_by": "github-sync",
+                                    "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                    "source_system": "github",
+                                    "source_type": "api"
+                                },
+                                "pull_request_number": null,
+                                "repository": {
+                                    "external_id": "repo-kno-166-proof",
+                                    "host": "github.com",
+                                    "name": "Harness",
+                                    "owner": "sfayka"
+                                },
+                                "review_state": null,
+                                "title": null,
+                                "type": "commit",
+                                "verification_status": "verified"
+                            }
+                        ]
+                    },
+                    "assigned_executor": null,
+                    "child_task_ids": [],
+                    "constraints": [
+                        {
+                            "description": "Use canonical Harness submission and reevaluation paths.",
+                            "required": true,
+                            "type": "ingress_constraint"
+                        },
+                        {
+                            "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                            "required": true,
+                            "type": "ingress_constraint"
+                        }
+                    ],
+                    "coordination": {
+                        "linear": {
+                            "issue_id": "KNO-166",
+                            "issue_key": "KNO-166",
+                            "project": null,
+                            "provenance": {
+                                "linked_at": "2026-04-03T19:05:46.803444Z",
+                                "linked_by": "reevaluation",
+                                "source": "reevaluation_request.external_facts"
+                            },
+                            "reasons": [],
+                            "record_found": true,
+                            "state": "in_progress",
+                            "task_reference": null,
+                            "workflow": {
+                                "state_type": "in_progress",
+                                "workflow_id": "workflow-in_progress",
+                                "workflow_name": "In Progress"
+                            }
+                        }
+                    },
+                    "dependencies": [],
+                    "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+                    "extensions": {
+                        "openclaw": {
+                            "agent_id": "openclaw-assistant",
+                            "channel": "cli",
+                            "conversation_id": "conv-kno-166-bridge-1",
+                            "message_id": "msg-kno-166-bridge-1",
+                            "metadata": {
+                                "linear_issue": "KNO-166",
+                                "request_kind": "kno-166-bridge-proof"
+                            },
+                            "user_id": "operator@example.com",
+                            "workspace_id": "workspace-harness"
+                        }
+                    },
+                    "id": "kno-166-openclaw-bridge-2026-04-03",
+                    "objective": {
+                        "deliverable_type": "unspecified",
+                        "success_signal": "Task satisfies declared acceptance criteria.",
+                        "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+                    },
+                    "observability": {
+                        "errors": [],
+                        "execution_metadata": {
+                            "schema_required_deferred_fields": [
+                                "parent_task_id",
+                                "child_task_ids",
+                                "dependencies",
+                                "assigned_executor",
+                                "required_capabilities",
+                                "priority",
+                                "artifacts.items",
+                                "artifacts.completion_evidence",
+                                "observability"
+                            ]
+                        },
+                        "retries": {
+                            "attempt_count": 0,
+                            "last_retry_at": null,
+                            "max_attempts": 0
+                        }
+                    },
+                    "origin": {
+                        "ingress_id": "conv-kno-166-bridge-1",
+                        "ingress_name": "OpenClaw",
+                        "requested_by": "operator@example.com",
+                        "source_id": "msg-kno-166-bridge-1",
+                        "source_system": "openclaw",
+                        "source_type": "ingress_request"
+                    },
+                    "parent_task_id": null,
+                    "priority": "high",
+                    "required_capabilities": [],
+                    "status": "completed",
+                    "status_history": [
+                        {
+                            "changed_at": "2026-04-03T19:05:46.847639Z",
+                            "changed_by": "verification",
+                            "from_status": "intake_ready",
+                            "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                            "to_status": "completed"
+                        }
+                    ],
+                    "timestamps": {
+                        "completed_at": "2026-04-03T19:05:46.847639Z",
+                        "created_at": "2026-04-03T19:05:43.822495Z",
+                        "updated_at": "2026-04-03T19:05:46.847639Z"
+                    },
+                    "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+                },
+                "transition_result": {
+                    "actor": "verification",
+                    "changed_at": "2026-04-03T19:05:46.847639Z",
+                    "from_status": "intake_ready",
+                    "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                    "status_history_entry": {
+                        "changed_at": "2026-04-03T19:05:46.847639Z",
+                        "changed_by": "verification",
+                        "from_status": "intake_ready",
+                        "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                        "to_status": "completed"
+                    },
+                    "task_envelope": {
+                        "acceptance_criteria": [
+                            {
+                                "description": "Task persists in Harness with OpenClaw provenance.",
+                                "id": "ac-1",
+                                "required": true
+                            },
+                            {
+                                "description": "Execution and evaluation records are appended in canonical history.",
+                                "id": "ac-2",
+                                "required": true
+                            },
+                            {
+                                "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                                "id": "ac-3",
+                                "required": true
+                            }
+                        ],
+                        "artifacts": {
+                            "completion_evidence": {
+                                "notes": null,
+                                "policy": "required",
+                                "required_artifact_types": [
+                                    "pull_request",
+                                    "commit"
+                                ],
+                                "status": "satisfied",
+                                "validated_artifact_ids": [
+                                    "artifact-pr-bridge-1",
+                                    "artifact-commit-bridge-1"
+                                ],
+                                "validated_at": "2026-04-03T10:20:15Z",
+                                "validation_method": "external_reconciliation",
+                                "validator": {
+                                    "captured_by": "harness-api",
+                                    "source_id": "verification-kno-166-bridge-1",
+                                    "source_system": "harness",
+                                    "source_type": "verification"
+                                }
+                            },
+                            "items": [
+                                {
+                                    "branch": {
+                                        "base_branch": "main",
+                                        "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                        "name": "codex/real-task-proof"
+                                    },
+                                    "captured_at": "2026-04-03T10:20:00Z",
+                                    "changed_files": [],
+                                    "commit_sha": null,
+                                    "content_type": null,
+                                    "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                                    "external_id": "PR-121",
+                                    "external_refs": [],
+                                    "id": "artifact-pr-bridge-1",
+                                    "location": "https://github.com/sfayka/Harness/pull/121",
+                                    "metadata": {},
+                                    "provenance": {
+                                        "captured_by": "github-sync",
+                                        "source_id": "pull/121",
+                                        "source_system": "github",
+                                        "source_type": "api"
+                                    },
+                                    "pull_request_number": 121,
+                                    "repository": {
+                                        "external_id": "repo-kno-166-proof",
+                                        "host": "github.com",
+                                        "name": "Harness",
+                                        "owner": "sfayka"
+                                    },
+                                    "review_state": "approved",
+                                    "title": "Harness persisted real task proof",
+                                    "type": "pull_request",
+                                    "verification_status": "verified"
+                                },
+                                {
+                                    "branch": null,
+                                    "captured_at": "2026-04-03T10:20:05Z",
+                                    "changed_files": [],
+                                    "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                    "content_type": null,
+                                    "description": null,
+                                    "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                    "external_refs": [],
+                                    "id": "artifact-commit-bridge-1",
+                                    "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                    "metadata": {},
+                                    "provenance": {
+                                        "captured_by": "github-sync",
+                                        "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                        "source_system": "github",
+                                        "source_type": "api"
+                                    },
+                                    "pull_request_number": null,
+                                    "repository": {
+                                        "external_id": "repo-kno-166-proof",
+                                        "host": "github.com",
+                                        "name": "Harness",
+                                        "owner": "sfayka"
+                                    },
+                                    "review_state": null,
+                                    "title": null,
+                                    "type": "commit",
+                                    "verification_status": "verified"
+                                }
+                            ]
+                        },
+                        "assigned_executor": null,
+                        "child_task_ids": [],
+                        "constraints": [
+                            {
+                                "description": "Use canonical Harness submission and reevaluation paths.",
+                                "required": true,
+                                "type": "ingress_constraint"
+                            },
+                            {
+                                "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                                "required": true,
+                                "type": "ingress_constraint"
+                            }
+                        ],
+                        "coordination": {
+                            "linear": {
+                                "issue_id": "KNO-166",
+                                "issue_key": "KNO-166",
+                                "project": null,
+                                "provenance": {
+                                    "linked_at": "2026-04-03T19:05:46.803444Z",
+                                    "linked_by": "reevaluation",
+                                    "source": "reevaluation_request.external_facts"
+                                },
+                                "reasons": [],
+                                "record_found": true,
+                                "state": "in_progress",
+                                "task_reference": null,
+                                "workflow": {
+                                    "state_type": "in_progress",
+                                    "workflow_id": "workflow-in_progress",
+                                    "workflow_name": "In Progress"
+                                }
+                            }
+                        },
+                        "dependencies": [],
+                        "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+                        "extensions": {
+                            "openclaw": {
+                                "agent_id": "openclaw-assistant",
+                                "channel": "cli",
+                                "conversation_id": "conv-kno-166-bridge-1",
+                                "message_id": "msg-kno-166-bridge-1",
+                                "metadata": {
+                                    "linear_issue": "KNO-166",
+                                    "request_kind": "kno-166-bridge-proof"
+                                },
+                                "user_id": "operator@example.com",
+                                "workspace_id": "workspace-harness"
+                            }
+                        },
+                        "id": "kno-166-openclaw-bridge-2026-04-03",
+                        "objective": {
+                            "deliverable_type": "unspecified",
+                            "success_signal": "Task satisfies declared acceptance criteria.",
+                            "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+                        },
+                        "observability": {
+                            "errors": [],
+                            "execution_metadata": {
+                                "schema_required_deferred_fields": [
+                                    "parent_task_id",
+                                    "child_task_ids",
+                                    "dependencies",
+                                    "assigned_executor",
+                                    "required_capabilities",
+                                    "priority",
+                                    "artifacts.items",
+                                    "artifacts.completion_evidence",
+                                    "observability"
+                                ]
+                            },
+                            "retries": {
+                                "attempt_count": 0,
+                                "last_retry_at": null,
+                                "max_attempts": 0
+                            }
+                        },
+                        "origin": {
+                            "ingress_id": "conv-kno-166-bridge-1",
+                            "ingress_name": "OpenClaw",
+                            "requested_by": "operator@example.com",
+                            "source_id": "msg-kno-166-bridge-1",
+                            "source_system": "openclaw",
+                            "source_type": "ingress_request"
+                        },
+                        "parent_task_id": null,
+                        "priority": "high",
+                        "required_capabilities": [],
+                        "status": "completed",
+                        "status_history": [
+                            {
+                                "changed_at": "2026-04-03T19:05:46.847639Z",
+                                "changed_by": "verification",
+                                "from_status": "intake_ready",
+                                "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                                "to_status": "completed"
+                            }
+                        ],
+                        "timestamps": {
+                            "completed_at": "2026-04-03T19:05:46.847639Z",
+                            "created_at": "2026-04-03T19:05:43.822495Z",
+                            "updated_at": "2026-04-03T19:05:46.847639Z"
+                        },
+                        "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+                    },
+                    "to_status": "completed"
+                },
+                "verification_result": {
+                    "accepted_completion": true,
+                    "claimed_completion": true,
+                    "evidence_is_sufficient": true,
+                    "evidence_is_valid": true,
+                    "failure_classification": {
+                        "category": "none",
+                        "nature": "none",
+                        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+                        "retryable": false
+                    },
+                    "is_terminal": false,
+                    "outcome": "accepted_completion",
+                    "reasons": [
+                        "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy",
+                        "Executor-reported success was treated as advisory input only",
+                        "Acceptance criteria, evidence, and reconciliation all support completion"
+                    ],
+                    "reconciliation_status": "passed",
+                    "requires_review": false,
+                    "target_status": "completed",
+                    "task_id": "kno-166-openclaw-bridge-2026-04-03",
+                    "verification_passed": true
+                }
+            },
+            "error": null,
+            "failure_classification": {
+                "category": "none",
+                "nature": "none",
+                "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+                "retryable": false
+            },
+            "invalid_input": false,
+            "reasons": [
+                "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+            ],
+            "requires_review": false,
+            "target_status": "completed",
+            "task_envelope": {
+                "acceptance_criteria": [
+                    {
+                        "description": "Task persists in Harness with OpenClaw provenance.",
+                        "id": "ac-1",
+                        "required": true
+                    },
+                    {
+                        "description": "Execution and evaluation records are appended in canonical history.",
+                        "id": "ac-2",
+                        "required": true
+                    },
+                    {
+                        "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                        "id": "ac-3",
+                        "required": true
+                    }
+                ],
+                "artifacts": {
+                    "completion_evidence": {
+                        "notes": null,
+                        "policy": "required",
+                        "required_artifact_types": [
+                            "pull_request",
+                            "commit"
+                        ],
+                        "status": "satisfied",
+                        "validated_artifact_ids": [
+                            "artifact-pr-bridge-1",
+                            "artifact-commit-bridge-1"
+                        ],
+                        "validated_at": "2026-04-03T10:20:15Z",
+                        "validation_method": "external_reconciliation",
+                        "validator": {
+                            "captured_by": "harness-api",
+                            "source_id": "verification-kno-166-bridge-1",
+                            "source_system": "harness",
+                            "source_type": "verification"
+                        }
+                    },
+                    "items": [
+                        {
+                            "branch": {
+                                "base_branch": "main",
+                                "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "name": "codex/real-task-proof"
+                            },
+                            "captured_at": "2026-04-03T10:20:00Z",
+                            "changed_files": [],
+                            "commit_sha": null,
+                            "content_type": null,
+                            "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                            "external_id": "PR-121",
+                            "external_refs": [],
+                            "id": "artifact-pr-bridge-1",
+                            "location": "https://github.com/sfayka/Harness/pull/121",
+                            "metadata": {},
+                            "provenance": {
+                                "captured_by": "github-sync",
+                                "source_id": "pull/121",
+                                "source_system": "github",
+                                "source_type": "api"
+                            },
+                            "pull_request_number": 121,
+                            "repository": {
+                                "external_id": "repo-kno-166-proof",
+                                "host": "github.com",
+                                "name": "Harness",
+                                "owner": "sfayka"
+                            },
+                            "review_state": "approved",
+                            "title": "Harness persisted real task proof",
+                            "type": "pull_request",
+                            "verification_status": "verified"
+                        },
+                        {
+                            "branch": null,
+                            "captured_at": "2026-04-03T10:20:05Z",
+                            "changed_files": [],
+                            "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "content_type": null,
+                            "description": null,
+                            "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "external_refs": [],
+                            "id": "artifact-commit-bridge-1",
+                            "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                            "metadata": {},
+                            "provenance": {
+                                "captured_by": "github-sync",
+                                "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                                "source_system": "github",
+                                "source_type": "api"
+                            },
+                            "pull_request_number": null,
+                            "repository": {
+                                "external_id": "repo-kno-166-proof",
+                                "host": "github.com",
+                                "name": "Harness",
+                                "owner": "sfayka"
+                            },
+                            "review_state": null,
+                            "title": null,
+                            "type": "commit",
+                            "verification_status": "verified"
+                        }
+                    ]
+                },
+                "assigned_executor": null,
+                "child_task_ids": [],
+                "constraints": [
+                    {
+                        "description": "Use canonical Harness submission and reevaluation paths.",
+                        "required": true,
+                        "type": "ingress_constraint"
+                    },
+                    {
+                        "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                        "required": true,
+                        "type": "ingress_constraint"
+                    }
+                ],
+                "coordination": {
+                    "linear": {
+                        "issue_id": "KNO-166",
+                        "issue_key": "KNO-166",
+                        "project": null,
+                        "provenance": {
+                            "linked_at": "2026-04-03T19:05:46.803444Z",
+                            "linked_by": "reevaluation",
+                            "source": "reevaluation_request.external_facts"
+                        },
+                        "reasons": [],
+                        "record_found": true,
+                        "state": "in_progress",
+                        "task_reference": null,
+                        "workflow": {
+                            "state_type": "in_progress",
+                            "workflow_id": "workflow-in_progress",
+                            "workflow_name": "In Progress"
+                        }
+                    }
+                },
+                "dependencies": [],
+                "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+                "extensions": {
+                    "openclaw": {
+                        "agent_id": "openclaw-assistant",
+                        "channel": "cli",
+                        "conversation_id": "conv-kno-166-bridge-1",
+                        "message_id": "msg-kno-166-bridge-1",
+                        "metadata": {
+                            "linear_issue": "KNO-166",
+                            "request_kind": "kno-166-bridge-proof"
+                        },
+                        "user_id": "operator@example.com",
+                        "workspace_id": "workspace-harness"
+                    }
+                },
+                "id": "kno-166-openclaw-bridge-2026-04-03",
+                "objective": {
+                    "deliverable_type": "unspecified",
+                    "success_signal": "Task satisfies declared acceptance criteria.",
+                    "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+                },
+                "observability": {
+                    "errors": [],
+                    "execution_metadata": {
+                        "schema_required_deferred_fields": [
+                            "parent_task_id",
+                            "child_task_ids",
+                            "dependencies",
+                            "assigned_executor",
+                            "required_capabilities",
+                            "priority",
+                            "artifacts.items",
+                            "artifacts.completion_evidence",
+                            "observability"
+                        ]
+                    },
+                    "retries": {
+                        "attempt_count": 0,
+                        "last_retry_at": null,
+                        "max_attempts": 0
+                    }
+                },
+                "origin": {
+                    "ingress_id": "conv-kno-166-bridge-1",
+                    "ingress_name": "OpenClaw",
+                    "requested_by": "operator@example.com",
+                    "source_id": "msg-kno-166-bridge-1",
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request"
+                },
+                "parent_task_id": null,
+                "priority": "high",
+                "required_capabilities": [],
+                "status": "completed",
+                "status_history": [
+                    {
+                        "changed_at": "2026-04-03T19:05:46.847639Z",
+                        "changed_by": "verification",
+                        "from_status": "intake_ready",
+                        "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                        "to_status": "completed"
+                    }
+                ],
+                "timestamps": {
+                    "completed_at": "2026-04-03T19:05:46.847639Z",
+                    "created_at": "2026-04-03T19:05:43.822495Z",
+                    "updated_at": "2026-04-03T19:05:46.847639Z"
+                },
+                "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+            }
+        },
+        "task_id": "kno-166-openclaw-bridge-2026-04-03"
+    },
+    "failure_classification": {
+        "category": "none",
+        "nature": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "retryable": false
+    },
+    "invalid_input": false,
+    "reasons": [
+        "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+    ],
+    "requires_review": false,
+    "target_status": "completed",
+    "task_envelope": {
+        "acceptance_criteria": [
+            {
+                "description": "Task persists in Harness with OpenClaw provenance.",
+                "id": "ac-1",
+                "required": true
+            },
+            {
+                "description": "Execution and evaluation records are appended in canonical history.",
+                "id": "ac-2",
+                "required": true
+            },
+            {
+                "description": "Task is visible in read-model, timeline, and task list surfaces used by the dashboard.",
+                "id": "ac-3",
+                "required": true
+            }
+        ],
+        "artifacts": {
+            "completion_evidence": {
+                "notes": null,
+                "policy": "required",
+                "required_artifact_types": [
+                    "pull_request",
+                    "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                    "artifact-pr-bridge-1",
+                    "artifact-commit-bridge-1"
+                ],
+                "validated_at": "2026-04-03T10:20:15Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                    "captured_by": "harness-api",
+                    "source_id": "verification-kno-166-bridge-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                }
+            },
+            "items": [
+                {
+                    "branch": {
+                        "base_branch": "main",
+                        "head_commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "name": "codex/real-task-proof"
+                    },
+                    "captured_at": "2026-04-03T10:20:00Z",
+                    "changed_files": [],
+                    "commit_sha": null,
+                    "content_type": null,
+                    "description": "Real PR artifact used to validate completion evidence during bridge proof.",
+                    "external_id": "PR-121",
+                    "external_refs": [],
+                    "id": "artifact-pr-bridge-1",
+                    "location": "https://github.com/sfayka/Harness/pull/121",
+                    "metadata": {},
+                    "provenance": {
+                        "captured_by": "github-sync",
+                        "source_id": "pull/121",
+                        "source_system": "github",
+                        "source_type": "api"
+                    },
+                    "pull_request_number": 121,
+                    "repository": {
+                        "external_id": "repo-kno-166-proof",
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                    },
+                    "review_state": "approved",
+                    "title": "Harness persisted real task proof",
+                    "type": "pull_request",
+                    "verification_status": "verified"
+                },
+                {
+                    "branch": null,
+                    "captured_at": "2026-04-03T10:20:05Z",
+                    "changed_files": [],
+                    "commit_sha": "04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                    "external_refs": [],
+                    "id": "artifact-commit-bridge-1",
+                    "location": "https://github.com/sfayka/Harness/commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                    "metadata": {},
+                    "provenance": {
+                        "captured_by": "github-sync",
+                        "source_id": "commit/04d9da2b7d8add29e33f8c98bf558e2d145b0f95",
+                        "source_system": "github",
+                        "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                        "external_id": "repo-kno-166-proof",
+                        "host": "github.com",
+                        "name": "Harness",
+                        "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                }
+            ]
+        },
+        "assigned_executor": null,
+        "child_task_ids": [],
+        "constraints": [
+            {
+                "description": "Use canonical Harness submission and reevaluation paths.",
+                "required": true,
+                "type": "ingress_constraint"
+            },
+            {
+                "description": "Keep OpenClaw metadata in ingress extensions without making it canonical truth.",
+                "required": true,
+                "type": "ingress_constraint"
+            }
+        ],
+        "coordination": {
+            "linear": {
+                "issue_id": "KNO-166",
+                "issue_key": "KNO-166",
+                "project": null,
+                "provenance": {
+                    "linked_at": "2026-04-03T19:05:46.803444Z",
+                    "linked_by": "reevaluation",
+                    "source": "reevaluation_request.external_facts"
+                },
+                "reasons": [],
+                "record_found": true,
+                "state": "in_progress",
+                "task_reference": null,
+                "workflow": {
+                    "state_type": "in_progress",
+                    "workflow_id": "workflow-in_progress",
+                    "workflow_name": "In Progress"
+                }
+            }
+        },
+        "dependencies": [],
+        "description": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces.",
+        "extensions": {
+            "openclaw": {
+                "agent_id": "openclaw-assistant",
+                "channel": "cli",
+                "conversation_id": "conv-kno-166-bridge-1",
+                "message_id": "msg-kno-166-bridge-1",
+                "metadata": {
+                    "linear_issue": "KNO-166",
+                    "request_kind": "kno-166-bridge-proof"
+                },
+                "user_id": "operator@example.com",
+                "workspace_id": "workspace-harness"
+            }
+        },
+        "id": "kno-166-openclaw-bridge-2026-04-03",
+        "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Run one persisted bridge from OpenClaw ingress through canonical evaluation and inspection surfaces."
+        },
+        "observability": {
+            "errors": [],
+            "execution_metadata": {
+                "schema_required_deferred_fields": [
+                    "parent_task_id",
+                    "child_task_ids",
+                    "dependencies",
+                    "assigned_executor",
+                    "required_capabilities",
+                    "priority",
+                    "artifacts.items",
+                    "artifacts.completion_evidence",
+                    "observability"
+                ]
+            },
+            "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+            }
+        },
+        "origin": {
+            "ingress_id": "conv-kno-166-bridge-1",
+            "ingress_name": "OpenClaw",
+            "requested_by": "operator@example.com",
+            "source_id": "msg-kno-166-bridge-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "high",
+        "required_capabilities": [],
+        "status": "completed",
+        "status_history": [
+            {
+                "changed_at": "2026-04-03T19:05:46.847639Z",
+                "changed_by": "verification",
+                "from_status": "intake_ready",
+                "reason": "Verification evaluated task 'kno-166-openclaw-bridge-2026-04-03' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+            }
+        ],
+        "timestamps": {
+            "completed_at": "2026-04-03T19:05:46.847639Z",
+            "created_at": "2026-04-03T19:05:43.822495Z",
+            "updated_at": "2026-04-03T19:05:46.847639Z"
+        },
+        "title": "Prove OpenClaw ingress bridge into Harness canonical task lifecycle"
+    }
+}
