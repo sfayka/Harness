@@ -30,6 +30,10 @@ from .linear_ingress import (
     LinearIngressInputError,
     translate_linear_submission_payload,
 )
+from .manual_ingress import (
+    ManualIngressInputError,
+    translate_manual_submission_payload,
+)
 from .ingress_request_builder import (
     IngressRequestBuilderError,
     IngressSourceContext,
@@ -59,6 +63,7 @@ __all__ = [
     "IngressTaskIntent",
     "LinearConnectorInputError",
     "LinearIngressInputError",
+    "ManualIngressInputError",
     "OpenClawHarnessSpikeClient",
     "OpenClawHarnessSpikeError",
     "OpenClawHarnessSpikeResult",
@@ -76,6 +81,7 @@ __all__ = [
     "translate_github_pull_request",
     "translate_github_repository",
     "translate_linear_facts",
+    "translate_manual_submission_payload",
     "translate_linear_submission_payload",
     "translate_linear_project",
     "translate_linear_task_reference",

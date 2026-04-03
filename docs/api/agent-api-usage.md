@@ -6,6 +6,7 @@ This document is the source-of-truth API usage guide for execution agents and do
 
 - `POST /tasks`: submit a new canonical task payload
 - `POST /tasks/<task_id>/reevaluate`: submit new facts, artifacts, or review decisions for an existing task
+- `POST /ingress/manual`: submit a manually initiated task and let Harness intake assign a canonical `task_id` when one is not provided
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
 
