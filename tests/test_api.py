@@ -265,6 +265,25 @@ def _completion_claim_payload(*, claim_id: str = "claim-1") -> dict:
     }
 
 
+def _execution_attempt_payload(*, attempt_id: str = "attempt-1") -> dict:
+    return {
+        "execution_attempt": {
+            "attempt_id": attempt_id,
+            "recorded_at": "2026-04-01T08:00:05Z",
+            "status": "succeeded",
+            "reported_by": "stub-executor",
+            "artifact_references": [
+                {
+                    "reference_id": f"{attempt_id}:log",
+                    "artifact_type": "execution_log",
+                    "location": "stub://attempts/log",
+                }
+            ],
+            "metadata": {"executor_run_id": f"stub-run-{attempt_id}"},
+        }
+    }
+
+
 def _schema_invalid_submission_payload() -> dict:
     payload = _request_payload("accepted_completion")
     completion_evidence = payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]
@@ -793,6 +812,42 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(latest_request["claimed_completion"])
         claims = latest_request["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
         self.assertEqual(claims[-1]["claim_id"], "claim-complete-1")
+
+    def test_service_completion_claim_can_attach_execution_attempt_and_link_reevaluation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-with-attempt-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-linked-1"),
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertTrue(claim_response["accepted_completion"])
+        execution_attempts = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"]
+        latest_attempt = execution_attempts[-1]
+        self.assertEqual(latest_attempt["attempt_id"], "attempt-linked-1")
+        self.assertEqual(latest_attempt["completion_claim_id"], "claim-with-attempt-1")
+        self.assertEqual(latest_attempt["reevaluation"]["evaluation_id"], claim_response["evaluation_record"]["evaluation_id"])
+        self.assertEqual(timeline_status, 200)
+        execution_events = [
+            event for event in timeline_payload["timeline"] if event["event_type"] == "execution_attempt_recorded"
+        ]
+        self.assertTrue(execution_events)
 
     def test_service_evaluate_existing_review_required_task_cannot_be_overwritten_to_completed(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
