@@ -329,6 +329,30 @@ def _linear_ingress_payload(case_name: str, *, task_id: str | None = None) -> di
     return payload
 
 
+
+
+def _manual_ingress_payload(*, task_id: str | None = None) -> dict:
+    payload: dict[str, object] = {
+        "task": {
+            "title": "Manual canonical ingestion task",
+            "description": "Create and persist a manual task through canonical submission.",
+            "requested_by": "operator@example.com",
+            "ingress_name": "Manual",
+            "ingress_id": "KNO-162",
+            "acceptance_criteria": [
+                {
+                    "id": "ac-1",
+                    "description": "Task is persisted and queryable via canonical inspection surfaces.",
+                    "required": True,
+                }
+            ],
+        },
+        "metadata": {"mode": "manual"},
+    }
+    if task_id is not None:
+        payload["task_id"] = task_id
+    return payload
+
 def _review_note_artifact(artifact_id: str = "artifact-review-note-1") -> dict:
     return {
         "id": artifact_id,
@@ -611,6 +635,29 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(payload["task_envelope"]["status"], "completed")
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["extensions"]["linear"]["issue_id"], f"lin-{payload['task_envelope']['id']}")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
+
+    def test_service_can_submit_manual_ingress_payload_and_expose_canonical_read_surfaces(self) -> None:
+        status, payload = self.service.submit_manual_ingress(_manual_ingress_payload())
+
+        task_id = payload["task_envelope"]["id"]
+        list_status, list_payload = self.service.list_tasks()
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+        history_status, history_payload = self.service.get_evaluation_history(task_id)
+
+        self.assertEqual(status, 200)
+        self.assertTrue(task_id)
+        self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "manual")
+        self.assertEqual(list_status, 200)
+        self.assertEqual(list_payload["tasks"][0]["task_id"], task_id)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["task_id"], task_id)
+        self.assertEqual(timeline_status, 200)
+        self.assertEqual(timeline_payload["task_id"], task_id)
+        self.assertGreaterEqual(timeline_payload["event_count"], 1)
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
@@ -1119,6 +1166,15 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
         self.assertEqual(history_payload["evaluations"][0]["result"]["task_envelope"]["status"], "completed")
+
+
+    def test_api_accepts_manual_ingress_submission_endpoint(self) -> None:
+        status, payload = self._post_json("/ingress/manual", _manual_ingress_payload())
+
+        self.assertEqual(status, 200)
+        self.assertIn("task_envelope", payload)
+        self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "manual")
+        self.assertTrue(payload["task_envelope"]["id"])
 
     def test_api_accepts_manual_happy_path_overlay_payload(self) -> None:
         payload = _manual_happy_path_overlay_payload()

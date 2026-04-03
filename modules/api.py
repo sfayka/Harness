@@ -18,9 +18,11 @@ from modules.connectors import (
     GitHubConnectorInputError,
     LinearConnectorInputError,
     LinearIngressInputError,
+    ManualIngressInputError,
     translate_github_artifact_facts,
     translate_linear_facts,
     translate_linear_submission_payload,
+    translate_manual_submission_payload,
 )
 from modules.contracts.failure_classification import FailureCategory
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
@@ -738,6 +740,18 @@ class HarnessApiService:
 
         return self.submit(canonical_payload)
 
+
+    def submit_manual_ingress(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            canonical_payload = translate_manual_submission_payload(payload)
+        except (ManualIngressInputError, ValueError) as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        return self.submit(canonical_payload)
+
     def evaluate(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             request = parse_evaluation_request(payload)
@@ -958,7 +972,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         path_components = _task_path_components(self.path)
         request_path = urlparse(self.path).path
 
-        if request_path not in {"/evaluate", "/tasks", "/ingress/linear"} and not (
+        if request_path not in {"/evaluate", "/tasks", "/ingress/linear", "/ingress/manual"} and not (
             len(path_components) == 3
             and path_components[0] == "tasks"
             and path_components[2] in {"reevaluate", "completion-claims"}
@@ -979,6 +993,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             status, response_payload = service.submit(payload)
         elif request_path == "/ingress/linear":
             status, response_payload = service.submit_linear_ingress(payload)
+        elif request_path == "/ingress/manual":
+            status, response_payload = service.submit_manual_ingress(payload)
         elif request_path == "/evaluate":
             status, response_payload = service.evaluate(payload)
         elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "completion-claims":

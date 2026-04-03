@@ -58,6 +58,7 @@ See:
   - `POST /tasks/<task_id>/completion-claims`
 - Integration helper surface:
   - `POST /ingress/linear`
+  - `POST /ingress/manual`
 
 ### Persistence
 
