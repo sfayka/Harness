@@ -34,6 +34,10 @@ from .manual_ingress import (
     ManualIngressInputError,
     translate_manual_submission_payload,
 )
+from .openclaw_ingress import (
+    OpenClawIngressInputError,
+    translate_openclaw_submission_payload,
+)
 from .ingress_request_builder import (
     IngressRequestBuilderError,
     IngressSourceContext,
@@ -67,6 +71,7 @@ __all__ = [
     "OpenClawHarnessSpikeClient",
     "OpenClawHarnessSpikeError",
     "OpenClawHarnessSpikeResult",
+    "OpenClawIngressInputError",
     "OpenClawSourceContext",
     "OpenClawTaskIntent",
     "build_task_reevaluation_payload",
@@ -82,6 +87,7 @@ __all__ = [
     "translate_github_repository",
     "translate_linear_facts",
     "translate_manual_submission_payload",
+    "translate_openclaw_submission_payload",
     "translate_linear_submission_payload",
     "translate_linear_project",
     "translate_linear_task_reference",

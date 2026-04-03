@@ -45,9 +45,12 @@ The existing spike demonstrated:
 - task creation verbosity was the main pain point
 - the right fix was a thin request-builder adapter, not a new control-plane shape
 
+Harness now includes an OpenClaw-shaped ingress endpoint (`POST /ingress/openclaw`) backed by a thin adapter that normalizes request content into canonical submission payloads.
+
 Relevant code and docs:
 
 - [modules/connectors/openclaw_harness_spike.py](../../modules/connectors/openclaw_harness_spike.py)
+- [modules/connectors/openclaw_ingress.py](../../modules/connectors/openclaw_ingress.py)
 - [modules/connectors/ingress_request_builder.py](../../modules/connectors/ingress_request_builder.py)
 - [docs/integration/openclaw-harness-spike.md](../integration/openclaw-harness-spike.md)
 
@@ -58,6 +61,7 @@ Real today:
 - canonical API submission and reevaluation
 - normalized fact models
 - Linear-shaped ingress adapter
+- OpenClaw-shaped ingress adapter
 - OpenClaw-informed thin client spike
 
 Not live today:

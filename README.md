@@ -9,7 +9,7 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 - A Python control-plane backend that evaluates canonical `TaskEnvelope` submissions.
 - A read-only Next.js dashboard over canonical inspection APIs.
 - A persistence layer for task snapshots and append-only evaluation history.
-- A thin integration boundary around Linear-shaped ingress and GitHub/Linear fact inputs.
+- A thin integration boundary around Linear/manual/OpenClaw ingress and GitHub/Linear fact inputs.
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
@@ -59,6 +59,7 @@ See:
 - Integration helper surface:
   - `POST /ingress/linear`
   - `POST /ingress/manual`
+  - `POST /ingress/openclaw`
 
 ### Persistence
 

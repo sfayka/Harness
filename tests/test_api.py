@@ -372,6 +372,36 @@ def _manual_ingress_payload(*, task_id: str | None = None) -> dict:
         payload["task_id"] = task_id
     return payload
 
+
+def _openclaw_ingress_payload(*, task_id: str | None = None) -> dict:
+    payload: dict[str, object] = {
+        "context": {
+            "conversation_id": "conv-kno-164",
+            "message_id": "msg-kno-164-1",
+            "channel": "cli",
+            "workspace_id": "workspace-harness",
+            "user_id": "operator@example.com",
+            "agent_id": "openclaw-assistant",
+        },
+        "task": {
+            "title": "OpenClaw canonical ingress task",
+            "description": "Create a task through OpenClaw ingress that is persisted by canonical submission.",
+            "acceptance_criteria": [
+                "Task is persisted in Harness store.",
+                "OpenClaw provenance is visible in canonical read surfaces.",
+            ],
+            "constraints": ["Keep OpenClaw request shape non-canonical."],
+            "priority": "high",
+        },
+        "metadata": {"request_kind": "openclaw"},
+        "runtime_facts": {"attempt_count": 1},
+        "claimed_completion": False,
+        "acceptance_criteria_satisfied": False,
+    }
+    if task_id is not None:
+        payload["task_id"] = task_id
+    return payload
+
 def _review_note_artifact(artifact_id: str = "artifact-review-note-1") -> dict:
     return {
         "id": artifact_id,
@@ -677,6 +707,22 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(timeline_status, 200)
         self.assertEqual(timeline_payload["task_id"], task_id)
         self.assertGreaterEqual(timeline_payload["event_count"], 1)
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_service_can_submit_openclaw_ingress_payload_and_persist_openclaw_provenance(self) -> None:
+        status, payload = self.service.submit_openclaw_ingress(_openclaw_ingress_payload())
+
+        task_id = payload["task_envelope"]["id"]
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        history_status, history_payload = self.service.get_evaluation_history(task_id)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "openclaw")
+        self.assertEqual(payload["task_envelope"]["origin"]["source_id"], "msg-kno-164-1")
+        self.assertEqual(payload["task_envelope"]["extensions"]["openclaw"]["conversation_id"], "conv-kno-164")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["extensions"]["openclaw"]["metadata"]["request_kind"], "openclaw")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
@@ -1230,6 +1276,29 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertIn("task_envelope", payload)
         self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "manual")
         self.assertTrue(payload["task_envelope"]["id"])
+
+    def test_api_accepts_openclaw_ingress_submission_endpoint(self) -> None:
+        status, payload = self._post_json("/ingress/openclaw", _openclaw_ingress_payload())
+        task_id = payload["task_envelope"]["id"]
+
+        read_status, read_payload = self._get_json(f"/tasks/{task_id}/read-model")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "openclaw")
+        self.assertEqual(payload["task_envelope"]["origin"]["ingress_name"], "OpenClaw")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["extensions"]["openclaw"]["metadata"]["request_kind"], "openclaw")
+
+    def test_api_openclaw_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-invalid-1")
+        payload["context"] = "invalid"
+
+        status, response_payload = self._post_json("/ingress/openclaw", payload)
+        task_status, task_payload = self._get_json("/tasks/task-openclaw-invalid-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
 
     def test_api_accepts_manual_happy_path_overlay_payload(self) -> None:
         payload = _manual_happy_path_overlay_payload()
