@@ -105,6 +105,26 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
     }
 
 
+def _build_execution_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
+    execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    if not isinstance(execution_attempts, list):
+        return {
+            "attempt_count": 0,
+            "latest_attempt": None,
+            "latest_artifact_references": [],
+        }
+    latest_attempt = next(
+        (attempt for attempt in reversed(execution_attempts) if isinstance(attempt, dict)),
+        None,
+    )
+    return {
+        "attempt_count": len([attempt for attempt in execution_attempts if isinstance(attempt, dict)]),
+        "latest_attempt": dict(latest_attempt) if latest_attempt is not None else None,
+        "latest_status": latest_attempt.get("status") if isinstance(latest_attempt, dict) else None,
+        "latest_artifact_references": list((latest_attempt or {}).get("artifact_references") or []),
+    }
+
+
 def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord, ...]) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
 
@@ -169,6 +189,27 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
         if not isinstance(attempt, dict):
             continue
         reevaluation = attempt.get("reevaluation") if isinstance(attempt.get("reevaluation"), dict) else {}
+        metadata = attempt.get("metadata") if isinstance(attempt.get("metadata"), dict) else {}
+        execution_events = metadata.get("execution_events") if isinstance(metadata.get("execution_events"), list) else []
+        dispatch_id = metadata.get("dispatch_id")
+        dispatch_at = metadata.get("dispatch_at")
+        if dispatch_id:
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:dispatch:{dispatch_id}",
+                    "event_type": "task_dispatched",
+                    "occurred_at": dispatch_at or attempt.get("recorded_at") or timestamps.get("updated_at"),
+                    "summary": f"Task dispatched: {attempt.get('attempt_id')}",
+                    "source": metadata.get("executor") or "dispatcher",
+                    "details": {
+                        "dispatch_id": dispatch_id,
+                        "attempt_id": attempt.get("attempt_id"),
+                        "executor": metadata.get("executor"),
+                        "dispatch_trigger": metadata.get("dispatch_trigger"),
+                        "execution_parameters": dict(metadata.get("execution_parameters") or {}),
+                    },
+                }
+            )
         events.append(
             {
                 "event_id": f"{task_envelope['id']}:execution_attempt:{attempt.get('attempt_id') or index}",
@@ -185,6 +226,32 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 },
             }
         )
+        for event_index, execution_event in enumerate(execution_events):
+            if not isinstance(execution_event, dict):
+                continue
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:execution_event:{attempt.get('attempt_id') or index}:{event_index}",
+                    "event_type": "execution_event_recorded",
+                    "occurred_at": execution_event.get("occurred_at") or attempt.get("recorded_at") or timestamps.get("updated_at"),
+                    "summary": f"Execution event: {execution_event.get('event_type')}",
+                    "source": ((execution_event.get("provenance") or {}).get("source_system")) or attempt.get("reported_by") or "executor",
+                    "details": dict(execution_event),
+                }
+            )
+        for artifact_reference in attempt.get("artifact_references") or []:
+            if not isinstance(artifact_reference, dict):
+                continue
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:execution_artifact:{attempt.get('attempt_id') or index}:{artifact_reference.get('reference_id')}",
+                    "event_type": "execution_artifact_attached",
+                    "occurred_at": attempt.get("recorded_at") or timestamps.get("updated_at"),
+                    "summary": f"Execution artifact attached: {artifact_reference.get('artifact_type')}",
+                    "source": ((artifact_reference.get("provenance") or {}).get("source_system")) or attempt.get("reported_by") or "executor",
+                    "details": dict(artifact_reference),
+                }
+            )
 
     linear_coordination = ((task_envelope.get("coordination") or {}).get("linear")) or None
     if isinstance(linear_coordination, dict):
@@ -295,6 +362,7 @@ class TaskReadModel:
     verification_summary: dict[str, Any] | None
     reconciliation_summary: dict[str, Any] | None
     review_summary: dict[str, Any]
+    execution_summary: dict[str, Any]
     evaluation_summary: dict[str, Any]
     lifecycle_history: list[dict[str, Any]]
     timestamps: dict[str, Any]
@@ -333,6 +401,7 @@ class HarnessReadModelService:
         verification_summary = _latest_mapping(records, ("enforcement_result", "verification_result"))
         reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
         review_summary = _build_review_summary(records)
+        execution_summary = _build_execution_summary(task)
         timeline = _build_timeline(task, records)
 
         return TaskReadModel(
@@ -357,6 +426,7 @@ class HarnessReadModelService:
             verification_summary=verification_summary,
             reconciliation_summary=reconciliation_summary,
             review_summary=review_summary,
+            execution_summary=execution_summary,
             evaluation_summary={
                 "count": len(records),
                 "latest_recorded_at": records[-1].recorded_at if records else None,
