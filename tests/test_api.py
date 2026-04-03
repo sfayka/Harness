@@ -895,6 +895,33 @@ class HarnessApiServiceTests(unittest.TestCase):
         ]
         self.assertTrue(execution_events)
 
+    def test_service_dispatch_creates_execution_attempt_and_triggers_reevaluation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        dispatch_status, dispatch_response = self.service.dispatch_task(
+            task_id,
+            {
+                "request": {
+                    "executor": "codex",
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(dispatch_response["dispatch"]["executor"], "codex")
+        attempts = dispatch_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"]
+        self.assertTrue(attempts)
+        self.assertIn("evaluation_id", attempts[-1]["reevaluation"])
+
     def test_service_evaluate_existing_review_required_task_cannot_be_overwritten_to_completed(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
         task_id = initial_response["task_envelope"]["id"]
@@ -1543,6 +1570,34 @@ class HarnessHttpApiTests(unittest.TestCase):
             "advisory_completion_claims"
         ]
         self.assertEqual(claims[-1]["claim_id"], "claim-api-1")
+
+    def test_api_dispatch_endpoint_records_attempt_and_events(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        dispatch_status, dispatch_response = self._post_json(
+            f"/tasks/{task_id}/dispatch",
+            {
+                "request": {
+                    "executor": "codex",
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+        timeline_status, timeline_payload = self._get_json(f"/tasks/{task_id}/timeline")
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(dispatch_response["dispatch"]["executor"], "codex")
+        self.assertEqual(timeline_status, 200)
+        event_types = [item["event_type"] for item in timeline_payload["timeline"]]
+        self.assertIn("task_dispatched", event_types)
+        self.assertIn("execution_event", event_types)
 
     def test_api_can_reevaluate_completed_task_back_to_blocked_for_contradictory_facts(self) -> None:
         initial_payload = _request_payload("accepted_completion")

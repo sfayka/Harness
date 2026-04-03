@@ -5,11 +5,22 @@ This document is the source-of-truth API usage guide for execution agents and do
 ## Canonical Submission Paths
 
 - `POST /tasks`: submit a new canonical task payload
+- `POST /tasks/<task_id>/dispatch`: manually dispatch an existing canonical task to an executor and trigger reevaluation
 - `POST /tasks/<task_id>/reevaluate`: submit new facts, artifacts, or review decisions for an existing task
 - `POST /ingress/manual`: submit a manually initiated task and let Harness intake assign a canonical `task_id` when one is not provided
 - `POST /ingress/openclaw`: submit an OpenClaw-shaped ingress payload that is normalized into canonical `TaskEnvelope` submission
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
+
+### Manual Dispatch Bridge
+
+- `POST /tasks/<task_id>/dispatch` is a manual trigger that bridges persisted canonical tasks into a real execution attempt.
+- Dispatch records:
+  - executor assignment metadata
+  - a canonical execution attempt under `task_envelope.observability.execution_metadata.execution_attempts`
+  - advisory execution events and artifact references
+- Dispatch can include optional `request.new_artifacts` and `request.external_facts`.
+- Harness immediately runs canonical reevaluation after dispatch; executor output remains advisory and does not bypass verification or lifecycle policy.
 
 ### Completion Claim Interception Helper
 

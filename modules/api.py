@@ -26,6 +26,7 @@ from modules.connectors import (
     translate_linear_submission_payload,
     translate_manual_submission_payload,
 )
+from modules.adapters.executor_adapter import ExecutorDispatchInput, StubExecutorAdapter
 from modules.contracts.failure_classification import FailureCategory
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
@@ -402,6 +403,44 @@ def _parse_execution_attempt(payload: dict[str, Any], *, completion_claim: dict[
     }
 
 
+def _build_dispatch_attempt_record(
+    *,
+    attempt_id: str,
+    executor: str,
+    dispatch_parameters: dict[str, Any],
+    adapter_output: dict[str, Any],
+    linked_artifacts: tuple[dict[str, Any], ...],
+    recorded_at: str,
+) -> dict[str, Any]:
+    artifact_references = list(adapter_output.get("artifact_references") or [])
+    for artifact in linked_artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        artifact_references.append(
+            {
+                "reference_id": artifact.get("id"),
+                "artifact_type": artifact.get("type"),
+                "location": artifact.get("location"),
+            }
+        )
+
+    execution_status = "succeeded" if adapter_output.get("reported_complete") else "failed"
+    return {
+        "attempt_id": attempt_id,
+        "recorded_at": recorded_at,
+        "status": execution_status,
+        "reported_by": executor,
+        "completion_claim_id": f"{attempt_id}:completion-claim",
+        "artifact_references": artifact_references,
+        "metadata": {
+            "dispatch_parameters": dict(dispatch_parameters),
+            "adapter_name": adapter_output.get("adapter_name"),
+            "events": list(adapter_output.get("events") or []),
+        },
+        "reevaluation": {},
+    }
+
+
 def _with_advisory_completion_claim(task_envelope: dict[str, Any], *, claim: dict[str, Any]) -> dict[str, Any]:
     merged_task = deepcopy(task_envelope)
     execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
@@ -592,6 +631,29 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         review_request=review_request,
         review_decision=review_decision,
     )
+
+
+def _parse_dispatch_request(payload: dict[str, Any]) -> dict[str, Any]:
+    request_payload = _require_mapping(payload.get("request"), field_name="request")
+    executor = _optional_non_empty_string(request_payload.get("executor"), field_name="request.executor") or "codex"
+    execution_parameters = (
+        _optional_mapping(request_payload.get("execution_parameters"), field_name="request.execution_parameters") or {}
+    )
+    new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="request.new_artifacts")
+    external_facts = _parse_external_facts(
+        _optional_mapping(request_payload.get("external_facts"), field_name="request.external_facts")
+    )
+    runtime_facts = _parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="request.runtime_facts"))
+    acceptance_criteria_satisfied = bool(request_payload.get("acceptance_criteria_satisfied", False))
+
+    return {
+        "executor": executor,
+        "execution_parameters": execution_parameters,
+        "new_artifacts": new_artifacts,
+        "external_facts": external_facts,
+        "runtime_facts": runtime_facts,
+        "acceptance_criteria_satisfied": acceptance_criteria_satisfied,
+    }
 
 
 def _collect_review_activity(records: tuple[EvaluationRecord, ...]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -989,6 +1051,96 @@ class HarnessApiService:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
+    def dispatch_task(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        if str(stored_task.get("status")) in {"completed", "failed", "canceled"}:
+            return HTTPStatus.CONFLICT, {
+                "error": f"Task {task_id!r} is in non-dispatchable terminal status {stored_task.get('status')!r}"
+            }
+
+        try:
+            dispatch_request = _parse_dispatch_request(payload)
+            attempt_id = f"{task_id}:attempt:{len(((stored_task.get('observability') or {}).get('execution_metadata') or {}).get('execution_attempts') or []) + 1}"
+            dispatch_input = ExecutorDispatchInput.from_task_envelope(
+                stored_task,
+                attempt_id=attempt_id,
+                assigned_executor=dispatch_request["executor"],
+            )
+            adapter_output = StubExecutorAdapter().dispatch(dispatch_input)
+            adapter_payload = {
+                "adapter_name": StubExecutorAdapter.adapter_name,
+                "events": [event.event_type.value for event in adapter_output.events],
+                "artifact_references": [
+                    {
+                        "reference_id": ref.reference_id,
+                        "artifact_type": ref.artifact_type,
+                        "location": ref.location,
+                    }
+                    for ref in adapter_output.artifact_references
+                ],
+                "reported_complete": any(event.advisory_completion for event in adapter_output.events),
+            }
+            merged_task = deepcopy(stored_task)
+            merged_task["assigned_executor"] = {
+                "executor_type": dispatch_request["executor"],
+                "executor_id": dispatch_request["executor"],
+                "assignment_reason": "manual_dispatch",
+            }
+            merged_task = _merge_artifacts(merged_task, new_artifacts=dispatch_request["new_artifacts"])
+            merged_task = _with_execution_attempt_record(
+                merged_task,
+                attempt=_build_dispatch_attempt_record(
+                    attempt_id=attempt_id,
+                    executor=dispatch_request["executor"],
+                    dispatch_parameters=dispatch_request["execution_parameters"],
+                    adapter_output=adapter_payload,
+                    linked_artifacts=dispatch_request["new_artifacts"],
+                    recorded_at=_iso_now(),
+                ),
+            )
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {"error": str(error), "invalid_input": True}
+
+        reevaluation_request = HarnessEvaluationRequest(
+            task_envelope=merged_task,
+            external_facts=dispatch_request["external_facts"],
+            claimed_completion=bool(adapter_payload["reported_complete"]),
+            acceptance_criteria_satisfied=dispatch_request["acceptance_criteria_satisfied"],
+            runtime_facts=dispatch_request["runtime_facts"],
+            review_is_active=_review_gate_is_active(stored_task, self.store.list_evaluation_records(task_id)),
+        )
+        status, response_payload, result, attempts = self._evaluate_with_classified_retries(reevaluation_request)
+        if result is None:
+            return status, response_payload
+        if result.invalid_input:
+            return status, response_payload
+
+        stored_task = self.store.update_task(result.task_envelope)
+        record = None
+        for attempt_request, attempt_result in attempts:
+            record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
+        stored_task = self.store.update_task(
+            _with_reevaluation_linked_execution_attempt(
+                stored_task,
+                completion_claim_id=f"{attempt_id}:completion-claim",
+                evaluation_record=record,
+            )
+        )
+
+        response_payload["task_envelope"] = _to_jsonable(stored_task)
+        response_payload["dispatch"] = {
+            "attempt_id": attempt_id,
+            "executor": dispatch_request["executor"],
+            "events": adapter_payload["events"],
+        }
+        if record is not None:
+            response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        return status, response_payload
+
     def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             stored_task = self.store.get_task(task_id)
@@ -1149,7 +1301,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         if request_path not in {"/evaluate", "/tasks", "/ingress/linear", "/ingress/manual", "/ingress/openclaw"} and not (
             len(path_components) == 3
             and path_components[0] == "tasks"
-            and path_components[2] in {"reevaluate", "completion-claims"}
+            and path_components[2] in {"reevaluate", "completion-claims", "dispatch"}
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
@@ -1175,6 +1327,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             status, response_payload = service.evaluate(payload)
         elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "completion-claims":
             status, response_payload = service.submit_completion_claim(path_components[1], payload)
+        elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "dispatch":
+            status, response_payload = service.dispatch_task(path_components[1], payload)
         else:
             status, response_payload = service.reevaluate(path_components[1], payload)
         self._write_json(status, response_payload)

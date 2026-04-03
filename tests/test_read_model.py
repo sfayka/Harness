@@ -118,8 +118,25 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "accepted_completion")
         self.assertEqual(payload["task"]["reconciliation_summary"]["outcome"], "no_mismatch")
         self.assertEqual(payload["task"]["evidence_summary"]["artifact_count"], 2)
+        self.assertEqual(payload["task"]["execution_summary"]["attempt_count"], 0)
         self.assertTrue(payload["task"]["coordination_summary"]["linear"]["record_found"])
         self.assertEqual(payload["task"]["evaluation_summary"]["count"], 1)
+
+    def test_dispatch_updates_execution_summary_and_timeline(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_request_payload("accepted_completion")["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        dispatch_status, _ = self.service.dispatch_task(task_id, {"request": {"executor": "codex"}})
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["execution_summary"]["latest_status"], "succeeded")
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(any(item["event_type"] == "task_dispatched" for item in timeline_payload["timeline"]))
 
     def test_builds_read_model_for_blocked_insufficient_evidence(self) -> None:
         submit_status, submit_payload = self.service.submit(_request_payload("blocked_insufficient_evidence"))

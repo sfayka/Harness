@@ -171,6 +171,20 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
         reevaluation = attempt.get("reevaluation") if isinstance(attempt.get("reevaluation"), dict) else {}
         events.append(
             {
+                "event_id": f"{task_envelope['id']}:dispatch:{attempt.get('attempt_id') or index}",
+                "event_type": "task_dispatched",
+                "occurred_at": attempt.get("recorded_at") or timestamps.get("updated_at"),
+                "summary": f"Task dispatched to executor: {attempt.get('reported_by') or 'unknown'}",
+                "source": "dispatcher",
+                "details": {
+                    "attempt_id": attempt.get("attempt_id"),
+                    "executor": attempt.get("reported_by"),
+                    "dispatch_parameters": dict((attempt.get("metadata") or {}).get("dispatch_parameters") or {}),
+                },
+            }
+        )
+        events.append(
+            {
                 "event_id": f"{task_envelope['id']}:execution_attempt:{attempt.get('attempt_id') or index}",
                 "event_type": "execution_attempt_recorded",
                 "occurred_at": attempt.get("recorded_at") or timestamps.get("updated_at"),
@@ -185,6 +199,21 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 },
             }
         )
+        attempt_events = list((attempt.get("metadata") or {}).get("events") or [])
+        for event_index, event_name in enumerate(attempt_events):
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:execution_event:{attempt.get('attempt_id') or index}:{event_index}",
+                    "event_type": "execution_event",
+                    "occurred_at": attempt.get("recorded_at") or timestamps.get("updated_at"),
+                    "summary": f"Execution event: {event_name}",
+                    "source": attempt.get("reported_by") or "executor",
+                    "details": {
+                        "attempt_id": attempt.get("attempt_id"),
+                        "event": event_name,
+                    },
+                }
+            )
 
     linear_coordination = ((task_envelope.get("coordination") or {}).get("linear")) or None
     if isinstance(linear_coordination, dict):
@@ -290,6 +319,7 @@ class TaskReadModel:
     origin: dict[str, Any]
     relationships: dict[str, Any]
     assigned_executor: dict[str, Any] | None
+    execution_summary: dict[str, Any]
     evidence_summary: dict[str, Any]
     coordination_summary: dict[str, Any]
     verification_summary: dict[str, Any] | None
@@ -348,6 +378,12 @@ class HarnessReadModelService:
                 "dependencies": list(task.get("dependencies") or []),
             },
             assigned_executor=dict(task.get("assigned_executor") or {}) if task.get("assigned_executor") is not None else None,
+            execution_summary={
+                "attempt_count": len(((task.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []),
+                "latest_attempt": (((task.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or [None])[-1],
+                "latest_status": (((task.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or [{}])[-1].get("status"),
+                "latest_artifacts": (((task.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or [{}])[-1].get("artifact_references") or [],
+            },
             evidence_summary=_build_evidence_summary(task),
             coordination_summary={
                 "linear": dict(((task.get("coordination") or {}).get("linear") or {}))
