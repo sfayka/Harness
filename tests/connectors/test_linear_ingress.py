@@ -74,6 +74,8 @@ class LinearIngressTranslationTests(unittest.TestCase):
         self.assertEqual(task["origin"]["source_system"], "linear")
         self.assertEqual(task["origin"]["source_id"], "lin-ingress-1")
         self.assertEqual(task["priority"], "high")
+        self.assertTrue(task["coordination"]["linear"]["record_found"])
+        self.assertEqual(task["coordination"]["linear"]["provenance"]["source"], "linear_ingress_payload")
         self.assertEqual(task["extensions"]["linear"]["issue_identifier"], "HAR-901")
         self.assertEqual(len(task["artifacts"]["items"]), 2)
         self.assertEqual(linear_facts["issue_id"], "lin-ingress-1")

@@ -186,6 +186,20 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
             }
         )
 
+    linear_coordination = ((task_envelope.get("coordination") or {}).get("linear")) or None
+    if isinstance(linear_coordination, dict):
+        provenance = linear_coordination.get("provenance") if isinstance(linear_coordination.get("provenance"), dict) else {}
+        events.append(
+            {
+                "event_id": f"{task_envelope['id']}:linear_linkage",
+                "event_type": "linear_linkage_recorded",
+                "occurred_at": provenance.get("linked_at") or timestamps.get("updated_at"),
+                "summary": "Linear linkage recorded",
+                "source": provenance.get("linked_by") or "harness",
+                "details": dict(linear_coordination),
+            }
+        )
+
     for record in records:
         result_payload = record.result if isinstance(record.result, dict) else {}
         enforcement_result = dict(result_payload.get("enforcement_result") or {})
@@ -277,6 +291,7 @@ class TaskReadModel:
     relationships: dict[str, Any]
     assigned_executor: dict[str, Any] | None
     evidence_summary: dict[str, Any]
+    coordination_summary: dict[str, Any]
     verification_summary: dict[str, Any] | None
     reconciliation_summary: dict[str, Any] | None
     review_summary: dict[str, Any]
@@ -334,6 +349,11 @@ class HarnessReadModelService:
             },
             assigned_executor=dict(task.get("assigned_executor") or {}) if task.get("assigned_executor") is not None else None,
             evidence_summary=_build_evidence_summary(task),
+            coordination_summary={
+                "linear": dict(((task.get("coordination") or {}).get("linear") or {}))
+                if ((task.get("coordination") or {}).get("linear")) is not None
+                else None
+            },
             verification_summary=verification_summary,
             reconciliation_summary=reconciliation_summary,
             review_summary=review_summary,

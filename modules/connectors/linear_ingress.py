@@ -126,6 +126,25 @@ def _default_acceptance_criteria(issue_identifier: str | None) -> list[dict[str,
     ]
 
 
+def _build_linear_coordination_entry(*, linear_facts: Any, linked_at: str, linked_by: str, source: str) -> dict[str, Any]:
+    facts_payload = _to_jsonable(linear_facts)
+    return {
+        "record_found": bool(facts_payload.get("record_found", True)),
+        "issue_id": facts_payload.get("issue_id"),
+        "issue_key": facts_payload.get("issue_key"),
+        "state": facts_payload.get("state"),
+        "workflow": facts_payload.get("workflow"),
+        "project": facts_payload.get("project"),
+        "task_reference": facts_payload.get("task_reference"),
+        "reasons": list(facts_payload.get("reasons") or []),
+        "provenance": {
+            "linked_at": linked_at,
+            "linked_by": linked_by,
+            "source": source,
+        },
+    }
+
+
 def _build_task_envelope(payload: Mapping[str, Any]) -> dict[str, Any]:
     issue_payload = _require_mapping(payload.get("issue"), field_name="issue")
     issue_id = _require_string(issue_payload.get("id"), field_name="issue.id")
@@ -184,6 +203,17 @@ def _build_task_envelope(payload: Mapping[str, Any]) -> dict[str, Any]:
         labels = [label.strip() for label in labels]
     else:
         labels = []
+
+    linear_facts = translate_linear_facts(payload)
+
+    task_envelope["coordination"] = {
+        "linear": _build_linear_coordination_entry(
+            linear_facts=linear_facts,
+            linked_at=task_envelope["timestamps"]["updated_at"],
+            linked_by=_optional_string(payload.get("requested_by"), field_name="requested_by") or "linear-ingress",
+            source="linear_ingress_payload",
+        )
+    }
 
     task_envelope["extensions"] = {
         "linear": {

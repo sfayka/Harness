@@ -181,6 +181,9 @@ def create_task_envelope(
                 "notes": None,
             },
         },
+        "coordination": {
+            "linear": None,
+        },
         "observability": {
             "errors": [],
             "retries": {

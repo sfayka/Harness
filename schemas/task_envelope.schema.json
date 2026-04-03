@@ -130,6 +130,9 @@
     "observability": {
       "$ref": "#/$defs/observability"
     },
+    "coordination": {
+      "$ref": "#/$defs/coordination"
+    },
     "extensions": {
       "type": "object",
       "description": "Explicit non-canonical extension surface for future modules.",
@@ -1319,6 +1322,184 @@
           }
         }
       ]
+    },
+    "coordination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "linear"
+      ],
+      "properties": {
+        "linear": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/linearCoordination"
+            }
+          ],
+          "default": null
+        }
+      }
+    },
+    "linearCoordination": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "record_found",
+        "provenance"
+      ],
+      "properties": {
+        "record_found": {
+          "type": "boolean"
+        },
+        "issue_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "issue_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workflow": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/linearWorkflowRef"
+            }
+          ],
+          "default": null
+        },
+        "project": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/linearProjectRef"
+            }
+          ],
+          "default": null
+        },
+        "task_reference": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/linearTaskReference"
+            }
+          ],
+          "default": null
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "provenance": {
+          "$ref": "#/$defs/linkProvenance"
+        }
+      }
+    },
+    "linearWorkflowRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_id",
+        "workflow_name"
+      ],
+      "properties": {
+        "workflow_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workflow_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "linearProjectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "project_id"
+      ],
+      "properties": {
+        "project_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "project_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "linearTaskReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "harness_task_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "external_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "linkProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "linked_at",
+        "linked_by",
+        "source"
+      ],
+      "properties": {
+        "linked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "linked_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

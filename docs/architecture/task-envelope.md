@@ -66,6 +66,7 @@ At the top level, a TaskEnvelope contains:
 | `required_capabilities` | array | yes | executor capabilities needed for the task |
 | `priority` | enum | yes | relative scheduling priority |
 | `artifacts` | object | yes | canonical execution artifacts and completion evidence state |
+| `coordination` | object | yes | canonical linkage to external coordination records (for example Linear) |
 | `clarification` | object | no | canonical missing-information and clarification tracking state |
 | `observability` | object | yes | retries, errors, and execution metadata |
 | `extensions` | object | no | explicitly non-canonical extension surface for future modules |
@@ -286,6 +287,21 @@ Completion is not trusted purely because an executor claims success. `artifacts.
 Verification consumes this evidence state but remains a distinct control-plane decision layer. Evidence presence and completion acceptance must not collapse into one concept.
 
 Long-running support artifacts such as `progress_artifact`, `plan_artifact`, and `handoff_artifact` are first-class task artifacts. Harness preserves them for auditability and may use them as verification or review inputs, but they are not completion-bearing by default in the current contract.
+
+### Coordination
+
+`coordination` stores normalized linkage to external tracking systems while preserving Harness as the lifecycle truth authority.
+
+Current canonical linkage:
+
+- `coordination.linear`
+  - `record_found` shows whether a matching Linear record currently resolves
+  - `issue_id` / `issue_key` preserve normalized Linear identity
+  - `state`, `workflow`, `project`, and `task_reference` preserve normalized Linear metadata for inspection and reconciliation context
+  - `reasons` captures missing/stale/conflicting sync notes when provided
+  - `provenance` (`linked_at`, `linked_by`, `source`) keeps linkage creation/update auditable
+
+This linkage surface is advisory context for verification and reconciliation. It does not replace Harness ownership of lifecycle truth.
 
 ### Completion Trust Levels
 
