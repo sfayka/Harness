@@ -1,0 +1,181 @@
+{
+  "task": {
+    "assigned_executor": {
+      "assignment_reason": "Linear delegated execution path",
+      "executor_id": "codex-cloud",
+      "executor_type": "codex"
+    },
+    "current_status": "assigned",
+    "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+    "evaluation_summary": {
+      "count": 1,
+      "history": [
+        {
+          "action": "no_op",
+          "evaluation_id": "f7d868b4-44f3-4188-beff-294b2af4ea33",
+          "recorded_at": "2026-04-03T16:44:58.197568Z",
+          "target_status": null
+        }
+      ],
+      "latest_action": "no_op",
+      "latest_recorded_at": "2026-04-03T16:44:58.197568Z",
+      "latest_target_status": null
+    },
+    "evidence_summary": {
+      "artifact_count": 0,
+      "artifact_type_counts": {},
+      "completion_evidence": {
+        "policy": "deferred",
+        "required_artifact_types": [],
+        "status": "deferred",
+        "validated_artifact_ids": [],
+        "validated_at": null,
+        "validation_method": "deferred",
+        "validator": null
+      },
+      "validated_artifact_count": 0,
+      "verification_status_counts": {}
+    },
+    "extensions": {},
+    "lifecycle_history": [],
+    "objective_summary": "Run one real task and document evaluation outcome.",
+    "origin": {
+      "ingress_id": "KNO-161",
+      "ingress_name": "Linear",
+      "requested_by": "knoxanalytics",
+      "source_id": "KNO-161",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "reconciliation_summary": {
+      "blocking": false,
+      "mismatch_categories": [],
+      "outcome": "no_mismatch",
+      "reasons": [
+        "Reconciliation evaluated task 'kno-161-real-task-2026-04-03' against normalized external facts",
+        "No blocking reconciliation mismatch was detected"
+      ],
+      "status": "passed",
+      "task_id": "kno-161-real-task-2026-04-03",
+      "terminal": false
+    },
+    "relationships": {
+      "child_task_ids": [],
+      "dependencies": [],
+      "parent_task_id": null
+    },
+    "review_summary": {
+      "decision_count": 0,
+      "decisions": [],
+      "latest_decision": null,
+      "latest_request": null,
+      "request_count": 0,
+      "requests": [],
+      "status": "none"
+    },
+    "task_id": "kno-161-real-task-2026-04-03",
+    "timeline": [
+      {
+        "details": {
+          "origin": {
+            "ingress_id": "KNO-161",
+            "ingress_name": "Linear",
+            "requested_by": "knoxanalytics",
+            "source_id": "KNO-161",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "status": "assigned",
+          "title": "Run and document one real non-synthetic task through Harness"
+        },
+        "event_id": "kno-161-real-task-2026-04-03:created",
+        "event_type": "task_created",
+        "occurred_at": "2026-03-31T15:58:11.643227Z",
+        "source": "linear",
+        "summary": "Task created"
+      },
+      {
+        "details": {
+          "accepted_completion": false,
+          "action": "no_op",
+          "evaluation_id": "f7d868b4-44f3-4188-beff-294b2af4ea33",
+          "reasons": [
+            "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_result": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+              "Reconciliation evaluated task 'kno-161-real-task-2026-04-03' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "kno-161-real-task-2026-04-03",
+            "terminal": false
+          },
+          "requires_review": false,
+          "target_status": null,
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": false,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "nature": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "retryable": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "kno-161-real-task-2026-04-03",
+            "verification_passed": false
+          }
+        },
+        "event_id": "kno-161-real-task-2026-04-03:evaluation:f7d868b4-44f3-4188-beff-294b2af4ea33",
+        "event_type": "evaluation_recorded",
+        "occurred_at": "2026-04-03T16:44:58.197568Z",
+        "source": "harness",
+        "summary": "Evaluation recorded: no_op"
+      }
+    ],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-03-31T15:58:11.643227Z",
+      "updated_at": "2026-03-31T15:58:11.643227Z"
+    },
+    "title": "Run and document one real non-synthetic task through Harness",
+    "verification_summary": {
+      "accepted_completion": false,
+      "claimed_completion": false,
+      "evidence_is_sufficient": false,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "nature": "none",
+        "reason": "No completion claim is currently being evaluated",
+        "retryable": false
+      },
+      "is_terminal": false,
+      "outcome": "verification_deferred",
+      "reasons": [
+        "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+        "No completion claim is currently being evaluated"
+      ],
+      "reconciliation_status": "passed",
+      "requires_review": false,
+      "target_status": null,
+      "task_id": "kno-161-real-task-2026-04-03",
+      "verification_passed": false
+    }
+  }
+}

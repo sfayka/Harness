@@ -1,0 +1,99 @@
+{
+  "request": {
+    "acceptance_criteria_satisfied": false,
+    "claimed_completion": false,
+    "external_facts": {},
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "id": "ac-1",
+          "description": "One real task has been executed through Harness",
+          "required": true
+        },
+        {
+          "id": "ac-2",
+          "description": "Repository / branch / commit / PR artifacts are recorded",
+          "required": true
+        },
+        {
+          "id": "ac-3",
+          "description": "Final Harness outcome is documented",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": "Initial submission before execution artifacts are attached.",
+          "policy": "deferred",
+          "required_artifact_types": [],
+          "status": "deferred",
+          "validated_artifact_ids": [],
+          "validated_at": null,
+          "validation_method": "deferred",
+          "validator": null
+        },
+        "items": []
+      },
+      "assigned_executor": {
+        "executor_id": "codex-cloud",
+        "executor_type": "codex",
+        "assignment_reason": "Linear delegated execution path"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "dependencies": [],
+      "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+      "extensions": {},
+      "id": "kno-161-real-task-2026-04-03",
+      "objective": {
+        "deliverable_type": "api_submission",
+        "success_signal": "Read-model and timeline show final lifecycle outcome with external artifacts.",
+        "summary": "Run one real task and document evaluation outcome."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": "KNO-161",
+        "ingress_name": "Linear",
+        "requested_by": "knoxanalytics",
+        "source_id": "KNO-161",
+        "source_system": "linear",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "required_capabilities": [
+        "python",
+        "git",
+        "github"
+      ],
+      "status": "assigned",
+      "status_history": [],
+      "timestamps": {
+        "completed_at": null,
+        "created_at": "2026-03-31T15:58:11.643227Z",
+        "updated_at": "2026-03-31T15:58:11.643227Z"
+      },
+      "title": "Run and document one real non-synthetic task through Harness"
+    }
+  }
+}

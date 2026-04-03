@@ -1,0 +1,647 @@
+{
+  "accepted_completion": false,
+  "action": "no_op",
+  "enforcement_result": {
+    "action": "no_op",
+    "error": null,
+    "evidence_result": {
+      "artifact_results": [],
+      "is_sufficient": false,
+      "is_valid": true,
+      "issues": [],
+      "missing_required_artifact_types": [],
+      "unknown_validated_artifact_ids": [],
+      "validated_artifact_ids": []
+    },
+    "failure_classification": {
+      "category": "none",
+      "nature": "none",
+      "reason": "No completion claim is currently being evaluated",
+      "retryable": false
+    },
+    "reasons": [
+      "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+      "No completion claim is currently being evaluated"
+    ],
+    "reconciliation_result": {
+      "blocking": false,
+      "mismatch_categories": [],
+      "outcome": "no_mismatch",
+      "reasons": [
+        "Reconciliation evaluated task 'kno-161-real-task-2026-04-03' against normalized external facts",
+        "No blocking reconciliation mismatch was detected"
+      ],
+      "status": "passed",
+      "task_id": "kno-161-real-task-2026-04-03",
+      "terminal": false
+    },
+    "review_decision": null,
+    "review_request": null,
+    "target_status": null,
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "One real task has been executed through Harness",
+          "id": "ac-1",
+          "required": true
+        },
+        {
+          "description": "Repository / branch / commit / PR artifacts are recorded",
+          "id": "ac-2",
+          "required": true
+        },
+        {
+          "description": "Final Harness outcome is documented",
+          "id": "ac-3",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": "Initial submission before execution artifacts are attached.",
+          "policy": "deferred",
+          "required_artifact_types": [],
+          "status": "deferred",
+          "validated_artifact_ids": [],
+          "validated_at": null,
+          "validation_method": "deferred",
+          "validator": null
+        },
+        "items": []
+      },
+      "assigned_executor": {
+        "assignment_reason": "Linear delegated execution path",
+        "executor_id": "codex-cloud",
+        "executor_type": "codex"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "dependencies": [],
+      "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+      "extensions": {},
+      "id": "kno-161-real-task-2026-04-03",
+      "objective": {
+        "deliverable_type": "api_submission",
+        "success_signal": "Read-model and timeline show final lifecycle outcome with external artifacts.",
+        "summary": "Run one real task and document evaluation outcome."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": "KNO-161",
+        "ingress_name": "Linear",
+        "requested_by": "knoxanalytics",
+        "source_id": "KNO-161",
+        "source_system": "linear",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "required_capabilities": [
+        "python",
+        "git",
+        "github"
+      ],
+      "status": "assigned",
+      "status_history": [],
+      "timestamps": {
+        "completed_at": null,
+        "created_at": "2026-03-31T15:58:11.643227Z",
+        "updated_at": "2026-03-31T15:58:11.643227Z"
+      },
+      "title": "Run and document one real non-synthetic task through Harness"
+    },
+    "transition_result": null,
+    "verification_result": {
+      "accepted_completion": false,
+      "claimed_completion": false,
+      "evidence_is_sufficient": false,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "nature": "none",
+        "reason": "No completion claim is currently being evaluated",
+        "retryable": false
+      },
+      "is_terminal": false,
+      "outcome": "verification_deferred",
+      "reasons": [
+        "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+        "No completion claim is currently being evaluated"
+      ],
+      "reconciliation_status": "passed",
+      "requires_review": false,
+      "target_status": null,
+      "task_id": "kno-161-real-task-2026-04-03",
+      "verification_passed": false
+    }
+  },
+  "error": null,
+  "evaluation_record": {
+    "evaluation_id": "f7d868b4-44f3-4188-beff-294b2af4ea33",
+    "recorded_at": "2026-04-03T16:44:58.197568Z",
+    "request": {
+      "acceptance_criteria_satisfied": false,
+      "claimed_completion": false,
+      "external_facts": {
+        "expected_code_context": null,
+        "github_facts": null,
+        "linear_facts": null
+      },
+      "retry_context": null,
+      "review_decision": null,
+      "review_is_active": false,
+      "review_reasons": [],
+      "review_request": null,
+      "runtime_facts": {
+        "attempt_count": 0,
+        "executor_reported_failure": false,
+        "executor_reported_success": false,
+        "latest_attempt_outcome": null,
+        "terminal_failure": false
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "One real task has been executed through Harness",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Repository / branch / commit / PR artifacts are recorded",
+            "id": "ac-2",
+            "required": true
+          },
+          {
+            "description": "Final Harness outcome is documented",
+            "id": "ac-3",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": "Initial submission before execution artifacts are attached.",
+            "policy": "deferred",
+            "required_artifact_types": [],
+            "status": "deferred",
+            "validated_artifact_ids": [],
+            "validated_at": null,
+            "validation_method": "deferred",
+            "validator": null
+          },
+          "items": []
+        },
+        "assigned_executor": {
+          "assignment_reason": "Linear delegated execution path",
+          "executor_id": "codex-cloud",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "dependencies": [],
+        "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+        "extensions": {},
+        "id": "kno-161-real-task-2026-04-03",
+        "objective": {
+          "deliverable_type": "api_submission",
+          "success_signal": "Read-model and timeline show final lifecycle outcome with external artifacts.",
+          "summary": "Run one real task and document evaluation outcome."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "KNO-161",
+          "ingress_name": "Linear",
+          "requested_by": "knoxanalytics",
+          "source_id": "KNO-161",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "required_capabilities": [
+          "python",
+          "git",
+          "github"
+        ],
+        "status": "assigned",
+        "status_history": [],
+        "timestamps": {
+          "completed_at": null,
+          "created_at": "2026-03-31T15:58:11.643227Z",
+          "updated_at": "2026-03-31T15:58:11.643227Z"
+        },
+        "title": "Run and document one real non-synthetic task through Harness"
+      },
+      "unresolved_conditions": []
+    },
+    "result": {
+      "accepted_completion": false,
+      "action": "no_op",
+      "enforcement_result": {
+        "action": "no_op",
+        "error": null,
+        "evidence_result": {
+          "artifact_results": [],
+          "is_sufficient": false,
+          "is_valid": true,
+          "issues": [],
+          "missing_required_artifact_types": [],
+          "unknown_validated_artifact_ids": [],
+          "validated_artifact_ids": []
+        },
+        "failure_classification": {
+          "category": "none",
+          "nature": "none",
+          "reason": "No completion claim is currently being evaluated",
+          "retryable": false
+        },
+        "reasons": [
+          "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "reconciliation_result": {
+          "blocking": false,
+          "mismatch_categories": [],
+          "outcome": "no_mismatch",
+          "reasons": [
+            "Reconciliation evaluated task 'kno-161-real-task-2026-04-03' against normalized external facts",
+            "No blocking reconciliation mismatch was detected"
+          ],
+          "status": "passed",
+          "task_id": "kno-161-real-task-2026-04-03",
+          "terminal": false
+        },
+        "review_decision": null,
+        "review_request": null,
+        "target_status": null,
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "One real task has been executed through Harness",
+              "id": "ac-1",
+              "required": true
+            },
+            {
+              "description": "Repository / branch / commit / PR artifacts are recorded",
+              "id": "ac-2",
+              "required": true
+            },
+            {
+              "description": "Final Harness outcome is documented",
+              "id": "ac-3",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": "Initial submission before execution artifacts are attached.",
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Linear delegated execution path",
+            "executor_id": "codex-cloud",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "dependencies": [],
+          "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+          "extensions": {},
+          "id": "kno-161-real-task-2026-04-03",
+          "objective": {
+            "deliverable_type": "api_submission",
+            "success_signal": "Read-model and timeline show final lifecycle outcome with external artifacts.",
+            "summary": "Run one real task and document evaluation outcome."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": "KNO-161",
+            "ingress_name": "Linear",
+            "requested_by": "knoxanalytics",
+            "source_id": "KNO-161",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [
+            "python",
+            "git",
+            "github"
+          ],
+          "status": "assigned",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T15:58:11.643227Z",
+            "updated_at": "2026-03-31T15:58:11.643227Z"
+          },
+          "title": "Run and document one real non-synthetic task through Harness"
+        },
+        "transition_result": null,
+        "verification_result": {
+          "accepted_completion": false,
+          "claimed_completion": false,
+          "evidence_is_sufficient": false,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "nature": "none",
+            "reason": "No completion claim is currently being evaluated",
+            "retryable": false
+          },
+          "is_terminal": false,
+          "outcome": "verification_deferred",
+          "reasons": [
+            "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_status": "passed",
+          "requires_review": false,
+          "target_status": null,
+          "task_id": "kno-161-real-task-2026-04-03",
+          "verification_passed": false
+        }
+      },
+      "error": null,
+      "failure_classification": {
+        "category": "none",
+        "nature": "none",
+        "reason": "No completion claim is currently being evaluated",
+        "retryable": false
+      },
+      "invalid_input": false,
+      "reasons": [
+        "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+        "No completion claim is currently being evaluated"
+      ],
+      "requires_review": false,
+      "target_status": null,
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "One real task has been executed through Harness",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Repository / branch / commit / PR artifacts are recorded",
+            "id": "ac-2",
+            "required": true
+          },
+          {
+            "description": "Final Harness outcome is documented",
+            "id": "ac-3",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": "Initial submission before execution artifacts are attached.",
+            "policy": "deferred",
+            "required_artifact_types": [],
+            "status": "deferred",
+            "validated_artifact_ids": [],
+            "validated_at": null,
+            "validation_method": "deferred",
+            "validator": null
+          },
+          "items": []
+        },
+        "assigned_executor": {
+          "assignment_reason": "Linear delegated execution path",
+          "executor_id": "codex-cloud",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "dependencies": [],
+        "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+        "extensions": {},
+        "id": "kno-161-real-task-2026-04-03",
+        "objective": {
+          "deliverable_type": "api_submission",
+          "success_signal": "Read-model and timeline show final lifecycle outcome with external artifacts.",
+          "summary": "Run one real task and document evaluation outcome."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "KNO-161",
+          "ingress_name": "Linear",
+          "requested_by": "knoxanalytics",
+          "source_id": "KNO-161",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "required_capabilities": [
+          "python",
+          "git",
+          "github"
+        ],
+        "status": "assigned",
+        "status_history": [],
+        "timestamps": {
+          "completed_at": null,
+          "created_at": "2026-03-31T15:58:11.643227Z",
+          "updated_at": "2026-03-31T15:58:11.643227Z"
+        },
+        "title": "Run and document one real non-synthetic task through Harness"
+      }
+    },
+    "task_id": "kno-161-real-task-2026-04-03"
+  },
+  "failure_classification": {
+    "category": "none",
+    "nature": "none",
+    "reason": "No completion claim is currently being evaluated",
+    "retryable": false
+  },
+  "invalid_input": false,
+  "reasons": [
+    "Verification evaluated task 'kno-161-real-task-2026-04-03' against canonical completion policy",
+    "No completion claim is currently being evaluated"
+  ],
+  "requires_review": false,
+  "target_status": null,
+  "task_envelope": {
+    "acceptance_criteria": [
+      {
+        "description": "One real task has been executed through Harness",
+        "id": "ac-1",
+        "required": true
+      },
+      {
+        "description": "Repository / branch / commit / PR artifacts are recorded",
+        "id": "ac-2",
+        "required": true
+      },
+      {
+        "description": "Final Harness outcome is documented",
+        "id": "ac-3",
+        "required": true
+      }
+    ],
+    "artifacts": {
+      "completion_evidence": {
+        "notes": "Initial submission before execution artifacts are attached.",
+        "policy": "deferred",
+        "required_artifact_types": [],
+        "status": "deferred",
+        "validated_artifact_ids": [],
+        "validated_at": null,
+        "validation_method": "deferred",
+        "validator": null
+      },
+      "items": []
+    },
+    "assigned_executor": {
+      "assignment_reason": "Linear delegated execution path",
+      "executor_id": "codex-cloud",
+      "executor_type": "codex"
+    },
+    "child_task_ids": [],
+    "constraints": [],
+    "dependencies": [],
+    "description": "Execute GitHub issue #114 through canonical Harness submission and reevaluation paths.",
+    "extensions": {},
+    "id": "kno-161-real-task-2026-04-03",
+    "objective": {
+      "deliverable_type": "api_submission",
+      "success_signal": "Read-model and timeline show final lifecycle outcome with external artifacts.",
+      "summary": "Run one real task and document evaluation outcome."
+    },
+    "observability": {
+      "errors": [],
+      "execution_metadata": {
+        "schema_required_deferred_fields": [
+          "parent_task_id",
+          "child_task_ids",
+          "dependencies",
+          "assigned_executor",
+          "required_capabilities",
+          "priority",
+          "artifacts.items",
+          "artifacts.completion_evidence",
+          "observability"
+        ]
+      },
+      "retries": {
+        "attempt_count": 0,
+        "last_retry_at": null,
+        "max_attempts": 0
+      }
+    },
+    "origin": {
+      "ingress_id": "KNO-161",
+      "ingress_name": "Linear",
+      "requested_by": "knoxanalytics",
+      "source_id": "KNO-161",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "parent_task_id": null,
+    "priority": "normal",
+    "required_capabilities": [
+      "python",
+      "git",
+      "github"
+    ],
+    "status": "assigned",
+    "status_history": [],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-03-31T15:58:11.643227Z",
+      "updated_at": "2026-03-31T15:58:11.643227Z"
+    },
+    "title": "Run and document one real non-synthetic task through Harness"
+  }
+}
