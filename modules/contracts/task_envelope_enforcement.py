@@ -125,6 +125,10 @@ def _result_with_error(
         failure_category = FailureCategory.ENVIRONMENT_BOOTSTRAP_FAILURE
         failure_nature = FailureNature.TRANSIENT
         retryable = True
+    elif "timeout" in message or "temporarily unavailable" in message or "connection" in message:
+        failure_category = FailureCategory.EXTERNAL_AVAILABILITY_FAILURE
+        failure_nature = FailureNature.TRANSIENT
+        retryable = True
     elif "evidence" in message or "artifact" in message:
         failure_category = FailureCategory.ARTIFACT_VALIDATION_FAILURE
         failure_nature = FailureNature.CONTRACT

@@ -32,6 +32,7 @@ class HarnessEvaluationRequest:
     review_request: ReviewRequest | None = None
     review_decision: ReviewDecisionResult | None = None
     review_is_active: bool = False
+    retry_context: dict[str, object] | None = None
 
 
 @dataclass(frozen=True)

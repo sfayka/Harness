@@ -11,6 +11,7 @@ class FailureCategory(StrEnum):
     NONE = "none"
     ENVIRONMENT_BOOTSTRAP_FAILURE = "environment_bootstrap_failure"
     EXECUTOR_RUNTIME_FAILURE = "executor_runtime_failure"
+    EXTERNAL_AVAILABILITY_FAILURE = "external_availability_failure"
     CONTRACT_VIOLATION = "contract_violation"
     ARTIFACT_VALIDATION_FAILURE = "artifact_validation_failure"
     EVIDENCE_INSUFFICIENCY = "evidence_insufficiency"

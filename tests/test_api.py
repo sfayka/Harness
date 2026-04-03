@@ -848,6 +848,66 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(payload["database_host"], "db.internal.example")
         self.assertFalse(payload["database_schema_ready"])
 
+    def test_service_retries_retryable_transient_failure_with_bounded_budget(self) -> None:
+        payload = _request_payload("accepted_completion")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_success": True,
+            "executor_reported_failure": True,
+            "terminal_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            status, response = self.service.submit(payload)
+        history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["failure_classification"]["category"], "executor_runtime_failure")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history["evaluations"]), 3)
+        retry_requests = [item["request"].get("retry_context") for item in history["evaluations"]]
+        self.assertIsNone(retry_requests[0])
+        self.assertEqual(retry_requests[1]["triggered_by_category"], "executor_runtime_failure")
+        self.assertEqual(retry_requests[2]["triggered_by_category"], "executor_runtime_failure")
+
+    def test_service_does_not_retry_non_retryable_contract_violation(self) -> None:
+        payload = _request_payload("accepted_completion")
+        payload["request"]["unresolved_conditions"] = ["Execution checkpoint is missing."]
+
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            status, response = self.service.submit(payload)
+        history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["failure_classification"]["category"], "contract_violation")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history["evaluations"]), 1)
+
+    def test_service_does_not_retry_non_retryable_evidence_insufficiency(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            status, response = self.service.submit(payload)
+        history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["failure_classification"]["category"], "evidence_insufficiency")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history["evaluations"]), 1)
+
+    def test_service_does_not_retry_non_retryable_reconciliation_mismatch(self) -> None:
+        payload = _request_payload("blocked_reconciliation_mismatch")
+
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            status, response = self.service.submit(payload)
+        history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["failure_classification"]["category"], "reconciliation_mismatch")
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history["evaluations"]), 1)
+
 
 class HarnessHttpApiTests(unittest.TestCase):
     def setUp(self) -> None:
