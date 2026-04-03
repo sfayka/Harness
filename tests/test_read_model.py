@@ -240,6 +240,25 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 1)
         self.assertIsNotNone(read_payload["task"]["execution_summary"]["latest_attempt"])
+ 
+    def test_read_model_exposes_retry_fields_for_retryable_failures(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        submit_status, submit_payload = self.service.submit(payload)
+        task_id = submit_payload["task_envelope"]["id"]
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["execution_summary"]["retry_count"], 2)
+        self.assertEqual(read_payload["task"]["execution_summary"]["total_attempts"], 3)
+        self.assertEqual(read_payload["task"]["execution_summary"]["last_failure_type"], "evidence_insufficient")
+        self.assertTrue(read_payload["task"]["execution_summary"]["retry_eligible"])
+        self.assertEqual(read_payload["task"]["execution_summary"]["failure_state"], "retryable")
 
 
 class HarnessReadModelHttpApiTests(unittest.TestCase):
@@ -295,7 +314,13 @@ class HarnessReadModelHttpApiTests(unittest.TestCase):
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "accepted_completion")
 
     def test_api_exposes_task_timeline_endpoint(self) -> None:
-        submit_status, submit_payload = self._post_json("/tasks", _request_payload("blocked_insufficient_evidence"))
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        submit_status, submit_payload = self._post_json("/tasks", payload)
         task_id = submit_payload["task_envelope"]["id"]
 
         status, payload = self._get_json(f"/tasks/{task_id}/timeline")
@@ -308,6 +333,9 @@ class HarnessReadModelHttpApiTests(unittest.TestCase):
         self.assertIn("task_created", event_types)
         self.assertIn("evaluation_recorded", event_types)
         self.assertIn("status_transition", event_types)
+        self.assertIn("retry_scheduled", event_types)
+        self.assertIn("retry_attempt_started", event_types)
+        self.assertIn("retry_attempt_completed", event_types)
 
 
 @unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres read-model tests")
