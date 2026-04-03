@@ -118,6 +118,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "accepted_completion")
         self.assertEqual(payload["task"]["reconciliation_summary"]["outcome"], "no_mismatch")
         self.assertEqual(payload["task"]["evidence_summary"]["artifact_count"], 2)
+        self.assertTrue(payload["task"]["coordination_summary"]["linear"]["record_found"])
         self.assertEqual(payload["task"]["evaluation_summary"]["count"], 1)
 
     def test_builds_read_model_for_blocked_insufficient_evidence(self) -> None:
@@ -155,6 +156,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(reevaluation_status, 200)
         self.assertEqual(status, 200)
         self.assertEqual(transition_targets[-2:], ["completed", "blocked"])
+        self.assertTrue(any(event["event_type"] == "linear_linkage_recorded" for event in payload["timeline"]))
 
     def test_review_summary_shows_request_then_resolution(self) -> None:
         accepted_payload = _request_payload("accepted_completion")

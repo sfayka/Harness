@@ -263,6 +263,37 @@ def _apply_submission_task_overlays(
     return merged_task
 
 
+def _with_linear_coordination(
+    task_envelope: dict[str, Any],
+    *,
+    linear_facts: LinearFacts | None,
+    linked_by: str,
+    source: str,
+) -> dict[str, Any]:
+    if linear_facts is None:
+        return task_envelope
+
+    merged_task = deepcopy(task_envelope)
+    coordination = _optional_mapping(merged_task.get("coordination"), field_name="task_envelope.coordination") or {}
+    coordination["linear"] = {
+        "record_found": linear_facts.record_found,
+        "issue_id": linear_facts.issue_id,
+        "issue_key": linear_facts.issue_key,
+        "state": linear_facts.state,
+        "workflow": _to_jsonable(linear_facts.workflow),
+        "project": _to_jsonable(linear_facts.project),
+        "task_reference": _to_jsonable(linear_facts.task_reference),
+        "reasons": list(linear_facts.reasons),
+        "provenance": {
+            "linked_at": _iso_now(),
+            "linked_by": linked_by,
+            "source": source,
+        },
+    }
+    merged_task["coordination"] = coordination
+    return merged_task
+
+
 def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationRequest:
     """Parse a canonical HTTP evaluation request into the public evaluator input."""
 
@@ -271,9 +302,19 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
 
+    external_facts = _parse_external_facts(
+        _optional_mapping(request_payload.get("external_facts"), field_name="external_facts")
+    )
+    task_envelope = _with_linear_coordination(
+        task_envelope,
+        linear_facts=external_facts.linear_facts if external_facts is not None else None,
+        linked_by=(task_envelope.get("origin") or {}).get("source_system") or "harness",
+        source="evaluation_request.external_facts",
+    )
+
     return HarnessEvaluationRequest(
         task_envelope=task_envelope,
-        external_facts=_parse_external_facts(_optional_mapping(request_payload.get("external_facts"), field_name="external_facts")),
+        external_facts=external_facts,
         claimed_completion=bool(request_payload.get("claimed_completion", False)),
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
@@ -469,9 +510,19 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
     if review_decision is not None and review_decision.record.task_id != merged_task["id"]:
         raise ApiRequestError("review_decision.record.task_id must match the stored task id")
 
+    external_facts = _parse_external_facts(
+        _optional_mapping(request_payload.get("external_facts"), field_name="external_facts")
+    )
+    merged_task = _with_linear_coordination(
+        merged_task,
+        linear_facts=external_facts.linear_facts if external_facts is not None else None,
+        linked_by="reevaluation",
+        source="completion_claim.external_facts",
+    )
+
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
-        external_facts=_parse_external_facts(_optional_mapping(request_payload.get("external_facts"), field_name="external_facts")),
+        external_facts=external_facts,
         claimed_completion=True,
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
@@ -517,9 +568,19 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
     if review_decision is not None and review_decision.record.task_id != merged_task["id"]:
         raise ApiRequestError("review_decision.record.task_id must match the stored task id")
 
+    external_facts = _parse_external_facts(
+        _optional_mapping(request_payload.get("external_facts"), field_name="external_facts")
+    )
+    merged_task = _with_linear_coordination(
+        merged_task,
+        linear_facts=external_facts.linear_facts if external_facts is not None else None,
+        linked_by="reevaluation",
+        source="reevaluation_request.external_facts",
+    )
+
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
-        external_facts=_parse_external_facts(_optional_mapping(request_payload.get("external_facts"), field_name="external_facts")),
+        external_facts=external_facts,
         claimed_completion=bool(request_payload.get("claimed_completion", False)),
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),

@@ -1720,6 +1720,46 @@ class HarnessHttpApiTests(unittest.TestCase):
         )
         self.assertEqual(reevaluation_status, 200)
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(
+            reevaluation_response["task_envelope"]["coordination"]["linear"]["provenance"]["source"],
+            "reevaluation_request.external_facts",
+        )
+
+    def test_api_persists_linear_coordination_when_record_not_found_and_when_conflicting(self) -> None:
+        initial_payload = _request_payload("accepted_completion")
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        missing_record_payload = {
+            "request": {
+                "external_facts": {
+                    "linear_facts": {
+                        "record_found": False,
+                        "reasons": ["Linear record was not found during sync."],
+                    }
+                },
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+            }
+        }
+        missing_status, missing_response = self._post_json(f"/tasks/{task_id}/reevaluate", missing_record_payload)
+
+        stale_record_payload = {
+            "request": {
+                "external_facts": deepcopy(_request_payload("blocked_reconciliation_mismatch")["request"]["external_facts"]),
+                "claimed_completion": True,
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(initial_payload["request"]["runtime_facts"]),
+            }
+        }
+        stale_status, stale_response = self._post_json(f"/tasks/{task_id}/reevaluate", stale_record_payload)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(missing_status, 200)
+        self.assertFalse(missing_response["task_envelope"]["coordination"]["linear"]["record_found"])
+        self.assertEqual(stale_status, 200)
+        self.assertEqual(stale_response["task_envelope"]["coordination"]["linear"]["state"], "in_progress")
 
     def test_api_appends_long_running_support_artifacts_across_reevaluations(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")
