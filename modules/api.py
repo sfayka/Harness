@@ -76,6 +76,7 @@ _RETRYABLE_FAILURE_CATEGORIES = frozenset(
 )
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
+_AUTO_DISPATCHABLE_STATUSES = frozenset({"planned", "dispatch_ready", "assigned"})
 
 
 def _iso_now() -> str:
@@ -621,6 +622,35 @@ def _dispatch_attempt_status(execution_events: tuple[dict[str, Any], ...]) -> st
     return "started"
 
 
+def _dispatch_policy_decision(task_envelope: dict[str, Any]) -> tuple[bool, str]:
+    task_status = str(task_envelope.get("status") or "")
+    if task_status not in _AUTO_DISPATCHABLE_STATUSES:
+        return False, f"status={task_status} is not auto-dispatch eligible"
+    if task_status in _TERMINAL_TASK_STATUSES:
+        return False, f"status={task_status} is terminal"
+    if task_status in _DISPATCH_BLOCKED_STATUSES or task_status == "blocked":
+        return False, f"status={task_status} is blocked for dispatch"
+
+    execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    if isinstance(execution_attempts, list) and any(isinstance(attempt, dict) for attempt in execution_attempts):
+        return False, "execution attempt already recorded for current task state"
+
+    return True, "eligible: non_terminal_non_blocked_no_existing_attempt"
+
+
+def _executor_hint_from_task(task_envelope: dict[str, Any]) -> str | None:
+    assigned_executor = task_envelope.get("assigned_executor")
+    if not isinstance(assigned_executor, dict):
+        return None
+    executor_type = assigned_executor.get("executor_type")
+    if not isinstance(executor_type, str):
+        return None
+    normalized_executor = executor_type.strip().lower()
+    if not normalized_executor:
+        return None
+    return normalized_executor
+
+
 def _executor_hint(hint: str | None) -> str:
     if hint is None:
         return "codex"
@@ -914,6 +944,46 @@ class HarnessApiService:
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+
+        should_dispatch, reason = _dispatch_policy_decision(stored_task)
+        if should_dispatch:
+            dispatch_status, dispatch_payload = self.dispatch_task(
+                task_id,
+                {
+                    "request": {
+                        "executor": _executor_hint_from_task(stored_task),
+                        "execution_parameters": {
+                            "dispatch_policy_reason": reason,
+                            "dispatch_policy_stage": "post_ingestion",
+                        },
+                        "dispatch_mode": "automatic",
+                        "dispatch_trigger": "automatic_policy_post_ingestion",
+                        "dispatch_reason": reason,
+                    }
+                },
+            )
+            response_payload["automatic_dispatch"] = {
+                "attempted": True,
+                "dispatchable": True,
+                "reason": reason,
+                "status": int(dispatch_status),
+            }
+            if dispatch_status == HTTPStatus.OK:
+                if isinstance(dispatch_payload.get("dispatch"), dict):
+                    response_payload["automatic_dispatch"]["dispatch"] = deepcopy(dispatch_payload["dispatch"])
+                if isinstance(dispatch_payload.get("task_envelope"), dict):
+                    stored_task = dispatch_payload["task_envelope"]
+                    response_payload["task_envelope"] = _to_jsonable(stored_task)
+                if isinstance(dispatch_payload.get("evaluation_record"), dict):
+                    response_payload["evaluation_record"] = deepcopy(dispatch_payload["evaluation_record"])
+            else:
+                response_payload["automatic_dispatch"]["error"] = dispatch_payload.get("error")
+        else:
+            response_payload["automatic_dispatch"] = {
+                "attempted": False,
+                "dispatchable": False,
+                "reason": reason,
+            }
         return status, response_payload
 
     def submit_linear_ingress(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -1092,6 +1162,12 @@ class HarnessApiService:
 
         request_payload = _optional_mapping(payload.get("request"), field_name="request") or {}
         executor = _executor_hint(_optional_non_empty_string(request_payload.get("executor"), field_name="request.executor"))
+        dispatch_mode = _optional_non_empty_string(request_payload.get("dispatch_mode"), field_name="request.dispatch_mode") or "manual"
+        dispatch_trigger = (
+            _optional_non_empty_string(request_payload.get("dispatch_trigger"), field_name="request.dispatch_trigger")
+            or "manual_api"
+        )
+        dispatch_reason = _optional_non_empty_string(request_payload.get("dispatch_reason"), field_name="request.dispatch_reason")
         execution_parameters = _optional_mapping(
             request_payload.get("execution_parameters"),
             field_name="request.execution_parameters",
@@ -1153,10 +1229,10 @@ class HarnessApiService:
             ),
             "reported_at": _iso_now(),
             "reported_by": executor,
-            "reason": "manual dispatch execution attempt recorded",
+            "reason": dispatch_reason or f"{dispatch_mode} dispatch execution attempt recorded",
             "metadata": {
                 "attempt_id": attempt_id,
-                "dispatch_mode": "manual",
+                "dispatch_mode": dispatch_mode,
                 "execution_parameters": dict(execution_parameters),
                 "advisory_only": True,
             },
@@ -1170,7 +1246,9 @@ class HarnessApiService:
             "artifact_references": artifact_references,
             "metadata": {
                 "dispatch_id": f"dispatch:{task_id}:{attempt_number}",
-                "dispatch_trigger": "manual_api",
+                "dispatch_trigger": dispatch_trigger,
+                "dispatch_mode": dispatch_mode,
+                "dispatch_reason": dispatch_reason,
                 "executor": executor,
                 "execution_parameters": dict(execution_parameters),
                 "dispatch_at": _iso_now(),

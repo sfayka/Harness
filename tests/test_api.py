@@ -939,6 +939,34 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_model_status, 200)
         self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
 
+    def test_service_submit_auto_dispatches_dispatch_ready_task(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "task_status": "planned",
+                "assigned_executor": deepcopy(payload["request"]["assigned_executor"]),
+            }
+        }
+
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+        read_model_status, read_model_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertTrue(submit_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(submit_response["automatic_dispatch"]["status"], 200)
+        self.assertEqual(submit_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
+        self.assertEqual(read_model_status, 200)
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["latest_dispatch_origin"], "automatic")
+        self.assertEqual(timeline_status, 200)
+        dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
+        self.assertTrue(dispatch_events)
+        self.assertEqual(dispatch_events[-1]["details"]["dispatch_mode"], "automatic")
+        self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "automatic_policy_post_ingestion")
+
     def test_service_dispatch_rejects_terminal_tasks(self) -> None:
         submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))
         task_id = submit_payload["task_envelope"]["id"]

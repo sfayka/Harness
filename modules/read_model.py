@@ -121,6 +121,11 @@ def _build_execution_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
         "attempt_count": len([attempt for attempt in execution_attempts if isinstance(attempt, dict)]),
         "latest_attempt": dict(latest_attempt) if latest_attempt is not None else None,
         "latest_status": latest_attempt.get("status") if isinstance(latest_attempt, dict) else None,
+        "latest_dispatch_origin": (
+            ((latest_attempt.get("metadata") or {}).get("dispatch_mode"))
+            if isinstance(latest_attempt, dict)
+            else None
+        ),
         "latest_artifact_references": list((latest_attempt or {}).get("artifact_references") or []),
     }
 
@@ -206,6 +211,8 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                         "attempt_id": attempt.get("attempt_id"),
                         "executor": metadata.get("executor"),
                         "dispatch_trigger": metadata.get("dispatch_trigger"),
+                        "dispatch_mode": metadata.get("dispatch_mode"),
+                        "dispatch_reason": metadata.get("dispatch_reason"),
                         "execution_parameters": dict(metadata.get("execution_parameters") or {}),
                     },
                 }
