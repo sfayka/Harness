@@ -100,6 +100,25 @@ def _classified_retry_budget() -> int:
     return max(parsed_budget, 0)
 
 
+def _is_retry_eligible_failure(
+    *,
+    request: HarnessEvaluationRequest,
+    result: HarnessEvaluationResult,
+) -> bool:
+    category = result.failure_classification.category
+    if category in _RETRYABLE_FAILURE_CATEGORIES:
+        return bool(result.failure_classification.retryable)
+    if category == FailureType.EVIDENCE_INSUFFICIENT:
+        runtime = request.runtime_facts
+        transient_executor_signal = runtime.executor_reported_failure or runtime.latest_attempt_outcome in {
+            "failed",
+            "timed_out",
+            "stalled",
+        }
+        return bool(transient_executor_signal)
+    return False
+
+
 def _require_mapping(value: Any, *, field_name: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ApiRequestError(f"{field_name} must be an object")
@@ -859,6 +878,7 @@ class HarnessApiService:
             retry_context={
                 "attempt_number": attempt_number,
                 "max_retries": max_retries,
+                "max_attempts": max_retries + 1,
                 "triggered_by_category": category.value,
                 "triggered_by_reason": retry_reason,
                 "scheduled_at": _iso_now(),
@@ -883,8 +903,7 @@ class HarnessApiService:
             should_retry = (
                 status == HTTPStatus.OK
                 and not result.invalid_input
-                and result.failure_classification.retryable
-                and category in _RETRYABLE_FAILURE_CATEGORIES
+                and _is_retry_eligible_failure(request=active_request, result=result)
                 and retry_index < max_retries
             )
             if not should_retry:

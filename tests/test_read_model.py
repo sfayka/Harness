@@ -9,6 +9,7 @@ from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from pathlib import Path
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -122,7 +123,16 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["evaluation_summary"]["count"], 1)
 
     def test_builds_read_model_for_blocked_insufficient_evidence(self) -> None:
-        submit_status, submit_payload = self.service.submit(_request_payload("blocked_insufficient_evidence"))
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_success": False,
+            "executor_reported_failure": True,
+            "terminal_failure": False,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            submit_status, submit_payload = self.service.submit(payload)
 
         status, payload = self.service.get_task_read_model(submit_payload["task_envelope"]["id"])
 
@@ -132,6 +142,32 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "insufficient_evidence")
         self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "evidence_insufficient")
         self.assertEqual(payload["task"]["failure_summary"]["failure_source"], "evaluation")
+        self.assertEqual(payload["task"]["failure_summary"]["retry"]["total_attempts"], 3)
+        self.assertEqual(payload["task"]["failure_summary"]["retry"]["retry_count"], 2)
+        self.assertEqual(payload["task"]["failure_summary"]["retry"]["last_failure_type"], "evidence_insufficient")
+        self.assertFalse(payload["task"]["failure_summary"]["retry"]["retry_eligible"])
+
+    def test_timeline_includes_retry_events_for_classified_retry_attempts(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_success": False,
+            "executor_reported_failure": True,
+            "terminal_failure": False,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            submit_status, submit_payload = self.service.submit(payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        status, payload = self.service.get_task_timeline(task_id)
+        event_types = [event["event_type"] for event in payload["timeline"]]
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(status, 200)
+        self.assertGreaterEqual(event_types.count("retry_scheduled"), 2)
+        self.assertGreaterEqual(event_types.count("retry_attempt_started"), 2)
+        self.assertGreaterEqual(event_types.count("retry_attempt_completed"), 2)
 
     def test_timeline_shows_completed_to_blocked_rollback(self) -> None:
         initial_status, initial_payload = self.service.submit(_request_payload("accepted_completion"))

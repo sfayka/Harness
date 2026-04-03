@@ -152,6 +152,66 @@ def _build_execution_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
     }
 
 
+def _build_retry_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
+    if not records:
+        return {
+            "total_attempts": 0,
+            "retry_count": 0,
+            "max_attempts": 1,
+            "retry_budget_remaining": 1,
+            "last_failure_type": "none",
+            "retry_eligible": False,
+            "terminal": False,
+            "state": "clear",
+        }
+
+    retry_count = 0
+    max_attempts = 1
+    latest_failure_type = "none"
+    latest_retryable = False
+    latest_terminal = False
+    latest_state = "clear"
+
+    for record in records:
+        request_payload = record.request if isinstance(record.request, dict) else {}
+        retry_context = request_payload.get("retry_context")
+        if isinstance(retry_context, dict):
+            retry_count += 1
+            context_max_attempts = retry_context.get("max_attempts")
+            if isinstance(context_max_attempts, int):
+                max_attempts = max(max_attempts, context_max_attempts)
+
+        result_payload = record.result if isinstance(record.result, dict) else {}
+        failure = result_payload.get("failure_classification")
+        if not isinstance(failure, dict):
+            continue
+        failure_type = str(failure.get("failure_type") or failure.get("category") or "none")
+        if failure_type == "none":
+            latest_failure_type = "none"
+            latest_retryable = False
+            latest_terminal = False
+            latest_state = "clear"
+            continue
+        latest_failure_type = failure_type
+        latest_retryable = bool(failure.get("recoverable") or failure.get("retryable"))
+        latest_terminal = bool(failure.get("terminal"))
+        latest_state = "failed"
+
+    total_attempts = len(records)
+    retry_budget_remaining = max(max_attempts - total_attempts, 0)
+    retry_eligible = latest_state == "failed" and latest_retryable and not latest_terminal and retry_budget_remaining > 0
+    return {
+        "total_attempts": total_attempts,
+        "retry_count": retry_count,
+        "max_attempts": max_attempts,
+        "retry_budget_remaining": retry_budget_remaining,
+        "last_failure_type": latest_failure_type,
+        "retry_eligible": retry_eligible,
+        "terminal": latest_terminal,
+        "state": latest_state,
+    }
+
+
 def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord, ...]) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
 
@@ -319,6 +379,33 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 },
             }
         )
+        retry_context = record.request.get("retry_context") if isinstance(record.request, dict) else None
+        if isinstance(retry_context, dict):
+            retry_attempt_number = retry_context.get("attempt_number")
+            retry_scheduled_at = retry_context.get("scheduled_at") or record.recorded_at
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:retry_scheduled:{record.evaluation_id}",
+                    "event_type": "retry_scheduled",
+                    "occurred_at": retry_scheduled_at,
+                    "summary": f"Retry scheduled for attempt {retry_attempt_number}",
+                    "source": "harness",
+                    "details": dict(retry_context),
+                }
+            )
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:retry_attempt_started:{record.evaluation_id}",
+                    "event_type": "retry_attempt_started",
+                    "occurred_at": record.recorded_at,
+                    "summary": f"Retry attempt started: {retry_attempt_number}",
+                    "source": "harness",
+                    "details": {
+                        "attempt_number": retry_attempt_number,
+                        "evaluation_id": record.evaluation_id,
+                    },
+                }
+            )
         failure = result_payload.get("failure_classification")
         if isinstance(failure, dict):
             failure_type = failure.get("failure_type") or failure.get("category")
@@ -337,6 +424,23 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                             "failure_reason": failure.get("reason"),
                             "terminal": bool(failure.get("terminal")),
                             "recoverable": bool(failure.get("recoverable") or failure.get("retryable")),
+                        },
+                    }
+                )
+            if isinstance(retry_context, dict):
+                events.append(
+                    {
+                        "event_id": f"{task_envelope['id']}:retry_attempt_completed:{record.evaluation_id}",
+                        "event_type": "retry_attempt_completed",
+                        "occurred_at": record.recorded_at,
+                        "summary": f"Retry attempt completed: {failure_type}",
+                        "source": "harness",
+                        "details": {
+                            "attempt_number": retry_context.get("attempt_number"),
+                            "evaluation_id": record.evaluation_id,
+                            "failure_type": failure_type,
+                            "retryable": bool(failure.get("recoverable") or failure.get("retryable")),
+                            "terminal": bool(failure.get("terminal")),
                         },
                     }
                 )
@@ -452,6 +556,7 @@ class HarnessReadModelService:
         reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
         review_summary = _build_review_summary(records)
         execution_summary = _build_execution_summary(task)
+        retry_summary = _build_retry_summary(records)
         failure_summary = _latest_failure_summary(records)
         timeline = _build_timeline(task, records)
 
@@ -478,7 +583,7 @@ class HarnessReadModelService:
             reconciliation_summary=reconciliation_summary,
             review_summary=review_summary,
             execution_summary=execution_summary,
-            failure_summary=failure_summary,
+            failure_summary={**(failure_summary or {}), "retry": retry_summary},
             evaluation_summary={
                 "count": len(records),
                 "latest_recorded_at": records[-1].recorded_at if records else None,
