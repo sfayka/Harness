@@ -85,7 +85,7 @@ def classify_verification_outcome(
             source=FailureSource.EVALUATION,
             reason=reason,
             terminal=False,
-            recoverable=False,
+            recoverable=runtime_failure_observed,
         )
 
     if outcome == "external_mismatch":

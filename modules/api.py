@@ -72,6 +72,7 @@ _RETRYABLE_FAILURE_CATEGORIES = frozenset(
         FailureType.BOOTSTRAP_FAILURE,
         FailureType.DISPATCH_FAILURE,
         FailureType.EXECUTOR_FAILURE,
+        FailureType.EVIDENCE_INSUFFICIENT,
     }
 )
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
@@ -861,6 +862,7 @@ class HarnessApiService:
                 "max_retries": max_retries,
                 "triggered_by_category": category.value,
                 "triggered_by_reason": retry_reason,
+                "is_final_attempt": attempt_number >= max_retries,
                 "scheduled_at": _iso_now(),
             },
         )
