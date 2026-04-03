@@ -78,6 +78,8 @@ Other observations:
 - inspection endpoints are already sufficient for operator and dashboard visibility
 - no API redesign was required for this spike
 
+Since the spike was written, Harness added a dedicated OpenClaw ingress adapter endpoint (`POST /ingress/openclaw`) that still delegates into canonical submission semantics (`POST /tasks`) rather than introducing a separate control-plane contract.
+
 ## Scope Limits
 
 This spike does not implement:
@@ -85,6 +87,5 @@ This spike does not implement:
 - OpenClaw plugin lifecycle integration
 - OpenClaw gateway runtime integration
 - live OpenClaw message/channel wiring
-- a new Harness ingress endpoint for OpenClaw
 
 It is intentionally a narrow proof that OpenClaw can remain a client and Harness can remain a standalone service.
