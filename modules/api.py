@@ -31,7 +31,7 @@ from modules.connectors import (
     translate_linear_submission_payload,
     translate_manual_submission_payload,
 )
-from modules.contracts.failure_classification import FailureCategory
+from modules.contracts.failure_classification import FailureType
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
 from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
@@ -69,9 +69,9 @@ _DEFAULT_CLASSIFIED_RETRY_BUDGET = 2
 _CLASSIFIED_RETRY_BUDGET_ENV = "HARNESS_CLASSIFIED_RETRY_BUDGET"
 _RETRYABLE_FAILURE_CATEGORIES = frozenset(
     {
-        FailureCategory.ENVIRONMENT_BOOTSTRAP_FAILURE,
-        FailureCategory.EXECUTOR_RUNTIME_FAILURE,
-        FailureCategory.EXTERNAL_AVAILABILITY_FAILURE,
+        FailureType.BOOTSTRAP_FAILURE,
+        FailureType.DISPATCH_FAILURE,
+        FailureType.EXECUTOR_FAILURE,
     }
 )
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
@@ -845,7 +845,7 @@ class HarnessApiService:
         attempt_number: int,
         max_retries: int,
         retry_reason: str,
-        category: FailureCategory,
+        category: FailureType,
     ) -> HarnessEvaluationRequest:
         runtime_facts = request.runtime_facts
         next_attempt_count = max(runtime_facts.attempt_count, 1) + 1

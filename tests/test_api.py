@@ -1093,13 +1093,13 @@ class HarnessApiServiceTests(unittest.TestCase):
         history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
-        self.assertEqual(response["failure_classification"]["category"], "executor_runtime_failure")
+        self.assertEqual(response["failure_classification"]["category"], "executor_failure")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history["evaluations"]), 3)
         retry_requests = [item["request"].get("retry_context") for item in history["evaluations"]]
         self.assertIsNone(retry_requests[0])
-        self.assertEqual(retry_requests[1]["triggered_by_category"], "executor_runtime_failure")
-        self.assertEqual(retry_requests[2]["triggered_by_category"], "executor_runtime_failure")
+        self.assertEqual(retry_requests[1]["triggered_by_category"], "executor_failure")
+        self.assertEqual(retry_requests[2]["triggered_by_category"], "executor_failure")
 
     def test_service_does_not_retry_non_retryable_contract_violation(self) -> None:
         payload = _request_payload("accepted_completion")
@@ -1114,7 +1114,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history["evaluations"]), 1)
 
-    def test_service_does_not_retry_non_retryable_evidence_insufficiency(self) -> None:
+    def test_service_does_not_retry_non_retryable_evidence_insufficient(self) -> None:
         payload = _request_payload("blocked_insufficient_evidence")
 
         with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
@@ -1122,7 +1122,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
-        self.assertEqual(response["failure_classification"]["category"], "evidence_insufficiency")
+        self.assertEqual(response["failure_classification"]["category"], "evidence_insufficient")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history["evaluations"]), 1)
 

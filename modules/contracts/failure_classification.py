@@ -2,40 +2,46 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 
-class FailureCategory(StrEnum):
-    """Stable failure categories used by retry and diagnosis workflows."""
+class FailureType(StrEnum):
+    """Canonical machine-readable failure types."""
 
     NONE = "none"
-    ENVIRONMENT_BOOTSTRAP_FAILURE = "environment_bootstrap_failure"
-    EXECUTOR_RUNTIME_FAILURE = "executor_runtime_failure"
-    EXTERNAL_AVAILABILITY_FAILURE = "external_availability_failure"
+    BOOTSTRAP_FAILURE = "bootstrap_failure"
+    DISPATCH_FAILURE = "dispatch_failure"
+    EXECUTOR_FAILURE = "executor_failure"
     CONTRACT_VIOLATION = "contract_violation"
-    ARTIFACT_VALIDATION_FAILURE = "artifact_validation_failure"
-    EVIDENCE_INSUFFICIENCY = "evidence_insufficiency"
+    EVIDENCE_INSUFFICIENT = "evidence_insufficient"
     RECONCILIATION_MISMATCH = "reconciliation_mismatch"
-    MANUAL_REVIEW_REQUIRED = "manual_review_required"
+    REVIEW_REQUIRED = "review_required"
 
 
-class FailureNature(StrEnum):
-    """High-level class for retry and policy handling."""
+class FailureSource(StrEnum):
+    """System layer where failure truth was determined."""
 
     NONE = "none"
-    TRANSIENT = "transient"
-    SEMANTIC = "semantic"
-    CONTRACT = "contract"
+    DISPATCH = "dispatch"
+    EXECUTOR = "executor"
+    EVALUATION = "evaluation"
 
 
 @dataclass(frozen=True)
 class FailureClassification:
     """Explicit, auditable failure classification output."""
 
-    category: FailureCategory
-    nature: FailureNature
-    retryable: bool
+    failure_type: FailureType
+    source: FailureSource
     reason: str
+    terminal: bool
+    recoverable: bool
+    category: FailureType = field(init=False)
+    retryable: bool = field(init=False)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "category", self.failure_type)
+        object.__setattr__(self, "retryable", self.recoverable)
 
 
 def classify_verification_outcome(
@@ -48,71 +54,79 @@ def classify_verification_outcome(
 
     if outcome == "accepted_completion":
         return FailureClassification(
-            category=FailureCategory.NONE,
-            nature=FailureNature.NONE,
-            retryable=False,
+            failure_type=FailureType.NONE,
+            source=FailureSource.NONE,
             reason=reason,
+            terminal=False,
+            recoverable=False,
         )
 
     if outcome == "verification_deferred":
         return FailureClassification(
-            category=FailureCategory.NONE,
-            nature=FailureNature.NONE,
-            retryable=False,
+            failure_type=FailureType.NONE,
+            source=FailureSource.NONE,
             reason=reason,
+            terminal=False,
+            recoverable=False,
         )
 
     if outcome == "review_required":
         return FailureClassification(
-            category=FailureCategory.MANUAL_REVIEW_REQUIRED,
-            nature=FailureNature.SEMANTIC,
-            retryable=False,
+            failure_type=FailureType.REVIEW_REQUIRED,
+            source=FailureSource.EVALUATION,
             reason=reason,
+            terminal=False,
+            recoverable=False,
         )
 
     if outcome == "insufficient_evidence":
         return FailureClassification(
-            category=FailureCategory.EVIDENCE_INSUFFICIENCY,
-            nature=FailureNature.SEMANTIC,
-            retryable=False,
+            failure_type=FailureType.EVIDENCE_INSUFFICIENT,
+            source=FailureSource.EVALUATION,
             reason=reason,
+            terminal=False,
+            recoverable=False,
         )
 
     if outcome == "external_mismatch":
         return FailureClassification(
-            category=FailureCategory.RECONCILIATION_MISMATCH,
-            nature=FailureNature.SEMANTIC,
-            retryable=False,
+            failure_type=FailureType.RECONCILIATION_MISMATCH,
+            source=FailureSource.EVALUATION,
             reason=reason,
+            terminal=True,
+            recoverable=False,
         )
 
     if outcome == "terminal_invalid" and runtime_failure_observed:
         return FailureClassification(
-            category=FailureCategory.EXECUTOR_RUNTIME_FAILURE,
-            nature=FailureNature.TRANSIENT,
-            retryable=True,
+            failure_type=FailureType.EXECUTOR_FAILURE,
+            source=FailureSource.EXECUTOR,
             reason=reason,
+            terminal=True,
+            recoverable=True,
         )
 
     if outcome in {"terminal_invalid", "blocked_unresolved_conditions"}:
         return FailureClassification(
-            category=FailureCategory.CONTRACT_VIOLATION,
-            nature=FailureNature.CONTRACT,
-            retryable=False,
+            failure_type=FailureType.CONTRACT_VIOLATION,
+            source=FailureSource.EVALUATION,
             reason=reason,
+            terminal=outcome == "terminal_invalid",
+            recoverable=False,
         )
 
     return FailureClassification(
-        category=FailureCategory.CONTRACT_VIOLATION,
-        nature=FailureNature.CONTRACT,
-        retryable=False,
+        failure_type=FailureType.CONTRACT_VIOLATION,
+        source=FailureSource.EVALUATION,
         reason=reason,
+        terminal=False,
+        recoverable=False,
     )
 
 
 __all__ = [
-    "FailureCategory",
+    "FailureType",
     "FailureClassification",
-    "FailureNature",
+    "FailureSource",
     "classify_verification_outcome",
 ]

@@ -4,7 +4,7 @@ import copy
 import unittest
 
 from modules.contracts.task_envelope_evidence import validate_task_evidence
-from modules.contracts.failure_classification import FailureCategory, FailureNature
+from modules.contracts.failure_classification import FailureType, FailureSource
 from modules.contracts.task_envelope_verification import (
     ReconciliationFacts,
     ReconciliationStatus,
@@ -199,8 +199,8 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.target_status, "completed")
         self.assertTrue(result.accepted_completion)
         self.assertTrue(result.verification_passed)
-        self.assertEqual(result.failure_classification.category, FailureCategory.NONE)
-        self.assertEqual(result.failure_classification.nature, FailureNature.NONE)
+        self.assertEqual(result.failure_classification.category, FailureType.NONE)
+        self.assertEqual(result.failure_classification.source, FailureSource.NONE)
 
     def test_returns_insufficient_evidence_when_validated_evidence_is_not_sufficient(self) -> None:
         task_envelope = _base_task_envelope()
@@ -211,7 +211,7 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, VerificationOutcome.INSUFFICIENT_EVIDENCE)
         self.assertEqual(result.target_status, "blocked")
         self.assertFalse(result.accepted_completion)
-        self.assertEqual(result.failure_classification.category, FailureCategory.EVIDENCE_INSUFFICIENCY)
+        self.assertEqual(result.failure_classification.category, FailureType.EVIDENCE_INSUFFICIENT)
 
     def test_reports_concrete_reason_when_evidence_policy_is_deferred(self) -> None:
         task_envelope = _base_task_envelope()
@@ -248,7 +248,7 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, VerificationOutcome.EXTERNAL_MISMATCH)
         self.assertEqual(result.target_status, "blocked")
         self.assertFalse(result.is_terminal)
-        self.assertEqual(result.failure_classification.category, FailureCategory.RECONCILIATION_MISMATCH)
+        self.assertEqual(result.failure_classification.category, FailureType.RECONCILIATION_MISMATCH)
 
     def test_returns_review_required_when_manual_review_is_needed(self) -> None:
         result = _evaluate(
@@ -259,7 +259,7 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, VerificationOutcome.REVIEW_REQUIRED)
         self.assertTrue(result.requires_review)
         self.assertEqual(result.target_status, "in_review")
-        self.assertEqual(result.failure_classification.category, FailureCategory.MANUAL_REVIEW_REQUIRED)
+        self.assertEqual(result.failure_classification.category, FailureType.REVIEW_REQUIRED)
 
     def test_returns_blocked_when_verification_conditions_are_unresolved(self) -> None:
         result = _evaluate(
@@ -288,8 +288,8 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.outcome, VerificationOutcome.TERMINAL_INVALID)
         self.assertEqual(result.target_status, "failed")
         self.assertTrue(result.is_terminal)
-        self.assertEqual(result.failure_classification.category, FailureCategory.EXECUTOR_RUNTIME_FAILURE)
-        self.assertEqual(result.failure_classification.nature, FailureNature.TRANSIENT)
+        self.assertEqual(result.failure_classification.category, FailureType.EXECUTOR_FAILURE)
+        self.assertEqual(result.failure_classification.source, FailureSource.EXECUTOR)
 
     def test_rejects_invalid_evidence_inputs_before_policy_evaluation(self) -> None:
         task_envelope = _base_task_envelope()
@@ -315,7 +315,7 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertIsNone(result.target_status)
         self.assertFalse(result.verification_passed)
         self.assertIn("No completion claim is currently being evaluated", result.reasons)
-        self.assertEqual(result.failure_classification.category, FailureCategory.NONE)
+        self.assertEqual(result.failure_classification.category, FailureType.NONE)
 
     def test_distinguishes_deferred_verification_from_blocked_control_plane_outcome(self) -> None:
         deferred = _evaluate(_base_task_envelope(), claimed_completion=False)

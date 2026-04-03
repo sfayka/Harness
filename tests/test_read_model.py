@@ -130,6 +130,8 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["task"]["current_status"], "blocked")
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "insufficient_evidence")
+        self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "evidence_insufficient")
+        self.assertEqual(payload["task"]["failure_summary"]["failure_source"], "evaluation")
 
     def test_timeline_shows_completed_to_blocked_rollback(self) -> None:
         initial_status, initial_payload = self.service.submit(_request_payload("accepted_completion"))
@@ -157,6 +159,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(transition_targets[-2:], ["completed", "blocked"])
         self.assertTrue(any(event["event_type"] == "linear_linkage_recorded" for event in payload["timeline"]))
+        self.assertTrue(any(event["event_type"] == "failure_recorded" for event in payload["timeline"]))
 
     def test_review_summary_shows_request_then_resolution(self) -> None:
         accepted_payload = _request_payload("accepted_completion")

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from modules.contracts.failure_classification import FailureCategory, FailureClassification, FailureNature
+from modules.contracts.failure_classification import FailureClassification, FailureSource, FailureType
 from modules.contracts.task_envelope_evidence import (
     CompletionEvidenceValidationResult,
     validate_task_evidence,
@@ -122,21 +122,21 @@ def _result_with_error(
 ) -> EnforcementResult:
     message = str(error).lower()
     if "bootstrap" in message or "environment" in message:
-        failure_category = FailureCategory.ENVIRONMENT_BOOTSTRAP_FAILURE
-        failure_nature = FailureNature.TRANSIENT
-        retryable = True
+        failure_type = FailureType.BOOTSTRAP_FAILURE
+        failure_source = FailureSource.DISPATCH
+        recoverable = True
     elif "timeout" in message or "temporarily unavailable" in message or "connection" in message:
-        failure_category = FailureCategory.EXTERNAL_AVAILABILITY_FAILURE
-        failure_nature = FailureNature.TRANSIENT
-        retryable = True
+        failure_type = FailureType.DISPATCH_FAILURE
+        failure_source = FailureSource.DISPATCH
+        recoverable = True
     elif "evidence" in message or "artifact" in message:
-        failure_category = FailureCategory.ARTIFACT_VALIDATION_FAILURE
-        failure_nature = FailureNature.CONTRACT
-        retryable = False
+        failure_type = FailureType.CONTRACT_VIOLATION
+        failure_source = FailureSource.EVALUATION
+        recoverable = False
     else:
-        failure_category = FailureCategory.CONTRACT_VIOLATION
-        failure_nature = FailureNature.CONTRACT
-        retryable = False
+        failure_type = FailureType.CONTRACT_VIOLATION
+        failure_source = FailureSource.EVALUATION
+        recoverable = False
     return EnforcementResult(
         action=action,
         task_envelope=task_envelope,
@@ -149,10 +149,11 @@ def _result_with_error(
         target_status=None,
         reasons=(str(error),),
         failure_classification=FailureClassification(
-            category=failure_category,
-            nature=failure_nature,
-            retryable=retryable,
+            failure_type=failure_type,
+            source=failure_source,
             reason=str(error),
+            terminal=True,
+            recoverable=recoverable,
         ),
         error=str(error),
     )
@@ -209,10 +210,11 @@ def _apply_transition(
             verification_result.failure_classification
             if verification_result is not None
             else FailureClassification(
-                category=FailureCategory.NONE,
-                nature=FailureNature.NONE,
-                retryable=False,
+                failure_type=FailureType.NONE,
+                source=FailureSource.NONE,
                 reason=reason,
+                terminal=False,
+                recoverable=False,
             )
         ),
     )
@@ -266,10 +268,11 @@ def enforce_task_envelope(
                 target_status=review_decision.recommended_target_status,
                 reasons=(reason,),
                 failure_classification=FailureClassification(
-                    category=FailureCategory.NONE,
-                    nature=FailureNature.NONE,
-                    retryable=False,
+                    failure_type=FailureType.NONE,
+                    source=FailureSource.NONE,
                     reason=reason,
+                    terminal=False,
+                    recoverable=False,
                 ),
             )
         review_transition_facts = {"terminal_failure": review_decision.record.outcome.value == "mark_failed"}
