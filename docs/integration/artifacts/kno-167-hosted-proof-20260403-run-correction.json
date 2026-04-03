@@ -1,0 +1,1317 @@
+{
+  "generated_at": "2026-04-03T19:40:57.627334+00:00",
+  "task_id": "task-openclaw-hosted-proof-20260403-194057",
+  "requests": [
+    {
+      "name": "openclaw_ingress_submit",
+      "method": "POST",
+      "url": "https://harness-qeav.onrender.com/ingress/openclaw",
+      "status": 200,
+      "response": {
+        "accepted_completion": false,
+        "action": "no_op",
+        "enforcement_result": {
+          "action": "no_op",
+          "error": null,
+          "evidence_result": {
+            "artifact_results": [],
+            "is_sufficient": false,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": []
+          },
+          "failure_classification": {
+            "category": "none",
+            "nature": "none",
+            "reason": "No completion claim is currently being evaluated",
+            "retryable": false
+          },
+          "reasons": [
+            "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_result": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+              "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "task-openclaw-hosted-proof-20260403-194057",
+            "terminal": false
+          },
+          "review_decision": null,
+          "review_request": null,
+          "target_status": null,
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Task persists in hosted store.",
+                "id": "ac-1",
+                "required": true
+              },
+              {
+                "description": "Task appears in canonical inspection endpoints.",
+                "id": "ac-2",
+                "required": true
+              },
+              {
+                "description": "Task appears in hosted dashboard proxy endpoints.",
+                "id": "ac-3",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "deferred",
+                "required_artifact_types": [],
+                "status": "deferred",
+                "validated_artifact_ids": [],
+                "validated_at": null,
+                "validation_method": "deferred",
+                "validator": null
+              },
+              "items": []
+            },
+            "assigned_executor": null,
+            "child_task_ids": [],
+            "constraints": [
+              {
+                "description": "Use canonical ingress translation path.",
+                "required": true,
+                "type": "ingress_constraint"
+              }
+            ],
+            "coordination": {
+              "linear": null
+            },
+            "dependencies": [],
+            "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+            "extensions": {
+              "openclaw": {
+                "agent_id": "openclaw-assistant",
+                "channel": "cli",
+                "conversation_id": "conv-20260403-194057",
+                "message_id": "msg-20260403-194057",
+                "metadata": {
+                  "request_kind": "kno-167-hosted-proof",
+                  "run_ts": "20260403-194057"
+                },
+                "user_id": "operator@example.com",
+                "workspace_id": "workspace-harness"
+              }
+            },
+            "id": "task-openclaw-hosted-proof-20260403-194057",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": "conv-20260403-194057",
+              "ingress_name": "OpenClaw",
+              "requested_by": "operator@example.com",
+              "source_id": "msg-20260403-194057",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "high",
+            "required_capabilities": [],
+            "status": "intake_ready",
+            "status_history": [],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-04-03T19:40:57.876401Z",
+              "updated_at": "2026-04-03T19:40:57.876401Z"
+            },
+            "title": "Hosted OpenClaw ingress proof task"
+          },
+          "transition_result": null,
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": false,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "nature": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "retryable": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "task-openclaw-hosted-proof-20260403-194057",
+            "verification_passed": false
+          }
+        },
+        "error": null,
+        "evaluation_record": {
+          "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+          "recorded_at": "2026-04-03T19:40:58.999633Z",
+          "request": {
+            "acceptance_criteria_satisfied": false,
+            "claimed_completion": false,
+            "external_facts": {
+              "expected_code_context": null,
+              "github_facts": null,
+              "linear_facts": null
+            },
+            "retry_context": null,
+            "review_decision": null,
+            "review_is_active": false,
+            "review_reasons": [],
+            "review_request": null,
+            "runtime_facts": {
+              "attempt_count": 1,
+              "executor_reported_failure": false,
+              "executor_reported_success": false,
+              "latest_attempt_outcome": null,
+              "terminal_failure": false
+            },
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Task persists in hosted store.",
+                  "id": "ac-1",
+                  "required": true
+                },
+                {
+                  "description": "Task appears in canonical inspection endpoints.",
+                  "id": "ac-2",
+                  "required": true
+                },
+                {
+                  "description": "Task appears in hosted dashboard proxy endpoints.",
+                  "id": "ac-3",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "notes": null,
+                  "policy": "deferred",
+                  "required_artifact_types": [],
+                  "status": "deferred",
+                  "validated_artifact_ids": [],
+                  "validated_at": null,
+                  "validation_method": "deferred",
+                  "validator": null
+                },
+                "items": []
+              },
+              "assigned_executor": null,
+              "child_task_ids": [],
+              "constraints": [
+                {
+                  "description": "Use canonical ingress translation path.",
+                  "required": true,
+                  "type": "ingress_constraint"
+                }
+              ],
+              "coordination": {
+                "linear": null
+              },
+              "dependencies": [],
+              "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+              "extensions": {
+                "openclaw": {
+                  "agent_id": "openclaw-assistant",
+                  "channel": "cli",
+                  "conversation_id": "conv-20260403-194057",
+                  "message_id": "msg-20260403-194057",
+                  "metadata": {
+                    "request_kind": "kno-167-hosted-proof",
+                    "run_ts": "20260403-194057"
+                  },
+                  "user_id": "operator@example.com",
+                  "workspace_id": "workspace-harness"
+                }
+              },
+              "id": "task-openclaw-hosted-proof-20260403-194057",
+              "objective": {
+                "deliverable_type": "unspecified",
+                "success_signal": "Task satisfies declared acceptance criteria.",
+                "summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {
+                  "schema_required_deferred_fields": [
+                    "parent_task_id",
+                    "child_task_ids",
+                    "dependencies",
+                    "assigned_executor",
+                    "required_capabilities",
+                    "priority",
+                    "artifacts.items",
+                    "artifacts.completion_evidence",
+                    "observability"
+                  ]
+                },
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": "conv-20260403-194057",
+                "ingress_name": "OpenClaw",
+                "requested_by": "operator@example.com",
+                "source_id": "msg-20260403-194057",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "high",
+              "required_capabilities": [],
+              "status": "intake_ready",
+              "status_history": [],
+              "timestamps": {
+                "completed_at": null,
+                "created_at": "2026-04-03T19:40:57.876401Z",
+                "updated_at": "2026-04-03T19:40:57.876401Z"
+              },
+              "title": "Hosted OpenClaw ingress proof task"
+            },
+            "unresolved_conditions": []
+          },
+          "result": {
+            "accepted_completion": false,
+            "action": "no_op",
+            "enforcement_result": {
+              "action": "no_op",
+              "error": null,
+              "evidence_result": {
+                "artifact_results": [],
+                "is_sufficient": false,
+                "is_valid": true,
+                "issues": [],
+                "missing_required_artifact_types": [],
+                "unknown_validated_artifact_ids": [],
+                "validated_artifact_ids": []
+              },
+              "failure_classification": {
+                "category": "none",
+                "nature": "none",
+                "reason": "No completion claim is currently being evaluated",
+                "retryable": false
+              },
+              "reasons": [
+                "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                "No completion claim is currently being evaluated"
+              ],
+              "reconciliation_result": {
+                "blocking": false,
+                "mismatch_categories": [],
+                "outcome": "no_mismatch",
+                "reasons": [
+                  "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+                  "No blocking reconciliation mismatch was detected"
+                ],
+                "status": "passed",
+                "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                "terminal": false
+              },
+              "review_decision": null,
+              "review_request": null,
+              "target_status": null,
+              "task_envelope": {
+                "acceptance_criteria": [
+                  {
+                    "description": "Task persists in hosted store.",
+                    "id": "ac-1",
+                    "required": true
+                  },
+                  {
+                    "description": "Task appears in canonical inspection endpoints.",
+                    "id": "ac-2",
+                    "required": true
+                  },
+                  {
+                    "description": "Task appears in hosted dashboard proxy endpoints.",
+                    "id": "ac-3",
+                    "required": true
+                  }
+                ],
+                "artifacts": {
+                  "completion_evidence": {
+                    "notes": null,
+                    "policy": "deferred",
+                    "required_artifact_types": [],
+                    "status": "deferred",
+                    "validated_artifact_ids": [],
+                    "validated_at": null,
+                    "validation_method": "deferred",
+                    "validator": null
+                  },
+                  "items": []
+                },
+                "assigned_executor": null,
+                "child_task_ids": [],
+                "constraints": [
+                  {
+                    "description": "Use canonical ingress translation path.",
+                    "required": true,
+                    "type": "ingress_constraint"
+                  }
+                ],
+                "coordination": {
+                  "linear": null
+                },
+                "dependencies": [],
+                "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+                "extensions": {
+                  "openclaw": {
+                    "agent_id": "openclaw-assistant",
+                    "channel": "cli",
+                    "conversation_id": "conv-20260403-194057",
+                    "message_id": "msg-20260403-194057",
+                    "metadata": {
+                      "request_kind": "kno-167-hosted-proof",
+                      "run_ts": "20260403-194057"
+                    },
+                    "user_id": "operator@example.com",
+                    "workspace_id": "workspace-harness"
+                  }
+                },
+                "id": "task-openclaw-hosted-proof-20260403-194057",
+                "objective": {
+                  "deliverable_type": "unspecified",
+                  "success_signal": "Task satisfies declared acceptance criteria.",
+                  "summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces."
+                },
+                "observability": {
+                  "errors": [],
+                  "execution_metadata": {
+                    "schema_required_deferred_fields": [
+                      "parent_task_id",
+                      "child_task_ids",
+                      "dependencies",
+                      "assigned_executor",
+                      "required_capabilities",
+                      "priority",
+                      "artifacts.items",
+                      "artifacts.completion_evidence",
+                      "observability"
+                    ]
+                  },
+                  "retries": {
+                    "attempt_count": 0,
+                    "last_retry_at": null,
+                    "max_attempts": 0
+                  }
+                },
+                "origin": {
+                  "ingress_id": "conv-20260403-194057",
+                  "ingress_name": "OpenClaw",
+                  "requested_by": "operator@example.com",
+                  "source_id": "msg-20260403-194057",
+                  "source_system": "openclaw",
+                  "source_type": "ingress_request"
+                },
+                "parent_task_id": null,
+                "priority": "high",
+                "required_capabilities": [],
+                "status": "intake_ready",
+                "status_history": [],
+                "timestamps": {
+                  "completed_at": null,
+                  "created_at": "2026-04-03T19:40:57.876401Z",
+                  "updated_at": "2026-04-03T19:40:57.876401Z"
+                },
+                "title": "Hosted OpenClaw ingress proof task"
+              },
+              "transition_result": null,
+              "verification_result": {
+                "accepted_completion": false,
+                "claimed_completion": false,
+                "evidence_is_sufficient": false,
+                "evidence_is_valid": true,
+                "failure_classification": {
+                  "category": "none",
+                  "nature": "none",
+                  "reason": "No completion claim is currently being evaluated",
+                  "retryable": false
+                },
+                "is_terminal": false,
+                "outcome": "verification_deferred",
+                "reasons": [
+                  "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                  "No completion claim is currently being evaluated"
+                ],
+                "reconciliation_status": "passed",
+                "requires_review": false,
+                "target_status": null,
+                "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                "verification_passed": false
+              }
+            },
+            "error": null,
+            "failure_classification": {
+              "category": "none",
+              "nature": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "retryable": false
+            },
+            "invalid_input": false,
+            "reasons": [
+              "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "requires_review": false,
+            "target_status": null,
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Task persists in hosted store.",
+                  "id": "ac-1",
+                  "required": true
+                },
+                {
+                  "description": "Task appears in canonical inspection endpoints.",
+                  "id": "ac-2",
+                  "required": true
+                },
+                {
+                  "description": "Task appears in hosted dashboard proxy endpoints.",
+                  "id": "ac-3",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "notes": null,
+                  "policy": "deferred",
+                  "required_artifact_types": [],
+                  "status": "deferred",
+                  "validated_artifact_ids": [],
+                  "validated_at": null,
+                  "validation_method": "deferred",
+                  "validator": null
+                },
+                "items": []
+              },
+              "assigned_executor": null,
+              "child_task_ids": [],
+              "constraints": [
+                {
+                  "description": "Use canonical ingress translation path.",
+                  "required": true,
+                  "type": "ingress_constraint"
+                }
+              ],
+              "coordination": {
+                "linear": null
+              },
+              "dependencies": [],
+              "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+              "extensions": {
+                "openclaw": {
+                  "agent_id": "openclaw-assistant",
+                  "channel": "cli",
+                  "conversation_id": "conv-20260403-194057",
+                  "message_id": "msg-20260403-194057",
+                  "metadata": {
+                    "request_kind": "kno-167-hosted-proof",
+                    "run_ts": "20260403-194057"
+                  },
+                  "user_id": "operator@example.com",
+                  "workspace_id": "workspace-harness"
+                }
+              },
+              "id": "task-openclaw-hosted-proof-20260403-194057",
+              "objective": {
+                "deliverable_type": "unspecified",
+                "success_signal": "Task satisfies declared acceptance criteria.",
+                "summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {
+                  "schema_required_deferred_fields": [
+                    "parent_task_id",
+                    "child_task_ids",
+                    "dependencies",
+                    "assigned_executor",
+                    "required_capabilities",
+                    "priority",
+                    "artifacts.items",
+                    "artifacts.completion_evidence",
+                    "observability"
+                  ]
+                },
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": "conv-20260403-194057",
+                "ingress_name": "OpenClaw",
+                "requested_by": "operator@example.com",
+                "source_id": "msg-20260403-194057",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "high",
+              "required_capabilities": [],
+              "status": "intake_ready",
+              "status_history": [],
+              "timestamps": {
+                "completed_at": null,
+                "created_at": "2026-04-03T19:40:57.876401Z",
+                "updated_at": "2026-04-03T19:40:57.876401Z"
+              },
+              "title": "Hosted OpenClaw ingress proof task"
+            }
+          },
+          "task_id": "task-openclaw-hosted-proof-20260403-194057"
+        },
+        "failure_classification": {
+          "category": "none",
+          "nature": "none",
+          "reason": "No completion claim is currently being evaluated",
+          "retryable": false
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "requires_review": false,
+        "target_status": null,
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Task persists in hosted store.",
+              "id": "ac-1",
+              "required": true
+            },
+            {
+              "description": "Task appears in canonical inspection endpoints.",
+              "id": "ac-2",
+              "required": true
+            },
+            {
+              "description": "Task appears in hosted dashboard proxy endpoints.",
+              "id": "ac-3",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": null,
+          "child_task_ids": [],
+          "constraints": [
+            {
+              "description": "Use canonical ingress translation path.",
+              "required": true,
+              "type": "ingress_constraint"
+            }
+          ],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+          "extensions": {
+            "openclaw": {
+              "agent_id": "openclaw-assistant",
+              "channel": "cli",
+              "conversation_id": "conv-20260403-194057",
+              "message_id": "msg-20260403-194057",
+              "metadata": {
+                "request_kind": "kno-167-hosted-proof",
+                "run_ts": "20260403-194057"
+              },
+              "user_id": "operator@example.com",
+              "workspace_id": "workspace-harness"
+            }
+          },
+          "id": "task-openclaw-hosted-proof-20260403-194057",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": "conv-20260403-194057",
+            "ingress_name": "OpenClaw",
+            "requested_by": "operator@example.com",
+            "source_id": "msg-20260403-194057",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "high",
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-04-03T19:40:57.876401Z",
+            "updated_at": "2026-04-03T19:40:57.876401Z"
+          },
+          "title": "Hosted OpenClaw ingress proof task"
+        }
+      }
+    },
+    {
+      "name": "canonical_tasks",
+      "method": "GET",
+      "url": "https://harness-qeav.onrender.com/tasks",
+      "status": 200,
+      "task_present": true,
+      "count": 3
+    },
+    {
+      "name": "canonical_read_model",
+      "method": "GET",
+      "url": "https://harness-qeav.onrender.com/tasks/task-openclaw-hosted-proof-20260403-194057/read-model",
+      "status": 200,
+      "task_id_field": null,
+      "response": {
+        "task": {
+          "assigned_executor": null,
+          "coordination_summary": {
+            "linear": null
+          },
+          "current_status": "intake_ready",
+          "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+          "evaluation_summary": {
+            "count": 1,
+            "history": [
+              {
+                "action": "no_op",
+                "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+                "recorded_at": "2026-04-03T19:40:58.999633Z",
+                "target_status": null
+              }
+            ],
+            "latest_action": "no_op",
+            "latest_recorded_at": "2026-04-03T19:40:58.999633Z",
+            "latest_target_status": null
+          },
+          "evidence_summary": {
+            "artifact_count": 0,
+            "artifact_type_counts": {},
+            "completion_evidence": {
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "validated_artifact_count": 0,
+            "verification_status_counts": {}
+          },
+          "extensions": {
+            "openclaw": {
+              "agent_id": "openclaw-assistant",
+              "channel": "cli",
+              "conversation_id": "conv-20260403-194057",
+              "message_id": "msg-20260403-194057",
+              "metadata": {
+                "request_kind": "kno-167-hosted-proof",
+                "run_ts": "20260403-194057"
+              },
+              "user_id": "operator@example.com",
+              "workspace_id": "workspace-harness"
+            }
+          },
+          "lifecycle_history": [],
+          "objective_summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+          "origin": {
+            "ingress_id": "conv-20260403-194057",
+            "ingress_name": "OpenClaw",
+            "requested_by": "operator@example.com",
+            "source_id": "msg-20260403-194057",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "reconciliation_summary": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+              "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "task-openclaw-hosted-proof-20260403-194057",
+            "terminal": false
+          },
+          "relationships": {
+            "child_task_ids": [],
+            "dependencies": [],
+            "parent_task_id": null
+          },
+          "review_summary": {
+            "decision_count": 0,
+            "decisions": [],
+            "latest_decision": null,
+            "latest_request": null,
+            "request_count": 0,
+            "requests": [],
+            "status": "none"
+          },
+          "task_id": "task-openclaw-hosted-proof-20260403-194057",
+          "timeline": [
+            {
+              "details": {
+                "origin": {
+                  "ingress_id": "conv-20260403-194057",
+                  "ingress_name": "OpenClaw",
+                  "requested_by": "operator@example.com",
+                  "source_id": "msg-20260403-194057",
+                  "source_system": "openclaw",
+                  "source_type": "ingress_request"
+                },
+                "status": "intake_ready",
+                "title": "Hosted OpenClaw ingress proof task"
+              },
+              "event_id": "task-openclaw-hosted-proof-20260403-194057:created",
+              "event_type": "task_created",
+              "occurred_at": "2026-04-03T19:40:57.876401Z",
+              "source": "openclaw",
+              "summary": "Task created"
+            },
+            {
+              "details": {
+                "accepted_completion": false,
+                "action": "no_op",
+                "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+                "reasons": [
+                  "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                  "No completion claim is currently being evaluated"
+                ],
+                "reconciliation_result": {
+                  "blocking": false,
+                  "mismatch_categories": [],
+                  "outcome": "no_mismatch",
+                  "reasons": [
+                    "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+                    "No blocking reconciliation mismatch was detected"
+                  ],
+                  "status": "passed",
+                  "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                  "terminal": false
+                },
+                "requires_review": false,
+                "target_status": null,
+                "verification_result": {
+                  "accepted_completion": false,
+                  "claimed_completion": false,
+                  "evidence_is_sufficient": false,
+                  "evidence_is_valid": true,
+                  "failure_classification": {
+                    "category": "none",
+                    "nature": "none",
+                    "reason": "No completion claim is currently being evaluated",
+                    "retryable": false
+                  },
+                  "is_terminal": false,
+                  "outcome": "verification_deferred",
+                  "reasons": [
+                    "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                    "No completion claim is currently being evaluated"
+                  ],
+                  "reconciliation_status": "passed",
+                  "requires_review": false,
+                  "target_status": null,
+                  "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                  "verification_passed": false
+                }
+              },
+              "event_id": "task-openclaw-hosted-proof-20260403-194057:evaluation:3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+              "event_type": "evaluation_recorded",
+              "occurred_at": "2026-04-03T19:40:58.999633Z",
+              "source": "harness",
+              "summary": "Evaluation recorded: no_op"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-04-03T19:40:57.876401Z",
+            "updated_at": "2026-04-03T19:40:57.876401Z"
+          },
+          "title": "Hosted OpenClaw ingress proof task",
+          "verification_summary": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": false,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "nature": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "retryable": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "task-openclaw-hosted-proof-20260403-194057",
+            "verification_passed": false
+          }
+        }
+      }
+    },
+    {
+      "name": "canonical_timeline",
+      "method": "GET",
+      "url": "https://harness-qeav.onrender.com/tasks/task-openclaw-hosted-proof-20260403-194057/timeline",
+      "status": 200,
+      "task_id_field": "task-openclaw-hosted-proof-20260403-194057",
+      "response": {
+        "current_status": "intake_ready",
+        "event_count": 2,
+        "task_id": "task-openclaw-hosted-proof-20260403-194057",
+        "timeline": [
+          {
+            "details": {
+              "origin": {
+                "ingress_id": "conv-20260403-194057",
+                "ingress_name": "OpenClaw",
+                "requested_by": "operator@example.com",
+                "source_id": "msg-20260403-194057",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "status": "intake_ready",
+              "title": "Hosted OpenClaw ingress proof task"
+            },
+            "event_id": "task-openclaw-hosted-proof-20260403-194057:created",
+            "event_type": "task_created",
+            "occurred_at": "2026-04-03T19:40:57.876401Z",
+            "source": "openclaw",
+            "summary": "Task created"
+          },
+          {
+            "details": {
+              "accepted_completion": false,
+              "action": "no_op",
+              "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+              "reasons": [
+                "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                "No completion claim is currently being evaluated"
+              ],
+              "reconciliation_result": {
+                "blocking": false,
+                "mismatch_categories": [],
+                "outcome": "no_mismatch",
+                "reasons": [
+                  "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+                  "No blocking reconciliation mismatch was detected"
+                ],
+                "status": "passed",
+                "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                "terminal": false
+              },
+              "requires_review": false,
+              "target_status": null,
+              "verification_result": {
+                "accepted_completion": false,
+                "claimed_completion": false,
+                "evidence_is_sufficient": false,
+                "evidence_is_valid": true,
+                "failure_classification": {
+                  "category": "none",
+                  "nature": "none",
+                  "reason": "No completion claim is currently being evaluated",
+                  "retryable": false
+                },
+                "is_terminal": false,
+                "outcome": "verification_deferred",
+                "reasons": [
+                  "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                  "No completion claim is currently being evaluated"
+                ],
+                "reconciliation_status": "passed",
+                "requires_review": false,
+                "target_status": null,
+                "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                "verification_passed": false
+              }
+            },
+            "event_id": "task-openclaw-hosted-proof-20260403-194057:evaluation:3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+            "event_type": "evaluation_recorded",
+            "occurred_at": "2026-04-03T19:40:58.999633Z",
+            "source": "harness",
+            "summary": "Evaluation recorded: no_op"
+          }
+        ]
+      }
+    },
+    {
+      "name": "dashboard_tasks",
+      "method": "GET",
+      "url": "https://harness-umber.vercel.app/api/harness/tasks",
+      "status": 200,
+      "task_present": true,
+      "count": 3
+    },
+    {
+      "name": "dashboard_read_model",
+      "method": "GET",
+      "url": "https://harness-umber.vercel.app/api/harness/tasks/task-openclaw-hosted-proof-20260403-194057/read-model",
+      "status": 200,
+      "task_id_field": null,
+      "response": {
+        "task": {
+          "assigned_executor": null,
+          "coordination_summary": {
+            "linear": null
+          },
+          "current_status": "intake_ready",
+          "description": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+          "evaluation_summary": {
+            "count": 1,
+            "history": [
+              {
+                "action": "no_op",
+                "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+                "recorded_at": "2026-04-03T19:40:58.999633Z",
+                "target_status": null
+              }
+            ],
+            "latest_action": "no_op",
+            "latest_recorded_at": "2026-04-03T19:40:58.999633Z",
+            "latest_target_status": null
+          },
+          "evidence_summary": {
+            "artifact_count": 0,
+            "artifact_type_counts": {},
+            "completion_evidence": {
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "validated_artifact_count": 0,
+            "verification_status_counts": {}
+          },
+          "extensions": {
+            "openclaw": {
+              "agent_id": "openclaw-assistant",
+              "channel": "cli",
+              "conversation_id": "conv-20260403-194057",
+              "message_id": "msg-20260403-194057",
+              "metadata": {
+                "request_kind": "kno-167-hosted-proof",
+                "run_ts": "20260403-194057"
+              },
+              "user_id": "operator@example.com",
+              "workspace_id": "workspace-harness"
+            }
+          },
+          "lifecycle_history": [],
+          "objective_summary": "Verify hosted ingress submission persists and is visible on canonical and dashboard surfaces.",
+          "origin": {
+            "ingress_id": "conv-20260403-194057",
+            "ingress_name": "OpenClaw",
+            "requested_by": "operator@example.com",
+            "source_id": "msg-20260403-194057",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "reconciliation_summary": {
+            "blocking": false,
+            "mismatch_categories": [],
+            "outcome": "no_mismatch",
+            "reasons": [
+              "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ],
+            "status": "passed",
+            "task_id": "task-openclaw-hosted-proof-20260403-194057",
+            "terminal": false
+          },
+          "relationships": {
+            "child_task_ids": [],
+            "dependencies": [],
+            "parent_task_id": null
+          },
+          "review_summary": {
+            "decision_count": 0,
+            "decisions": [],
+            "latest_decision": null,
+            "latest_request": null,
+            "request_count": 0,
+            "requests": [],
+            "status": "none"
+          },
+          "task_id": "task-openclaw-hosted-proof-20260403-194057",
+          "timeline": [
+            {
+              "details": {
+                "origin": {
+                  "ingress_id": "conv-20260403-194057",
+                  "ingress_name": "OpenClaw",
+                  "requested_by": "operator@example.com",
+                  "source_id": "msg-20260403-194057",
+                  "source_system": "openclaw",
+                  "source_type": "ingress_request"
+                },
+                "status": "intake_ready",
+                "title": "Hosted OpenClaw ingress proof task"
+              },
+              "event_id": "task-openclaw-hosted-proof-20260403-194057:created",
+              "event_type": "task_created",
+              "occurred_at": "2026-04-03T19:40:57.876401Z",
+              "source": "openclaw",
+              "summary": "Task created"
+            },
+            {
+              "details": {
+                "accepted_completion": false,
+                "action": "no_op",
+                "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+                "reasons": [
+                  "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                  "No completion claim is currently being evaluated"
+                ],
+                "reconciliation_result": {
+                  "blocking": false,
+                  "mismatch_categories": [],
+                  "outcome": "no_mismatch",
+                  "reasons": [
+                    "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+                    "No blocking reconciliation mismatch was detected"
+                  ],
+                  "status": "passed",
+                  "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                  "terminal": false
+                },
+                "requires_review": false,
+                "target_status": null,
+                "verification_result": {
+                  "accepted_completion": false,
+                  "claimed_completion": false,
+                  "evidence_is_sufficient": false,
+                  "evidence_is_valid": true,
+                  "failure_classification": {
+                    "category": "none",
+                    "nature": "none",
+                    "reason": "No completion claim is currently being evaluated",
+                    "retryable": false
+                  },
+                  "is_terminal": false,
+                  "outcome": "verification_deferred",
+                  "reasons": [
+                    "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                    "No completion claim is currently being evaluated"
+                  ],
+                  "reconciliation_status": "passed",
+                  "requires_review": false,
+                  "target_status": null,
+                  "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                  "verification_passed": false
+                }
+              },
+              "event_id": "task-openclaw-hosted-proof-20260403-194057:evaluation:3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+              "event_type": "evaluation_recorded",
+              "occurred_at": "2026-04-03T19:40:58.999633Z",
+              "source": "harness",
+              "summary": "Evaluation recorded: no_op"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-04-03T19:40:57.876401Z",
+            "updated_at": "2026-04-03T19:40:57.876401Z"
+          },
+          "title": "Hosted OpenClaw ingress proof task",
+          "verification_summary": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": false,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "nature": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "retryable": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "passed",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "task-openclaw-hosted-proof-20260403-194057",
+            "verification_passed": false
+          }
+        }
+      }
+    },
+    {
+      "name": "dashboard_timeline",
+      "method": "GET",
+      "url": "https://harness-umber.vercel.app/api/harness/tasks/task-openclaw-hosted-proof-20260403-194057/timeline",
+      "status": 200,
+      "task_id_field": "task-openclaw-hosted-proof-20260403-194057",
+      "response": {
+        "current_status": "intake_ready",
+        "event_count": 2,
+        "task_id": "task-openclaw-hosted-proof-20260403-194057",
+        "timeline": [
+          {
+            "details": {
+              "origin": {
+                "ingress_id": "conv-20260403-194057",
+                "ingress_name": "OpenClaw",
+                "requested_by": "operator@example.com",
+                "source_id": "msg-20260403-194057",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "status": "intake_ready",
+              "title": "Hosted OpenClaw ingress proof task"
+            },
+            "event_id": "task-openclaw-hosted-proof-20260403-194057:created",
+            "event_type": "task_created",
+            "occurred_at": "2026-04-03T19:40:57.876401Z",
+            "source": "openclaw",
+            "summary": "Task created"
+          },
+          {
+            "details": {
+              "accepted_completion": false,
+              "action": "no_op",
+              "evaluation_id": "3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+              "reasons": [
+                "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                "No completion claim is currently being evaluated"
+              ],
+              "reconciliation_result": {
+                "blocking": false,
+                "mismatch_categories": [],
+                "outcome": "no_mismatch",
+                "reasons": [
+                  "Reconciliation evaluated task 'task-openclaw-hosted-proof-20260403-194057' against normalized external facts",
+                  "No blocking reconciliation mismatch was detected"
+                ],
+                "status": "passed",
+                "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                "terminal": false
+              },
+              "requires_review": false,
+              "target_status": null,
+              "verification_result": {
+                "accepted_completion": false,
+                "claimed_completion": false,
+                "evidence_is_sufficient": false,
+                "evidence_is_valid": true,
+                "failure_classification": {
+                  "category": "none",
+                  "nature": "none",
+                  "reason": "No completion claim is currently being evaluated",
+                  "retryable": false
+                },
+                "is_terminal": false,
+                "outcome": "verification_deferred",
+                "reasons": [
+                  "Verification evaluated task 'task-openclaw-hosted-proof-20260403-194057' against canonical completion policy",
+                  "No completion claim is currently being evaluated"
+                ],
+                "reconciliation_status": "passed",
+                "requires_review": false,
+                "target_status": null,
+                "task_id": "task-openclaw-hosted-proof-20260403-194057",
+                "verification_passed": false
+              }
+            },
+            "event_id": "task-openclaw-hosted-proof-20260403-194057:evaluation:3c16b21c-9fc5-4350-988a-2ce73b68a7ac",
+            "event_type": "evaluation_recorded",
+            "occurred_at": "2026-04-03T19:40:58.999633Z",
+            "source": "harness",
+            "summary": "Evaluation recorded: no_op"
+          }
+        ]
+      }
+    }
+  ]
+}
