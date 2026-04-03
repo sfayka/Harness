@@ -225,6 +225,19 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertIn("linear", payload["task"]["extensions"])
         self.assertGreaterEqual(payload["task"]["evaluation_summary"]["count"], 1)
 
+    def test_read_model_includes_execution_summary_after_dispatch(self) -> None:
+        submit_status, submit_payload = self.service.submit(_request_payload("blocked_insufficient_evidence"))
+        task_id = submit_payload["task_envelope"]["id"]
+        dispatch_status, _ = self.service.dispatch_task(task_id, {"request": {"executor": "codex"}})
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 1)
+        self.assertIsNotNone(read_payload["task"]["execution_summary"]["latest_attempt"])
+
 
 class HarnessReadModelHttpApiTests(unittest.TestCase):
     def setUp(self) -> None:

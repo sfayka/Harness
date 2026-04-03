@@ -18,6 +18,19 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - A completion claim is treated as `claimed_completion=true` advisory input; it does not directly authorize a lifecycle transition.
 - The canonical lifecycle outcome still comes from verification/reconciliation/review enforcement.
 
+### Manual Dispatch Bridge
+
+- `POST /tasks/<task_id>/dispatch` manually dispatches an existing canonical task to an executor adapter.
+- The request supports:
+  - `request.executor` (optional: `codex`, `openclaw`, or `stub-executor`; default `codex`)
+  - `request.execution_parameters` (optional object for advisory execution metadata)
+  - `request.artifact_references` (optional list of advisory artifact references such as PR URL, commit SHA, and branch metadata)
+- Dispatch:
+  - records a new execution attempt under `observability.execution_metadata.execution_attempts`
+  - records advisory completion claim metadata
+  - automatically triggers canonical reevaluation through the existing completion-claim path
+- Dispatch remains advisory-only and must not bypass verification, reconciliation, lifecycle enforcement, or review gates.
+
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
 - `POST /evaluate` may still be used as an evaluation surface for an existing task id, but Harness evaluates against the stored task snapshot and only reapplies the supported top-level overlays listed below.
 - Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state by supplying a different nested `request.task_envelope`.

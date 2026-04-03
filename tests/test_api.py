@@ -895,6 +895,60 @@ class HarnessApiServiceTests(unittest.TestCase):
         ]
         self.assertTrue(execution_events)
 
+    def test_service_dispatch_task_records_attempt_and_runs_reevaluation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        dispatch_status, dispatch_response = self.service.dispatch_task(
+            task_id,
+            {
+                "request": {
+                    "executor": "codex",
+                    "execution_parameters": {"mode": "manual"},
+                    "artifact_references": [
+                        {
+                            "reference_id": "attempt-1:pr",
+                            "artifact_type": "pull_request",
+                            "location": "https://github.com/sfayka/Harness/pull/999",
+                            "metadata": {
+                                "branch_name": "codex/manual-task-dispatch",
+                                "commit_sha": "abc123",
+                            },
+                        }
+                    ],
+                }
+            },
+        )
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+        read_model_status, read_model_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(dispatch_response["dispatch"]["attempt_id"], "attempt-1")
+        self.assertEqual(dispatch_response["dispatch"]["executor"], "codex")
+        self.assertIn(
+            dispatch_response["dispatch"]["attempt_status"],
+            {"started", "in_progress", "completed", "failed", "blocked"},
+        )
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(any(event["event_type"] == "task_dispatched" for event in timeline_payload["timeline"]))
+        self.assertTrue(any(event["event_type"] == "execution_event_recorded" for event in timeline_payload["timeline"]))
+        self.assertTrue(any(event["event_type"] == "execution_artifact_attached" for event in timeline_payload["timeline"]))
+        self.assertEqual(read_model_status, 200)
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
+
+    def test_service_dispatch_rejects_terminal_tasks(self) -> None:
+        submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))
+        task_id = submit_payload["task_envelope"]["id"]
+
+        dispatch_status, dispatch_response = self.service.dispatch_task(task_id, {"request": {"executor": "codex"}})
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 409)
+        self.assertIn("terminal", dispatch_response["error"])
+
     def test_service_evaluate_existing_review_required_task_cannot_be_overwritten_to_completed(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
         task_id = initial_response["task_envelope"]["id"]
@@ -1543,6 +1597,21 @@ class HarnessHttpApiTests(unittest.TestCase):
             "advisory_completion_claims"
         ]
         self.assertEqual(claims[-1]["claim_id"], "claim-api-1")
+
+    def test_api_dispatch_endpoint_records_execution_attempt(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        dispatch_status, dispatch_response = self._post_json(
+            f"/tasks/{task_id}/dispatch",
+            {"request": {"executor": "codex"}},
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(dispatch_response["dispatch"]["task_id"], task_id)
 
     def test_api_can_reevaluate_completed_task_back_to_blocked_for_contradictory_facts(self) -> None:
         initial_payload = _request_payload("accepted_completion")

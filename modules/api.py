@@ -14,6 +14,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+from modules.adapters.executor_adapter import (
+    ExecutorAdapterInputError,
+    ExecutorDispatchInput,
+    StubExecutorAdapter,
+)
 from modules.connectors import (
     GitHubConnectorInputError,
     LinearConnectorInputError,
@@ -69,6 +74,8 @@ _RETRYABLE_FAILURE_CATEGORIES = frozenset(
         FailureCategory.EXTERNAL_AVAILABILITY_FAILURE,
     }
 )
+_TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
+_DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 
 
 def _iso_now() -> str:
@@ -594,6 +601,37 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
     )
 
 
+def _dispatch_attempt_number(task_envelope: dict[str, Any]) -> int:
+    attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    if not isinstance(attempts, list):
+        raise ApiRequestError("observability.execution_metadata.execution_attempts must be an array")
+    return len(attempts) + 1
+
+
+def _dispatch_attempt_status(execution_events: tuple[dict[str, Any], ...]) -> str:
+    event_types = {str(event.get("event_type")) for event in execution_events}
+    if "execution_failed" in event_types:
+        return "failed"
+    if "execution_succeeded" in event_types:
+        return "completed"
+    if "execution_stalled" in event_types or "execution_timed_out" in event_types:
+        return "blocked"
+    if "progress_reported" in event_types:
+        return "in_progress"
+    return "started"
+
+
+def _executor_hint(hint: str | None) -> str:
+    if hint is None:
+        return "codex"
+    normalized = hint.strip().lower()
+    if not normalized:
+        return "codex"
+    if normalized in {"codex", "openclaw", "stub-executor", "stub"}:
+        return normalized
+    raise ApiRequestError("request.executor must be one of: codex, openclaw, stub-executor")
+
+
 def _collect_review_activity(records: tuple[EvaluationRecord, ...]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     requests: list[dict[str, Any]] = []
     decisions: list[dict[str, Any]] = []
@@ -1040,6 +1078,134 @@ class HarnessApiService:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
+    def dispatch_task(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        task_status = str(stored_task.get("status") or "")
+        if task_status in _TERMINAL_TASK_STATUSES:
+            return HTTPStatus.CONFLICT, {"error": f"Task {task_id!r} is terminal and cannot be dispatched"}
+        if task_status in _DISPATCH_BLOCKED_STATUSES:
+            return HTTPStatus.CONFLICT, {"error": f"Task {task_id!r} is currently blocked for dispatch"}
+
+        request_payload = _optional_mapping(payload.get("request"), field_name="request") or {}
+        executor = _executor_hint(_optional_non_empty_string(request_payload.get("executor"), field_name="request.executor"))
+        execution_parameters = _optional_mapping(
+            request_payload.get("execution_parameters"),
+            field_name="request.execution_parameters",
+        ) or {}
+        extra_artifact_refs = _optional_object_list(
+            request_payload.get("artifact_references"),
+            field_name="request.artifact_references",
+        )
+
+        try:
+            attempt_number = _dispatch_attempt_number(stored_task)
+            attempt_id = f"attempt-{attempt_number}"
+            dispatch_input = ExecutorDispatchInput.from_task_envelope(
+                stored_task,
+                attempt_id=attempt_id,
+                assigned_executor=executor,
+            )
+            adapter_output = StubExecutorAdapter().dispatch(dispatch_input)
+        except (ApiRequestError, ExecutorAdapterInputError, ValueError) as error:
+            return HTTPStatus.BAD_REQUEST, {"error": str(error), "invalid_input": True}
+
+        event_payloads = tuple(
+            {
+                "event_id": str(event.event_id),
+                "event_type": str(event.event_type.value),
+                "occurred_at": str(event.occurred_at),
+                "source_system": str(event.provenance.source_system),
+                "metadata": dict(event.metadata),
+            }
+            for event in adapter_output.events
+        )
+        artifact_references = [
+            {
+                "reference_id": str(item.reference_id),
+                "artifact_type": str(item.artifact_type),
+                "location": item.location,
+                "external_id": item.external_id,
+                "commit_sha": item.commit_sha,
+                "metadata": dict(item.metadata),
+            }
+            for item in adapter_output.artifact_references
+        ]
+        artifact_references.extend(deepcopy(item) for item in extra_artifact_refs)
+        attempt_status = _dispatch_attempt_status(event_payloads)
+        claim_event = next(
+            (
+                event
+                for event in reversed(adapter_output.events)
+                if event.advisory_completion is not None
+            ),
+            None,
+        )
+        completion_claim_payload = claim_event.advisory_completion if claim_event is not None else None
+        completion_claim = {
+            "claim_id": (
+                completion_claim_payload.claim_id
+                if completion_claim_payload is not None
+                else f"{attempt_id}:claim"
+            ),
+            "reported_at": _iso_now(),
+            "reported_by": executor,
+            "reason": "manual dispatch execution attempt recorded",
+            "metadata": {
+                "attempt_id": attempt_id,
+                "dispatch_mode": "manual",
+                "execution_parameters": dict(execution_parameters),
+                "advisory_only": True,
+            },
+        }
+        execution_attempt = {
+            "attempt_id": attempt_id,
+            "recorded_at": _iso_now(),
+            "status": attempt_status,
+            "reported_by": executor,
+            "completion_claim_id": completion_claim["claim_id"],
+            "artifact_references": artifact_references,
+            "metadata": {
+                "dispatch_id": f"dispatch:{task_id}:{attempt_number}",
+                "dispatch_trigger": "manual_api",
+                "executor": executor,
+                "execution_parameters": dict(execution_parameters),
+                "dispatch_at": _iso_now(),
+                "execution_events": list(event_payloads),
+            },
+            "reevaluation": {},
+        }
+
+        dispatch_response_payload = {
+            "request": {
+                "completion_claim": completion_claim,
+                "execution_attempt": execution_attempt,
+                "acceptance_criteria_satisfied": bool(request_payload.get("acceptance_criteria_satisfied", False)),
+                "runtime_facts": {
+                    "executor_reported_success": attempt_status == "completed",
+                    "attempt_count": attempt_number,
+                    "latest_attempt_outcome": attempt_status,
+                },
+            }
+        }
+        external_facts_payload = _optional_mapping(request_payload.get("external_facts"), field_name="request.external_facts")
+        if external_facts_payload is not None:
+            dispatch_response_payload["request"]["external_facts"] = deepcopy(external_facts_payload)
+
+        status, response_payload = self.submit_completion_claim(task_id, dispatch_response_payload)
+        if status == HTTPStatus.OK:
+            response_payload["dispatch"] = {
+                "dispatch_id": execution_attempt["metadata"]["dispatch_id"],
+                "task_id": task_id,
+                "attempt_id": attempt_id,
+                "executor": executor,
+                "attempt_status": attempt_status,
+            }
+        return status, response_payload
+
     def get_task(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             task = self.store.get_task(task_id)
@@ -1149,7 +1315,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         if request_path not in {"/evaluate", "/tasks", "/ingress/linear", "/ingress/manual", "/ingress/openclaw"} and not (
             len(path_components) == 3
             and path_components[0] == "tasks"
-            and path_components[2] in {"reevaluate", "completion-claims"}
+            and path_components[2] in {"reevaluate", "completion-claims", "dispatch"}
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
@@ -1175,6 +1341,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             status, response_payload = service.evaluate(payload)
         elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "completion-claims":
             status, response_payload = service.submit_completion_claim(path_components[1], payload)
+        elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "dispatch":
+            status, response_payload = service.dispatch_task(path_components[1], payload)
         else:
             status, response_payload = service.reevaluate(path_components[1], payload)
         self._write_json(status, response_payload)
