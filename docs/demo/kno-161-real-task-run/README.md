@@ -24,8 +24,8 @@ This document records one real task executed through Harness using canonical API
 
 - Repository: `sfayka/Harness`
 - Branch: `codex/real-task-proof`
-- Commit SHA: `TBD`
-- PR URL: `TBD`
+- Commit SHA: `04d9da2b7d8add29e33f8c98bf558e2d145b0f95`
+- PR URL: `https://github.com/sfayka/Harness/pull/121`
 
 ## Harness evaluation snapshots
 
@@ -49,7 +49,7 @@ See:
 
 ## Final lifecycle outcome
 
-TBD after final reevaluation.
+The task transitioned to `completed` after reevaluation with real repository artifacts (`accepted_completion=true`, `target_status=completed`, `action=transition_applied`).
 
 ## Notes
 
