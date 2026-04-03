@@ -88,3 +88,13 @@ This spike does not implement:
 - a new Harness ingress endpoint for OpenClaw
 
 It is intentionally a narrow proof that OpenClaw can remain a client and Harness can remain a standalone service.
+
+
+## Hosted Validation Follow-up
+
+Hosted-environment validation for KNO-167 is tracked separately in:
+
+- [`docs/integration/kno-167-hosted-proof-correction.md`](./kno-167-hosted-proof-correction.md)
+- [`docs/integration/artifacts/kno-167-hosted-proof-20260403-run-correction.json`](./artifacts/kno-167-hosted-proof-20260403-run-correction.json)
+
+This follow-up preserves the same boundary assumptions (OpenClaw ingress client -> canonical Harness APIs -> inspection surfaces) while recording hosted evidence artifacts and correcting run-specific completion artifact reporting.
