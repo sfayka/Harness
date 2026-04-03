@@ -22,6 +22,7 @@ from modules.connectors import (
     translate_linear_facts,
     translate_linear_submission_payload,
 )
+from modules.contracts.failure_classification import FailureCategory
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
 from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
@@ -55,6 +56,15 @@ LINEAR_WORKFLOW_CONTRACT_ERROR = (
     "Invalid external_facts.linear_facts.workflow: must be null/omitted when record_found=false, "
     "or an object with workflow_id and workflow_name when record_found=true"
 )
+_DEFAULT_CLASSIFIED_RETRY_BUDGET = 2
+_CLASSIFIED_RETRY_BUDGET_ENV = "HARNESS_CLASSIFIED_RETRY_BUDGET"
+_RETRYABLE_FAILURE_CATEGORIES = frozenset(
+    {
+        FailureCategory.ENVIRONMENT_BOOTSTRAP_FAILURE,
+        FailureCategory.EXECUTOR_RUNTIME_FAILURE,
+        FailureCategory.EXTERNAL_AVAILABILITY_FAILURE,
+    }
+)
 
 
 def _iso_now() -> str:
@@ -65,6 +75,17 @@ def _parse_iso_timestamp(value: str | None) -> datetime:
     if not value:
         return datetime.min.replace(tzinfo=timezone.utc)
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
+def _classified_retry_budget() -> int:
+    raw_budget = os.getenv(_CLASSIFIED_RETRY_BUDGET_ENV)
+    if raw_budget is None:
+        return _DEFAULT_CLASSIFIED_RETRY_BUDGET
+    try:
+        parsed_budget = int(raw_budget)
+    except ValueError:
+        return _DEFAULT_CLASSIFIED_RETRY_BUDGET
+    return max(parsed_budget, 0)
 
 
 def _require_mapping(value: Any, *, field_name: str) -> dict[str, Any]:
@@ -598,6 +619,72 @@ class HarnessApiService:
             return self.store.put_task(task_envelope)
         return self.store.update_task(task_envelope)
 
+    def _with_retry_provenance(
+        self,
+        request: HarnessEvaluationRequest,
+        *,
+        attempt_number: int,
+        max_retries: int,
+        retry_reason: str,
+        category: FailureCategory,
+    ) -> HarnessEvaluationRequest:
+        runtime_facts = request.runtime_facts
+        next_attempt_count = max(runtime_facts.attempt_count, 1) + 1
+        return replace(
+            request,
+            runtime_facts=replace(
+                runtime_facts,
+                attempt_count=next_attempt_count,
+                latest_attempt_outcome="retry_scheduled",
+            ),
+            retry_context={
+                "attempt_number": attempt_number,
+                "max_retries": max_retries,
+                "triggered_by_category": category.value,
+                "triggered_by_reason": retry_reason,
+                "scheduled_at": _iso_now(),
+            },
+        )
+
+    def _evaluate_with_classified_retries(
+        self,
+        request: HarnessEvaluationRequest,
+    ) -> tuple[int, dict[str, Any], HarnessEvaluationResult | None, tuple[tuple[HarnessEvaluationRequest, HarnessEvaluationResult], ...]]:
+        attempts: list[tuple[HarnessEvaluationRequest, HarnessEvaluationResult]] = []
+        max_retries = _classified_retry_budget()
+        active_request = request
+
+        for retry_index in range(max_retries + 1):
+            status, response_payload, result = _evaluate_request(active_request)
+            if result is None:
+                return status, response_payload, None, tuple(attempts)
+            attempts.append((active_request, result))
+
+            category = result.failure_classification.category
+            should_retry = (
+                status == HTTPStatus.OK
+                and not result.invalid_input
+                and result.failure_classification.retryable
+                and category in _RETRYABLE_FAILURE_CATEGORIES
+                and retry_index < max_retries
+            )
+            if not should_retry:
+                return status, response_payload, result, tuple(attempts)
+
+            active_request = self._with_retry_provenance(
+                request=active_request,
+                attempt_number=retry_index + 1,
+                max_retries=max_retries,
+                retry_reason=result.failure_classification.reason,
+                category=category,
+            )
+
+        status, response_payload, result = _evaluate_request(active_request)
+        if result is None:
+            return status, response_payload, None, tuple(attempts)
+        attempts.append((active_request, result))
+        return status, response_payload, result, tuple(attempts)
+
     def submit(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             request = parse_evaluation_request(payload)
@@ -617,7 +704,7 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             pass
 
-        status, response_payload, result = _evaluate_request(request)
+        status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
             return status, response_payload
 
@@ -632,9 +719,12 @@ class HarnessApiService:
                 "duplicate_task_id": True,
             }
 
-        record = self.store.put_evaluation_record(request=request, result=result)
+        record = None
+        for attempt_request, attempt_result in attempts:
+            record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
-        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        if record is not None:
+            response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
     def submit_linear_ingress(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -671,7 +761,7 @@ class HarnessApiService:
                 review_is_active=_review_gate_is_active(stored_task, existing_records),
             )
 
-        status, response_payload, result = _evaluate_request(request)
+        status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
             return status, response_payload
 
@@ -679,9 +769,12 @@ class HarnessApiService:
             return status, response_payload
 
         stored_task = self._upsert_task(result.task_envelope)
-        record = self.store.put_evaluation_record(request=request, result=result)
+        record = None
+        for attempt_request, attempt_result in attempts:
+            record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
-        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        if record is not None:
+            response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
     def reevaluate(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -706,7 +799,7 @@ class HarnessApiService:
             ),
         )
 
-        status, response_payload, result = _evaluate_request(request)
+        status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
             return status, response_payload
 
@@ -714,9 +807,12 @@ class HarnessApiService:
             return status, response_payload
 
         stored_task = self.store.update_task(result.task_envelope)
-        record = self.store.put_evaluation_record(request=request, result=result)
+        record = None
+        for attempt_request, attempt_result in attempts:
+            record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
-        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        if record is not None:
+            response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
     def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -741,16 +837,19 @@ class HarnessApiService:
             ),
         )
 
-        status, response_payload, result = _evaluate_request(request)
+        status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
             return status, response_payload
         if result.invalid_input:
             return status, response_payload
 
         stored_task = self.store.update_task(result.task_envelope)
-        record = self.store.put_evaluation_record(request=request, result=result)
+        record = None
+        for attempt_request, attempt_result in attempts:
+            record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
-        response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        if record is not None:
+            response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         return status, response_payload
 
     def get_task(self, task_id: str) -> tuple[int, dict[str, Any]]:
