@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import Any, Protocol
 from urllib import error, parse, request
@@ -62,6 +62,27 @@ class GitHubPullRequestRecord:
     url: str
     state: str | None = None
     review_state: str | None = None
+    merged: bool = False
+    repository_owner: str | None = None
+    repository_name: str | None = None
+    head_branch: str | None = None
+    head_sha: str | None = None
+    base_branch: str | None = None
+    title: str | None = None
+    body: str | None = None
+
+
+@dataclass(frozen=True)
+class MissingPrMatchPolicy:
+    """Validation policy for matching a pull request to the current execution."""
+
+    allow_open_pr_match: bool = True
+    allow_closed_pr_match: bool = False
+    require_head_sha_match: bool = True
+    require_exact_branch_match: bool = True
+    allow_commit_association_match: bool = True
+    escalate_on_ambiguous_match: bool = True
+    require_task_linkage: bool = False
 
 
 @dataclass(frozen=True)
@@ -84,21 +105,21 @@ class GitHubPullRequestGateway(Protocol):
 
     def default_branch(self, *, owner: str, repo: str) -> str | None: ...
 
-    def find_pull_request_by_branch(
+    def find_pull_requests_by_branch(
         self,
         *,
         owner: str,
         repo: str,
         branch_name: str,
-    ) -> GitHubPullRequestRecord | None: ...
+    ) -> tuple[GitHubPullRequestRecord, ...]: ...
 
-    def find_pull_request_by_commit(
+    def find_pull_requests_by_commit(
         self,
         *,
         owner: str,
         repo: str,
         commit_sha: str,
-    ) -> GitHubPullRequestRecord | None: ...
+    ) -> tuple[GitHubPullRequestRecord, ...]: ...
 
     def create_pull_request(
         self,
@@ -368,6 +389,34 @@ def _reconciliation_attempt_id(task_envelope: TaskEnvelope) -> str:
     return f"reconciliation-attempt-{len(attempts) + 1}"
 
 
+def _policy_details(policy: MissingPrMatchPolicy) -> dict[str, Any]:
+    return asdict(policy)
+
+
+def _candidate_key(pull_request: GitHubPullRequestRecord) -> str:
+    return str(pull_request.number)
+
+
+def _normalized_text(value: str | None) -> str:
+    return value.casefold() if isinstance(value, str) else ""
+
+
+def _task_linkage_details(task_envelope: TaskEnvelope, pull_request: GitHubPullRequestRecord) -> dict[str, Any]:
+    task_id = str(task_envelope.get("id") or "").strip()
+    task_title = str(task_envelope.get("title") or "").strip()
+    title = _normalized_text(pull_request.title)
+    body = _normalized_text(pull_request.body)
+
+    task_id_present = bool(task_id) and (task_id.casefold() in title or task_id.casefold() in body)
+    task_title_present = bool(task_title) and (task_title.casefold() in title or task_title.casefold() in body)
+
+    return {
+        "task_id_present": task_id_present,
+        "task_title_present": task_title_present,
+        "linked": task_id_present or task_title_present,
+    }
+
+
 def _pull_request_artifact(
     *,
     task_envelope: TaskEnvelope,
@@ -476,8 +525,220 @@ def _record_reconciliation_attempt(
 class MissingPrAfterExecutionHandler:
     """Reconcile a successful execution attempt that lacks a pull request artifact."""
 
-    def __init__(self, *, github: GitHubPullRequestGateway) -> None:
+    def __init__(
+        self,
+        *,
+        github: GitHubPullRequestGateway,
+        policy: MissingPrMatchPolicy | None = None,
+    ) -> None:
         self.github = github
+        self.policy = policy or MissingPrMatchPolicy()
+
+    def _candidate_details(
+        self,
+        pull_request: GitHubPullRequestRecord,
+        *,
+        sources: set[str],
+        accepted: bool,
+        reasons: list[str],
+        matched_by: list[str],
+        task_linkage: dict[str, Any],
+        code_context: ReconciliationCodeContext,
+    ) -> dict[str, Any]:
+        repository_match = (
+            pull_request.repository_owner == code_context.repository_owner
+            and pull_request.repository_name == code_context.repository_name
+        )
+        branch_match = pull_request.head_branch == code_context.branch_name
+        head_sha_match = pull_request.head_sha == code_context.commit_sha
+        commit_association_match = "commit" in sources
+        state = (pull_request.state or "").lower() or None
+        return {
+            "number": pull_request.number,
+            "url": pull_request.url,
+            "state": pull_request.state,
+            "merged": pull_request.merged,
+            "review_state": pull_request.review_state,
+            "title": pull_request.title,
+            "repository": {
+                "owner": pull_request.repository_owner,
+                "name": pull_request.repository_name,
+            },
+            "head": {
+                "branch": pull_request.head_branch,
+                "sha": pull_request.head_sha,
+            },
+            "base_branch": pull_request.base_branch,
+            "lookup_sources": sorted(sources),
+            "validation": {
+                "accepted": accepted,
+                "matched_by": matched_by,
+                "reasons": reasons,
+                "signals": {
+                    "repository_match": repository_match,
+                    "branch_match": branch_match,
+                    "state": state,
+                    "state_acceptable": accepted or not any(
+                        reason in {"closed_pr_not_allowed", "merged_pr_not_allowed", "unknown_pr_state"}
+                        for reason in reasons
+                    ),
+                    "head_sha_match": head_sha_match,
+                    "commit_association_match": commit_association_match,
+                    "task_linkage": task_linkage,
+                },
+            },
+        }
+
+    def _validate_candidate(
+        self,
+        pull_request: GitHubPullRequestRecord,
+        *,
+        code_context: ReconciliationCodeContext,
+        task_envelope: TaskEnvelope,
+        sources: set[str],
+    ) -> tuple[bool, list[str], list[str], dict[str, Any]]:
+        reasons: list[str] = []
+        matched_by: list[str] = []
+
+        if pull_request.repository_owner != code_context.repository_owner or pull_request.repository_name != code_context.repository_name:
+            reasons.append("repository_mismatch")
+
+        if self.policy.require_exact_branch_match:
+            if not pull_request.head_branch:
+                reasons.append("missing_head_branch")
+            elif pull_request.head_branch != code_context.branch_name:
+                reasons.append("branch_mismatch")
+
+        state = (pull_request.state or "").strip().lower()
+        if not state:
+            reasons.append("unknown_pr_state")
+        elif state == "open":
+            if not self.policy.allow_open_pr_match:
+                reasons.append("open_pr_not_allowed")
+        elif state == "closed":
+            if pull_request.merged:
+                reasons.append("merged_pr_not_allowed")
+            elif not self.policy.allow_closed_pr_match:
+                reasons.append("closed_pr_not_allowed")
+        else:
+            reasons.append("unknown_pr_state")
+
+        head_sha_match = bool(pull_request.head_sha) and pull_request.head_sha == code_context.commit_sha
+        commit_association_match = self.policy.allow_commit_association_match and "commit" in sources
+
+        if self.policy.require_head_sha_match:
+            if head_sha_match:
+                matched_by.append("head_sha_match")
+            elif commit_association_match:
+                matched_by.append("commit_association_match")
+            else:
+                reasons.append("head_sha_mismatch" if pull_request.head_sha else "missing_head_sha")
+        elif commit_association_match:
+            matched_by.append("commit_association_match")
+
+        task_linkage = _task_linkage_details(task_envelope, pull_request)
+        if self.policy.require_task_linkage and not task_linkage["linked"]:
+            reasons.append("task_linkage_missing")
+        elif task_linkage["linked"]:
+            matched_by.append("task_linkage")
+
+        return not reasons, reasons, matched_by, task_linkage
+
+    def _lookup_candidates(
+        self,
+        *,
+        code_context: ReconciliationCodeContext,
+        attempt: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
+        attempt["details"]["pull_request_lookup"]["searched_by_branch"] = True
+        branch_candidates = self.github.find_pull_requests_by_branch(
+            owner=code_context.repository_owner,
+            repo=code_context.repository_name,
+            branch_name=code_context.branch_name,
+        )
+        attempt["details"]["pull_request_lookup"]["searched_by_commit"] = True
+        commit_candidates = self.github.find_pull_requests_by_commit(
+            owner=code_context.repository_owner,
+            repo=code_context.repository_name,
+            commit_sha=code_context.commit_sha,
+        )
+
+        candidates: dict[str, dict[str, Any]] = {}
+        for source, records in (("branch", branch_candidates), ("commit", commit_candidates)):
+            for record in records:
+                key = _candidate_key(record)
+                entry = candidates.setdefault(key, {"pull_request": record, "sources": set()})
+                entry["sources"].add(source)
+                entry["pull_request"] = record
+        return candidates
+
+    def _select_existing_pull_request(
+        self,
+        *,
+        task_envelope: TaskEnvelope,
+        code_context: ReconciliationCodeContext,
+        attempt: dict[str, Any],
+    ) -> GitHubPullRequestRecord | None:
+        candidates = self._lookup_candidates(code_context=code_context, attempt=attempt)
+        candidate_details: list[dict[str, Any]] = []
+        valid_candidates: list[GitHubPullRequestRecord] = []
+
+        for key in sorted(candidates.keys(), key=lambda item: int(item)):
+            candidate = candidates[key]["pull_request"]
+            sources = candidates[key]["sources"]
+            accepted, reasons, matched_by, task_linkage = self._validate_candidate(
+                candidate,
+                code_context=code_context,
+                task_envelope=task_envelope,
+                sources=sources,
+            )
+            candidate_details.append(
+                self._candidate_details(
+                    candidate,
+                    sources=sources,
+                    accepted=accepted,
+                    reasons=reasons,
+                    matched_by=matched_by,
+                    task_linkage=task_linkage,
+                    code_context=code_context,
+                )
+            )
+            if accepted:
+                valid_candidates.append(candidate)
+
+        attempt["details"]["pull_request_candidates"] = candidate_details
+        attempt["details"]["pull_request_lookup"]["candidate_count"] = len(candidate_details)
+        attempt["details"]["pull_request_lookup"]["valid_candidate_count"] = len(valid_candidates)
+        attempt["details"]["pull_request_lookup"]["found"] = bool(candidate_details)
+
+        if len(valid_candidates) == 1:
+            selected = valid_candidates[0]
+            attempt["details"]["pull_request_lookup"]["source"] = "existing"
+            attempt["details"]["pull_request_lookup"]["number"] = selected.number
+            attempt["details"]["pull_request_lookup"]["url"] = selected.url
+            attempt["details"]["final_decision"] = {
+                "result": "attached_existing",
+                "reason": "exactly_one_valid_current_run_candidate",
+            }
+            return selected
+
+        if len(valid_candidates) > 1:
+            attempt["details"]["pull_request_lookup"]["ambiguous"] = True
+            attempt["details"]["final_decision"] = {
+                "result": "ambiguous_existing_candidates",
+                "reason": "multiple_valid_current_run_candidates",
+            }
+            if self.policy.escalate_on_ambiguous_match:
+                raise ReconciliationRuntimeError(
+                    "Ambiguous pull request candidates matched the current execution context"
+                )
+            return None
+
+        attempt["details"]["final_decision"] = {
+            "result": "no_valid_existing_candidate",
+            "reason": "all_candidates_rejected_or_absent",
+        }
+        return None
 
     def handle(self, context: ReconciliationRuntimeContext, *, started_at: str) -> ReconciliationHandlerResult:
         attempt_id = _reconciliation_attempt_id(context.task_envelope)
@@ -499,6 +760,7 @@ class MissingPrAfterExecutionHandler:
                 "branch_name": code_context.branch_name,
                 "base_branch": code_context.base_branch,
                 "commit_sha": code_context.commit_sha,
+                "policy": _policy_details(self.policy),
                 "branch_exists": None,
                 "commit_exists": None,
                 "pull_request_lookup": {
@@ -508,8 +770,16 @@ class MissingPrAfterExecutionHandler:
                     "source": None,
                     "number": None,
                     "url": None,
+                    "candidate_count": 0,
+                    "valid_candidate_count": 0,
+                    "ambiguous": False,
                 },
+                "pull_request_candidates": [],
                 "created_pull_request": False,
+                "final_decision": {
+                    "result": None,
+                    "reason": None,
+                },
                 "error": None,
             },
         }
@@ -542,22 +812,11 @@ class MissingPrAfterExecutionHandler:
                     f"{code_context.repository_owner}/{code_context.repository_name}"
                 )
 
-            attempt["details"]["pull_request_lookup"]["searched_by_branch"] = True
-            pull_request = self.github.find_pull_request_by_branch(
-                owner=code_context.repository_owner,
-                repo=code_context.repository_name,
-                branch_name=code_context.branch_name,
+            pull_request = self._select_existing_pull_request(
+                task_envelope=context.task_envelope,
+                code_context=code_context,
+                attempt=attempt,
             )
-            source = "branch"
-
-            if pull_request is None:
-                attempt["details"]["pull_request_lookup"]["searched_by_commit"] = True
-                pull_request = self.github.find_pull_request_by_commit(
-                    owner=code_context.repository_owner,
-                    repo=code_context.repository_name,
-                    commit_sha=code_context.commit_sha,
-                )
-                source = "commit"
 
             if pull_request is None:
                 base_branch = code_context.base_branch or self.github.default_branch(
@@ -581,6 +840,39 @@ class MissingPrAfterExecutionHandler:
                 )
                 source = "created"
                 attempt["details"]["created_pull_request"] = True
+                created_sources = {"created"}
+                created_accepted, created_reasons, created_matched_by, created_task_linkage = self._validate_candidate(
+                    pull_request,
+                    code_context=code_context,
+                    task_envelope=context.task_envelope,
+                    sources=created_sources,
+                )
+                attempt["details"]["pull_request_candidates"].append(
+                    self._candidate_details(
+                        pull_request,
+                        sources=created_sources,
+                        accepted=created_accepted,
+                        reasons=created_reasons,
+                        matched_by=created_matched_by,
+                        task_linkage=created_task_linkage,
+                        code_context=code_context,
+                    )
+                )
+                attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
+                if created_accepted:
+                    attempt["details"]["pull_request_lookup"]["valid_candidate_count"] += 1
+                    attempt["details"]["final_decision"] = {
+                        "result": "created_new",
+                        "reason": "no_valid_existing_candidate",
+                    }
+                else:
+                    attempt["details"]["final_decision"] = {
+                        "result": "created_candidate_rejected",
+                        "reason": "created_pull_request_failed_validation",
+                    }
+                    raise ReconciliationRuntimeError(
+                        "Created pull request did not satisfy current-run validation policy"
+                    )
                 code_context = ReconciliationCodeContext(
                     repository_host=code_context.repository_host,
                     repository_owner=code_context.repository_owner,
@@ -589,15 +881,13 @@ class MissingPrAfterExecutionHandler:
                     base_branch=base_branch,
                     commit_sha=code_context.commit_sha,
                 )
+            else:
+                source = "existing"
 
-            attempt["details"]["pull_request_lookup"] = {
-                "searched_by_branch": True,
-                "searched_by_commit": source in {"commit", "created"},
-                "found": True,
-                "source": source,
-                "number": pull_request.number,
-                "url": pull_request.url,
-            }
+            attempt["details"]["pull_request_lookup"]["found"] = True
+            attempt["details"]["pull_request_lookup"]["source"] = source
+            attempt["details"]["pull_request_lookup"]["number"] = pull_request.number
+            attempt["details"]["pull_request_lookup"]["url"] = pull_request.url
             completed_at = _iso_now()
             attempt["status"] = ReconciliationAttemptStatus.RESOLVED.value
             attempt["completed_at"] = completed_at
@@ -730,11 +1020,23 @@ class GitHubRestPullRequestGateway:
         url = payload.get("html_url")
         if not isinstance(number, int) or not isinstance(url, str) or not url.strip():
             raise ReconciliationRuntimeError("GitHub pull request response was missing number or html_url")
+        head = payload.get("head") if isinstance(payload.get("head"), dict) else {}
+        base = payload.get("base") if isinstance(payload.get("base"), dict) else {}
+        head_repo = head.get("repo") if isinstance(head.get("repo"), dict) else {}
+        head_owner = head_repo.get("owner") if isinstance(head_repo.get("owner"), dict) else {}
         return GitHubPullRequestRecord(
             number=number,
             url=url,
             state=payload.get("state") if isinstance(payload.get("state"), str) else None,
             review_state=payload.get("review_decision") if isinstance(payload.get("review_decision"), str) else None,
+            merged=bool(payload.get("merged")) or payload.get("merged_at") is not None,
+            repository_owner=head_owner.get("login") if isinstance(head_owner.get("login"), str) else None,
+            repository_name=head_repo.get("name") if isinstance(head_repo.get("name"), str) else None,
+            head_branch=head.get("ref") if isinstance(head.get("ref"), str) else None,
+            head_sha=head.get("sha") if isinstance(head.get("sha"), str) else None,
+            base_branch=base.get("ref") if isinstance(base.get("ref"), str) else None,
+            title=payload.get("title") if isinstance(payload.get("title"), str) else None,
+            body=payload.get("body") if isinstance(payload.get("body"), str) else None,
         )
 
     def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
@@ -751,32 +1053,30 @@ class GitHubRestPullRequestGateway:
         default_branch = response.get("default_branch")
         return default_branch if isinstance(default_branch, str) and default_branch.strip() else None
 
-    def find_pull_request_by_branch(
+    def find_pull_requests_by_branch(
         self,
         *,
         owner: str,
         repo: str,
         branch_name: str,
-    ) -> GitHubPullRequestRecord | None:
+    ) -> tuple[GitHubPullRequestRecord, ...]:
         safe_head = parse.quote(f"{owner}:{branch_name}", safe="")
-        for state in ("open", "closed", "all"):
-            response = self._request_json(f"/repos/{owner}/{repo}/pulls?state={state}&head={safe_head}")
-            if not isinstance(response, list) or not response:
-                continue
-            return self._normalize_pull_request(response[0])
-        return None
+        response = self._request_json(f"/repos/{owner}/{repo}/pulls?state=all&head={safe_head}")
+        if not isinstance(response, list) or not response:
+            return ()
+        return tuple(self._normalize_pull_request(item) for item in response if isinstance(item, dict))
 
-    def find_pull_request_by_commit(
+    def find_pull_requests_by_commit(
         self,
         *,
         owner: str,
         repo: str,
         commit_sha: str,
-    ) -> GitHubPullRequestRecord | None:
+    ) -> tuple[GitHubPullRequestRecord, ...]:
         response = self._request_json(f"/repos/{owner}/{repo}/commits/{commit_sha}/pulls")
         if not isinstance(response, list) or not response:
-            return None
-        return self._normalize_pull_request(response[0])
+            return ()
+        return tuple(self._normalize_pull_request(item) for item in response if isinstance(item, dict))
 
     def create_pull_request(
         self,
@@ -824,6 +1124,7 @@ __all__ = [
     "GitHubPullRequestGateway",
     "GitHubPullRequestRecord",
     "GitHubRestPullRequestGateway",
+    "MissingPrMatchPolicy",
     "MissingPrAfterExecutionHandler",
     "ReconciliationAttemptStatus",
     "ReconciliationFailureType",
