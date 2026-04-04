@@ -7,6 +7,7 @@ from typing import Any
 from uuid import uuid4
 
 from modules.contracts.task_envelope_validation import assert_valid_task_envelope
+from modules.reconciliation_runtime import default_reconciliation_state
 
 
 def _iso_timestamp(value: Any | None = None) -> str:
@@ -184,6 +185,7 @@ def create_task_envelope(
         "coordination": {
             "linear": None,
         },
+        "reconciliation": default_reconciliation_state(),
         "observability": {
             "errors": [],
             "retries": {

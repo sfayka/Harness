@@ -319,6 +319,23 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
             }
         )
 
+    reconciliation = task_envelope.get("reconciliation")
+    if isinstance(reconciliation, dict):
+        attempts = reconciliation.get("attempts") if isinstance(reconciliation.get("attempts"), list) else []
+        for attempt in attempts:
+            if not isinstance(attempt, dict):
+                continue
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:reconciliation:{attempt.get('attempt_id')}",
+                    "event_type": "reconciliation_attempt_recorded",
+                    "occurred_at": attempt.get("completed_at") or attempt.get("started_at") or timestamps.get("updated_at"),
+                    "summary": f"Reconciliation attempt: {attempt.get('failure_type')}",
+                    "source": "reconciliation",
+                    "details": dict(attempt),
+                }
+            )
+
     for record in records:
         result_payload = record.result if isinstance(record.result, dict) else {}
         request_payload = record.request if isinstance(record.request, dict) else {}

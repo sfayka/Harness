@@ -4,6 +4,7 @@ export type TaskStatus =
   | "dispatch_ready"
   | "assigned"
   | "executing"
+  | "reconciling"
   | "blocked"
   | "in_review"
   | "completed"
@@ -139,6 +140,7 @@ export interface TimelineEvent {
     | "task_created"
     | "status_transition"
     | "artifact_captured"
+    | "reconciliation_attempt_recorded"
     | "evaluation_recorded"
     | "review_requested"
     | "review_decided";

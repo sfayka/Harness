@@ -32,6 +32,7 @@ from modules.connectors import (
     translate_manual_submission_payload,
 )
 from modules.contracts.failure_classification import FailureType
+from modules.contracts.task_envelope_lifecycle import apply_task_transition
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
 from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
@@ -47,6 +48,15 @@ from modules.contracts.task_envelope_review import (
 from modules.contracts.task_envelope_verification import RuntimeVerificationFacts
 from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
 from modules.read_model import HarnessReadModelService
+from modules.reconciliation_runtime import (
+    ReconciliationFailureType,
+    ReconciliationHandlerRegistry,
+    ReconciliationRuntimeError,
+    ReconciliationAttemptStatus,
+    build_default_reconciliation_registry,
+    ensure_reconciliation_state,
+    task_has_pull_request_artifact,
+)
 from modules.store import (
     EvaluationRecord,
     HarnessStore,
@@ -721,6 +731,28 @@ def _to_jsonable(value: Any) -> Any:
     return value
 
 
+def _latest_execution_attempt(task_envelope: dict[str, Any]) -> dict[str, Any] | None:
+    attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    if not isinstance(attempts, list):
+        return None
+    return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+
+
+def _is_successful_execution_attempt(attempt: dict[str, Any] | None) -> bool:
+    if attempt is None:
+        return False
+    status = str(attempt.get("status") or "").strip().lower()
+    return status in {"completed", "succeeded", "success"}
+
+
+def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bool:
+    if not request.claimed_completion:
+        return False
+    if task_has_pull_request_artifact(request.task_envelope):
+        return False
+    return _is_successful_execution_attempt(_latest_execution_attempt(request.task_envelope))
+
+
 def evaluate_http_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     """Evaluate one HTTP request payload and return an HTTP status code plus JSON body."""
 
@@ -768,9 +800,15 @@ def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str,
 class HarnessApiService:
     """Stateful HTTP-facing service that reuses the canonical evaluator and store."""
 
-    def __init__(self, *, store: HarnessStore | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        store: HarnessStore | None = None,
+        reconciliation_registry: ReconciliationHandlerRegistry | None = None,
+    ) -> None:
         self.store = store or build_harness_store()
         self.read_model_service = HarnessReadModelService(store=self.store)
+        self.reconciliation_registry = reconciliation_registry or build_default_reconciliation_registry()
 
     def _build_postgres_health_payload(self, store: PostgresHarnessStore) -> dict[str, Any]:
         expected_tables = ("tasks", "evaluation_records")
@@ -838,6 +876,98 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             return self.store.put_task(task_envelope)
         return self.store.update_task(task_envelope)
+
+    def _task_with_transition(
+        self,
+        task_envelope: dict[str, Any],
+        *,
+        to_status: str,
+        reason: str,
+        actor: str,
+    ) -> dict[str, Any]:
+        if task_envelope.get("status") == to_status:
+            return task_envelope
+        transition = apply_task_transition(
+            task_envelope,
+            to_status=to_status,
+            actor=actor,
+            reason=reason,
+        )
+        return transition.task_envelope
+
+    def _run_completion_claim_reconciliation(
+        self,
+        request: HarnessEvaluationRequest,
+    ) -> tuple[HarnessEvaluationRequest | None, dict[str, Any] | None]:
+        if not _requires_missing_pr_reconciliation(request):
+            return request, None
+
+        reason = "Execution completed without a pull request artifact; invoking reconciliation handler."
+        reconciling_task = ensure_reconciliation_state(request.task_envelope)
+        reconciling_task = self._task_with_transition(
+            reconciling_task,
+            to_status="reconciling",
+            reason=reason,
+            actor="reconciliation",
+        )
+
+        try:
+            handler_result = self.reconciliation_registry.handle(
+                ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+                task_envelope=reconciling_task,
+                external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
+                started_at=_iso_now(),
+            )
+        except ReconciliationRuntimeError as error:
+            failed_task = self._task_with_transition(
+                reconciling_task,
+                to_status="in_review",
+                reason=f"Post-execution reconciliation failed: {error}",
+                actor="reconciliation",
+            )
+            failed_task = ensure_reconciliation_state(failed_task)
+            failed_task["reconciliation"]["status"] = ReconciliationAttemptStatus.FAILED.value
+            failed_task["reconciliation"]["active_failure_type"] = ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION.value
+            failed_task["reconciliation"]["last_error"] = str(error)
+            failed_task["timestamps"]["updated_at"] = _iso_now()
+            self.store.update_task(failed_task)
+            return None, {
+                "action": "reconciliation_failed",
+                "accepted_completion": False,
+                "requires_review": True,
+                "invalid_input": False,
+                "target_status": "in_review",
+                "error": str(error),
+                "reasons": [str(error)],
+                "reconciliation_attempt": None,
+                "task_envelope": _to_jsonable(failed_task),
+            }
+
+        if handler_result.status == ReconciliationAttemptStatus.FAILED:
+            failed_task = self._task_with_transition(
+                handler_result.task_envelope,
+                to_status="in_review",
+                reason=f"Post-execution reconciliation failed: {handler_result.error}",
+                actor="reconciliation",
+            )
+            self.store.update_task(failed_task)
+            return None, {
+                "action": "reconciliation_failed",
+                "accepted_completion": False,
+                "requires_review": True,
+                "invalid_input": False,
+                "target_status": "in_review",
+                "error": handler_result.error,
+                "reasons": [handler_result.error or "Reconciliation failed."],
+                "reconciliation_attempt": deepcopy(handler_result.attempt),
+                "task_envelope": _to_jsonable(failed_task),
+            }
+
+        updated_request = replace(
+            request,
+            task_envelope=handler_result.task_envelope,
+        )
+        return updated_request, None
 
     def _with_retry_provenance(
         self,
@@ -1120,6 +1250,12 @@ class HarnessApiService:
                 self.store.list_evaluation_records(task_id),
             ),
         )
+
+        request, reconciliation_response = self._run_completion_claim_reconciliation(request)
+        if reconciliation_response is not None:
+            return HTTPStatus.OK, reconciliation_response
+        if request is None:
+            return HTTPStatus.OK, {"error": "Completion-claim reconciliation did not return a request"}
 
         status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:

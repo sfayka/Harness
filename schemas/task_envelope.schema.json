@@ -133,6 +133,9 @@
     "coordination": {
       "$ref": "#/$defs/coordination"
     },
+    "reconciliation": {
+      "$ref": "#/$defs/reconciliation"
+    },
     "extensions": {
       "type": "object",
       "description": "Explicit non-canonical extension surface for future modules.",
@@ -149,6 +152,7 @@
         "dispatch_ready",
         "assigned",
         "executing",
+        "reconciling",
         "blocked",
         "in_review",
         "completed",
@@ -428,6 +432,126 @@
         },
         "completion_evidence": {
           "$ref": "#/$defs/completionEvidence"
+        }
+      }
+    },
+    "reconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "active_failure_type",
+        "attempts",
+        "last_attempt_id",
+        "last_pr_url",
+        "last_error",
+        "resolved_at",
+        "failed_at"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "pending",
+            "resolved",
+            "failed"
+          ]
+        },
+        "active_failure_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attempts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reconciliationAttempt"
+          },
+          "default": []
+        },
+        "last_attempt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_pr_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_error": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resolved_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "failed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "reconciliationAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "failure_type",
+        "handler_key",
+        "status",
+        "started_at",
+        "completed_at",
+        "details"
+      ],
+      "properties": {
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failure_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handler_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "resolved",
+            "failed"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
         }
       }
     },
