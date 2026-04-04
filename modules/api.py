@@ -55,7 +55,7 @@ from modules.reconciliation_runtime import (
     ReconciliationAttemptStatus,
     build_default_reconciliation_registry,
     ensure_reconciliation_state,
-    task_has_pull_request_artifact,
+    task_has_valid_current_run_pull_request_artifact,
 )
 from modules.store import (
     EvaluationRecord,
@@ -748,7 +748,10 @@ def _is_successful_execution_attempt(attempt: dict[str, Any] | None) -> bool:
 def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bool:
     if not request.claimed_completion:
         return False
-    if task_has_pull_request_artifact(request.task_envelope):
+    if task_has_valid_current_run_pull_request_artifact(
+        request.task_envelope,
+        external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
+    ):
         return False
     return _is_successful_execution_attempt(_latest_execution_attempt(request.task_envelope))
 
