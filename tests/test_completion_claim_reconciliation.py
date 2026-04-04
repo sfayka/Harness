@@ -206,6 +206,56 @@ def _task_envelope(task_id: str = "task-pr-reconcile-1") -> dict:
     return task
 
 
+def _with_pull_request_artifact(
+    task: dict,
+    *,
+    number: int,
+    branch_name: str = "codex/e2e-test",
+    head_sha: str = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+    verification_status: str = "verified",
+) -> dict:
+    task["artifacts"]["items"].append(
+        {
+            "id": f"artifact-pr-{number}",
+            "type": "pull_request",
+            "title": "Existing PR artifact",
+            "description": "Pre-attached PR artifact for completion-claim reconciliation tests.",
+            "location": f"https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/{number}",
+            "content_type": None,
+            "external_id": f"PR-{number}",
+            "commit_sha": None,
+            "pull_request_number": number,
+            "review_state": "approved",
+            "provenance": {
+                "source_system": "github",
+                "source_type": "api",
+                "source_id": f"pull/{number}",
+                "captured_by": "github-sync",
+            },
+            "verification_status": verification_status,
+            "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN",
+                "external_id": "repo-dryrun-1",
+            },
+            "branch": {
+                "name": branch_name,
+                "base_branch": "main",
+                "head_commit_sha": head_sha,
+            },
+            "changed_files": [],
+            "external_refs": [],
+            "captured_at": "2026-04-04T12:01:15Z",
+            "metadata": {
+                "attached_by": "test",
+                "pull_request_state": "open",
+            },
+        }
+    )
+    return task
+
+
 def _completion_claim_payload(claim_id: str = "claim-1") -> dict:
     return {
         "request": {
@@ -317,6 +367,52 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(timeline_status, 200)
         self.assertTrue(
             any(event["event_type"] == "reconciliation_attempt_recorded" for event in timeline_payload["timeline"])
+        )
+
+    def test_submit_completion_claim_skips_reconciliation_for_valid_current_run_pr_artifact(self) -> None:
+        gateway = _FakeGitHubGateway()
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _with_pull_request_artifact(_task_envelope(task_id="task-pr-artifact-valid"), number=120)
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-artifact-valid"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 0)
+        self.assertEqual(payload["task_envelope"]["reconciliation"]["attempts"], [])
+        self.assertEqual(
+            len([item for item in payload["task_envelope"]["artifacts"]["items"] if item["type"] == "pull_request"]),
+            1,
+        )
+
+    def test_submit_completion_claim_does_not_skip_reconciliation_for_stale_attached_pr_artifact(self) -> None:
+        gateway = _FakeGitHubGateway(created_pr=_pull_request(number=404))
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _with_pull_request_artifact(
+            _task_envelope(task_id="task-pr-artifact-stale"),
+            number=121,
+            head_sha="1111111111111111111111111111111111111111",
+        )
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-artifact-stale"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 1)
+        attempt = _latest_reconciliation_attempt(payload["task_envelope"])
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
+        self.assertEqual(payload["task_envelope"]["reconciliation"]["last_pr_url"], gateway._created_pr.url)
+        self.assertEqual(
+            len([item for item in payload["task_envelope"]["artifacts"]["items"] if item["type"] == "pull_request"]),
+            2,
         )
 
     def test_submit_completion_claim_rejects_closed_pr_from_prior_run_and_creates_new_pr(self) -> None:

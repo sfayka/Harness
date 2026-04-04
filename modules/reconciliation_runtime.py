@@ -174,6 +174,57 @@ def task_has_pull_request_artifact(task_envelope: TaskEnvelope) -> bool:
     return any(isinstance(item, dict) and item.get("type") == "pull_request" for item in artifacts)
 
 
+def task_has_valid_current_run_pull_request_artifact(
+    task_envelope: TaskEnvelope,
+    *,
+    external_facts: Any = None,
+) -> bool:
+    """Return whether the task already carries a PR artifact that proves the current run."""
+
+    artifacts = ((task_envelope.get("artifacts") or {}).get("items") or [])
+    if not isinstance(artifacts, list):
+        return False
+
+    try:
+        code_context = resolve_code_context(task_envelope, external_facts=external_facts)
+    except ReconciliationRuntimeError:
+        return False
+
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        if artifact.get("type") != "pull_request":
+            continue
+        if str(artifact.get("verification_status") or "").strip().lower() != "verified":
+            continue
+
+        repository = _repository_from_artifact(artifact)
+        if repository is None:
+            continue
+        _, owner, name = repository
+        if owner != code_context.repository_owner or name != code_context.repository_name:
+            continue
+
+        branch = artifact.get("branch")
+        if not isinstance(branch, dict):
+            continue
+        branch_name = _normalize_sha(branch.get("name"))
+        head_commit_sha = _normalize_sha(branch.get("head_commit_sha"))
+        if branch_name != code_context.branch_name:
+            continue
+        if head_commit_sha != code_context.commit_sha:
+            continue
+
+        location = artifact.get("location")
+        pull_request_number = artifact.get("pull_request_number")
+        if not (isinstance(location, str) and location.strip()) and pull_request_number is None:
+            continue
+
+        return True
+
+    return False
+
+
 def _normalize_sha(value: Any) -> str | None:
     if not isinstance(value, str):
         return None

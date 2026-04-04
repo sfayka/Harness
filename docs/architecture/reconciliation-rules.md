@@ -293,6 +293,8 @@ This reconciliation handler applies when all of the following are true:
 
 Harness distinguishes execution from completion. A completion claim without a PR artifact is not enough to reach terminal success when reconciliation policy requires GitHub proof.
 
+Even if a PR artifact is already attached to the task, Harness should only treat that artifact as sufficient when it proves the current run. A stale attached PR must not suppress reconciliation by itself.
+
 ### Bounded Recovery Steps
 
 For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handler with the following bounded sequence:
