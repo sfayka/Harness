@@ -42,6 +42,7 @@ Harness reconciliation compares:
 - internal lifecycle state in `TaskEnvelope`
 - `artifacts.items`
 - `artifacts.completion_evidence`
+- `task.reconciliation` attempt records when Harness performs operational recovery
 - Linear task state and identifiers
 - GitHub artifact facts such as repository, branch, commit, pull request, and review state
 
@@ -137,6 +138,22 @@ Meaning:
 - this is weaker than artifact-backed evidence
 - the task may remain `executing` or move into a non-terminal review phase in future implementations
 - current architecture should treat this as non-final until reconciliation succeeds
+
+### Operational Reconciliation Recovery
+
+Conditions:
+
+- execution completed
+- a required external artifact for reconciliation is still missing
+- Harness has enough repository, branch, and commit context to attempt recovery safely
+
+Meaning:
+
+- the task may move into `reconciling`
+- Harness may run a pluggable reconciliation handler for the specific failure class
+- every attempt must be captured under `task.reconciliation`
+- if recovery succeeds, Harness must return to canonical reevaluation rather than directly declaring completion
+- if recovery fails, Harness must escalate the task into explicit `in_review`
 
 ### Missing Evidence
 
@@ -258,6 +275,8 @@ Typical when:
 - the system cannot safely choose between multiple contradictory facts
 
 Manual review is a reconciliation outcome, not a substitute for explicit lifecycle semantics. Future implementation may represent this through a dedicated review flag or mismatch record while preserving the underlying task state.
+
+When Harness performs an operational recovery such as `missing_pr_after_execution`, it must never create duplicate PRs. It must check for an existing PR by branch and commit before attempting PR creation.
 
 Current implementation maps reconciliation-driven manual review to the explicit `in_review` lifecycle state. A task that requires review must not remain `completed`.
 

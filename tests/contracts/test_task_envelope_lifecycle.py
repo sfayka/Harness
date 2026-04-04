@@ -177,6 +177,7 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
             "dispatch_ready",
             "assigned",
             "executing",
+            "reconciling",
             "blocked",
         )
 
@@ -223,6 +224,27 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
                 self.assertEqual(result.task_envelope["timestamps"]["completed_at"], "2026-03-25T12:21:00Z")
                 self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], status)
                 self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
+
+    def test_executing_can_transition_to_reconciling(self) -> None:
+        task = _base_task()
+        task["status"] = "executing"
+        task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-1",
+            "assignment_reason": "Capability match.",
+        }
+
+        result = apply_task_transition(
+            task,
+            to_status="reconciling",
+            actor="reconciliation",
+            reason="Execution completed without a pull request artifact.",
+            now="2026-03-25T12:18:00Z",
+        )
+
+        self.assertEqual(result.task_envelope["status"], "reconciling")
+        self.assertEqual(result.task_envelope["timestamps"]["updated_at"], "2026-03-25T12:18:00Z")
+        self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "reconciling")
 
     def test_rejects_completion_without_verification_preconditions(self) -> None:
         task = _base_task()

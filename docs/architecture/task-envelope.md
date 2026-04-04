@@ -43,6 +43,7 @@ At the top level, a TaskEnvelope contains:
 - relationships
 - execution routing
 - artifacts and outputs
+- operational reconciliation state
 - observability
 
 ## Top-Level Fields
@@ -67,6 +68,7 @@ At the top level, a TaskEnvelope contains:
 | `priority` | enum | yes | relative scheduling priority |
 | `artifacts` | object | yes | canonical execution artifacts and completion evidence state |
 | `coordination` | object | yes | canonical linkage to external coordination records (for example Linear) |
+| `reconciliation` | object | no but preferred | structured reconciliation attempts and their latest resolution state |
 | `clarification` | object | no | canonical missing-information and clarification tracking state |
 | `observability` | object | yes | retries, errors, and execution metadata |
 | `extensions` | object | no | explicitly non-canonical extension surface for future modules |
@@ -82,6 +84,7 @@ TaskEnvelope uses the following canonical states:
 | `dispatch_ready` | task is sufficiently defined and ready for executor selection |
 | `assigned` | task has an executor selected but execution has not yet started |
 | `executing` | executor has started work |
+| `reconciling` | execution completed and Harness is actively repairing or verifying missing external reconciliation artifacts before reevaluation |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
 | `in_review` | automatic policy could not safely accept completion and the task is awaiting explicit manual review |
 | `completed` | task satisfied its acceptance criteria and has a provisional completed outcome pending successful reconciliation where reconciliation is required |
@@ -111,22 +114,30 @@ Canonical transitions:
 - `dispatch_ready` -> `completed`
 - `dispatch_ready` -> `failed`
 - `assigned` -> `executing`
+- `assigned` -> `reconciling`
 - `assigned` -> `blocked`
 - `assigned` -> `failed`
 - `assigned` -> `canceled`
 - `assigned` -> `in_review`
 - `assigned` -> `completed`
 - `executing` -> `completed`
+- `executing` -> `reconciling`
 - `executing` -> `in_review`
 - `executing` -> `blocked`
 - `executing` -> `failed`
 - `executing` -> `canceled`
+- `reconciling` -> `blocked`
+- `reconciling` -> `in_review`
+- `reconciling` -> `completed`
+- `reconciling` -> `failed`
+- `reconciling` -> `canceled`
 - `completed` -> `blocked`
 - `blocked` -> `intake_ready`
 - `blocked` -> `planned`
 - `blocked` -> `dispatch_ready`
 - `blocked` -> `assigned`
 - `blocked` -> `executing`
+- `blocked` -> `reconciling`
 - `blocked` -> `in_review`
 - `blocked` -> `completed`
 - `blocked` -> `failed`
@@ -159,6 +170,8 @@ If verification or reconciliation determines that work requires explicit human j
 Once a task is `in_review`, only an explicit manual review decision may transition it to `completed`, `failed`, `blocked`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
 
 `blocked` may also move back to `completed` when the blocking condition was specifically about unresolved completion acceptance and later verification or manual review resolves that blocker with sufficient evidence and non-blocking reconciliation.
+
+`reconciling` is non-terminal and operational. It exists so Harness can explicitly repair or confirm missing external artifacts, such as a missing pull request after execution, without silently pretending reconciliation already passed.
 
 `completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
 
@@ -238,6 +251,20 @@ Checkpoint and validation gates should generally be represented as explicit plan
 ### Execution Routing
 
 Execution routing fields remain abstract so executors can be swapped without changing the contract.
+
+### Reconciliation
+
+`reconciliation` stores structured, append-only operational reconciliation attempts.
+
+Fields:
+
+- `status`: current reconciliation state such as `not_required`, `resolved`, or `failed`
+- `active_failure_type`: currently active reconciliation failure class when unresolved
+- `attempts`: structured handler attempts keyed by failure class and handler key
+- `last_attempt_id`, `last_pr_url`, `last_error`: latest operational outcome pointers
+- `resolved_at`, `failed_at`: latest terminal timestamps for the reconciliation object itself
+
+Handlers may attach artifacts, update `status_history`, and then delegate back into canonical reevaluation. They do not bypass evaluation or lifecycle policy.
 
 `assigned_executor` includes:
 

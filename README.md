@@ -10,6 +10,7 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 - A read-only Next.js dashboard over canonical inspection APIs.
 - A persistence layer for task snapshots and append-only evaluation history.
 - A thin integration boundary around Linear/manual/OpenClaw ingress and GitHub/Linear fact inputs.
+- An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 

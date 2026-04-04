@@ -1,0 +1,339 @@
+from __future__ import annotations
+
+import tempfile
+import unittest
+
+from modules.api import HarnessApiService
+from modules.reconciliation_runtime import (
+    GitHubPullRequestRecord,
+    ReconciliationFailureType,
+    ReconciliationHandlerRegistry,
+    build_default_reconciliation_registry,
+)
+from modules.intake import create_task_envelope
+from modules.store import FileBackedHarnessStore
+
+
+class _FakeGitHubGateway:
+    def __init__(
+        self,
+        *,
+        branch_exists: bool = True,
+        commit_exists: bool = True,
+        existing_branch_pr: GitHubPullRequestRecord | None = None,
+        existing_commit_pr: GitHubPullRequestRecord | None = None,
+        created_pr: GitHubPullRequestRecord | None = None,
+        default_branch: str = "main",
+    ) -> None:
+        self._branch_exists = branch_exists
+        self._commit_exists = commit_exists
+        self._existing_branch_pr = existing_branch_pr
+        self._existing_commit_pr = existing_commit_pr
+        self._created_pr = created_pr or GitHubPullRequestRecord(
+            number=401,
+            url="https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/401",
+            state="open",
+        )
+        self._default_branch = default_branch
+        self.create_calls = 0
+
+    def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
+        del owner, repo, branch_name
+        return self._branch_exists
+
+    def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
+        del owner, repo, commit_sha
+        return self._commit_exists
+
+    def default_branch(self, *, owner: str, repo: str) -> str | None:
+        del owner, repo
+        return self._default_branch
+
+    def find_pull_request_by_branch(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        branch_name: str,
+    ) -> GitHubPullRequestRecord | None:
+        del owner, repo, branch_name
+        return self._existing_branch_pr
+
+    def find_pull_request_by_commit(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        commit_sha: str,
+    ) -> GitHubPullRequestRecord | None:
+        del owner, repo, commit_sha
+        return self._existing_commit_pr
+
+    def create_pull_request(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        title: str,
+        body: str,
+        head: str,
+        base: str,
+    ) -> GitHubPullRequestRecord:
+        del owner, repo, title, body, head, base
+        self.create_calls += 1
+        return self._created_pr
+
+
+def _registry_with_gateway(gateway: _FakeGitHubGateway) -> ReconciliationHandlerRegistry:
+    registry = build_default_reconciliation_registry()
+    registry.register(
+        ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+        registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION).__class__(github=gateway),
+    )
+    return registry
+
+
+def _task_envelope(task_id: str = "task-pr-reconcile-1") -> dict:
+    task = create_task_envelope(
+        {
+            "id": task_id,
+            "title": "Reconcile missing pull request",
+            "description": "Exercise post-execution PR reconciliation.",
+            "origin": {
+                "source_system": "openclaw",
+                "source_type": "ingress_request",
+                "source_id": f"req-{task_id}",
+            },
+            "acceptance_criteria": [
+                {
+                    "id": "ac-1",
+                    "description": "Harness can reconcile a missing PR after execution.",
+                    "required": True,
+                }
+            ],
+        },
+        now="2026-04-04T12:00:00Z",
+    )
+    task["status"] = "executing"
+    task["assigned_executor"] = {
+        "executor_type": "codex",
+        "executor_id": "executor-1",
+        "assignment_reason": "Runtime coverage for reconciliation.",
+    }
+    task["artifacts"]["items"] = [
+        {
+            "id": "artifact-commit-1",
+            "type": "commit",
+            "title": None,
+            "description": None,
+            "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "content_type": None,
+            "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "pull_request_number": None,
+            "review_state": None,
+            "provenance": {
+                "source_system": "github",
+                "source_type": "api",
+                "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "captured_by": "github-sync",
+            },
+            "verification_status": "verified",
+            "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN",
+                "external_id": "repo-dryrun-1",
+            },
+            "branch": {
+                "name": "codex/e2e-test",
+                "base_branch": "main",
+                "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            },
+            "changed_files": [],
+            "external_refs": [],
+            "captured_at": "2026-04-04T12:01:00Z",
+            "metadata": {},
+        }
+    ]
+    task["artifacts"]["completion_evidence"] = {
+        "policy": "required",
+        "status": "satisfied",
+        "required_artifact_types": ["commit"],
+        "validated_artifact_ids": ["artifact-commit-1"],
+        "validation_method": "external_reconciliation",
+        "validated_at": "2026-04-04T12:01:30Z",
+        "validator": {
+            "source_system": "harness",
+            "source_type": "verification",
+            "source_id": "verification-existing-1",
+            "captured_by": "github-sync",
+        },
+        "notes": None,
+    }
+    return task
+
+
+def _completion_claim_payload(claim_id: str = "claim-1") -> dict:
+    return {
+        "request": {
+            "completion_claim": {
+                "claim_id": claim_id,
+                "reported_at": "2026-04-04T12:02:00Z",
+                "reported_by": "codex",
+                "reason": "Execution completed successfully.",
+                "metadata": {"attempt_id": f"{claim_id}:attempt"},
+            },
+            "execution_attempt": {
+                "attempt_id": f"{claim_id}:attempt",
+                "recorded_at": "2026-04-04T12:02:05Z",
+                "status": "completed",
+                "reported_by": "codex",
+                "artifact_references": [
+                    {
+                        "reference_id": f"{claim_id}:attempt:log",
+                        "artifact_type": "execution_log",
+                        "location": "stub://attempts/log",
+                    }
+                ],
+                "metadata": {"executor_run_id": f"run-{claim_id}"},
+            },
+            "acceptance_criteria_satisfied": True,
+            "runtime_facts": {
+                "executor_reported_success": True,
+                "attempt_count": 1,
+                "latest_attempt_outcome": "completed",
+            },
+            "external_facts": {
+                "expected_code_context": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "base_branch": "main",
+                },
+                "github_facts": {
+                    "artifact_found": True,
+                    "repository": {
+                        "host": "github.com",
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN",
+                    },
+                    "branch": {
+                        "name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    },
+                    "commit": {
+                        "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    },
+                },
+                "linear_facts": {
+                    "record_found": True,
+                    "issue_id": "lin-1",
+                    "issue_key": "HAR-1",
+                    "state": "completed",
+                    "workflow": {
+                        "workflow_id": "workflow-completed",
+                        "workflow_name": "completed",
+                        "state_type": "completed",
+                    },
+                },
+            },
+        }
+    }
+
+
+class CompletionClaimReconciliationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def test_submit_completion_claim_attaches_existing_pull_request_and_reevaluates(self) -> None:
+        gateway = _FakeGitHubGateway(
+            existing_branch_pr=GitHubPullRequestRecord(
+                number=77,
+                url="https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/77",
+                state="open",
+            )
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope()
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload())
+        timeline_status, timeline_payload = service.get_task_timeline(task["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(payload["action"], "transition_applied")
+        self.assertTrue(payload["accepted_completion"])
+        self.assertEqual(gateway.create_calls, 0)
+        self.assertTrue(
+            any(item["type"] == "pull_request" for item in payload["task_envelope"]["artifacts"]["items"])
+        )
+        self.assertEqual(payload["task_envelope"]["reconciliation"]["status"], "resolved")
+        self.assertEqual(payload["task_envelope"]["status_history"][-2]["to_status"], "reconciling")
+        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "completed")
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(
+            any(event["event_type"] == "reconciliation_attempt_recorded" for event in timeline_payload["timeline"])
+        )
+
+    def test_submit_completion_claim_creates_pr_once_and_is_idempotent_on_repeat(self) -> None:
+        gateway = _FakeGitHubGateway()
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-repeat")
+        service.store.create_task(task)
+
+        first_status, first_payload = service.submit_completion_claim(
+            task["id"], _completion_claim_payload("claim-repeat-1")
+        )
+        second_status, second_payload = service.submit_completion_claim(
+            task["id"], _completion_claim_payload("claim-repeat-2")
+        )
+
+        self.assertEqual(first_status, 200)
+        self.assertEqual(second_status, 200)
+        self.assertEqual(gateway.create_calls, 1)
+        self.assertEqual(first_payload["task_envelope"]["reconciliation"]["last_pr_url"], gateway._created_pr.url)
+        self.assertEqual(second_payload["task_envelope"]["reconciliation"]["last_pr_url"], gateway._created_pr.url)
+        self.assertEqual(
+            len([item for item in second_payload["task_envelope"]["artifacts"]["items"] if item["type"] == "pull_request"]),
+            1,
+        )
+
+    def test_submit_completion_claim_moves_task_to_in_review_when_reconciliation_fails(self) -> None:
+        gateway = _FakeGitHubGateway(branch_exists=False)
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-fail")
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-fail"))
+        stored_status, stored_payload = service.get_task(task["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "reconciliation_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "in_review")
+        self.assertTrue(payload["requires_review"])
+        self.assertEqual(payload["task_envelope"]["reconciliation"]["status"], "failed")
+        self.assertEqual(payload["task_envelope"]["reconciliation"]["active_failure_type"], "missing_pr_after_execution")
+        self.assertEqual(payload["task_envelope"]["status_history"][-2]["to_status"], "reconciling")
+        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "in_review")
+        self.assertEqual(stored_status, 200)
+        self.assertEqual(stored_payload["task"]["status"], "in_review")
+
+
+if __name__ == "__main__":
+    unittest.main()

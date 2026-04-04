@@ -52,6 +52,7 @@ export function getTaskStatusSeverity(status: TaskStatus): OutcomeSeverity {
     case "failed":
       return "failure";
     case "executing":
+    case "reconciling":
       return "warning";
     case "intake_ready":
     case "planned":

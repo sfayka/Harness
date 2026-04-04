@@ -41,6 +41,9 @@ const taskStatusConfig: Record<
   executing: {
     label: "Executing",
   },
+  reconciling: {
+    label: "Reconciling",
+  },
   blocked: {
     label: "Blocked",
   },

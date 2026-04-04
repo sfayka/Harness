@@ -79,6 +79,19 @@ class CreateTaskEnvelopeTests(unittest.TestCase):
                 },
             },
         )
+        self.assertEqual(
+            task_envelope["reconciliation"],
+            {
+                "status": "not_required",
+                "active_failure_type": None,
+                "attempts": [],
+                "last_attempt_id": None,
+                "last_pr_url": None,
+                "last_error": None,
+                "resolved_at": None,
+                "failed_at": None,
+            },
+        )
 
         assert_valid_task_envelope(task_envelope)
 
