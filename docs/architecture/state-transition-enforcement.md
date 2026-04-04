@@ -30,7 +30,9 @@ Harness uses these canonical task lifecycle states:
 - `dispatch_ready`
 - `assigned`
 - `executing`
+- `reconciling`
 - `blocked`
+- `in_review`
 - `completed`
 - `failed`
 - `canceled`
@@ -45,6 +47,7 @@ The main transition authorities are:
 - planner
 - dispatcher
 - runtime
+- reconciliation runtime
 - verification
 - manual review or operator override
 
@@ -69,14 +72,21 @@ No module may cause lifecycle movement outside its authority just because it obs
 | `dispatch_ready` | `failed` | yes | verification | a terminal invalid decision is reached before intermediate runtime states were explicitly persisted |
 | `dispatch_ready` | `canceled` | yes | operator or authorized control-plane policy | task is intentionally stopped |
 | `assigned` | `executing` | yes | runtime | real execution-start fact exists |
+| `assigned` | `reconciling` | yes | reconciliation runtime | execution is complete enough to attempt bounded recovery for a specific reconciliation defect such as `missing_pr_after_execution` |
 | `assigned` | `blocked` | yes | dispatcher, runtime, or operator | assignment cannot safely proceed, start failed, clarification reopened, or review/policy blocks execution |
 | `assigned` | `completed` | yes | verification | a fully evidenced and reconciled completion claim is accepted even if earlier progress states were not explicitly persisted |
 | `assigned` | `failed` | yes | runtime or verification | startup or execution attempt is terminally unsuccessful under policy |
 | `assigned` | `canceled` | yes | operator or authorized control-plane policy | assignment or task is intentionally stopped |
 | `executing` | `completed` | yes | verification | runtime facts, evidence, and reconciliation satisfy completion policy |
+| `executing` | `reconciling` | yes | reconciliation runtime | execution has finished, a bounded reconciliation defect is identified, and Harness has enough context to attempt system repair before reevaluation |
 | `executing` | `blocked` | yes | runtime, clarification handling, or verification | stall, missing input, reconciliation blocker, or review requirement prevents safe continuation or acceptance |
 | `executing` | `failed` | yes | runtime or verification | execution attempt or resulting outcome is terminally unusable under policy |
 | `executing` | `canceled` | yes | operator or authorized control-plane policy | execution is intentionally stopped |
+| `reconciling` | `completed` | yes | verification | reconciliation resolved the defect and canonical reevaluation accepted completion |
+| `reconciling` | `in_review` | yes | reconciliation runtime or verification | bounded automated recovery failed or was blocked and explicit human judgment is now required |
+| `reconciling` | `blocked` | yes | reconciliation runtime or verification | recovery exposed a non-terminal blocker that does not yet require manual review |
+| `reconciling` | `failed` | yes | verification | reconciliation or reevaluation determined the task outcome is terminally invalid |
+| `reconciling` | `canceled` | yes | operator or authorized control-plane policy | reconciliation was intentionally stopped |
 | `completed` | `blocked` | yes | verification or reconciliation-driven control-plane policy | later verification/reconciliation shows outcome is provisional, insufficient, or contradictory |
 | `blocked` | `completed` | yes | verification or manual review | the task was blocked on unresolved completion acceptance and later evidence/reconciliation resolves that blocker |
 | `blocked` | `failed` | yes | verification or manual review | later facts show the blocked task is terminally invalid rather than merely unresolved |
@@ -85,6 +95,7 @@ No module may cause lifecycle movement outside its authority just because it obs
 | `blocked` | `dispatch_ready` | yes | dispatcher or operator | dispatch blocker resolved and task is ready for assignment |
 | `blocked` | `assigned` | yes | dispatcher | reassignment/redispatch is explicitly allowed and active assignment is recorded |
 | `blocked` | `executing` | yes but narrow | runtime | execution resumes from a blocked in-flight state and a real execution-start/resume fact exists |
+| `blocked` | `reconciling` | yes | reconciliation runtime | the blocker was missing or unresolved reconciliation context and the system can now safely resume bounded recovery |
 | `blocked` | `canceled` | yes | operator or authorized control-plane policy | blocked task is intentionally stopped |
 
 ## Transition Ownership By Module
@@ -138,6 +149,24 @@ May cause:
 Runtime does not own `executing` -> `completed`.
 
 Runtime may report success facts, but verification decides whether completion is accepted.
+
+### Reconciliation Runtime
+
+May cause:
+
+- `assigned` -> `reconciling`
+- `executing` -> `reconciling`
+- `blocked` -> `reconciling`
+- `reconciling` -> `blocked`
+- `reconciling` -> `in_review`
+
+Typical reasons:
+
+- execution completed but a required reconciliation artifact is missing
+- Harness has enough repository, branch, and commit context to attempt bounded automated repair
+- automated recovery failed or was blocked and the task must escalate explicitly
+
+Reconciliation runtime does not own terminal success. If recovery succeeds, verification must still perform canonical reevaluation before the task may be accepted as `completed`.
 
 ### Verification
 
@@ -226,6 +255,17 @@ Verification may accept completion from any active non-terminal state when the c
 
 This transition is always provisional until verification and required reconciliation pass.
 
+### Entry To Reconciling
+
+Required:
+
+- a specific reconciliation defect has been identified
+- the defect is eligible for bounded automated recovery
+- the system has enough structured context to attempt that recovery safely
+- the attempted repair will be recorded under `task.reconciliation`
+
+`reconciling` means system repair is in progress. It does not mean the task is accepted, and it does not bypass reevaluation.
+
 ### Entry To Blocked
 
 `blocked` may be entered from multiple states, but only for explicit reasons such as:
@@ -240,6 +280,16 @@ This transition is always provisional until verification and required reconcilia
 - manual review pending
 
 `blocked` must never be a silent dumping ground for unknown conditions.
+
+### Entry To In Review
+
+Required:
+
+- policy cannot safely accept the task automatically, or
+- bounded recovery has reached a non-automatic stop condition, or
+- explicit human judgment is required to resolve conflicting or incomplete facts
+
+`in_review` is not another word for `reconciling`. It marks the end of safe automation for the current decision path.
 
 ### Entry To Failed
 
