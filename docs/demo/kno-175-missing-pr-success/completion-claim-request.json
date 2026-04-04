@@ -1,0 +1,71 @@
+{
+  "request": {
+    "completion_claim": {
+      "claim_id": "kno175-claim-1",
+      "reported_at": "2026-04-04T12:05:00Z",
+      "reported_by": "codex",
+      "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+      "metadata": {
+        "issue": "KNO-175"
+      }
+    },
+    "execution_attempt": {
+      "attempt_id": "kno175-attempt-1",
+      "recorded_at": "2026-04-04T12:05:05Z",
+      "status": "completed",
+      "reported_by": "codex",
+      "artifact_references": [
+        {
+          "reference_id": "kno175-exec-log-1",
+          "artifact_type": "execution_log",
+          "location": "file://docs/demo/kno-175-missing-pr-success/README.md"
+        }
+      ],
+      "metadata": {
+        "run_mode": "missing_pr_after_execution_success_proof"
+      }
+    },
+    "acceptance_criteria_satisfied": true,
+    "runtime_facts": {
+      "executor_reported_success": true,
+      "attempt_count": 1,
+      "latest_attempt_outcome": "completed"
+    },
+    "external_facts": {
+      "expected_code_context": {
+        "repository_host": "github.com",
+        "repository_owner": "sfayka",
+        "repository_name": "Harness",
+        "branch_name": "codex/kno-175-missing-pr-runtime",
+        "base_branch": "main"
+      },
+      "github_facts": {
+        "artifact_found": true,
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness"
+        },
+        "branch": {
+          "name": "codex/kno-175-missing-pr-runtime",
+          "base_branch": "main",
+          "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3"
+        },
+        "commit": {
+          "sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3"
+        }
+      },
+      "linear_facts": {
+        "record_found": true,
+        "issue_id": "KNO-175",
+        "issue_key": "KNO-175",
+        "state": "completed",
+        "workflow": {
+          "workflow_id": "workflow-completed",
+          "workflow_name": "completed",
+          "state_type": "completed"
+        }
+      }
+    }
+  }
+}

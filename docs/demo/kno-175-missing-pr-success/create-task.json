@@ -1,0 +1,138 @@
+{
+  "request": {
+    "task_envelope": {
+      "id": "kno-175-missing-pr-success-2026-04-04-run3",
+      "title": "KNO-175 auto reconcile missing PR after execution",
+      "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+      "origin": {
+        "source_system": "linear",
+        "source_type": "ingress_request",
+        "source_id": "KNO-175",
+        "ingress_id": "linear-KNO-175",
+        "ingress_name": "Linear",
+        "requested_by": null
+      },
+      "status": "executing",
+      "timestamps": {
+        "created_at": "2026-04-04T12:00:00Z",
+        "updated_at": "2026-04-04T12:00:00Z",
+        "completed_at": null
+      },
+      "status_history": [],
+      "objective": {
+        "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria."
+      },
+      "constraints": [],
+      "acceptance_criteria": [
+        {
+          "id": "ac-1",
+          "description": "Harness auto-attaches PR after execution without PR artifact",
+          "required": true
+        }
+      ],
+      "parent_task_id": null,
+      "child_task_ids": [],
+      "dependencies": [],
+      "assigned_executor": {
+        "executor_type": "codex",
+        "executor_id": "codex-kno175",
+        "assignment_reason": "runtime proof"
+      },
+      "required_capabilities": [],
+      "priority": "normal",
+      "artifacts": {
+        "items": [
+          {
+            "id": "artifact-commit-kno175",
+            "type": "commit",
+            "title": null,
+            "description": null,
+            "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "content_type": null,
+            "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "pull_request_number": null,
+            "review_state": null,
+            "provenance": {
+              "source_system": "github",
+              "source_type": "api",
+              "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "captured_by": "kno-175-proof"
+            },
+            "verification_status": "verified",
+            "repository": {
+              "host": "github.com",
+              "owner": "sfayka",
+              "name": "Harness",
+              "external_id": null
+            },
+            "branch": {
+              "name": "codex/kno-175-missing-pr-runtime",
+              "base_branch": "main",
+              "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3"
+            },
+            "changed_files": [],
+            "external_refs": [],
+            "captured_at": "2026-04-04T12:01:00Z",
+            "metadata": {}
+          }
+        ],
+        "completion_evidence": {
+          "policy": "required",
+          "status": "satisfied",
+          "required_artifact_types": [
+            "commit"
+          ],
+          "validated_artifact_ids": [
+            "artifact-commit-kno175"
+          ],
+          "validation_method": "external_reconciliation",
+          "validated_at": "2026-04-04T12:01:30Z",
+          "validator": {
+            "source_system": "harness",
+            "source_type": "verification",
+            "source_id": "verification-kno175",
+            "captured_by": "kno-175-proof"
+          },
+          "notes": null
+        }
+      },
+      "coordination": {
+        "linear": null
+      },
+      "reconciliation": {
+        "status": "not_required",
+        "active_failure_type": null,
+        "attempts": [],
+        "last_attempt_id": null,
+        "last_pr_url": null,
+        "last_error": null,
+        "resolved_at": null,
+        "failed_at": null
+      },
+      "observability": {
+        "errors": [],
+        "retries": {
+          "attempt_count": 0,
+          "max_attempts": 0,
+          "last_retry_at": null
+        },
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        }
+      }
+    }
+  }
+}
