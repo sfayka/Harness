@@ -24,6 +24,20 @@ If recovery succeeds, the task can proceed to `completed` through normal reevalu
 
 Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
 
+Governed reconciliation (current scope):
+
+- Proven failure-path: KNO-174
+  → recovery blocked → explicit escalation (`in_review`)
+
+- Proven success-path: KNO-175
+  → recovery succeeds → PR attached → reevaluation → `completed`
+
+- Current implemented class:
+  → missing_pr_after_execution
+
+- Principle:
+  → Harness spends automation before operator attention
+
 ## Governed Reconciliation Proofs
 
 The repository now includes proof records for the `missing_pr_after_execution` reconciliation class:
