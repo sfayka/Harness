@@ -1,0 +1,89 @@
+{
+  "request": {
+    "acceptance_criteria_satisfied": false,
+    "claimed_completion": false,
+    "external_facts": {},
+    "task_envelope": {
+      "id": "kno-172-real-task-2026-04-04",
+      "title": "Run and document one real non-synthetic task through Harness",
+      "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+      "status": "assigned",
+      "priority": "normal",
+      "objective": {
+        "summary": "Run one real task through Harness and document governed outcome.",
+        "deliverable_type": "api_submission",
+        "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts."
+      },
+      "acceptance_criteria": [
+        {
+          "id": "ac-1",
+          "description": "One non-synthetic task is ingested through canonical Harness submission.",
+          "required": true
+        },
+        {
+          "id": "ac-2",
+          "description": "Real repository artifacts from this run are attached and evaluated.",
+          "required": true
+        },
+        {
+          "id": "ac-3",
+          "description": "Read-model and timeline evidence are documented honestly.",
+          "required": true
+        }
+      ],
+      "constraints": [],
+      "dependencies": [],
+      "parent_task_id": null,
+      "child_task_ids": [],
+      "assigned_executor": {
+        "executor_id": "codex-cloud",
+        "executor_type": "codex",
+        "assignment_reason": "Linear delegated execution path"
+      },
+      "required_capabilities": [
+        "python",
+        "git",
+        "github"
+      ],
+      "artifacts": {
+        "items": [],
+        "completion_evidence": {
+          "required_artifact_types": [],
+          "policy": "deferred",
+          "status": "deferred",
+          "validated_artifact_ids": [],
+          "validator": null,
+          "validation_method": "deferred",
+          "validated_at": null,
+          "notes": "Initial submission before external artifacts exist."
+        }
+      },
+      "observability": {
+        "retries": {
+          "attempt_count": 0,
+          "max_attempts": 0,
+          "last_retry_at": null
+        },
+        "errors": [],
+        "execution_metadata": {
+          "context": "KNO-172 issue #147 real governed run"
+        }
+      },
+      "origin": {
+        "source_system": "linear",
+        "source_type": "ingress_request",
+        "source_id": "KNO-172",
+        "ingress_name": "Linear",
+        "ingress_id": "KNO-172",
+        "requested_by": "knoxanalytics"
+      },
+      "timestamps": {
+        "created_at": "2026-04-04T15:10:00Z",
+        "updated_at": "2026-04-04T15:10:00Z",
+        "completed_at": null
+      },
+      "status_history": [],
+      "extensions": {}
+    }
+  }
+}

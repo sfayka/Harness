@@ -1,0 +1,2170 @@
+{
+  "accepted_completion": true,
+  "action": "transition_applied",
+  "enforcement_result": {
+    "action": "transition_applied",
+    "error": null,
+    "evidence_result": {
+      "artifact_results": [
+        {
+          "artifact_id": "artifact-pr-1",
+          "artifact_type": "pull_request",
+          "is_valid": true,
+          "issues": []
+        },
+        {
+          "artifact_id": "artifact-commit-1",
+          "artifact_type": "commit",
+          "is_valid": true,
+          "issues": []
+        }
+      ],
+      "is_sufficient": true,
+      "is_valid": true,
+      "issues": [],
+      "missing_required_artifact_types": [],
+      "unknown_validated_artifact_ids": [],
+      "validated_artifact_ids": [
+        "artifact-pr-1",
+        "artifact-commit-1"
+      ]
+    },
+    "failure_classification": {
+      "category": "none",
+      "failure_type": "none",
+      "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+      "recoverable": false,
+      "retryable": false,
+      "source": "none",
+      "terminal": false
+    },
+    "reasons": [
+      "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+    ],
+    "reconciliation_result": {
+      "blocking": false,
+      "mismatch_categories": [],
+      "outcome": "no_mismatch",
+      "reasons": [
+        "Reconciliation evaluated task 'kno-172-real-task-2026-04-04' against normalized external facts",
+        "No blocking reconciliation mismatch was detected"
+      ],
+      "status": "passed",
+      "task_id": "kno-172-real-task-2026-04-04",
+      "terminal": false
+    },
+    "review_decision": null,
+    "review_request": null,
+    "target_status": "completed",
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "One non-synthetic task is ingested through canonical Harness submission.",
+          "id": "ac-1",
+          "required": true
+        },
+        {
+          "description": "Real repository artifacts from this run are attached and evaluated.",
+          "id": "ac-2",
+          "required": true
+        },
+        {
+          "description": "Read-model and timeline evidence are documented honestly.",
+          "id": "ac-3",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": "Initial submission before external artifacts exist.",
+          "policy": "required",
+          "required_artifact_types": [
+            "pull_request",
+            "commit"
+          ],
+          "status": "satisfied",
+          "validated_artifact_ids": [
+            "artifact-pr-1",
+            "artifact-commit-1"
+          ],
+          "validated_at": "2026-04-04T15:16:00Z",
+          "validation_method": "external_reconciliation",
+          "validator": {
+            "captured_by": "harness-api",
+            "source_id": "verification-kno-172",
+            "source_system": "harness",
+            "source_type": "verification"
+          }
+        },
+        "items": [
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "name": "codex/real-task-proof"
+            },
+            "captured_at": "2026-04-04T15:15:00Z",
+            "changed_files": [],
+            "commit_sha": null,
+            "content_type": null,
+            "description": null,
+            "external_id": "PR-148",
+            "external_refs": [],
+            "id": "artifact-pr-1",
+            "location": "https://github.com/sfayka/Harness/pull/148",
+            "metadata": {},
+            "provenance": {
+              "captured_by": "github-sync",
+              "source_id": "pull/148",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": 148,
+            "repository": {
+              "external_id": "repo-kno172",
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": "approved",
+            "title": "Document KNO-172 real non-synthetic Harness run",
+            "type": "pull_request",
+            "verification_status": "verified"
+          },
+          {
+            "branch": null,
+            "captured_at": "2026-04-04T15:15:30Z",
+            "changed_files": [],
+            "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "content_type": null,
+            "description": null,
+            "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "external_refs": [],
+            "id": "artifact-commit-1",
+            "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "metadata": {},
+            "provenance": {
+              "captured_by": "github-sync",
+              "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": null,
+            "repository": {
+              "external_id": "repo-kno172",
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": null,
+            "title": null,
+            "type": "commit",
+            "verification_status": "verified"
+          }
+        ]
+      },
+      "assigned_executor": {
+        "assignment_reason": "Linear delegated execution path",
+        "executor_id": "codex-cloud",
+        "executor_type": "codex"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "coordination": {
+        "linear": {
+          "issue_id": "KNO-172",
+          "issue_key": "KNO-172",
+          "project": null,
+          "provenance": {
+            "linked_at": "2026-04-04T14:55:29.598043Z",
+            "linked_by": "reevaluation",
+            "source": "reevaluation_request.external_facts"
+          },
+          "reasons": [],
+          "record_found": true,
+          "state": "in_progress",
+          "task_reference": null,
+          "workflow": {
+            "state_type": "in_progress",
+            "workflow_id": "workflow-in_progress",
+            "workflow_name": "In Progress"
+          }
+        }
+      },
+      "dependencies": [],
+      "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+      "extensions": {},
+      "id": "kno-172-real-task-2026-04-04",
+      "objective": {
+        "deliverable_type": "api_submission",
+        "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+        "summary": "Run one real task through Harness and document governed outcome."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "advisory_completion_claims": [
+            {
+              "claim_id": "attempt-1:claim",
+              "metadata": {
+                "advisory_only": true,
+                "attempt_id": "attempt-1",
+                "dispatch_mode": "automatic",
+                "execution_parameters": {
+                  "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                  "dispatch_policy_stage": "post_ingestion"
+                }
+              },
+              "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+              "reported_at": "2026-04-04T14:54:06.148592Z",
+              "reported_by": "codex"
+            }
+          ],
+          "context": "KNO-172 issue #147 real governed run",
+          "execution_attempts": [
+            {
+              "artifact_references": [
+                {
+                  "artifact_type": "execution_log",
+                  "commit_sha": null,
+                  "external_id": null,
+                  "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                  "metadata": {
+                    "advisory": true
+                  },
+                  "reference_id": "attempt-1:log"
+                }
+              ],
+              "attempt_id": "attempt-1",
+              "completion_claim_id": "attempt-1:claim",
+              "metadata": {
+                "dispatch_at": "2026-04-04T14:54:06.148605Z",
+                "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+                "dispatch_mode": "automatic",
+                "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                "dispatch_trigger": "automatic_policy_post_ingestion",
+                "execution_events": [
+                  {
+                    "event_id": "attempt-1:started",
+                    "event_type": "execution_started",
+                    "metadata": {
+                      "adapter": "stub-executor",
+                      "mode": "stub"
+                    },
+                    "occurred_at": "2026-04-04T14:54:06.148425Z",
+                    "source_system": "stub-executor"
+                  },
+                  {
+                    "event_id": "attempt-1:completed",
+                    "event_type": "execution_succeeded",
+                    "metadata": {
+                      "adapter": "stub-executor",
+                      "executor_run_id": "stub-run-attempt-1"
+                    },
+                    "occurred_at": "2026-04-04T14:54:06.148438Z",
+                    "source_system": "stub-executor"
+                  }
+                ],
+                "execution_parameters": {
+                  "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                  "dispatch_policy_stage": "post_ingestion"
+                },
+                "executor": "codex"
+              },
+              "recorded_at": "2026-04-04T14:54:06.148600Z",
+              "reevaluation": {
+                "action": "transition_rejected",
+                "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+                "linked_at": "2026-04-04T14:54:06.203651Z"
+              },
+              "reported_by": "codex",
+              "status": "completed"
+            }
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": "KNO-172",
+        "ingress_name": "Linear",
+        "requested_by": "knoxanalytics",
+        "source_id": "KNO-172",
+        "source_system": "linear",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "required_capabilities": [
+        "python",
+        "git",
+        "github"
+      ],
+      "status": "completed",
+      "status_history": [
+        {
+          "changed_at": "2026-04-04T14:55:29.681786Z",
+          "changed_by": "verification",
+          "from_status": "assigned",
+          "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "to_status": "completed"
+        }
+      ],
+      "timestamps": {
+        "completed_at": "2026-04-04T14:55:29.681786Z",
+        "created_at": "2026-04-04T15:10:00Z",
+        "updated_at": "2026-04-04T14:55:29.681786Z"
+      },
+      "title": "Run and document one real non-synthetic task through Harness"
+    },
+    "transition_result": {
+      "actor": "verification",
+      "changed_at": "2026-04-04T14:55:29.681786Z",
+      "from_status": "assigned",
+      "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+      "status_history_entry": {
+        "changed_at": "2026-04-04T14:55:29.681786Z",
+        "changed_by": "verification",
+        "from_status": "assigned",
+        "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "One non-synthetic task is ingested through canonical Harness submission.",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Real repository artifacts from this run are attached and evaluated.",
+            "id": "ac-2",
+            "required": true
+          },
+          {
+            "description": "Read-model and timeline evidence are documented honestly.",
+            "id": "ac-3",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": "Initial submission before external artifacts exist.",
+            "policy": "required",
+            "required_artifact_types": [
+              "pull_request",
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ],
+            "validated_at": "2026-04-04T15:16:00Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "harness-api",
+              "source_id": "verification-kno-172",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "name": "codex/real-task-proof"
+              },
+              "captured_at": "2026-04-04T15:15:00Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": null,
+              "external_id": "PR-148",
+              "external_refs": [],
+              "id": "artifact-pr-1",
+              "location": "https://github.com/sfayka/Harness/pull/148",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "pull/148",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 148,
+              "repository": {
+                "external_id": "repo-kno172",
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": "approved",
+              "title": "Document KNO-172 real non-synthetic Harness run",
+              "type": "pull_request",
+              "verification_status": "verified"
+            },
+            {
+              "branch": null,
+              "captured_at": "2026-04-04T15:15:30Z",
+              "changed_files": [],
+              "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "external_refs": [],
+              "id": "artifact-commit-1",
+              "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": "repo-kno172",
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "Linear delegated execution path",
+          "executor_id": "codex-cloud",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-172",
+            "issue_key": "KNO-172",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T14:55:29.598043Z",
+              "linked_by": "reevaluation",
+              "source": "reevaluation_request.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "in_progress",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "in_progress",
+              "workflow_id": "workflow-in_progress",
+              "workflow_name": "In Progress"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+        "extensions": {},
+        "id": "kno-172-real-task-2026-04-04",
+        "objective": {
+          "deliverable_type": "api_submission",
+          "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+          "summary": "Run one real task through Harness and document governed outcome."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "attempt-1:claim",
+                "metadata": {
+                  "advisory_only": true,
+                  "attempt_id": "attempt-1",
+                  "dispatch_mode": "automatic",
+                  "execution_parameters": {
+                    "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_policy_stage": "post_ingestion"
+                  }
+                },
+                "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                "reported_at": "2026-04-04T14:54:06.148592Z",
+                "reported_by": "codex"
+              }
+            ],
+            "context": "KNO-172 issue #147 real governed run",
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "commit_sha": null,
+                    "external_id": null,
+                    "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                    "metadata": {
+                      "advisory": true
+                    },
+                    "reference_id": "attempt-1:log"
+                  }
+                ],
+                "attempt_id": "attempt-1",
+                "completion_claim_id": "attempt-1:claim",
+                "metadata": {
+                  "dispatch_at": "2026-04-04T14:54:06.148605Z",
+                  "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+                  "dispatch_mode": "automatic",
+                  "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                  "dispatch_trigger": "automatic_policy_post_ingestion",
+                  "execution_events": [
+                    {
+                      "event_id": "attempt-1:started",
+                      "event_type": "execution_started",
+                      "metadata": {
+                        "adapter": "stub-executor",
+                        "mode": "stub"
+                      },
+                      "occurred_at": "2026-04-04T14:54:06.148425Z",
+                      "source_system": "stub-executor"
+                    },
+                    {
+                      "event_id": "attempt-1:completed",
+                      "event_type": "execution_succeeded",
+                      "metadata": {
+                        "adapter": "stub-executor",
+                        "executor_run_id": "stub-run-attempt-1"
+                      },
+                      "occurred_at": "2026-04-04T14:54:06.148438Z",
+                      "source_system": "stub-executor"
+                    }
+                  ],
+                  "execution_parameters": {
+                    "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_policy_stage": "post_ingestion"
+                  },
+                  "executor": "codex"
+                },
+                "recorded_at": "2026-04-04T14:54:06.148600Z",
+                "reevaluation": {
+                  "action": "transition_rejected",
+                  "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+                  "linked_at": "2026-04-04T14:54:06.203651Z"
+                },
+                "reported_by": "codex",
+                "status": "completed"
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "KNO-172",
+          "ingress_name": "Linear",
+          "requested_by": "knoxanalytics",
+          "source_id": "KNO-172",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "required_capabilities": [
+          "python",
+          "git",
+          "github"
+        ],
+        "status": "completed",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T14:55:29.681786Z",
+            "changed_by": "verification",
+            "from_status": "assigned",
+            "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-04T14:55:29.681786Z",
+          "created_at": "2026-04-04T15:10:00Z",
+          "updated_at": "2026-04-04T14:55:29.681786Z"
+        },
+        "title": "Run and document one real non-synthetic task through Harness"
+      },
+      "to_status": "completed"
+    },
+    "verification_result": {
+      "accepted_completion": true,
+      "claimed_completion": true,
+      "evidence_is_sufficient": true,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "is_terminal": false,
+      "outcome": "accepted_completion",
+      "reasons": [
+        "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy",
+        "Executor-reported success was treated as advisory input only",
+        "Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "reconciliation_status": "passed",
+      "requires_review": false,
+      "target_status": "completed",
+      "task_id": "kno-172-real-task-2026-04-04",
+      "verification_passed": true
+    }
+  },
+  "error": null,
+  "evaluation_record": {
+    "evaluation_id": "a04a8c23-885f-4bff-95ea-ec607b2cf7d3",
+    "recorded_at": "2026-04-04T14:55:29.700407Z",
+    "request": {
+      "acceptance_criteria_satisfied": true,
+      "claimed_completion": true,
+      "external_facts": {
+        "expected_code_context": {
+          "base_branch": "main",
+          "branch_name": "codex/real-task-proof",
+          "repository_host": "github.com",
+          "repository_name": "Harness",
+          "repository_owner": "sfayka"
+        },
+        "github_facts": {
+          "artifact_found": true,
+          "artifact_refs": [
+            {
+              "artifact_type": "pull_request",
+              "external_id": "PR-148",
+              "url": null
+            },
+            {
+              "artifact_type": "commit",
+              "external_id": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "url": null
+            }
+          ],
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "name": "codex/real-task-proof"
+          },
+          "changed_files": {
+            "files": [
+              {
+                "additions": null,
+                "change_type": "unknown",
+                "deletions": null,
+                "path": "docs/demo/kno-172-real-task-run/README.md",
+                "previous_path": null
+              }
+            ],
+            "matches_expected_scope": true
+          },
+          "commit": {
+            "message_summary": null,
+            "sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "url": null
+          },
+          "pull_request": {
+            "merged": null,
+            "number": 148,
+            "review_state": "approved",
+            "state": null,
+            "url": null
+          },
+          "reasons": [],
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          }
+        },
+        "linear_facts": {
+          "issue_id": "KNO-172",
+          "issue_key": "KNO-172",
+          "project": null,
+          "reasons": [],
+          "record_found": true,
+          "state": "in_progress",
+          "task_reference": null,
+          "workflow": {
+            "state_type": "in_progress",
+            "workflow_id": "workflow-in_progress",
+            "workflow_name": "In Progress"
+          }
+        }
+      },
+      "retry_context": null,
+      "review_decision": null,
+      "review_is_active": false,
+      "review_reasons": [],
+      "review_request": null,
+      "runtime_facts": {
+        "attempt_count": 1,
+        "executor_reported_failure": false,
+        "executor_reported_success": true,
+        "latest_attempt_outcome": null,
+        "terminal_failure": false
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "One non-synthetic task is ingested through canonical Harness submission.",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Real repository artifacts from this run are attached and evaluated.",
+            "id": "ac-2",
+            "required": true
+          },
+          {
+            "description": "Read-model and timeline evidence are documented honestly.",
+            "id": "ac-3",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": "Initial submission before external artifacts exist.",
+            "policy": "required",
+            "required_artifact_types": [
+              "pull_request",
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ],
+            "validated_at": "2026-04-04T15:16:00Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "harness-api",
+              "source_id": "verification-kno-172",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "name": "codex/real-task-proof"
+              },
+              "captured_at": "2026-04-04T15:15:00Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": null,
+              "external_id": "PR-148",
+              "external_refs": [],
+              "id": "artifact-pr-1",
+              "location": "https://github.com/sfayka/Harness/pull/148",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "pull/148",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 148,
+              "repository": {
+                "external_id": "repo-kno172",
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": "approved",
+              "title": "Document KNO-172 real non-synthetic Harness run",
+              "type": "pull_request",
+              "verification_status": "verified"
+            },
+            {
+              "branch": null,
+              "captured_at": "2026-04-04T15:15:30Z",
+              "changed_files": [],
+              "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "external_refs": [],
+              "id": "artifact-commit-1",
+              "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": "repo-kno172",
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "Linear delegated execution path",
+          "executor_id": "codex-cloud",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-172",
+            "issue_key": "KNO-172",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T14:55:29.598043Z",
+              "linked_by": "reevaluation",
+              "source": "reevaluation_request.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "in_progress",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "in_progress",
+              "workflow_id": "workflow-in_progress",
+              "workflow_name": "In Progress"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+        "extensions": {},
+        "id": "kno-172-real-task-2026-04-04",
+        "objective": {
+          "deliverable_type": "api_submission",
+          "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+          "summary": "Run one real task through Harness and document governed outcome."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "attempt-1:claim",
+                "metadata": {
+                  "advisory_only": true,
+                  "attempt_id": "attempt-1",
+                  "dispatch_mode": "automatic",
+                  "execution_parameters": {
+                    "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_policy_stage": "post_ingestion"
+                  }
+                },
+                "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                "reported_at": "2026-04-04T14:54:06.148592Z",
+                "reported_by": "codex"
+              }
+            ],
+            "context": "KNO-172 issue #147 real governed run",
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "commit_sha": null,
+                    "external_id": null,
+                    "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                    "metadata": {
+                      "advisory": true
+                    },
+                    "reference_id": "attempt-1:log"
+                  }
+                ],
+                "attempt_id": "attempt-1",
+                "completion_claim_id": "attempt-1:claim",
+                "metadata": {
+                  "dispatch_at": "2026-04-04T14:54:06.148605Z",
+                  "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+                  "dispatch_mode": "automatic",
+                  "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                  "dispatch_trigger": "automatic_policy_post_ingestion",
+                  "execution_events": [
+                    {
+                      "event_id": "attempt-1:started",
+                      "event_type": "execution_started",
+                      "metadata": {
+                        "adapter": "stub-executor",
+                        "mode": "stub"
+                      },
+                      "occurred_at": "2026-04-04T14:54:06.148425Z",
+                      "source_system": "stub-executor"
+                    },
+                    {
+                      "event_id": "attempt-1:completed",
+                      "event_type": "execution_succeeded",
+                      "metadata": {
+                        "adapter": "stub-executor",
+                        "executor_run_id": "stub-run-attempt-1"
+                      },
+                      "occurred_at": "2026-04-04T14:54:06.148438Z",
+                      "source_system": "stub-executor"
+                    }
+                  ],
+                  "execution_parameters": {
+                    "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_policy_stage": "post_ingestion"
+                  },
+                  "executor": "codex"
+                },
+                "recorded_at": "2026-04-04T14:54:06.148600Z",
+                "reevaluation": {
+                  "action": "transition_rejected",
+                  "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+                  "linked_at": "2026-04-04T14:54:06.203651Z"
+                },
+                "reported_by": "codex",
+                "status": "completed"
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "KNO-172",
+          "ingress_name": "Linear",
+          "requested_by": "knoxanalytics",
+          "source_id": "KNO-172",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "required_capabilities": [
+          "python",
+          "git",
+          "github"
+        ],
+        "status": "assigned",
+        "status_history": [],
+        "timestamps": {
+          "completed_at": null,
+          "created_at": "2026-04-04T15:10:00Z",
+          "updated_at": "2026-04-04T14:55:29.597504Z"
+        },
+        "title": "Run and document one real non-synthetic task through Harness"
+      },
+      "unresolved_conditions": []
+    },
+    "result": {
+      "accepted_completion": true,
+      "action": "transition_applied",
+      "enforcement_result": {
+        "action": "transition_applied",
+        "error": null,
+        "evidence_result": {
+          "artifact_results": [
+            {
+              "artifact_id": "artifact-pr-1",
+              "artifact_type": "pull_request",
+              "is_valid": true,
+              "issues": []
+            },
+            {
+              "artifact_id": "artifact-commit-1",
+              "artifact_type": "commit",
+              "is_valid": true,
+              "issues": []
+            }
+          ],
+          "is_sufficient": true,
+          "is_valid": true,
+          "issues": [],
+          "missing_required_artifact_types": [],
+          "unknown_validated_artifact_ids": [],
+          "validated_artifact_ids": [
+            "artifact-pr-1",
+            "artifact-commit-1"
+          ]
+        },
+        "failure_classification": {
+          "category": "none",
+          "failure_type": "none",
+          "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+          "recoverable": false,
+          "retryable": false,
+          "source": "none",
+          "terminal": false
+        },
+        "reasons": [
+          "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "reconciliation_result": {
+          "blocking": false,
+          "mismatch_categories": [],
+          "outcome": "no_mismatch",
+          "reasons": [
+            "Reconciliation evaluated task 'kno-172-real-task-2026-04-04' against normalized external facts",
+            "No blocking reconciliation mismatch was detected"
+          ],
+          "status": "passed",
+          "task_id": "kno-172-real-task-2026-04-04",
+          "terminal": false
+        },
+        "review_decision": null,
+        "review_request": null,
+        "target_status": "completed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "One non-synthetic task is ingested through canonical Harness submission.",
+              "id": "ac-1",
+              "required": true
+            },
+            {
+              "description": "Real repository artifacts from this run are attached and evaluated.",
+              "id": "ac-2",
+              "required": true
+            },
+            {
+              "description": "Read-model and timeline evidence are documented honestly.",
+              "id": "ac-3",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": "Initial submission before external artifacts exist.",
+              "policy": "required",
+              "required_artifact_types": [
+                "pull_request",
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-pr-1",
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-04-04T15:16:00Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "harness-api",
+                "source_id": "verification-kno-172",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                  "name": "codex/real-task-proof"
+                },
+                "captured_at": "2026-04-04T15:15:00Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": null,
+                "external_id": "PR-148",
+                "external_refs": [],
+                "id": "artifact-pr-1",
+                "location": "https://github.com/sfayka/Harness/pull/148",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "pull/148",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 148,
+                "repository": {
+                  "external_id": "repo-kno172",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": "approved",
+                "title": "Document KNO-172 real non-synthetic Harness run",
+                "type": "pull_request",
+                "verification_status": "verified"
+              },
+              {
+                "branch": null,
+                "captured_at": "2026-04-04T15:15:30Z",
+                "changed_files": [],
+                "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-kno172",
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Linear delegated execution path",
+            "executor_id": "codex-cloud",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": {
+              "issue_id": "KNO-172",
+              "issue_key": "KNO-172",
+              "project": null,
+              "provenance": {
+                "linked_at": "2026-04-04T14:55:29.598043Z",
+                "linked_by": "reevaluation",
+                "source": "reevaluation_request.external_facts"
+              },
+              "reasons": [],
+              "record_found": true,
+              "state": "in_progress",
+              "task_reference": null,
+              "workflow": {
+                "state_type": "in_progress",
+                "workflow_id": "workflow-in_progress",
+                "workflow_name": "In Progress"
+              }
+            }
+          },
+          "dependencies": [],
+          "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+          "extensions": {},
+          "id": "kno-172-real-task-2026-04-04",
+          "objective": {
+            "deliverable_type": "api_submission",
+            "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+            "summary": "Run one real task through Harness and document governed outcome."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "attempt-1:claim",
+                  "metadata": {
+                    "advisory_only": true,
+                    "attempt_id": "attempt-1",
+                    "dispatch_mode": "automatic",
+                    "execution_parameters": {
+                      "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                      "dispatch_policy_stage": "post_ingestion"
+                    }
+                  },
+                  "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                  "reported_at": "2026-04-04T14:54:06.148592Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "context": "KNO-172 issue #147 real governed run",
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "commit_sha": null,
+                      "external_id": null,
+                      "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                      "metadata": {
+                        "advisory": true
+                      },
+                      "reference_id": "attempt-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-1",
+                  "completion_claim_id": "attempt-1:claim",
+                  "metadata": {
+                    "dispatch_at": "2026-04-04T14:54:06.148605Z",
+                    "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+                    "dispatch_mode": "automatic",
+                    "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_trigger": "automatic_policy_post_ingestion",
+                    "execution_events": [
+                      {
+                        "event_id": "attempt-1:started",
+                        "event_type": "execution_started",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "mode": "stub"
+                        },
+                        "occurred_at": "2026-04-04T14:54:06.148425Z",
+                        "source_system": "stub-executor"
+                      },
+                      {
+                        "event_id": "attempt-1:completed",
+                        "event_type": "execution_succeeded",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "executor_run_id": "stub-run-attempt-1"
+                        },
+                        "occurred_at": "2026-04-04T14:54:06.148438Z",
+                        "source_system": "stub-executor"
+                      }
+                    ],
+                    "execution_parameters": {
+                      "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                      "dispatch_policy_stage": "post_ingestion"
+                    },
+                    "executor": "codex"
+                  },
+                  "recorded_at": "2026-04-04T14:54:06.148600Z",
+                  "reevaluation": {
+                    "action": "transition_rejected",
+                    "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+                    "linked_at": "2026-04-04T14:54:06.203651Z"
+                  },
+                  "reported_by": "codex",
+                  "status": "completed"
+                }
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": "KNO-172",
+            "ingress_name": "Linear",
+            "requested_by": "knoxanalytics",
+            "source_id": "KNO-172",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "required_capabilities": [
+            "python",
+            "git",
+            "github"
+          ],
+          "status": "completed",
+          "status_history": [
+            {
+              "changed_at": "2026-04-04T14:55:29.681786Z",
+              "changed_by": "verification",
+              "from_status": "assigned",
+              "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-04-04T14:55:29.681786Z",
+            "created_at": "2026-04-04T15:10:00Z",
+            "updated_at": "2026-04-04T14:55:29.681786Z"
+          },
+          "title": "Run and document one real non-synthetic task through Harness"
+        },
+        "transition_result": {
+          "actor": "verification",
+          "changed_at": "2026-04-04T14:55:29.681786Z",
+          "from_status": "assigned",
+          "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "status_history_entry": {
+            "changed_at": "2026-04-04T14:55:29.681786Z",
+            "changed_by": "verification",
+            "from_status": "assigned",
+            "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          },
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "One non-synthetic task is ingested through canonical Harness submission.",
+                "id": "ac-1",
+                "required": true
+              },
+              {
+                "description": "Real repository artifacts from this run are attached and evaluated.",
+                "id": "ac-2",
+                "required": true
+              },
+              {
+                "description": "Read-model and timeline evidence are documented honestly.",
+                "id": "ac-3",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": "Initial submission before external artifacts exist.",
+                "policy": "required",
+                "required_artifact_types": [
+                  "pull_request",
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-pr-1",
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-04-04T15:16:00Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "harness-api",
+                  "source_id": "verification-kno-172",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                    "name": "codex/real-task-proof"
+                  },
+                  "captured_at": "2026-04-04T15:15:00Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "PR-148",
+                  "external_refs": [],
+                  "id": "artifact-pr-1",
+                  "location": "https://github.com/sfayka/Harness/pull/148",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "pull/148",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 148,
+                  "repository": {
+                    "external_id": "repo-kno172",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": "approved",
+                  "title": "Document KNO-172 real non-synthetic Harness run",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": null,
+                  "captured_at": "2026-04-04T15:15:30Z",
+                  "changed_files": [],
+                  "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-kno172",
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Linear delegated execution path",
+              "executor_id": "codex-cloud",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": {
+                "issue_id": "KNO-172",
+                "issue_key": "KNO-172",
+                "project": null,
+                "provenance": {
+                  "linked_at": "2026-04-04T14:55:29.598043Z",
+                  "linked_by": "reevaluation",
+                  "source": "reevaluation_request.external_facts"
+                },
+                "reasons": [],
+                "record_found": true,
+                "state": "in_progress",
+                "task_reference": null,
+                "workflow": {
+                  "state_type": "in_progress",
+                  "workflow_id": "workflow-in_progress",
+                  "workflow_name": "In Progress"
+                }
+              }
+            },
+            "dependencies": [],
+            "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+            "extensions": {},
+            "id": "kno-172-real-task-2026-04-04",
+            "objective": {
+              "deliverable_type": "api_submission",
+              "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+              "summary": "Run one real task through Harness and document governed outcome."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "attempt-1:claim",
+                    "metadata": {
+                      "advisory_only": true,
+                      "attempt_id": "attempt-1",
+                      "dispatch_mode": "automatic",
+                      "execution_parameters": {
+                        "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                        "dispatch_policy_stage": "post_ingestion"
+                      }
+                    },
+                    "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "reported_at": "2026-04-04T14:54:06.148592Z",
+                    "reported_by": "codex"
+                  }
+                ],
+                "context": "KNO-172 issue #147 real governed run",
+                "execution_attempts": [
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "commit_sha": null,
+                        "external_id": null,
+                        "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                        "metadata": {
+                          "advisory": true
+                        },
+                        "reference_id": "attempt-1:log"
+                      }
+                    ],
+                    "attempt_id": "attempt-1",
+                    "completion_claim_id": "attempt-1:claim",
+                    "metadata": {
+                      "dispatch_at": "2026-04-04T14:54:06.148605Z",
+                      "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+                      "dispatch_mode": "automatic",
+                      "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                      "dispatch_trigger": "automatic_policy_post_ingestion",
+                      "execution_events": [
+                        {
+                          "event_id": "attempt-1:started",
+                          "event_type": "execution_started",
+                          "metadata": {
+                            "adapter": "stub-executor",
+                            "mode": "stub"
+                          },
+                          "occurred_at": "2026-04-04T14:54:06.148425Z",
+                          "source_system": "stub-executor"
+                        },
+                        {
+                          "event_id": "attempt-1:completed",
+                          "event_type": "execution_succeeded",
+                          "metadata": {
+                            "adapter": "stub-executor",
+                            "executor_run_id": "stub-run-attempt-1"
+                          },
+                          "occurred_at": "2026-04-04T14:54:06.148438Z",
+                          "source_system": "stub-executor"
+                        }
+                      ],
+                      "execution_parameters": {
+                        "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                        "dispatch_policy_stage": "post_ingestion"
+                      },
+                      "executor": "codex"
+                    },
+                    "recorded_at": "2026-04-04T14:54:06.148600Z",
+                    "reevaluation": {
+                      "action": "transition_rejected",
+                      "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+                      "linked_at": "2026-04-04T14:54:06.203651Z"
+                    },
+                    "reported_by": "codex",
+                    "status": "completed"
+                  }
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": "KNO-172",
+              "ingress_name": "Linear",
+              "requested_by": "knoxanalytics",
+              "source_id": "KNO-172",
+              "source_system": "linear",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "required_capabilities": [
+              "python",
+              "git",
+              "github"
+            ],
+            "status": "completed",
+            "status_history": [
+              {
+                "changed_at": "2026-04-04T14:55:29.681786Z",
+                "changed_by": "verification",
+                "from_status": "assigned",
+                "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              }
+            ],
+            "timestamps": {
+              "completed_at": "2026-04-04T14:55:29.681786Z",
+              "created_at": "2026-04-04T15:10:00Z",
+              "updated_at": "2026-04-04T14:55:29.681786Z"
+            },
+            "title": "Run and document one real non-synthetic task through Harness"
+          },
+          "to_status": "completed"
+        },
+        "verification_result": {
+          "accepted_completion": true,
+          "claimed_completion": true,
+          "evidence_is_sufficient": true,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "accepted_completion",
+          "reasons": [
+            "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy",
+            "Executor-reported success was treated as advisory input only",
+            "Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "reconciliation_status": "passed",
+          "requires_review": false,
+          "target_status": "completed",
+          "task_id": "kno-172-real-task-2026-04-04",
+          "verification_passed": true
+        }
+      },
+      "error": null,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "invalid_input": false,
+      "reasons": [
+        "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "requires_review": false,
+      "target_status": "completed",
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "One non-synthetic task is ingested through canonical Harness submission.",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Real repository artifacts from this run are attached and evaluated.",
+            "id": "ac-2",
+            "required": true
+          },
+          {
+            "description": "Read-model and timeline evidence are documented honestly.",
+            "id": "ac-3",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": "Initial submission before external artifacts exist.",
+            "policy": "required",
+            "required_artifact_types": [
+              "pull_request",
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-pr-1",
+              "artifact-commit-1"
+            ],
+            "validated_at": "2026-04-04T15:16:00Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "harness-api",
+              "source_id": "verification-kno-172",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "name": "codex/real-task-proof"
+              },
+              "captured_at": "2026-04-04T15:15:00Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": null,
+              "external_id": "PR-148",
+              "external_refs": [],
+              "id": "artifact-pr-1",
+              "location": "https://github.com/sfayka/Harness/pull/148",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "pull/148",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 148,
+              "repository": {
+                "external_id": "repo-kno172",
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": "approved",
+              "title": "Document KNO-172 real non-synthetic Harness run",
+              "type": "pull_request",
+              "verification_status": "verified"
+            },
+            {
+              "branch": null,
+              "captured_at": "2026-04-04T15:15:30Z",
+              "changed_files": [],
+              "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "external_refs": [],
+              "id": "artifact-commit-1",
+              "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": "repo-kno172",
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "Linear delegated execution path",
+          "executor_id": "codex-cloud",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-172",
+            "issue_key": "KNO-172",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T14:55:29.598043Z",
+              "linked_by": "reevaluation",
+              "source": "reevaluation_request.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "in_progress",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "in_progress",
+              "workflow_id": "workflow-in_progress",
+              "workflow_name": "In Progress"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+        "extensions": {},
+        "id": "kno-172-real-task-2026-04-04",
+        "objective": {
+          "deliverable_type": "api_submission",
+          "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+          "summary": "Run one real task through Harness and document governed outcome."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "attempt-1:claim",
+                "metadata": {
+                  "advisory_only": true,
+                  "attempt_id": "attempt-1",
+                  "dispatch_mode": "automatic",
+                  "execution_parameters": {
+                    "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_policy_stage": "post_ingestion"
+                  }
+                },
+                "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                "reported_at": "2026-04-04T14:54:06.148592Z",
+                "reported_by": "codex"
+              }
+            ],
+            "context": "KNO-172 issue #147 real governed run",
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "commit_sha": null,
+                    "external_id": null,
+                    "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                    "metadata": {
+                      "advisory": true
+                    },
+                    "reference_id": "attempt-1:log"
+                  }
+                ],
+                "attempt_id": "attempt-1",
+                "completion_claim_id": "attempt-1:claim",
+                "metadata": {
+                  "dispatch_at": "2026-04-04T14:54:06.148605Z",
+                  "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+                  "dispatch_mode": "automatic",
+                  "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                  "dispatch_trigger": "automatic_policy_post_ingestion",
+                  "execution_events": [
+                    {
+                      "event_id": "attempt-1:started",
+                      "event_type": "execution_started",
+                      "metadata": {
+                        "adapter": "stub-executor",
+                        "mode": "stub"
+                      },
+                      "occurred_at": "2026-04-04T14:54:06.148425Z",
+                      "source_system": "stub-executor"
+                    },
+                    {
+                      "event_id": "attempt-1:completed",
+                      "event_type": "execution_succeeded",
+                      "metadata": {
+                        "adapter": "stub-executor",
+                        "executor_run_id": "stub-run-attempt-1"
+                      },
+                      "occurred_at": "2026-04-04T14:54:06.148438Z",
+                      "source_system": "stub-executor"
+                    }
+                  ],
+                  "execution_parameters": {
+                    "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                    "dispatch_policy_stage": "post_ingestion"
+                  },
+                  "executor": "codex"
+                },
+                "recorded_at": "2026-04-04T14:54:06.148600Z",
+                "reevaluation": {
+                  "action": "transition_rejected",
+                  "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+                  "linked_at": "2026-04-04T14:54:06.203651Z"
+                },
+                "reported_by": "codex",
+                "status": "completed"
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "KNO-172",
+          "ingress_name": "Linear",
+          "requested_by": "knoxanalytics",
+          "source_id": "KNO-172",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "required_capabilities": [
+          "python",
+          "git",
+          "github"
+        ],
+        "status": "completed",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T14:55:29.681786Z",
+            "changed_by": "verification",
+            "from_status": "assigned",
+            "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-04T14:55:29.681786Z",
+          "created_at": "2026-04-04T15:10:00Z",
+          "updated_at": "2026-04-04T14:55:29.681786Z"
+        },
+        "title": "Run and document one real non-synthetic task through Harness"
+      }
+    },
+    "task_id": "kno-172-real-task-2026-04-04"
+  },
+  "failure_classification": {
+    "category": "none",
+    "failure_type": "none",
+    "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+    "recoverable": false,
+    "retryable": false,
+    "source": "none",
+    "terminal": false
+  },
+  "invalid_input": false,
+  "reasons": [
+    "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+  ],
+  "requires_review": false,
+  "target_status": "completed",
+  "task_envelope": {
+    "acceptance_criteria": [
+      {
+        "description": "One non-synthetic task is ingested through canonical Harness submission.",
+        "id": "ac-1",
+        "required": true
+      },
+      {
+        "description": "Real repository artifacts from this run are attached and evaluated.",
+        "id": "ac-2",
+        "required": true
+      },
+      {
+        "description": "Read-model and timeline evidence are documented honestly.",
+        "id": "ac-3",
+        "required": true
+      }
+    ],
+    "artifacts": {
+      "completion_evidence": {
+        "notes": "Initial submission before external artifacts exist.",
+        "policy": "required",
+        "required_artifact_types": [
+          "pull_request",
+          "commit"
+        ],
+        "status": "satisfied",
+        "validated_artifact_ids": [
+          "artifact-pr-1",
+          "artifact-commit-1"
+        ],
+        "validated_at": "2026-04-04T15:16:00Z",
+        "validation_method": "external_reconciliation",
+        "validator": {
+          "captured_by": "harness-api",
+          "source_id": "verification-kno-172",
+          "source_system": "harness",
+          "source_type": "verification"
+        }
+      },
+      "items": [
+        {
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "name": "codex/real-task-proof"
+          },
+          "captured_at": "2026-04-04T15:15:00Z",
+          "changed_files": [],
+          "commit_sha": null,
+          "content_type": null,
+          "description": null,
+          "external_id": "PR-148",
+          "external_refs": [],
+          "id": "artifact-pr-1",
+          "location": "https://github.com/sfayka/Harness/pull/148",
+          "metadata": {},
+          "provenance": {
+            "captured_by": "github-sync",
+            "source_id": "pull/148",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": 148,
+          "repository": {
+            "external_id": "repo-kno172",
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": "approved",
+          "title": "Document KNO-172 real non-synthetic Harness run",
+          "type": "pull_request",
+          "verification_status": "verified"
+        },
+        {
+          "branch": null,
+          "captured_at": "2026-04-04T15:15:30Z",
+          "changed_files": [],
+          "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+          "content_type": null,
+          "description": null,
+          "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+          "external_refs": [],
+          "id": "artifact-commit-1",
+          "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+          "metadata": {},
+          "provenance": {
+            "captured_by": "github-sync",
+            "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": null,
+          "repository": {
+            "external_id": "repo-kno172",
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": null,
+          "title": null,
+          "type": "commit",
+          "verification_status": "verified"
+        }
+      ]
+    },
+    "assigned_executor": {
+      "assignment_reason": "Linear delegated execution path",
+      "executor_id": "codex-cloud",
+      "executor_type": "codex"
+    },
+    "child_task_ids": [],
+    "constraints": [],
+    "coordination": {
+      "linear": {
+        "issue_id": "KNO-172",
+        "issue_key": "KNO-172",
+        "project": null,
+        "provenance": {
+          "linked_at": "2026-04-04T14:55:29.598043Z",
+          "linked_by": "reevaluation",
+          "source": "reevaluation_request.external_facts"
+        },
+        "reasons": [],
+        "record_found": true,
+        "state": "in_progress",
+        "task_reference": null,
+        "workflow": {
+          "state_type": "in_progress",
+          "workflow_id": "workflow-in_progress",
+          "workflow_name": "In Progress"
+        }
+      }
+    },
+    "dependencies": [],
+    "description": "Execute GitHub issue #147 through canonical Harness submission, dispatch visibility, and reevaluation paths using real external repository artifacts created in this run.",
+    "extensions": {},
+    "id": "kno-172-real-task-2026-04-04",
+    "objective": {
+      "deliverable_type": "api_submission",
+      "success_signal": "Read-model and timeline show persisted lifecycle and final governed outcome with real artifacts.",
+      "summary": "Run one real task through Harness and document governed outcome."
+    },
+    "observability": {
+      "errors": [],
+      "execution_metadata": {
+        "advisory_completion_claims": [
+          {
+            "claim_id": "attempt-1:claim",
+            "metadata": {
+              "advisory_only": true,
+              "attempt_id": "attempt-1",
+              "dispatch_mode": "automatic",
+              "execution_parameters": {
+                "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                "dispatch_policy_stage": "post_ingestion"
+              }
+            },
+            "reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+            "reported_at": "2026-04-04T14:54:06.148592Z",
+            "reported_by": "codex"
+          }
+        ],
+        "context": "KNO-172 issue #147 real governed run",
+        "execution_attempts": [
+          {
+            "artifact_references": [
+              {
+                "artifact_type": "execution_log",
+                "commit_sha": null,
+                "external_id": null,
+                "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+                "metadata": {
+                  "advisory": true
+                },
+                "reference_id": "attempt-1:log"
+              }
+            ],
+            "attempt_id": "attempt-1",
+            "completion_claim_id": "attempt-1:claim",
+            "metadata": {
+              "dispatch_at": "2026-04-04T14:54:06.148605Z",
+              "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+              "dispatch_mode": "automatic",
+              "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+              "dispatch_trigger": "automatic_policy_post_ingestion",
+              "execution_events": [
+                {
+                  "event_id": "attempt-1:started",
+                  "event_type": "execution_started",
+                  "metadata": {
+                    "adapter": "stub-executor",
+                    "mode": "stub"
+                  },
+                  "occurred_at": "2026-04-04T14:54:06.148425Z",
+                  "source_system": "stub-executor"
+                },
+                {
+                  "event_id": "attempt-1:completed",
+                  "event_type": "execution_succeeded",
+                  "metadata": {
+                    "adapter": "stub-executor",
+                    "executor_run_id": "stub-run-attempt-1"
+                  },
+                  "occurred_at": "2026-04-04T14:54:06.148438Z",
+                  "source_system": "stub-executor"
+                }
+              ],
+              "execution_parameters": {
+                "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+                "dispatch_policy_stage": "post_ingestion"
+              },
+              "executor": "codex"
+            },
+            "recorded_at": "2026-04-04T14:54:06.148600Z",
+            "reevaluation": {
+              "action": "transition_rejected",
+              "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+              "linked_at": "2026-04-04T14:54:06.203651Z"
+            },
+            "reported_by": "codex",
+            "status": "completed"
+          }
+        ]
+      },
+      "retries": {
+        "attempt_count": 0,
+        "last_retry_at": null,
+        "max_attempts": 0
+      }
+    },
+    "origin": {
+      "ingress_id": "KNO-172",
+      "ingress_name": "Linear",
+      "requested_by": "knoxanalytics",
+      "source_id": "KNO-172",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "parent_task_id": null,
+    "priority": "normal",
+    "required_capabilities": [
+      "python",
+      "git",
+      "github"
+    ],
+    "status": "completed",
+    "status_history": [
+      {
+        "changed_at": "2026-04-04T14:55:29.681786Z",
+        "changed_by": "verification",
+        "from_status": "assigned",
+        "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      }
+    ],
+    "timestamps": {
+      "completed_at": "2026-04-04T14:55:29.681786Z",
+      "created_at": "2026-04-04T15:10:00Z",
+      "updated_at": "2026-04-04T14:55:29.681786Z"
+    },
+    "title": "Run and document one real non-synthetic task through Harness"
+  }
+}
