@@ -1,0 +1,179 @@
+{
+  "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+  "final_status": "completed",
+  "final_artifacts": [
+    {
+      "branch": {
+        "base_branch": "main",
+        "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+        "name": "codex/kno-178-claimed-attempt-run2"
+      },
+      "captured_at": "2026-04-04T23:05:20Z",
+      "changed_files": [],
+      "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+      "content_type": null,
+      "description": null,
+      "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+      "external_refs": [],
+      "id": "artifact-commit-kno178-claimed",
+      "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+      "metadata": {
+        "attempt_id": "kno178-attempt-claimed-1"
+      },
+      "provenance": {
+        "captured_by": "kno-178-proof",
+        "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+        "source_system": "github",
+        "source_type": "api"
+      },
+      "pull_request_number": null,
+      "repository": {
+        "external_id": null,
+        "host": "github.com",
+        "name": "Harness",
+        "owner": "sfayka"
+      },
+      "review_state": null,
+      "title": null,
+      "type": "commit",
+      "verification_status": "verified"
+    },
+    {
+      "branch": {
+        "base_branch": "main",
+        "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+        "name": "codex/kno-178-claimed-attempt-run2"
+      },
+      "captured_at": "2026-04-04T22:35:59.373150Z",
+      "changed_files": [],
+      "commit_sha": null,
+      "content_type": null,
+      "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+      "external_id": "PR-155",
+      "external_refs": [],
+      "id": "artifact-pr-155",
+      "location": "https://github.com/sfayka/Harness/pull/155",
+      "metadata": {
+        "attached_by": "missing_pr_after_execution",
+        "pull_request_state": "open"
+      },
+      "provenance": {
+        "captured_by": "reconciliation_handler",
+        "source_id": "pull/155",
+        "source_system": "github",
+        "source_type": "api"
+      },
+      "pull_request_number": 155,
+      "repository": {
+        "external_id": null,
+        "host": "github.com",
+        "name": "Harness",
+        "owner": "sfayka"
+      },
+      "review_state": null,
+      "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+      "type": "pull_request",
+      "verification_status": "verified"
+    }
+  ],
+  "reconciliation": {
+    "active_failure_type": null,
+    "attempts": [
+      {
+        "attempt_id": "reconciliation-attempt-1",
+        "completed_at": "2026-04-04T22:35:59.373150Z",
+        "details": {
+          "base_branch": "main",
+          "branch_exists": true,
+          "branch_name": "codex/kno-178-claimed-attempt-run2",
+          "commit_exists": true,
+          "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+          "created_pull_request": true,
+          "error": null,
+          "final_decision": {
+            "reason": "no_valid_existing_candidate",
+            "result": "created_new"
+          },
+          "policy": {
+            "allow_closed_pr_match": false,
+            "allow_commit_association_match": true,
+            "allow_open_pr_match": true,
+            "escalate_on_ambiguous_match": true,
+            "require_exact_branch_match": true,
+            "require_head_sha_match": true,
+            "require_task_linkage": false
+          },
+          "pull_request_candidates": [
+            {
+              "base_branch": "main",
+              "head": {
+                "branch": "codex/kno-178-claimed-attempt-run2",
+                "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+              },
+              "lookup_sources": [
+                "created"
+              ],
+              "merged": false,
+              "number": 155,
+              "repository": {
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "state": "open",
+              "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+              "url": "https://github.com/sfayka/Harness/pull/155",
+              "validation": {
+                "accepted": true,
+                "matched_by": [
+                  "head_sha_match",
+                  "task_linkage"
+                ],
+                "reasons": [],
+                "signals": {
+                  "branch_match": true,
+                  "commit_association_match": false,
+                  "head_sha_match": true,
+                  "repository_match": true,
+                  "state": "open",
+                  "state_acceptable": true,
+                  "task_linkage": {
+                    "linked": true,
+                    "task_id_present": true,
+                    "task_title_present": true
+                  }
+                }
+              }
+            }
+          ],
+          "pull_request_lookup": {
+            "ambiguous": false,
+            "candidate_count": 1,
+            "found": true,
+            "number": 155,
+            "searched_by_branch": true,
+            "searched_by_commit": true,
+            "source": "created",
+            "url": "https://github.com/sfayka/Harness/pull/155",
+            "valid_candidate_count": 1
+          },
+          "repository": {
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          }
+        },
+        "failure_type": "missing_pr_after_execution",
+        "handler_key": "missing_pr_after_execution",
+        "started_at": "2026-04-04T22:35:57.598043Z",
+        "status": "resolved"
+      }
+    ],
+    "failed_at": null,
+    "last_attempt_id": "reconciliation-attempt-1",
+    "last_error": null,
+    "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+    "resolved_at": "2026-04-04T22:35:59.373150Z",
+    "status": "resolved"
+  }
+}
