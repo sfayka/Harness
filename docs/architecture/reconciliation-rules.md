@@ -155,6 +155,8 @@ Meaning:
 - if recovery succeeds, Harness must return to canonical reevaluation rather than directly declaring completion
 - if recovery fails, Harness must escalate the task into explicit `in_review`
 
+This is where Harness spends automation before operator attention. Recoverable defects should not require immediate human babysitting, but recovery remains bounded and auditable.
+
 ### Missing Evidence
 
 Conditions:
@@ -277,6 +279,92 @@ Typical when:
 Manual review is a reconciliation outcome, not a substitute for explicit lifecycle semantics. Future implementation may represent this through a dedicated review flag or mismatch record while preserving the underlying task state.
 
 When Harness performs an operational recovery such as `missing_pr_after_execution`, it must never create duplicate PRs. It must check for an existing PR by branch and commit before attempting PR creation.
+
+## Failure Class: `missing_pr_after_execution`
+
+### Trigger Condition
+
+This reconciliation handler applies when all of the following are true:
+
+- execution has completed or a completion claim was submitted
+- the task has enough repository context to reason about GitHub artifacts
+- a commit artifact exists or a commit SHA was supplied
+- the required PR artifact is still missing
+
+Harness distinguishes execution from completion. A completion claim without a PR artifact is not enough to reach terminal success when reconciliation policy requires GitHub proof.
+
+### Bounded Recovery Steps
+
+For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handler with the following bounded sequence:
+
+1. Check that the target branch exists through Git or the GitHub API.
+2. Validate that the commit SHA is present, non-empty, and resolvable.
+3. Query GitHub for an existing PR by branch.
+4. Query GitHub for an existing PR by commit if the branch lookup does not find one.
+5. If a PR already exists, attach the PR URL to task artifacts and mark reconciliation `resolved`.
+6. If no PR exists, create one through the GitHub API.
+7. If PR creation succeeds, attach the PR URL and mark reconciliation `resolved`.
+8. If PR creation fails or GitHub blocks the recovery path, capture the error and mark reconciliation `failed`.
+
+Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, creation result, final status, and any captured error.
+
+### Idempotency Rule
+
+Repeated reconciliation attempts must not create duplicate PRs.
+
+The handler must always perform PR lookup before PR creation:
+
+- lookup by branch prevents obvious duplicate PRs on the same head
+- lookup by commit prevents duplicates when branch naming or task state is stale
+- only a negative result from both checks may proceed to PR creation
+
+This keeps retries safe and makes the handler suitable for bounded repeated execution.
+
+### Success Path
+
+If reconciliation resolves the missing artifact:
+
+- Harness attaches the PR URL to task artifacts
+- `task.reconciliation` records a resolved attempt
+- Harness runs canonical reevaluation
+- the task may reach `completed` only if reevaluation accepts the outcome
+
+The reconciliation handler does not authorize terminal success on its own. Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone.
+
+### Failure Path
+
+If reconciliation fails or is blocked:
+
+- Harness records the failed attempt and error details under `task.reconciliation`
+- the task does not silently remain `completed`
+- Harness escalates explicitly to `in_review`
+
+`in_review` means safe automation has stopped and human judgment is now required. This is different from `reconciling`, where system repair is still actively running.
+
+### Recoverable And Non-Recoverable Outcomes
+
+Recoverable outcomes for this class include:
+
+- the branch exists, the commit exists, and a PR is found by branch or commit
+- the branch exists, the commit exists, no PR exists yet, and GitHub accepts PR creation
+
+Non-recoverable or escalation outcomes for this class include:
+
+- the branch cannot be found
+- the commit SHA is empty or does not resolve
+- GitHub lookup returns contradictory or unusable results
+- GitHub refuses or blocks PR creation
+
+These outcomes remain specific to `missing_pr_after_execution`. Other reconciliation classes may have different recovery boundaries.
+
+## Governed Proofs
+
+The current proof set for `missing_pr_after_execution` shows both sides of the bounded recovery contract:
+
+- [`docs/demo/kno-174-missing-pr-after-execution/README.md`](../demo/kno-174-missing-pr-after-execution/README.md): failure-path proof. This establishes safe escalation when recovery is blocked and the task lands in `in_review` with structured reconciliation evidence.
+- [`docs/demo/kno-175-missing-pr-success/README.md`](../demo/kno-175-missing-pr-success/README.md): success-path proof. This establishes successful auto-repair for this failure class, followed by canonical reevaluation to `completed`.
+
+These proofs are intentionally narrow. They prove governed behavior for `missing_pr_after_execution`; they do not prove universal auto-recovery across all reconciliation failures.
 
 Current implementation maps reconciliation-driven manual review to the explicit `in_review` lifecycle state. A task that requires review must not remain `completed`.
 

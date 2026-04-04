@@ -84,9 +84,9 @@ TaskEnvelope uses the following canonical states:
 | `dispatch_ready` | task is sufficiently defined and ready for executor selection |
 | `assigned` | task has an executor selected but execution has not yet started |
 | `executing` | executor has started work |
-| `reconciling` | execution completed and Harness is actively repairing or verifying missing external reconciliation artifacts before reevaluation |
+| `reconciling` | Harness is actively running bounded system repair or recovery for a specific reconciliation defect before canonical reevaluation |
 | `blocked` | task cannot currently proceed because of an unmet dependency, missing input, or external blocker |
-| `in_review` | automatic policy could not safely accept completion and the task is awaiting explicit manual review |
+| `in_review` | automatic policy or recovery could not safely resolve the task and explicit human judgment is now required |
 | `completed` | task satisfied its acceptance criteria and has a provisional completed outcome pending successful reconciliation where reconciliation is required |
 | `failed` | task reached a terminal unsuccessful outcome |
 | `canceled` | task was intentionally stopped and should not continue |
@@ -172,6 +172,15 @@ Once a task is `in_review`, only an explicit manual review decision may transiti
 `blocked` may also move back to `completed` when the blocking condition was specifically about unresolved completion acceptance and later verification or manual review resolves that blocker with sufficient evidence and non-blocking reconciliation.
 
 `reconciling` is non-terminal and operational. It exists so Harness can explicitly repair or confirm missing external artifacts, such as a missing pull request after execution, without silently pretending reconciliation already passed.
+
+Tasks enter `reconciling` only when Harness has enough structured context to attempt bounded automated recovery safely. The canonical example is `missing_pr_after_execution`: execution is finished, a commit exists, the PR artifact is missing, and Harness has enough repository, branch, and commit context to try repair before asking an operator to step in.
+
+`reconciling` is different from `in_review`.
+
+- `reconciling` means system repair or recovery is still in progress.
+- `in_review` means the system has reached the limit of safe automation and now requires explicit human judgment or intervention.
+
+Leaving `reconciling` does not grant terminal success by itself. If reconciliation resolves the defect, Harness must return to canonical reevaluation and only then decide whether the task can be accepted as `completed`. If reconciliation fails or is blocked, the task must escalate explicitly, typically to `in_review`.
 
 `completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
 

@@ -14,6 +14,25 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
+## Governed Reconciliation
+
+Harness distinguishes execution from completion.
+
+Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
+
+If recovery succeeds, the task can proceed to `completed` through normal reevaluation. If recovery fails or is blocked, Harness escalates explicitly to `in_review` instead of silently accepting the task as done.
+
+Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
+
+## Governed Reconciliation Proofs
+
+The repository now includes proof records for the `missing_pr_after_execution` reconciliation class:
+
+- [`docs/demo/kno-174-missing-pr-after-execution/README.md`](docs/demo/kno-174-missing-pr-after-execution/README.md): governed failure-path proof. This shows safe escalation when recovery is blocked by external GitHub limitations and the task lands in `in_review` with structured reconciliation evidence.
+- [`docs/demo/kno-175-missing-pr-success/README.md`](docs/demo/kno-175-missing-pr-success/README.md): success-path proof. This shows Harness creating and attaching the missing PR, then completing canonical reevaluation to `completed` without operator intervention.
+
+These proofs are specific to `missing_pr_after_execution`. They do not claim that every reconciliation class is already automated or proven.
+
 ## Planned Capabilities
 
 The repository also carries planning-only scaffolds for two future capabilities:
