@@ -1,0 +1,2165 @@
+{
+  "accepted_completion": true,
+  "action": "transition_applied",
+  "enforcement_result": {
+    "action": "transition_applied",
+    "error": null,
+    "evidence_result": {
+      "artifact_results": [
+        {
+          "artifact_id": "artifact-commit-kno175",
+          "artifact_type": "commit",
+          "is_valid": true,
+          "issues": []
+        },
+        {
+          "artifact_id": "artifact-pr-150",
+          "artifact_type": "pull_request",
+          "is_valid": true,
+          "issues": []
+        }
+      ],
+      "is_sufficient": true,
+      "is_valid": true,
+      "issues": [],
+      "missing_required_artifact_types": [],
+      "unknown_validated_artifact_ids": [],
+      "validated_artifact_ids": [
+        "artifact-commit-kno175"
+      ]
+    },
+    "failure_classification": {
+      "category": "none",
+      "failure_type": "none",
+      "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+      "recoverable": false,
+      "retryable": false,
+      "source": "none",
+      "terminal": false
+    },
+    "reasons": [
+      "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+    ],
+    "reconciliation_result": {
+      "blocking": false,
+      "mismatch_categories": [],
+      "outcome": "no_mismatch",
+      "reasons": [
+        "Reconciliation evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against normalized external facts",
+        "No blocking reconciliation mismatch was detected"
+      ],
+      "status": "passed",
+      "task_id": "kno-175-missing-pr-success-2026-04-04-run3",
+      "terminal": false
+    },
+    "review_decision": null,
+    "review_request": null,
+    "target_status": "completed",
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "Harness auto-attaches PR after execution without PR artifact",
+          "id": "ac-1",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": null,
+          "policy": "required",
+          "required_artifact_types": [
+            "commit"
+          ],
+          "status": "satisfied",
+          "validated_artifact_ids": [
+            "artifact-commit-kno175"
+          ],
+          "validated_at": "2026-04-04T12:01:30Z",
+          "validation_method": "external_reconciliation",
+          "validator": {
+            "captured_by": "kno-175-proof",
+            "source_id": "verification-kno175",
+            "source_system": "harness",
+            "source_type": "verification"
+          }
+        },
+        "items": [
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "name": "codex/kno-175-missing-pr-runtime"
+            },
+            "captured_at": "2026-04-04T12:01:00Z",
+            "changed_files": [],
+            "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "content_type": null,
+            "description": null,
+            "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "external_refs": [],
+            "id": "artifact-commit-kno175",
+            "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "metadata": {},
+            "provenance": {
+              "captured_by": "kno-175-proof",
+              "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": null,
+            "repository": {
+              "external_id": null,
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": null,
+            "title": null,
+            "type": "commit",
+            "verification_status": "verified"
+          },
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "name": "codex/kno-175-missing-pr-runtime"
+            },
+            "captured_at": "2026-04-04T16:40:24.039950Z",
+            "changed_files": [],
+            "commit_sha": null,
+            "content_type": null,
+            "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+            "external_id": "PR-150",
+            "external_refs": [],
+            "id": "artifact-pr-150",
+            "location": "https://github.com/sfayka/Harness/pull/150",
+            "metadata": {
+              "attached_by": "missing_pr_after_execution",
+              "pull_request_state": "open"
+            },
+            "provenance": {
+              "captured_by": "reconciliation_handler",
+              "source_id": "pull/150",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": 150,
+            "repository": {
+              "external_id": null,
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": null,
+            "title": "KNO-175 auto reconcile missing PR after execution PR",
+            "type": "pull_request",
+            "verification_status": "verified"
+          }
+        ]
+      },
+      "assigned_executor": {
+        "assignment_reason": "runtime proof",
+        "executor_id": "codex-kno175",
+        "executor_type": "codex"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "coordination": {
+        "linear": {
+          "issue_id": "KNO-175",
+          "issue_key": "KNO-175",
+          "project": null,
+          "provenance": {
+            "linked_at": "2026-04-04T16:40:21.919800Z",
+            "linked_by": "reevaluation",
+            "source": "completion_claim.external_facts"
+          },
+          "reasons": [],
+          "record_found": true,
+          "state": "completed",
+          "task_reference": null,
+          "workflow": {
+            "state_type": "completed",
+            "workflow_id": "workflow-completed",
+            "workflow_name": "completed"
+          }
+        }
+      },
+      "dependencies": [],
+      "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+      "id": "kno-175-missing-pr-success-2026-04-04-run3",
+      "objective": {
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria.",
+        "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "advisory_completion_claims": [
+            {
+              "claim_id": "kno175-claim-1",
+              "metadata": {
+                "issue": "KNO-175"
+              },
+              "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+              "reported_at": "2026-04-04T12:05:00Z",
+              "reported_by": "codex"
+            }
+          ],
+          "execution_attempts": [
+            {
+              "artifact_references": [
+                {
+                  "artifact_type": "execution_log",
+                  "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                  "reference_id": "kno175-exec-log-1"
+                }
+              ],
+              "attempt_id": "kno175-attempt-1",
+              "completion_claim_id": "kno175-claim-1",
+              "metadata": {
+                "run_mode": "missing_pr_after_execution_success_proof"
+              },
+              "recorded_at": "2026-04-04T12:05:05Z",
+              "reevaluation": {},
+              "reported_by": "codex",
+              "status": "completed"
+            }
+          ],
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": "linear-KNO-175",
+        "ingress_name": "Linear",
+        "requested_by": null,
+        "source_id": "KNO-175",
+        "source_system": "linear",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "reconciliation": {
+        "active_failure_type": null,
+        "attempts": [
+          {
+            "attempt_id": "reconciliation-attempt-1",
+            "completed_at": "2026-04-04T16:40:24.039950Z",
+            "details": {
+              "base_branch": "main",
+              "branch_exists": true,
+              "branch_name": "codex/kno-175-missing-pr-runtime",
+              "commit_exists": true,
+              "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "created_pull_request": true,
+              "error": null,
+              "pull_request_lookup": {
+                "found": true,
+                "number": 150,
+                "searched_by_branch": true,
+                "searched_by_commit": true,
+                "source": "created",
+                "url": "https://github.com/sfayka/Harness/pull/150"
+              },
+              "repository": {
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              }
+            },
+            "failure_type": "missing_pr_after_execution",
+            "handler_key": "missing_pr_after_execution",
+            "started_at": "2026-04-04T16:40:21.937020Z",
+            "status": "resolved"
+          }
+        ],
+        "failed_at": null,
+        "last_attempt_id": "reconciliation-attempt-1",
+        "last_error": null,
+        "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+        "resolved_at": "2026-04-04T16:40:24.039950Z",
+        "status": "resolved"
+      },
+      "required_capabilities": [],
+      "status": "completed",
+      "status_history": [
+        {
+          "changed_at": "2026-04-04T16:40:21.928939Z",
+          "changed_by": "reconciliation",
+          "from_status": "executing",
+          "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+          "to_status": "reconciling"
+        },
+        {
+          "changed_at": "2026-04-04T16:40:24.096831Z",
+          "changed_by": "verification",
+          "from_status": "reconciling",
+          "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "to_status": "completed"
+        }
+      ],
+      "timestamps": {
+        "completed_at": "2026-04-04T16:40:24.096831Z",
+        "created_at": "2026-04-04T12:00:00Z",
+        "updated_at": "2026-04-04T16:40:24.096831Z"
+      },
+      "title": "KNO-175 auto reconcile missing PR after execution"
+    },
+    "transition_result": {
+      "actor": "verification",
+      "changed_at": "2026-04-04T16:40:24.096831Z",
+      "from_status": "reconciling",
+      "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+      "status_history_entry": {
+        "changed_at": "2026-04-04T16:40:24.096831Z",
+        "changed_by": "verification",
+        "from_status": "reconciling",
+        "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Harness auto-attaches PR after execution without PR artifact",
+            "id": "ac-1",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-kno175"
+            ],
+            "validated_at": "2026-04-04T12:01:30Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "kno-175-proof",
+              "source_id": "verification-kno175",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "name": "codex/kno-175-missing-pr-runtime"
+              },
+              "captured_at": "2026-04-04T12:01:00Z",
+              "changed_files": [],
+              "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "external_refs": [],
+              "id": "artifact-commit-kno175",
+              "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "kno-175-proof",
+                "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "name": "codex/kno-175-missing-pr-runtime"
+              },
+              "captured_at": "2026-04-04T16:40:24.039950Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "external_id": "PR-150",
+              "external_refs": [],
+              "id": "artifact-pr-150",
+              "location": "https://github.com/sfayka/Harness/pull/150",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              },
+              "provenance": {
+                "captured_by": "reconciliation_handler",
+                "source_id": "pull/150",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 150,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": "KNO-175 auto reconcile missing PR after execution PR",
+              "type": "pull_request",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "runtime proof",
+          "executor_id": "codex-kno175",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-175",
+            "issue_key": "KNO-175",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T16:40:21.919800Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "completed",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "completed",
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+        "id": "kno-175-missing-pr-success-2026-04-04-run3",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Task satisfies declared acceptance criteria.",
+          "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "kno175-claim-1",
+                "metadata": {
+                  "issue": "KNO-175"
+                },
+                "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+                "reported_at": "2026-04-04T12:05:00Z",
+                "reported_by": "codex"
+              }
+            ],
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                    "reference_id": "kno175-exec-log-1"
+                  }
+                ],
+                "attempt_id": "kno175-attempt-1",
+                "completion_claim_id": "kno175-claim-1",
+                "metadata": {
+                  "run_mode": "missing_pr_after_execution_success_proof"
+                },
+                "recorded_at": "2026-04-04T12:05:05Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "completed"
+              }
+            ],
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "linear-KNO-175",
+          "ingress_name": "Linear",
+          "requested_by": null,
+          "source_id": "KNO-175",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "completed_at": "2026-04-04T16:40:24.039950Z",
+              "details": {
+                "base_branch": "main",
+                "branch_exists": true,
+                "branch_name": "codex/kno-175-missing-pr-runtime",
+                "commit_exists": true,
+                "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "created_pull_request": true,
+                "error": null,
+                "pull_request_lookup": {
+                  "found": true,
+                  "number": 150,
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "source": "created",
+                  "url": "https://github.com/sfayka/Harness/pull/150"
+                },
+                "repository": {
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "started_at": "2026-04-04T16:40:21.937020Z",
+              "status": "resolved"
+            }
+          ],
+          "failed_at": null,
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_error": null,
+          "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+          "resolved_at": "2026-04-04T16:40:24.039950Z",
+          "status": "resolved"
+        },
+        "required_capabilities": [],
+        "status": "completed",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T16:40:21.928939Z",
+            "changed_by": "reconciliation",
+            "from_status": "executing",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "to_status": "reconciling"
+          },
+          {
+            "changed_at": "2026-04-04T16:40:24.096831Z",
+            "changed_by": "verification",
+            "from_status": "reconciling",
+            "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-04T16:40:24.096831Z",
+          "created_at": "2026-04-04T12:00:00Z",
+          "updated_at": "2026-04-04T16:40:24.096831Z"
+        },
+        "title": "KNO-175 auto reconcile missing PR after execution"
+      },
+      "to_status": "completed"
+    },
+    "verification_result": {
+      "accepted_completion": true,
+      "claimed_completion": true,
+      "evidence_is_sufficient": true,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "is_terminal": false,
+      "outcome": "accepted_completion",
+      "reasons": [
+        "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy",
+        "Executor-reported success was treated as advisory input only",
+        "Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "reconciliation_status": "passed",
+      "requires_review": false,
+      "target_status": "completed",
+      "task_id": "kno-175-missing-pr-success-2026-04-04-run3",
+      "verification_passed": true
+    }
+  },
+  "error": null,
+  "evaluation_record": {
+    "evaluation_id": "6fc61164-e091-4c1e-8998-bc1583324988",
+    "recorded_at": "2026-04-04T16:40:24.109025Z",
+    "request": {
+      "acceptance_criteria_satisfied": true,
+      "claimed_completion": true,
+      "external_facts": {
+        "expected_code_context": {
+          "base_branch": "main",
+          "branch_name": "codex/kno-175-missing-pr-runtime",
+          "repository_host": "github.com",
+          "repository_name": "Harness",
+          "repository_owner": "sfayka"
+        },
+        "github_facts": {
+          "artifact_found": true,
+          "artifact_refs": [
+            {
+              "artifact_type": "commit",
+              "external_id": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "url": null
+            }
+          ],
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "name": "codex/kno-175-missing-pr-runtime"
+          },
+          "changed_files": null,
+          "commit": {
+            "message_summary": null,
+            "sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "url": null
+          },
+          "pull_request": null,
+          "reasons": [],
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          }
+        },
+        "linear_facts": {
+          "issue_id": "KNO-175",
+          "issue_key": "KNO-175",
+          "project": null,
+          "reasons": [],
+          "record_found": true,
+          "state": "completed",
+          "task_reference": null,
+          "workflow": {
+            "state_type": "completed",
+            "workflow_id": "workflow-completed",
+            "workflow_name": "completed"
+          }
+        }
+      },
+      "retry_context": null,
+      "review_decision": null,
+      "review_is_active": false,
+      "review_reasons": [],
+      "review_request": null,
+      "runtime_facts": {
+        "attempt_count": 1,
+        "executor_reported_failure": false,
+        "executor_reported_success": true,
+        "latest_attempt_outcome": "completed",
+        "terminal_failure": false
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Harness auto-attaches PR after execution without PR artifact",
+            "id": "ac-1",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-kno175"
+            ],
+            "validated_at": "2026-04-04T12:01:30Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "kno-175-proof",
+              "source_id": "verification-kno175",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "name": "codex/kno-175-missing-pr-runtime"
+              },
+              "captured_at": "2026-04-04T12:01:00Z",
+              "changed_files": [],
+              "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "external_refs": [],
+              "id": "artifact-commit-kno175",
+              "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "kno-175-proof",
+                "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "name": "codex/kno-175-missing-pr-runtime"
+              },
+              "captured_at": "2026-04-04T16:40:24.039950Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "external_id": "PR-150",
+              "external_refs": [],
+              "id": "artifact-pr-150",
+              "location": "https://github.com/sfayka/Harness/pull/150",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              },
+              "provenance": {
+                "captured_by": "reconciliation_handler",
+                "source_id": "pull/150",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 150,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": "KNO-175 auto reconcile missing PR after execution PR",
+              "type": "pull_request",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "runtime proof",
+          "executor_id": "codex-kno175",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-175",
+            "issue_key": "KNO-175",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T16:40:21.919800Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "completed",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "completed",
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+        "id": "kno-175-missing-pr-success-2026-04-04-run3",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Task satisfies declared acceptance criteria.",
+          "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "kno175-claim-1",
+                "metadata": {
+                  "issue": "KNO-175"
+                },
+                "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+                "reported_at": "2026-04-04T12:05:00Z",
+                "reported_by": "codex"
+              }
+            ],
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                    "reference_id": "kno175-exec-log-1"
+                  }
+                ],
+                "attempt_id": "kno175-attempt-1",
+                "completion_claim_id": "kno175-claim-1",
+                "metadata": {
+                  "run_mode": "missing_pr_after_execution_success_proof"
+                },
+                "recorded_at": "2026-04-04T12:05:05Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "completed"
+              }
+            ],
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "linear-KNO-175",
+          "ingress_name": "Linear",
+          "requested_by": null,
+          "source_id": "KNO-175",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "completed_at": "2026-04-04T16:40:24.039950Z",
+              "details": {
+                "base_branch": "main",
+                "branch_exists": true,
+                "branch_name": "codex/kno-175-missing-pr-runtime",
+                "commit_exists": true,
+                "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "created_pull_request": true,
+                "error": null,
+                "pull_request_lookup": {
+                  "found": true,
+                  "number": 150,
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "source": "created",
+                  "url": "https://github.com/sfayka/Harness/pull/150"
+                },
+                "repository": {
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "started_at": "2026-04-04T16:40:21.937020Z",
+              "status": "resolved"
+            }
+          ],
+          "failed_at": null,
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_error": null,
+          "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+          "resolved_at": "2026-04-04T16:40:24.039950Z",
+          "status": "resolved"
+        },
+        "required_capabilities": [],
+        "status": "reconciling",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T16:40:21.928939Z",
+            "changed_by": "reconciliation",
+            "from_status": "executing",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "to_status": "reconciling"
+          }
+        ],
+        "timestamps": {
+          "completed_at": null,
+          "created_at": "2026-04-04T12:00:00Z",
+          "updated_at": "2026-04-04T16:40:24.039950Z"
+        },
+        "title": "KNO-175 auto reconcile missing PR after execution"
+      },
+      "unresolved_conditions": []
+    },
+    "result": {
+      "accepted_completion": true,
+      "action": "transition_applied",
+      "enforcement_result": {
+        "action": "transition_applied",
+        "error": null,
+        "evidence_result": {
+          "artifact_results": [
+            {
+              "artifact_id": "artifact-commit-kno175",
+              "artifact_type": "commit",
+              "is_valid": true,
+              "issues": []
+            },
+            {
+              "artifact_id": "artifact-pr-150",
+              "artifact_type": "pull_request",
+              "is_valid": true,
+              "issues": []
+            }
+          ],
+          "is_sufficient": true,
+          "is_valid": true,
+          "issues": [],
+          "missing_required_artifact_types": [],
+          "unknown_validated_artifact_ids": [],
+          "validated_artifact_ids": [
+            "artifact-commit-kno175"
+          ]
+        },
+        "failure_classification": {
+          "category": "none",
+          "failure_type": "none",
+          "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+          "recoverable": false,
+          "retryable": false,
+          "source": "none",
+          "terminal": false
+        },
+        "reasons": [
+          "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "reconciliation_result": {
+          "blocking": false,
+          "mismatch_categories": [],
+          "outcome": "no_mismatch",
+          "reasons": [
+            "Reconciliation evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against normalized external facts",
+            "No blocking reconciliation mismatch was detected"
+          ],
+          "status": "passed",
+          "task_id": "kno-175-missing-pr-success-2026-04-04-run3",
+          "terminal": false
+        },
+        "review_decision": null,
+        "review_request": null,
+        "target_status": "completed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness auto-attaches PR after execution without PR artifact",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "required",
+              "required_artifact_types": [
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-commit-kno175"
+              ],
+              "validated_at": "2026-04-04T12:01:30Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "kno-175-proof",
+                "source_id": "verification-kno175",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "name": "codex/kno-175-missing-pr-runtime"
+                },
+                "captured_at": "2026-04-04T12:01:00Z",
+                "changed_files": [],
+                "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "external_refs": [],
+                "id": "artifact-commit-kno175",
+                "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "kno-175-proof",
+                  "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": null,
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              },
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "name": "codex/kno-175-missing-pr-runtime"
+                },
+                "captured_at": "2026-04-04T16:40:24.039950Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                "external_id": "PR-150",
+                "external_refs": [],
+                "id": "artifact-pr-150",
+                "location": "https://github.com/sfayka/Harness/pull/150",
+                "metadata": {
+                  "attached_by": "missing_pr_after_execution",
+                  "pull_request_state": "open"
+                },
+                "provenance": {
+                  "captured_by": "reconciliation_handler",
+                  "source_id": "pull/150",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 150,
+                "repository": {
+                  "external_id": null,
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": "KNO-175 auto reconcile missing PR after execution PR",
+                "type": "pull_request",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "runtime proof",
+            "executor_id": "codex-kno175",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": {
+              "issue_id": "KNO-175",
+              "issue_key": "KNO-175",
+              "project": null,
+              "provenance": {
+                "linked_at": "2026-04-04T16:40:21.919800Z",
+                "linked_by": "reevaluation",
+                "source": "completion_claim.external_facts"
+              },
+              "reasons": [],
+              "record_found": true,
+              "state": "completed",
+              "task_reference": null,
+              "workflow": {
+                "state_type": "completed",
+                "workflow_id": "workflow-completed",
+                "workflow_name": "completed"
+              }
+            }
+          },
+          "dependencies": [],
+          "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+          "id": "kno-175-missing-pr-success-2026-04-04-run3",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "kno175-claim-1",
+                  "metadata": {
+                    "issue": "KNO-175"
+                  },
+                  "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+                  "reported_at": "2026-04-04T12:05:00Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                      "reference_id": "kno175-exec-log-1"
+                    }
+                  ],
+                  "attempt_id": "kno175-attempt-1",
+                  "completion_claim_id": "kno175-claim-1",
+                  "metadata": {
+                    "run_mode": "missing_pr_after_execution_success_proof"
+                  },
+                  "recorded_at": "2026-04-04T12:05:05Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "completed"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": "linear-KNO-175",
+            "ingress_name": "Linear",
+            "requested_by": null,
+            "source_id": "KNO-175",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [
+              {
+                "attempt_id": "reconciliation-attempt-1",
+                "completed_at": "2026-04-04T16:40:24.039950Z",
+                "details": {
+                  "base_branch": "main",
+                  "branch_exists": true,
+                  "branch_name": "codex/kno-175-missing-pr-runtime",
+                  "commit_exists": true,
+                  "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "created_pull_request": true,
+                  "error": null,
+                  "pull_request_lookup": {
+                    "found": true,
+                    "number": 150,
+                    "searched_by_branch": true,
+                    "searched_by_commit": true,
+                    "source": "created",
+                    "url": "https://github.com/sfayka/Harness/pull/150"
+                  },
+                  "repository": {
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  }
+                },
+                "failure_type": "missing_pr_after_execution",
+                "handler_key": "missing_pr_after_execution",
+                "started_at": "2026-04-04T16:40:21.937020Z",
+                "status": "resolved"
+              }
+            ],
+            "failed_at": null,
+            "last_attempt_id": "reconciliation-attempt-1",
+            "last_error": null,
+            "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+            "resolved_at": "2026-04-04T16:40:24.039950Z",
+            "status": "resolved"
+          },
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "changed_at": "2026-04-04T16:40:21.928939Z",
+              "changed_by": "reconciliation",
+              "from_status": "executing",
+              "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+              "to_status": "reconciling"
+            },
+            {
+              "changed_at": "2026-04-04T16:40:24.096831Z",
+              "changed_by": "verification",
+              "from_status": "reconciling",
+              "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-04-04T16:40:24.096831Z",
+            "created_at": "2026-04-04T12:00:00Z",
+            "updated_at": "2026-04-04T16:40:24.096831Z"
+          },
+          "title": "KNO-175 auto reconcile missing PR after execution"
+        },
+        "transition_result": {
+          "actor": "verification",
+          "changed_at": "2026-04-04T16:40:24.096831Z",
+          "from_status": "reconciling",
+          "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "status_history_entry": {
+            "changed_at": "2026-04-04T16:40:24.096831Z",
+            "changed_by": "verification",
+            "from_status": "reconciling",
+            "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          },
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Harness auto-attaches PR after execution without PR artifact",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "required",
+                "required_artifact_types": [
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-commit-kno175"
+                ],
+                "validated_at": "2026-04-04T12:01:30Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "kno-175-proof",
+                  "source_id": "verification-kno175",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                    "name": "codex/kno-175-missing-pr-runtime"
+                  },
+                  "captured_at": "2026-04-04T12:01:00Z",
+                  "changed_files": [],
+                  "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "external_refs": [],
+                  "id": "artifact-commit-kno175",
+                  "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "kno-175-proof",
+                    "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": null,
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                    "name": "codex/kno-175-missing-pr-runtime"
+                  },
+                  "captured_at": "2026-04-04T16:40:24.039950Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                  "external_id": "PR-150",
+                  "external_refs": [],
+                  "id": "artifact-pr-150",
+                  "location": "https://github.com/sfayka/Harness/pull/150",
+                  "metadata": {
+                    "attached_by": "missing_pr_after_execution",
+                    "pull_request_state": "open"
+                  },
+                  "provenance": {
+                    "captured_by": "reconciliation_handler",
+                    "source_id": "pull/150",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 150,
+                  "repository": {
+                    "external_id": null,
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": "KNO-175 auto reconcile missing PR after execution PR",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "runtime proof",
+              "executor_id": "codex-kno175",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": {
+                "issue_id": "KNO-175",
+                "issue_key": "KNO-175",
+                "project": null,
+                "provenance": {
+                  "linked_at": "2026-04-04T16:40:21.919800Z",
+                  "linked_by": "reevaluation",
+                  "source": "completion_claim.external_facts"
+                },
+                "reasons": [],
+                "record_found": true,
+                "state": "completed",
+                "task_reference": null,
+                "workflow": {
+                  "state_type": "completed",
+                  "workflow_id": "workflow-completed",
+                  "workflow_name": "completed"
+                }
+              }
+            },
+            "dependencies": [],
+            "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+            "id": "kno-175-missing-pr-success-2026-04-04-run3",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "kno175-claim-1",
+                    "metadata": {
+                      "issue": "KNO-175"
+                    },
+                    "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+                    "reported_at": "2026-04-04T12:05:00Z",
+                    "reported_by": "codex"
+                  }
+                ],
+                "execution_attempts": [
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                        "reference_id": "kno175-exec-log-1"
+                      }
+                    ],
+                    "attempt_id": "kno175-attempt-1",
+                    "completion_claim_id": "kno175-claim-1",
+                    "metadata": {
+                      "run_mode": "missing_pr_after_execution_success_proof"
+                    },
+                    "recorded_at": "2026-04-04T12:05:05Z",
+                    "reevaluation": {},
+                    "reported_by": "codex",
+                    "status": "completed"
+                  }
+                ],
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": "linear-KNO-175",
+              "ingress_name": "Linear",
+              "requested_by": null,
+              "source_id": "KNO-175",
+              "source_system": "linear",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "active_failure_type": null,
+              "attempts": [
+                {
+                  "attempt_id": "reconciliation-attempt-1",
+                  "completed_at": "2026-04-04T16:40:24.039950Z",
+                  "details": {
+                    "base_branch": "main",
+                    "branch_exists": true,
+                    "branch_name": "codex/kno-175-missing-pr-runtime",
+                    "commit_exists": true,
+                    "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                    "created_pull_request": true,
+                    "error": null,
+                    "pull_request_lookup": {
+                      "found": true,
+                      "number": 150,
+                      "searched_by_branch": true,
+                      "searched_by_commit": true,
+                      "source": "created",
+                      "url": "https://github.com/sfayka/Harness/pull/150"
+                    },
+                    "repository": {
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    }
+                  },
+                  "failure_type": "missing_pr_after_execution",
+                  "handler_key": "missing_pr_after_execution",
+                  "started_at": "2026-04-04T16:40:21.937020Z",
+                  "status": "resolved"
+                }
+              ],
+              "failed_at": null,
+              "last_attempt_id": "reconciliation-attempt-1",
+              "last_error": null,
+              "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+              "resolved_at": "2026-04-04T16:40:24.039950Z",
+              "status": "resolved"
+            },
+            "required_capabilities": [],
+            "status": "completed",
+            "status_history": [
+              {
+                "changed_at": "2026-04-04T16:40:21.928939Z",
+                "changed_by": "reconciliation",
+                "from_status": "executing",
+                "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+                "to_status": "reconciling"
+              },
+              {
+                "changed_at": "2026-04-04T16:40:24.096831Z",
+                "changed_by": "verification",
+                "from_status": "reconciling",
+                "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              }
+            ],
+            "timestamps": {
+              "completed_at": "2026-04-04T16:40:24.096831Z",
+              "created_at": "2026-04-04T12:00:00Z",
+              "updated_at": "2026-04-04T16:40:24.096831Z"
+            },
+            "title": "KNO-175 auto reconcile missing PR after execution"
+          },
+          "to_status": "completed"
+        },
+        "verification_result": {
+          "accepted_completion": true,
+          "claimed_completion": true,
+          "evidence_is_sufficient": true,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "accepted_completion",
+          "reasons": [
+            "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy",
+            "Executor-reported success was treated as advisory input only",
+            "Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "reconciliation_status": "passed",
+          "requires_review": false,
+          "target_status": "completed",
+          "task_id": "kno-175-missing-pr-success-2026-04-04-run3",
+          "verification_passed": true
+        }
+      },
+      "error": null,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "invalid_input": false,
+      "reasons": [
+        "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "requires_review": false,
+      "target_status": "completed",
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Harness auto-attaches PR after execution without PR artifact",
+            "id": "ac-1",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-kno175"
+            ],
+            "validated_at": "2026-04-04T12:01:30Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "kno-175-proof",
+              "source_id": "verification-kno175",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "name": "codex/kno-175-missing-pr-runtime"
+              },
+              "captured_at": "2026-04-04T12:01:00Z",
+              "changed_files": [],
+              "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "external_refs": [],
+              "id": "artifact-commit-kno175",
+              "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "kno-175-proof",
+                "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "name": "codex/kno-175-missing-pr-runtime"
+              },
+              "captured_at": "2026-04-04T16:40:24.039950Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "external_id": "PR-150",
+              "external_refs": [],
+              "id": "artifact-pr-150",
+              "location": "https://github.com/sfayka/Harness/pull/150",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              },
+              "provenance": {
+                "captured_by": "reconciliation_handler",
+                "source_id": "pull/150",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 150,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": "KNO-175 auto reconcile missing PR after execution PR",
+              "type": "pull_request",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "runtime proof",
+          "executor_id": "codex-kno175",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-175",
+            "issue_key": "KNO-175",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T16:40:21.919800Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "completed",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "completed",
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+        "id": "kno-175-missing-pr-success-2026-04-04-run3",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Task satisfies declared acceptance criteria.",
+          "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "kno175-claim-1",
+                "metadata": {
+                  "issue": "KNO-175"
+                },
+                "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+                "reported_at": "2026-04-04T12:05:00Z",
+                "reported_by": "codex"
+              }
+            ],
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                    "reference_id": "kno175-exec-log-1"
+                  }
+                ],
+                "attempt_id": "kno175-attempt-1",
+                "completion_claim_id": "kno175-claim-1",
+                "metadata": {
+                  "run_mode": "missing_pr_after_execution_success_proof"
+                },
+                "recorded_at": "2026-04-04T12:05:05Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "completed"
+              }
+            ],
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "linear-KNO-175",
+          "ingress_name": "Linear",
+          "requested_by": null,
+          "source_id": "KNO-175",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "completed_at": "2026-04-04T16:40:24.039950Z",
+              "details": {
+                "base_branch": "main",
+                "branch_exists": true,
+                "branch_name": "codex/kno-175-missing-pr-runtime",
+                "commit_exists": true,
+                "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+                "created_pull_request": true,
+                "error": null,
+                "pull_request_lookup": {
+                  "found": true,
+                  "number": 150,
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "source": "created",
+                  "url": "https://github.com/sfayka/Harness/pull/150"
+                },
+                "repository": {
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "started_at": "2026-04-04T16:40:21.937020Z",
+              "status": "resolved"
+            }
+          ],
+          "failed_at": null,
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_error": null,
+          "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+          "resolved_at": "2026-04-04T16:40:24.039950Z",
+          "status": "resolved"
+        },
+        "required_capabilities": [],
+        "status": "completed",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T16:40:21.928939Z",
+            "changed_by": "reconciliation",
+            "from_status": "executing",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "to_status": "reconciling"
+          },
+          {
+            "changed_at": "2026-04-04T16:40:24.096831Z",
+            "changed_by": "verification",
+            "from_status": "reconciling",
+            "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-04T16:40:24.096831Z",
+          "created_at": "2026-04-04T12:00:00Z",
+          "updated_at": "2026-04-04T16:40:24.096831Z"
+        },
+        "title": "KNO-175 auto reconcile missing PR after execution"
+      }
+    },
+    "task_id": "kno-175-missing-pr-success-2026-04-04-run3"
+  },
+  "failure_classification": {
+    "category": "none",
+    "failure_type": "none",
+    "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+    "recoverable": false,
+    "retryable": false,
+    "source": "none",
+    "terminal": false
+  },
+  "invalid_input": false,
+  "reasons": [
+    "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+  ],
+  "requires_review": false,
+  "target_status": "completed",
+  "task_envelope": {
+    "acceptance_criteria": [
+      {
+        "description": "Harness auto-attaches PR after execution without PR artifact",
+        "id": "ac-1",
+        "required": true
+      }
+    ],
+    "artifacts": {
+      "completion_evidence": {
+        "notes": null,
+        "policy": "required",
+        "required_artifact_types": [
+          "commit"
+        ],
+        "status": "satisfied",
+        "validated_artifact_ids": [
+          "artifact-commit-kno175"
+        ],
+        "validated_at": "2026-04-04T12:01:30Z",
+        "validation_method": "external_reconciliation",
+        "validator": {
+          "captured_by": "kno-175-proof",
+          "source_id": "verification-kno175",
+          "source_system": "harness",
+          "source_type": "verification"
+        }
+      },
+      "items": [
+        {
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "name": "codex/kno-175-missing-pr-runtime"
+          },
+          "captured_at": "2026-04-04T12:01:00Z",
+          "changed_files": [],
+          "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+          "content_type": null,
+          "description": null,
+          "external_id": "commit-ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+          "external_refs": [],
+          "id": "artifact-commit-kno175",
+          "location": "https://github.com/sfayka/Harness/commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+          "metadata": {},
+          "provenance": {
+            "captured_by": "kno-175-proof",
+            "source_id": "commit/ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": null,
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": null,
+          "title": null,
+          "type": "commit",
+          "verification_status": "verified"
+        },
+        {
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "name": "codex/kno-175-missing-pr-runtime"
+          },
+          "captured_at": "2026-04-04T16:40:24.039950Z",
+          "changed_files": [],
+          "commit_sha": null,
+          "content_type": null,
+          "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+          "external_id": "PR-150",
+          "external_refs": [],
+          "id": "artifact-pr-150",
+          "location": "https://github.com/sfayka/Harness/pull/150",
+          "metadata": {
+            "attached_by": "missing_pr_after_execution",
+            "pull_request_state": "open"
+          },
+          "provenance": {
+            "captured_by": "reconciliation_handler",
+            "source_id": "pull/150",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": 150,
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": null,
+          "title": "KNO-175 auto reconcile missing PR after execution PR",
+          "type": "pull_request",
+          "verification_status": "verified"
+        }
+      ]
+    },
+    "assigned_executor": {
+      "assignment_reason": "runtime proof",
+      "executor_id": "codex-kno175",
+      "executor_type": "codex"
+    },
+    "child_task_ids": [],
+    "constraints": [],
+    "coordination": {
+      "linear": {
+        "issue_id": "KNO-175",
+        "issue_key": "KNO-175",
+        "project": null,
+        "provenance": {
+          "linked_at": "2026-04-04T16:40:21.919800Z",
+          "linked_by": "reevaluation",
+          "source": "completion_claim.external_facts"
+        },
+        "reasons": [],
+        "record_found": true,
+        "state": "completed",
+        "task_reference": null,
+        "workflow": {
+          "state_type": "completed",
+          "workflow_id": "workflow-completed",
+          "workflow_name": "completed"
+        }
+      }
+    },
+    "dependencies": [],
+    "description": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention.",
+    "id": "kno-175-missing-pr-success-2026-04-04-run3",
+    "objective": {
+      "deliverable_type": "unspecified",
+      "success_signal": "Task satisfies declared acceptance criteria.",
+      "summary": "Prove missing_pr_after_execution auto-reconciliation succeeds without operator intervention."
+    },
+    "observability": {
+      "errors": [],
+      "execution_metadata": {
+        "advisory_completion_claims": [
+          {
+            "claim_id": "kno175-claim-1",
+            "metadata": {
+              "issue": "KNO-175"
+            },
+            "reason": "Execution completed with commit artifact; PR artifact omitted intentionally for reconciliation proof.",
+            "reported_at": "2026-04-04T12:05:00Z",
+            "reported_by": "codex"
+          }
+        ],
+        "execution_attempts": [
+          {
+            "artifact_references": [
+              {
+                "artifact_type": "execution_log",
+                "location": "file://docs/demo/kno-175-missing-pr-success/README.md",
+                "reference_id": "kno175-exec-log-1"
+              }
+            ],
+            "attempt_id": "kno175-attempt-1",
+            "completion_claim_id": "kno175-claim-1",
+            "metadata": {
+              "run_mode": "missing_pr_after_execution_success_proof"
+            },
+            "recorded_at": "2026-04-04T12:05:05Z",
+            "reevaluation": {
+              "action": "transition_applied",
+              "evaluation_id": "6fc61164-e091-4c1e-8998-bc1583324988",
+              "linked_at": "2026-04-04T16:40:24.109025Z"
+            },
+            "reported_by": "codex",
+            "status": "completed"
+          }
+        ],
+        "schema_required_deferred_fields": [
+          "parent_task_id",
+          "child_task_ids",
+          "dependencies",
+          "assigned_executor",
+          "required_capabilities",
+          "priority",
+          "artifacts.items",
+          "artifacts.completion_evidence",
+          "observability"
+        ]
+      },
+      "retries": {
+        "attempt_count": 0,
+        "last_retry_at": null,
+        "max_attempts": 0
+      }
+    },
+    "origin": {
+      "ingress_id": "linear-KNO-175",
+      "ingress_name": "Linear",
+      "requested_by": null,
+      "source_id": "KNO-175",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "parent_task_id": null,
+    "priority": "normal",
+    "reconciliation": {
+      "active_failure_type": null,
+      "attempts": [
+        {
+          "attempt_id": "reconciliation-attempt-1",
+          "completed_at": "2026-04-04T16:40:24.039950Z",
+          "details": {
+            "base_branch": "main",
+            "branch_exists": true,
+            "branch_name": "codex/kno-175-missing-pr-runtime",
+            "commit_exists": true,
+            "commit_sha": "ee295c3e9b7802c75ecd80bccc8218ec388afee3",
+            "created_pull_request": true,
+            "error": null,
+            "pull_request_lookup": {
+              "found": true,
+              "number": 150,
+              "searched_by_branch": true,
+              "searched_by_commit": true,
+              "source": "created",
+              "url": "https://github.com/sfayka/Harness/pull/150"
+            },
+            "repository": {
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            }
+          },
+          "failure_type": "missing_pr_after_execution",
+          "handler_key": "missing_pr_after_execution",
+          "started_at": "2026-04-04T16:40:21.937020Z",
+          "status": "resolved"
+        }
+      ],
+      "failed_at": null,
+      "last_attempt_id": "reconciliation-attempt-1",
+      "last_error": null,
+      "last_pr_url": "https://github.com/sfayka/Harness/pull/150",
+      "resolved_at": "2026-04-04T16:40:24.039950Z",
+      "status": "resolved"
+    },
+    "required_capabilities": [],
+    "status": "completed",
+    "status_history": [
+      {
+        "changed_at": "2026-04-04T16:40:21.928939Z",
+        "changed_by": "reconciliation",
+        "from_status": "executing",
+        "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+        "to_status": "reconciling"
+      },
+      {
+        "changed_at": "2026-04-04T16:40:24.096831Z",
+        "changed_by": "verification",
+        "from_status": "reconciling",
+        "reason": "Verification evaluated task 'kno-175-missing-pr-success-2026-04-04-run3' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      }
+    ],
+    "timestamps": {
+      "completed_at": "2026-04-04T16:40:24.096831Z",
+      "created_at": "2026-04-04T12:00:00Z",
+      "updated_at": "2026-04-04T16:40:24.116675Z"
+    },
+    "title": "KNO-175 auto reconcile missing PR after execution"
+  }
+}
