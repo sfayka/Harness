@@ -1,0 +1,149 @@
+{
+  "request": {
+    "claimed_completion": true,
+    "acceptance_criteria_satisfied": true,
+    "runtime_facts": {
+      "executor_reported_success": true,
+      "executor_reported_failure": false,
+      "attempt_count": 1
+    },
+    "new_artifacts": [
+      {
+        "id": "artifact-pr-1",
+        "type": "pull_request",
+        "title": "Document KNO-172 real non-synthetic Harness run",
+        "description": null,
+        "location": "https://github.com/sfayka/Harness/pull/148",
+        "content_type": null,
+        "external_id": "PR-148",
+        "commit_sha": null,
+        "pull_request_number": 148,
+        "review_state": "approved",
+        "provenance": {
+          "source_system": "github",
+          "source_type": "api",
+          "source_id": "pull/148",
+          "captured_by": "github-sync"
+        },
+        "verification_status": "verified",
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness",
+          "external_id": "repo-kno172"
+        },
+        "branch": {
+          "name": "codex/real-task-proof",
+          "base_branch": "main",
+          "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d"
+        },
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-04-04T15:15:00Z",
+        "metadata": {}
+      },
+      {
+        "id": "artifact-commit-1",
+        "type": "commit",
+        "title": null,
+        "description": null,
+        "location": "https://github.com/sfayka/Harness/commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+        "content_type": null,
+        "external_id": "commit-d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+        "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+        "pull_request_number": null,
+        "review_state": null,
+        "provenance": {
+          "source_system": "github",
+          "source_type": "api",
+          "source_id": "commit/d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+          "captured_by": "github-sync"
+        },
+        "verification_status": "verified",
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness",
+          "external_id": "repo-kno172"
+        },
+        "branch": null,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-04-04T15:15:30Z",
+        "metadata": {}
+      }
+    ],
+    "completion_evidence": {
+      "policy": "required",
+      "status": "satisfied",
+      "required_artifact_types": [
+        "pull_request",
+        "commit"
+      ],
+      "validated_artifact_ids": [
+        "artifact-pr-1",
+        "artifact-commit-1"
+      ],
+      "validation_method": "external_reconciliation",
+      "validated_at": "2026-04-04T15:16:00Z",
+      "validator": {
+        "source_system": "harness",
+        "source_type": "verification",
+        "source_id": "verification-kno-172",
+        "captured_by": "harness-api"
+      }
+    },
+    "external_facts": {
+      "github_facts": {
+        "artifact_found": true,
+        "reasons": [],
+        "repository": {
+          "host": "github.com",
+          "owner": "sfayka",
+          "name": "Harness",
+          "external_id": "repo-kno172"
+        },
+        "branch": {
+          "name": "codex/real-task-proof",
+          "base_branch": "main",
+          "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d"
+        },
+        "commit": {
+          "sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d"
+        },
+        "pull_request": {
+          "number": 148,
+          "review_state": "approved"
+        },
+        "changed_files": {
+          "matches_expected_scope": true,
+          "files": [
+            {
+              "path": "docs/demo/kno-172-real-task-run/README.md",
+              "change_type": "modified"
+            }
+          ]
+        }
+      },
+      "linear_facts": {
+        "record_found": true,
+        "reasons": [],
+        "issue_id": "KNO-172",
+        "issue_key": "KNO-172",
+        "state": "in_progress",
+        "workflow": {
+          "workflow_id": "workflow-in_progress",
+          "workflow_name": "In Progress",
+          "state_type": "in_progress"
+        }
+      },
+      "expected_code_context": {
+        "repository_host": "github.com",
+        "repository_owner": "sfayka",
+        "repository_name": "Harness",
+        "base_branch": "main",
+        "branch_name": "codex/real-task-proof"
+      }
+    }
+  }
+}

@@ -1,0 +1,386 @@
+{
+  "current_status": "completed",
+  "event_count": 14,
+  "task_id": "kno-172-real-task-2026-04-04",
+  "timeline": [
+    {
+      "details": {
+        "accepted_completion": false,
+        "action": "no_op",
+        "evaluation_id": "0deedb6d-572e-4f34-b9ba-1c751eadcedb",
+        "reasons": [
+          "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "reconciliation_result": {
+          "blocking": false,
+          "mismatch_categories": [],
+          "outcome": "no_mismatch",
+          "reasons": [
+            "Reconciliation evaluated task 'kno-172-real-task-2026-04-04' against normalized external facts",
+            "No blocking reconciliation mismatch was detected"
+          ],
+          "status": "passed",
+          "task_id": "kno-172-real-task-2026-04-04",
+          "terminal": false
+        },
+        "requires_review": false,
+        "target_status": null,
+        "verification_result": {
+          "accepted_completion": false,
+          "claimed_completion": false,
+          "evidence_is_sufficient": false,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "No completion claim is currently being evaluated",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "verification_deferred",
+          "reasons": [
+            "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_status": "passed",
+          "requires_review": false,
+          "target_status": null,
+          "task_id": "kno-172-real-task-2026-04-04",
+          "verification_passed": false
+        }
+      },
+      "event_id": "kno-172-real-task-2026-04-04:evaluation:0deedb6d-572e-4f34-b9ba-1c751eadcedb",
+      "event_type": "evaluation_recorded",
+      "occurred_at": "2026-04-04T14:54:06.145257Z",
+      "source": "harness",
+      "summary": "Evaluation recorded: no_op"
+    },
+    {
+      "details": {
+        "event_id": "attempt-1:started",
+        "event_type": "execution_started",
+        "metadata": {
+          "adapter": "stub-executor",
+          "mode": "stub"
+        },
+        "occurred_at": "2026-04-04T14:54:06.148425Z",
+        "source_system": "stub-executor"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:execution_event:attempt-1:0",
+      "event_type": "execution_event_recorded",
+      "occurred_at": "2026-04-04T14:54:06.148425Z",
+      "source": "codex",
+      "summary": "Execution event: execution_started"
+    },
+    {
+      "details": {
+        "event_id": "attempt-1:completed",
+        "event_type": "execution_succeeded",
+        "metadata": {
+          "adapter": "stub-executor",
+          "executor_run_id": "stub-run-attempt-1"
+        },
+        "occurred_at": "2026-04-04T14:54:06.148438Z",
+        "source_system": "stub-executor"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:execution_event:attempt-1:1",
+      "event_type": "execution_event_recorded",
+      "occurred_at": "2026-04-04T14:54:06.148438Z",
+      "source": "codex",
+      "summary": "Execution event: execution_succeeded"
+    },
+    {
+      "details": {
+        "artifact_type": "execution_log",
+        "commit_sha": null,
+        "external_id": null,
+        "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+        "metadata": {
+          "advisory": true
+        },
+        "reference_id": "attempt-1:log"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:execution_artifact:attempt-1:attempt-1:log",
+      "event_type": "execution_artifact_attached",
+      "occurred_at": "2026-04-04T14:54:06.148600Z",
+      "source": "codex",
+      "summary": "Execution artifact attached: execution_log"
+    },
+    {
+      "details": {
+        "artifact_references": [
+          {
+            "artifact_type": "execution_log",
+            "commit_sha": null,
+            "external_id": null,
+            "location": "stub://executions/kno-172-real-task-2026-04-04/attempt-1/log",
+            "metadata": {
+              "advisory": true
+            },
+            "reference_id": "attempt-1:log"
+          }
+        ],
+        "attempt_id": "attempt-1",
+        "completion_claim_id": "attempt-1:claim",
+        "reevaluation": {
+          "action": "transition_rejected",
+          "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+          "linked_at": "2026-04-04T14:54:06.203651Z"
+        },
+        "status": "completed"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:execution_attempt:attempt-1",
+      "event_type": "execution_attempt_recorded",
+      "occurred_at": "2026-04-04T14:54:06.148600Z",
+      "source": "codex",
+      "summary": "Execution attempt recorded: attempt-1"
+    },
+    {
+      "details": {
+        "attempt_id": "attempt-1",
+        "dispatch_id": "dispatch:kno-172-real-task-2026-04-04:1",
+        "dispatch_mode": "automatic",
+        "dispatch_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+        "dispatch_trigger": "automatic_policy_post_ingestion",
+        "execution_parameters": {
+          "dispatch_policy_reason": "eligible: non_terminal_non_blocked_no_existing_attempt",
+          "dispatch_policy_stage": "post_ingestion"
+        },
+        "executor": "codex"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:dispatch:dispatch:kno-172-real-task-2026-04-04:1",
+      "event_type": "task_dispatched",
+      "occurred_at": "2026-04-04T14:54:06.148605Z",
+      "source": "codex",
+      "summary": "Task dispatched: attempt-1"
+    },
+    {
+      "details": {
+        "accepted_completion": false,
+        "action": "transition_rejected",
+        "evaluation_id": "83893323-e6c4-4d7b-b50e-18662c1540e0",
+        "reasons": [
+          "Actor 'verification' is not authorized for transition assigned -> blocked"
+        ],
+        "reconciliation_result": null,
+        "requires_review": false,
+        "target_status": null,
+        "verification_result": {
+          "accepted_completion": false,
+          "claimed_completion": true,
+          "evidence_is_sufficient": false,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "contract_violation",
+            "failure_type": "contract_violation",
+            "reason": "Verification is blocked by unresolved conditions",
+            "recoverable": false,
+            "retryable": false,
+            "source": "evaluation",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "blocked_unresolved_conditions",
+          "reasons": [
+            "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy",
+            "Executor-reported success was treated as advisory input only",
+            "Reconciliation is still pending",
+            "Verification is blocked by unresolved conditions"
+          ],
+          "reconciliation_status": "pending",
+          "requires_review": false,
+          "target_status": "blocked",
+          "task_id": "kno-172-real-task-2026-04-04",
+          "verification_passed": false
+        }
+      },
+      "event_id": "kno-172-real-task-2026-04-04:evaluation:83893323-e6c4-4d7b-b50e-18662c1540e0",
+      "event_type": "evaluation_recorded",
+      "occurred_at": "2026-04-04T14:54:06.203651Z",
+      "source": "harness",
+      "summary": "Evaluation recorded: transition_rejected"
+    },
+    {
+      "details": {
+        "failure_reason": "Actor 'verification' is not authorized for transition assigned -> blocked",
+        "failure_recorded": true,
+        "failure_source": "evaluation",
+        "failure_type": "contract_violation",
+        "recoverable": false,
+        "terminal": true
+      },
+      "event_id": "kno-172-real-task-2026-04-04:failure:83893323-e6c4-4d7b-b50e-18662c1540e0",
+      "event_type": "failure_recorded",
+      "occurred_at": "2026-04-04T14:54:06.203651Z",
+      "source": "evaluation",
+      "summary": "Failure recorded: contract_violation"
+    },
+    {
+      "details": {
+        "issue_id": "KNO-172",
+        "issue_key": "KNO-172",
+        "project": null,
+        "provenance": {
+          "linked_at": "2026-04-04T14:55:29.598043Z",
+          "linked_by": "reevaluation",
+          "source": "reevaluation_request.external_facts"
+        },
+        "reasons": [],
+        "record_found": true,
+        "state": "in_progress",
+        "task_reference": null,
+        "workflow": {
+          "state_type": "in_progress",
+          "workflow_id": "workflow-in_progress",
+          "workflow_name": "In Progress"
+        }
+      },
+      "event_id": "kno-172-real-task-2026-04-04:linear_linkage",
+      "event_type": "linear_linkage_recorded",
+      "occurred_at": "2026-04-04T14:55:29.598043Z",
+      "source": "reevaluation",
+      "summary": "Linear linkage recorded"
+    },
+    {
+      "details": {
+        "changed_at": "2026-04-04T14:55:29.681786Z",
+        "changed_by": "verification",
+        "from_status": "assigned",
+        "reason": "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:status:0",
+      "event_type": "status_transition",
+      "occurred_at": "2026-04-04T14:55:29.681786Z",
+      "source": "verification",
+      "summary": "Status changed assigned -> completed"
+    },
+    {
+      "details": {
+        "accepted_completion": true,
+        "action": "transition_applied",
+        "evaluation_id": "a04a8c23-885f-4bff-95ea-ec607b2cf7d3",
+        "reasons": [
+          "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "reconciliation_result": {
+          "blocking": false,
+          "mismatch_categories": [],
+          "outcome": "no_mismatch",
+          "reasons": [
+            "Reconciliation evaluated task 'kno-172-real-task-2026-04-04' against normalized external facts",
+            "No blocking reconciliation mismatch was detected"
+          ],
+          "status": "passed",
+          "task_id": "kno-172-real-task-2026-04-04",
+          "terminal": false
+        },
+        "requires_review": false,
+        "target_status": "completed",
+        "verification_result": {
+          "accepted_completion": true,
+          "claimed_completion": true,
+          "evidence_is_sufficient": true,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "accepted_completion",
+          "reasons": [
+            "Verification evaluated task 'kno-172-real-task-2026-04-04' against canonical completion policy",
+            "Executor-reported success was treated as advisory input only",
+            "Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "reconciliation_status": "passed",
+          "requires_review": false,
+          "target_status": "completed",
+          "task_id": "kno-172-real-task-2026-04-04",
+          "verification_passed": true
+        }
+      },
+      "event_id": "kno-172-real-task-2026-04-04:evaluation:a04a8c23-885f-4bff-95ea-ec607b2cf7d3",
+      "event_type": "evaluation_recorded",
+      "occurred_at": "2026-04-04T14:55:29.700407Z",
+      "source": "harness",
+      "summary": "Evaluation recorded: transition_applied"
+    },
+    {
+      "details": {
+        "origin": {
+          "ingress_id": "KNO-172",
+          "ingress_name": "Linear",
+          "requested_by": "knoxanalytics",
+          "source_id": "KNO-172",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "status": "completed",
+        "title": "Run and document one real non-synthetic task through Harness"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:created",
+      "event_type": "task_created",
+      "occurred_at": "2026-04-04T15:10:00Z",
+      "source": "linear",
+      "summary": "Task created"
+    },
+    {
+      "details": {
+        "artifact_id": "artifact-pr-1",
+        "branch": {
+          "base_branch": "main",
+          "head_commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+          "name": "codex/real-task-proof"
+        },
+        "commit_sha": null,
+        "pull_request_number": 148,
+        "repository": {
+          "external_id": "repo-kno172",
+          "host": "github.com",
+          "name": "Harness",
+          "owner": "sfayka"
+        },
+        "title": "Document KNO-172 real non-synthetic Harness run",
+        "type": "pull_request",
+        "verification_status": "verified"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:artifact:artifact-pr-1",
+      "event_type": "artifact_captured",
+      "occurred_at": "2026-04-04T15:15:00Z",
+      "source": "github",
+      "summary": "Artifact captured: pull_request"
+    },
+    {
+      "details": {
+        "artifact_id": "artifact-commit-1",
+        "branch": null,
+        "commit_sha": "d6e0d3c7f6ad6856c52ce85d1011feb98ab3168d",
+        "pull_request_number": null,
+        "repository": {
+          "external_id": "repo-kno172",
+          "host": "github.com",
+          "name": "Harness",
+          "owner": "sfayka"
+        },
+        "title": null,
+        "type": "commit",
+        "verification_status": "verified"
+      },
+      "event_id": "kno-172-real-task-2026-04-04:artifact:artifact-commit-1",
+      "event_type": "artifact_captured",
+      "occurred_at": "2026-04-04T15:15:30Z",
+      "source": "github",
+      "summary": "Artifact captured: commit"
+    }
+  ]
+}
