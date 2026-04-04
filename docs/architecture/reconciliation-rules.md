@@ -301,13 +301,14 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 
 1. Check that the target branch exists through Git or the GitHub API.
 2. Validate that the commit SHA is present, non-empty, and resolvable.
-3. Query GitHub for candidate PRs by branch.
-4. Query GitHub for candidate PRs by commit association.
-5. Validate each candidate against the current run context rather than treating branch lookup as success.
-6. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
-7. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-8. If no valid PR exists, create one through the GitHub API and validate the created PR against current-run policy.
-9. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
+3. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest.
+4. Query GitHub for candidate PRs by branch.
+5. Query GitHub for candidate PRs by commit association.
+6. Validate each candidate against the current run context rather than treating branch lookup as success.
+7. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
+8. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+9. If no valid PR exists, create one through the GitHub API and validate the created PR against current-run policy.
+10. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 

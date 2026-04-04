@@ -460,7 +460,7 @@ def _with_execution_attempt_record(task_envelope: dict[str, Any], *, attempt: di
 def _with_reevaluation_linked_execution_attempt(
     task_envelope: dict[str, Any],
     *,
-    completion_claim_id: str,
+    completion_claim: dict[str, Any],
     evaluation_record: EvaluationRecord | None,
 ) -> dict[str, Any]:
     if evaluation_record is None:
@@ -474,11 +474,18 @@ def _with_reevaluation_linked_execution_attempt(
     if not isinstance(existing_attempts, list):
         raise ApiRequestError("observability.execution_metadata.execution_attempts must be an array")
 
+    linked_attempt = _execution_attempt_for_completion_claim(merged_task, completion_claim=completion_claim)
+    if linked_attempt is None:
+        return merged_task
+    linked_attempt_id = linked_attempt.get("attempt_id")
+    if not isinstance(linked_attempt_id, str) or not linked_attempt_id.strip():
+        return merged_task
+
     updated_attempts: list[Any] = [deepcopy(item) for item in existing_attempts]
     for attempt in reversed(updated_attempts):
         if not isinstance(attempt, dict):
             continue
-        if attempt.get("completion_claim_id") != completion_claim_id:
+        if attempt.get("attempt_id") != linked_attempt_id:
             continue
         reevaluation = dict(attempt.get("reevaluation") or {})
         reevaluation["evaluation_id"] = evaluation_record.evaluation_id
@@ -731,11 +738,54 @@ def _to_jsonable(value: Any) -> Any:
     return value
 
 
+def _latest_advisory_completion_claim(task_envelope: dict[str, Any]) -> dict[str, Any] | None:
+    claims = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get(
+        "advisory_completion_claims"
+    ) or []
+    if not isinstance(claims, list):
+        return None
+    return next((claim for claim in reversed(claims) if isinstance(claim, dict)), None)
+
+
 def _latest_execution_attempt(task_envelope: dict[str, Any]) -> dict[str, Any] | None:
     attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     if not isinstance(attempts, list):
         return None
     return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+
+
+def _execution_attempt_for_completion_claim(
+    task_envelope: dict[str, Any],
+    *,
+    completion_claim: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    claim = completion_claim or _latest_advisory_completion_claim(task_envelope)
+    if claim is None:
+        return None
+
+    attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    if not isinstance(attempts, list):
+        return None
+
+    claim_metadata = claim.get("metadata")
+    attempt_id = None
+    if isinstance(claim_metadata, dict):
+        raw_attempt_id = claim_metadata.get("attempt_id")
+        if isinstance(raw_attempt_id, str) and raw_attempt_id.strip():
+            attempt_id = raw_attempt_id.strip()
+
+    dict_attempts = [attempt for attempt in attempts if isinstance(attempt, dict)]
+    if attempt_id is not None:
+        matching_attempts = [attempt for attempt in reversed(dict_attempts) if attempt.get("attempt_id") == attempt_id]
+        if len(matching_attempts) == 1:
+            return matching_attempts[0]
+
+    claim_id = claim.get("claim_id")
+    if not isinstance(claim_id, str) or not claim_id.strip():
+        return None
+
+    matching_attempts = [attempt for attempt in reversed(dict_attempts) if attempt.get("completion_claim_id") == claim_id]
+    return matching_attempts[0] if len(matching_attempts) == 1 else None
 
 
 def _is_successful_execution_attempt(attempt: dict[str, Any] | None) -> bool:
@@ -753,7 +803,7 @@ def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bo
         external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
     ):
         return False
-    return _is_successful_execution_attempt(_latest_execution_attempt(request.task_envelope))
+    return _is_successful_execution_attempt(_execution_attempt_for_completion_claim(request.task_envelope))
 
 
 def evaluate_http_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -1270,17 +1320,12 @@ class HarnessApiService:
         record = None
         for attempt_request, attempt_result in attempts:
             record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
-        latest_claim_id = (
-            request.task_envelope.get("observability", {})
-            .get("execution_metadata", {})
-            .get("advisory_completion_claims", [{}])[-1]
-            .get("claim_id")
-        )
-        if isinstance(latest_claim_id, str) and latest_claim_id:
+        latest_claim = _latest_advisory_completion_claim(request.task_envelope)
+        if latest_claim is not None:
             stored_task = self.store.update_task(
                 _with_reevaluation_linked_execution_attempt(
                     stored_task,
-                    completion_claim_id=latest_claim_id,
+                    completion_claim=latest_claim,
                     evaluation_record=record,
                 )
             )

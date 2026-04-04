@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 
-from modules.api import HarnessApiService
+from modules.api import HarnessApiService, _requires_missing_pr_reconciliation, parse_completion_claim_request
 from modules.reconciliation_runtime import (
     GitHubPullRequestRecord,
     ReconciliationFailureType,
@@ -330,6 +330,41 @@ def _latest_reconciliation_attempt(task_envelope: dict) -> dict:
     return task_envelope["reconciliation"]["attempts"][-1]
 
 
+def _record_execution_attempt(
+    task: dict,
+    *,
+    claim_id: str,
+    attempt_id: str,
+    status: str,
+    recorded_at: str,
+) -> dict:
+    execution_metadata = task.setdefault("observability", {}).setdefault("execution_metadata", {})
+    advisory_claims = execution_metadata.setdefault("advisory_completion_claims", [])
+    execution_attempts = execution_metadata.setdefault("execution_attempts", [])
+    advisory_claims.append(
+        {
+            "claim_id": claim_id,
+            "reported_at": recorded_at,
+            "reported_by": "codex",
+            "reason": f"Historical attempt {attempt_id}",
+            "metadata": {"attempt_id": attempt_id},
+        }
+    )
+    execution_attempts.append(
+        {
+            "attempt_id": attempt_id,
+            "recorded_at": recorded_at,
+            "status": status,
+            "reported_by": "codex",
+            "completion_claim_id": claim_id,
+            "artifact_references": [],
+            "metadata": {"executor_run_id": f"run-{attempt_id}"},
+            "reevaluation": {},
+        }
+    )
+    return task
+
+
 class CompletionClaimReconciliationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -604,6 +639,65 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "in_review")
         self.assertEqual(stored_status, 200)
         self.assertEqual(stored_payload["task"]["status"], "in_review")
+
+
+    def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:
+        gateway = _FakeGitHubGateway(existing_branch_prs=(_pull_request(number=84),))
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-explicit-attempt")
+        task = _record_execution_attempt(
+            task,
+            claim_id="historical-claim-success",
+            attempt_id="attempt-success-1",
+            status="completed",
+            recorded_at="2026-04-04T12:01:45Z",
+        )
+        task = _record_execution_attempt(
+            task,
+            claim_id="historical-claim-latest",
+            attempt_id="attempt-latest-2",
+            status="failed",
+            recorded_at="2026-04-04T12:01:55Z",
+        )
+        service.store.create_task(task)
+
+        payload = _completion_claim_payload("claim-existing-attempt")
+        del payload["request"]["execution_attempt"]
+        payload["request"]["completion_claim"]["metadata"]["attempt_id"] = "attempt-success-1"
+
+        status, response = service.submit_completion_claim(task["id"], payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 0)
+        attempt = _latest_reconciliation_attempt(response["task_envelope"])
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "attached_existing")
+        execution_attempts = response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"]
+        linked_attempt = next(item for item in execution_attempts if item["attempt_id"] == "attempt-success-1")
+        untouched_attempt = next(item for item in execution_attempts if item["attempt_id"] == "attempt-latest-2")
+        self.assertEqual(linked_attempt["reevaluation"]["evaluation_id"], response["evaluation_record"]["evaluation_id"])
+        self.assertEqual(untouched_attempt["reevaluation"], {})
+
+    def test_claimed_attempt_must_resolve_before_missing_pr_reconciliation_can_run(self) -> None:
+        task = _task_envelope(task_id="task-pr-reconcile-missing-attempt")
+        task = _record_execution_attempt(
+            task,
+            claim_id="historical-claim-success",
+            attempt_id="attempt-success-1",
+            status="completed",
+            recorded_at="2026-04-04T12:01:45Z",
+        )
+
+        payload = _completion_claim_payload("claim-missing-attempt")
+        del payload["request"]["execution_attempt"]
+        payload["request"]["completion_claim"]["metadata"]["attempt_id"] = "attempt-does-not-exist"
+
+        request = parse_completion_claim_request(task, payload)
+
+        self.assertFalse(_requires_missing_pr_reconciliation(request))
 
 
 if __name__ == "__main__":
