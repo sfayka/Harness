@@ -84,6 +84,18 @@ These identifiers are the minimum operator-facing proof that the claimed work ex
 
 If `Repository`, `Branch`, `Commit SHA`, and `PR URL` are not all present, the task is considered invalid and not executed (not partial and not completed with issues).
 
+Harness now enforces an earlier execution gate for attempt-shaped truth:
+
+- a successful code-bearing attempt must at least prove current-run `Repository`, `Branch`, and `Commit SHA`
+- if that minimum proof is missing or internally contradictory, Harness classifies the run as `invalid_execution_attempt`
+- invalid execution attempts are retried with a bounded budget before completion handling continues
+- exhausted invalid attempts transition the task to `failed`
+
+This does not replace `missing_pr_after_execution`.
+
+- `invalid_execution_attempt` means Harness does not trust that the current run produced a real code-bearing attempt yet
+- `missing_pr_after_execution` means the current run is otherwise real and identifiable, but the PR artifact still needs governed recovery
+
 This is consistent with Harness architecture:
 
 - executor summaries are advisory
