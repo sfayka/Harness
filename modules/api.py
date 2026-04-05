@@ -50,6 +50,7 @@ from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
 from modules.read_model import HarnessReadModelService
 from modules.reconciliation_runtime import (
     ReconciliationFailureType,
+    ReconciliationFailureDisposition,
     ReconciliationHandlerRegistry,
     ReconciliationRuntimeError,
     ReconciliationAttemptStatus,
@@ -806,6 +807,15 @@ def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bo
     return _is_successful_execution_attempt(_execution_attempt_for_completion_claim(request.task_envelope))
 
 
+def _reconciliation_failure_response_shape(
+    *,
+    target_status: str,
+) -> tuple[str, bool]:
+    if target_status == "blocked":
+        return "reconciliation_blocked", False
+    return "reconciliation_failed", True
+
+
 def evaluate_http_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     """Evaluate one HTTP request payload and return an HTTP status code plus JSON body."""
 
@@ -972,10 +982,21 @@ class HarnessApiService:
                 started_at=_iso_now(),
             )
         except ReconciliationRuntimeError as error:
+            target_status = (
+                "blocked"
+                if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
+                else "in_review"
+            )
+            action, requires_review = _reconciliation_failure_response_shape(target_status=target_status)
+            reason_prefix = (
+                "Post-execution reconciliation blocked by retryable provider failure"
+                if target_status == "blocked"
+                else "Post-execution reconciliation failed"
+            )
             failed_task = self._task_with_transition(
                 reconciling_task,
-                to_status="in_review",
-                reason=f"Post-execution reconciliation failed: {error}",
+                to_status=target_status,
+                reason=f"{reason_prefix}: {error}",
                 actor="reconciliation",
             )
             failed_task = ensure_reconciliation_state(failed_task)
@@ -985,11 +1006,11 @@ class HarnessApiService:
             failed_task["timestamps"]["updated_at"] = _iso_now()
             self.store.update_task(failed_task)
             return None, {
-                "action": "reconciliation_failed",
+                "action": action,
                 "accepted_completion": False,
-                "requires_review": True,
+                "requires_review": requires_review,
                 "invalid_input": False,
-                "target_status": "in_review",
+                "target_status": target_status,
                 "error": str(error),
                 "reasons": [str(error)],
                 "reconciliation_attempt": None,
@@ -997,19 +1018,25 @@ class HarnessApiService:
             }
 
         if handler_result.status == ReconciliationAttemptStatus.FAILED:
+            action, requires_review = _reconciliation_failure_response_shape(target_status=handler_result.target_status)
+            reason_prefix = (
+                "Post-execution reconciliation blocked by retryable provider failure"
+                if handler_result.target_status == "blocked"
+                else "Post-execution reconciliation failed"
+            )
             failed_task = self._task_with_transition(
                 handler_result.task_envelope,
-                to_status="in_review",
-                reason=f"Post-execution reconciliation failed: {handler_result.error}",
+                to_status=handler_result.target_status,
+                reason=f"{reason_prefix}: {handler_result.error}",
                 actor="reconciliation",
             )
             self.store.update_task(failed_task)
             return None, {
-                "action": "reconciliation_failed",
+                "action": action,
                 "accepted_completion": False,
-                "requires_review": True,
+                "requires_review": requires_review,
                 "invalid_input": False,
-                "target_status": "in_review",
+                "target_status": handler_result.target_status,
                 "error": handler_result.error,
                 "reasons": [handler_result.error or "Reconciliation failed."],
                 "reconciliation_attempt": deepcopy(handler_result.attempt),

@@ -368,7 +368,10 @@ If reconciliation fails or is blocked:
 
 - Harness records the failed attempt and error details under `task.reconciliation`
 - the task does not silently remain `completed`
-- Harness escalates explicitly to `in_review`
+- retryable provider or platform failures move the task to `blocked`
+- logical ambiguity, unsupported context, or other unresolved exceptions move the task to `in_review`
+
+`blocked` means progress stopped because the reconciliation environment or provider could not safely complete the repair yet, but no human judgment has been proven necessary.
 
 `in_review` means safe automation has stopped and human judgment is now required. This is different from `reconciling`, where system repair is still actively running.
 
@@ -385,7 +388,12 @@ Non-recoverable or escalation outcomes for this class include:
 - the commit SHA is empty or does not resolve
 - GitHub lookup returns only historical or otherwise stale PRs
 - GitHub lookup returns contradictory, ambiguous, or unusable results
-- GitHub refuses or blocks PR creation
+- GitHub refuses or blocks PR creation for a logical or policy reason
+
+Retryable blocked outcomes for this class include:
+
+- GitHub API rate limits, transport failures, or 5xx provider errors
+- temporary provider-side permission or availability failures that prevent branch, commit, lookup, or PR creation checks from completing
 
 These outcomes remain specific to `missing_pr_after_execution`. Other reconciliation classes may have different recovery boundaries.
 
