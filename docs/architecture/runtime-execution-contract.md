@@ -349,6 +349,36 @@ Each retry should remain traceable through:
 - timestamps
 - the reason for retry
 
+## Invalid Execution Attempts
+
+Harness distinguishes a failed execution attempt from an invalid execution attempt.
+
+- failed attempt: the executor actually ran and reported an unsuccessful terminal outcome
+- invalid execution attempt: the executor claimed success, but the current run did not produce the minimum proof needed to trust that claim as a real code-bearing attempt
+
+For the current implemented policy, a code-bearing successful attempt must provide coherent current-run repository, branch, and commit context before Harness will let that claim proceed into completion handling.
+
+Examples of `invalid_execution_attempt`:
+
+- no repository/branch/commit context for the current run
+- conflicting repo/branch/commit values inside the attempt payload
+- malformed success-shaped output that cannot identify the current execution attempt coherently
+
+This is intentionally earlier than reconciliation.
+
+- invalid execution attempt means Harness does not yet trust that a real current-run execution exists
+- reconciliation means Harness trusts the run happened and is now trying to recover or validate missing external artifacts for that run
+
+The control-plane policy is:
+
+1. execution completes and reports success
+2. Harness validates the execution attempt shape
+3. if valid, the claim can proceed to completion handling and, if needed, reconciliation
+4. if invalid and retry budget remains, Harness schedules a fresh execution attempt
+5. if invalid attempts exhaust the retry budget, Harness transitions the task to `failed`
+
+This keeps routine executor misses out of manual review while preserving truthful completion boundaries.
+
 ### Execution Canceled
 
 Represents runtime cancellation of an in-flight attempt under control-plane direction or policy.

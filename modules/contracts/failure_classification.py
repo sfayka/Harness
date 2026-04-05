@@ -12,6 +12,7 @@ class FailureType(StrEnum):
     BOOTSTRAP_FAILURE = "bootstrap_failure"
     DISPATCH_FAILURE = "dispatch_failure"
     EXECUTOR_FAILURE = "executor_failure"
+    INVALID_EXECUTION_ATTEMPT = "invalid_execution_attempt"
     CONTRACT_VIOLATION = "contract_violation"
     EVIDENCE_INSUFFICIENT = "evidence_insufficient"
     RECONCILIATION_MISMATCH = "reconciliation_mismatch"

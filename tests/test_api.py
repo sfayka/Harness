@@ -12,6 +12,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from modules.adapters.executor_adapter import StubExecutorAdapter
 from modules.api import HarnessApiService, build_parser, evaluate_http_payload, run_server
 from modules.contracts.task_envelope_review import (
     ReviewOutcome,
@@ -282,7 +283,6 @@ def _execution_attempt_payload(*, attempt_id: str = "attempt-1") -> dict:
             "metadata": {"executor_run_id": f"stub-run-{attempt_id}"},
         }
     }
-
 
 def _schema_invalid_submission_payload() -> dict:
     payload = _request_payload("accepted_completion")
@@ -895,6 +895,124 @@ class HarnessApiServiceTests(unittest.TestCase):
         ]
         self.assertTrue(execution_events)
 
+    def test_service_completion_claim_retries_invalid_execution_attempt_then_fails(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-invalid-attempt-1",
+                    "assignment_reason": "Exercise invalid execution attempt retries.",
+                },
+            }
+        }
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        with patch.dict(os.environ, {"HARNESS_INVALID_EXECUTION_RETRY_BUDGET": "1"}):
+            claim_status, claim_response = self.service.submit_completion_claim(
+                task_id,
+                {
+                    "request": {
+                        **_completion_claim_payload(claim_id="claim-invalid-attempt-1"),
+                        **_execution_attempt_payload(attempt_id="attempt-invalid-1"),
+                        "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    }
+                },
+            )
+        history_status, history_payload = self.service.get_evaluation_history(task_id)
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "invalid_execution_attempt_failed")
+        self.assertEqual(claim_response["task_envelope"]["status"], "failed")
+        self.assertEqual(claim_response["evaluation_record"]["result"]["failure_classification"]["failure_type"], "invalid_execution_attempt")
+        self.assertEqual(
+            claim_response["invalid_execution_attempt"]["validation"]["failure_type"],
+            "invalid_execution_attempt",
+        )
+        execution_attempts = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"]
+        self.assertEqual(len(execution_attempts), 2)
+        self.assertEqual(
+            execution_attempts[-1]["metadata"]["attempt_validation"]["failure_type"],
+            "invalid_execution_attempt",
+        )
+        self.assertEqual(history_status, 200)
+        self.assertGreaterEqual(len(history_payload["evaluations"]), 3)
+        retry_records = [
+            item for item in history_payload["evaluations"] if item["request"].get("retry_context") is not None
+        ]
+        self.assertTrue(retry_records)
+        self.assertEqual(
+            retry_records[-1]["request"]["retry_context"]["triggered_by_category"],
+            "invalid_execution_attempt",
+        )
+        self.assertEqual(
+            history_payload["evaluations"][-1]["result"]["failure_classification"]["failure_type"],
+            "invalid_execution_attempt",
+        )
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 2)
+        self.assertEqual(
+            read_payload["task"]["execution_summary"]["latest_attempt_validation"]["failure_type"],
+            "invalid_execution_attempt",
+        )
+        self.assertEqual(read_payload["task"]["failure_summary"]["failure_type"], "invalid_execution_attempt")
+
+    def test_service_completion_claim_allows_valid_execution_attempt_with_repo_branch_and_commit(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-valid-attempt-1",
+                    "assignment_reason": "Exercise valid execution attempt gate.",
+                },
+            }
+        }
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-valid-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-valid-attempt-1"),
+                    **valid_attempt_payload,
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertTrue(claim_response["accepted_completion"])
+        latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
+
     def test_service_dispatch_task_records_attempt_and_runs_reevaluation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
@@ -959,13 +1077,18 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_response["automatic_dispatch"]["status"], 200)
         self.assertEqual(submit_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
         self.assertEqual(read_model_status, 200)
-        self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
+        self.assertEqual(read_model_payload["task"]["current_status"], "failed")
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 2)
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["invalid_attempt_count"], 2)
+        self.assertEqual(read_model_payload["task"]["failure_summary"]["failure_type"], "invalid_execution_attempt")
         self.assertEqual(read_model_payload["task"]["execution_summary"]["latest_dispatch_origin"], "automatic")
         self.assertEqual(timeline_status, 200)
         dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
         self.assertTrue(dispatch_events)
         self.assertEqual(dispatch_events[-1]["details"]["dispatch_mode"], "automatic")
-        self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "automatic_policy_post_ingestion")
+        dispatch_triggers = {event["details"]["dispatch_trigger"] for event in dispatch_events}
+        self.assertIn("automatic_policy_post_ingestion", dispatch_triggers)
+        self.assertIn("invalid_execution_attempt_retry", dispatch_triggers)
 
     def test_service_dispatch_rejects_terminal_tasks(self) -> None:
         submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))

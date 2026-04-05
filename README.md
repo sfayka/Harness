@@ -18,6 +18,8 @@ Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
 Harness distinguishes execution from completion.
 
+Before completion claims reach reconciliation, Harness now validates whether a successful execution attempt is minimally trustworthy for the current run. For code-bearing executor attempts, that means current-run repository, branch, and commit context must be present and internally coherent. If that attempt shape is invalid, Harness retries execution with a bounded budget and then fails the task explicitly rather than treating the claim as progress.
+
 Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
 
 If recovery succeeds, the task can proceed to `completed` through normal reevaluation. If recovery fails or is blocked, Harness escalates explicitly to `in_review` instead of silently accepting the task as done. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context.

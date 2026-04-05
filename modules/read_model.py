@@ -131,6 +131,7 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
     execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     latest_failure_summary = _latest_failure_summary(records)
     retry_count = 0
+    invalid_attempt_count = 0
     for record in records:
         if not isinstance(record.request, dict):
             continue
@@ -155,6 +156,13 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         (attempt for attempt in reversed(execution_attempts) if isinstance(attempt, dict)),
         None,
     )
+    for attempt in execution_attempts:
+        if not isinstance(attempt, dict):
+            continue
+        metadata = attempt.get("metadata") if isinstance(attempt.get("metadata"), dict) else {}
+        validation = metadata.get("attempt_validation") if isinstance(metadata.get("attempt_validation"), dict) else {}
+        if validation.get("failure_type") == "invalid_execution_attempt":
+            invalid_attempt_count += 1
     retry_eligible = bool((latest_failure_summary or {}).get("recoverable"))
     failure_state = "clear"
     if latest_failure_summary and latest_failure_summary.get("failure_type") not in (None, "none"):
@@ -168,9 +176,15 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
             if isinstance(latest_attempt, dict)
             else None
         ),
+        "latest_attempt_validation": (
+            dict((((latest_attempt.get("metadata") or {}).get("attempt_validation")) or {}))
+            if isinstance(latest_attempt, dict)
+            else None
+        ),
         "latest_artifact_references": list((latest_attempt or {}).get("artifact_references") or []),
         "total_attempts": len(records),
         "retry_count": retry_count,
+        "invalid_attempt_count": invalid_attempt_count,
         "last_failure_type": (latest_failure_summary or {}).get("failure_type"),
         "retry_eligible": retry_eligible,
         "failure_state": failure_state,
@@ -274,6 +288,7 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                     "status": attempt.get("status"),
                     "completion_claim_id": attempt.get("completion_claim_id"),
                     "artifact_references": list(attempt.get("artifact_references") or []),
+                    "attempt_validation": dict((metadata.get("attempt_validation") or {})),
                     "reevaluation": dict(reevaluation or {}),
                 },
             }

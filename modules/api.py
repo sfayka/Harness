@@ -31,10 +31,11 @@ from modules.connectors import (
     translate_linear_submission_payload,
     translate_manual_submission_payload,
 )
-from modules.contracts.failure_classification import FailureType
+from modules.contracts.failure_classification import FailureClassification, FailureSource, FailureType
 from modules.contracts.task_envelope_lifecycle import apply_task_transition
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
+from modules.contracts.task_envelope_enforcement import EnforcementAction, EnforcementResult
 from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
 from modules.contracts.task_envelope_review import (
     ReviewDecisionResult,
@@ -46,7 +47,7 @@ from modules.contracts.task_envelope_review import (
     ReviewerIdentity,
 )
 from modules.contracts.task_envelope_verification import RuntimeVerificationFacts
-from modules.evaluation import HarnessEvaluationRequest, evaluate_task_case
+from modules.evaluation import HarnessEvaluationRequest, HarnessEvaluationResult, evaluate_task_case
 from modules.read_model import HarnessReadModelService
 from modules.reconciliation_runtime import (
     ReconciliationFailureType,
@@ -78,6 +79,8 @@ LINEAR_WORKFLOW_CONTRACT_ERROR = (
 )
 _DEFAULT_CLASSIFIED_RETRY_BUDGET = 2
 _CLASSIFIED_RETRY_BUDGET_ENV = "HARNESS_CLASSIFIED_RETRY_BUDGET"
+_DEFAULT_INVALID_EXECUTION_RETRY_BUDGET = 1
+_INVALID_EXECUTION_RETRY_BUDGET_ENV = "HARNESS_INVALID_EXECUTION_RETRY_BUDGET"
 _RETRYABLE_FAILURE_CATEGORIES = frozenset(
     {
         FailureType.BOOTSTRAP_FAILURE,
@@ -86,6 +89,8 @@ _RETRYABLE_FAILURE_CATEGORIES = frozenset(
         FailureType.EVIDENCE_INSUFFICIENT,
     }
 )
+_CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
+_CODE_EXECUTOR_TYPES = frozenset({"codex", "openclaw", "stub-executor", "stub"})
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 _AUTO_DISPATCHABLE_STATUSES = frozenset({"planned", "dispatch_ready", "assigned"})
@@ -109,6 +114,17 @@ def _classified_retry_budget() -> int:
         parsed_budget = int(raw_budget)
     except ValueError:
         return _DEFAULT_CLASSIFIED_RETRY_BUDGET
+    return max(parsed_budget, 0)
+
+
+def _invalid_execution_retry_budget() -> int:
+    raw_budget = os.getenv(_INVALID_EXECUTION_RETRY_BUDGET_ENV)
+    if raw_budget is None:
+        return _DEFAULT_INVALID_EXECUTION_RETRY_BUDGET
+    try:
+        parsed_budget = int(raw_budget)
+    except ValueError:
+        return _DEFAULT_INVALID_EXECUTION_RETRY_BUDGET
     return max(parsed_budget, 0)
 
 
@@ -755,6 +771,13 @@ def _latest_execution_attempt(task_envelope: dict[str, Any]) -> dict[str, Any] |
     return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
 
 
+def _execution_attempts(task_envelope: dict[str, Any]) -> list[dict[str, Any]]:
+    attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    if not isinstance(attempts, list):
+        return []
+    return [attempt for attempt in attempts if isinstance(attempt, dict)]
+
+
 def _execution_attempt_for_completion_claim(
     task_envelope: dict[str, Any],
     *,
@@ -794,6 +817,421 @@ def _is_successful_execution_attempt(attempt: dict[str, Any] | None) -> bool:
         return False
     status = str(attempt.get("status") or "").strip().lower()
     return status in {"completed", "succeeded", "success"}
+
+
+def _task_requires_code_execution(
+    task_envelope: dict[str, Any],
+    *,
+    external_facts: CanonicalExternalFactBundle | None,
+    attempt: dict[str, Any] | None,
+) -> bool:
+    completion_evidence = ((task_envelope.get("artifacts") or {}).get("completion_evidence") or {})
+    required_artifact_types = {
+        str(item).strip().lower()
+        for item in completion_evidence.get("required_artifact_types") or []
+        if isinstance(item, str) and item.strip()
+    }
+    if required_artifact_types.intersection(_CODE_EXECUTION_ARTIFACT_TYPES):
+        return True
+
+    if external_facts is not None and (
+        external_facts.expected_code_context is not None or external_facts.github_facts is not None
+    ):
+        return True
+
+    executor_type = _executor_hint_from_task(task_envelope)
+    if executor_type in _CODE_EXECUTOR_TYPES and attempt is not None:
+        return True
+    return False
+
+
+def _parse_github_repository_location(location: Any) -> tuple[str | None, str | None, str | None]:
+    if not isinstance(location, str) or not location.strip():
+        return None, None, None
+    parsed = urlparse(location)
+    host = (parsed.hostname or "").strip().lower()
+    if host not in {"github.com", "www.github.com"}:
+        return None, None, None
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) < 2:
+        return None, None, None
+    return "github.com", parts[0], parts[1]
+
+
+def _normalized_string(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
+def _record_context_value(
+    observations: dict[str, dict[str, list[str]]],
+    key: str,
+    value: str | None,
+    *,
+    source: str,
+) -> None:
+    normalized = _normalized_string(value)
+    if normalized is None:
+        return
+    observed = observations.setdefault(key, {})
+    sources = observed.setdefault(normalized, [])
+    if source not in sources:
+        sources.append(source)
+
+
+def _collect_artifact_context_from_record(
+    observations: dict[str, dict[str, list[str]]],
+    artifact: dict[str, Any],
+    *,
+    source: str,
+) -> None:
+    repository = artifact.get("repository") if isinstance(artifact.get("repository"), dict) else {}
+    branch = artifact.get("branch") if isinstance(artifact.get("branch"), dict) else {}
+
+    host = _normalized_string(repository.get("host"))
+    owner = _normalized_string(repository.get("owner"))
+    name = _normalized_string(repository.get("name"))
+    if host and owner and name:
+        _record_context_value(observations, "repository", f"{host}/{owner}/{name}", source=source)
+
+    _record_context_value(observations, "branch", branch.get("name"), source=source)
+    _record_context_value(observations, "commit", artifact.get("commit_sha"), source=source)
+    _record_context_value(observations, "commit", branch.get("head_commit_sha"), source=source)
+
+
+def _collect_artifact_reference_context(
+    observations: dict[str, dict[str, list[str]]],
+    artifact_reference: dict[str, Any],
+    *,
+    source: str,
+) -> None:
+    metadata = artifact_reference.get("metadata") if isinstance(artifact_reference.get("metadata"), dict) else {}
+
+    repository_host = (
+        _normalized_string(metadata.get("repository_host"))
+        or _normalized_string(metadata.get("repo_host"))
+    )
+    repository_owner = (
+        _normalized_string(metadata.get("repository_owner"))
+        or _normalized_string(metadata.get("repo_owner"))
+        or _normalized_string(metadata.get("owner"))
+    )
+    repository_name = (
+        _normalized_string(metadata.get("repository_name"))
+        or _normalized_string(metadata.get("repo_name"))
+        or _normalized_string(metadata.get("name"))
+    )
+
+    if repository_host and repository_owner and repository_name:
+        _record_context_value(
+            observations,
+            "repository",
+            f"{repository_host}/{repository_owner}/{repository_name}",
+            source=source,
+        )
+    else:
+        parsed_host, parsed_owner, parsed_name = _parse_github_repository_location(artifact_reference.get("location"))
+        if parsed_host and parsed_owner and parsed_name:
+            _record_context_value(
+                observations,
+                "repository",
+                f"{parsed_host}/{parsed_owner}/{parsed_name}",
+                source=f"{source}:location",
+            )
+
+    _record_context_value(
+        observations,
+        "branch",
+        _normalized_string(metadata.get("branch_name"))
+        or _normalized_string(metadata.get("head_branch"))
+        or _normalized_string(metadata.get("branch")),
+        source=source,
+    )
+    _record_context_value(
+        observations,
+        "commit",
+        _normalized_string(artifact_reference.get("commit_sha"))
+        or _normalized_string(metadata.get("commit_sha"))
+        or _normalized_string(metadata.get("head_commit_sha"))
+        or _normalized_string(metadata.get("head_sha"))
+        or _normalized_string(metadata.get("sha")),
+        source=source,
+    )
+
+
+def _observations_snapshot(observations: dict[str, dict[str, list[str]]]) -> dict[str, list[dict[str, Any]]]:
+    snapshot: dict[str, list[dict[str, Any]]] = {}
+    for key, values in observations.items():
+        snapshot[key] = [
+            {"value": value, "sources": sorted(sources)}
+            for value, sources in sorted(values.items())
+        ]
+    return snapshot
+
+
+def _validate_execution_attempt(
+    request: HarnessEvaluationRequest,
+    *,
+    request_payload: dict[str, Any],
+) -> tuple[bool, dict[str, Any] | None]:
+    attempt = _execution_attempt_for_completion_claim(request.task_envelope)
+    if attempt is None or not _is_successful_execution_attempt(attempt):
+        return True, None
+    if not _task_requires_code_execution(
+        request.task_envelope,
+        external_facts=request.external_facts,
+        attempt=attempt,
+    ):
+        return True, None
+
+    observations: dict[str, dict[str, list[str]]] = {}
+    payload_artifacts = _optional_object_list(
+        request_payload.get("new_artifacts"),
+        field_name="request.new_artifacts",
+    )
+    for index, artifact in enumerate(payload_artifacts):
+        _collect_artifact_context_from_record(observations, artifact, source=f"request.new_artifacts[{index}]")
+
+    attempt_artifacts = attempt.get("artifact_references") if isinstance(attempt.get("artifact_references"), list) else []
+    for index, artifact_reference in enumerate(attempt_artifacts):
+        if not isinstance(artifact_reference, dict):
+            continue
+        _collect_artifact_reference_context(
+            observations,
+            artifact_reference,
+            source=f"execution_attempt.artifact_references[{index}]",
+        )
+
+    if request.external_facts is not None:
+        expected_context = request.external_facts.expected_code_context
+        if expected_context is not None:
+            if (
+                _normalized_string(expected_context.repository_host)
+                and _normalized_string(expected_context.repository_owner)
+                and _normalized_string(expected_context.repository_name)
+            ):
+                _record_context_value(
+                    observations,
+                    "repository",
+                    (
+                        f"{expected_context.repository_host.strip()}/"
+                        f"{expected_context.repository_owner.strip()}/"
+                        f"{expected_context.repository_name.strip()}"
+                    ),
+                    source="external_facts.expected_code_context",
+                )
+            _record_context_value(
+                observations,
+                "branch",
+                expected_context.branch_name,
+                source="external_facts.expected_code_context",
+            )
+            _record_context_value(
+                observations,
+                "commit",
+                None,
+                source="external_facts.expected_code_context",
+            )
+
+        github_facts = request.external_facts.github_facts
+        if github_facts is not None:
+            if github_facts.repository is not None:
+                _record_context_value(
+                    observations,
+                    "repository",
+                    (
+                        f"{github_facts.repository.host}/"
+                        f"{github_facts.repository.owner}/"
+                        f"{github_facts.repository.name}"
+                    ),
+                    source="external_facts.github_facts.repository",
+                )
+            if github_facts.branch is not None:
+                _record_context_value(
+                    observations,
+                    "branch",
+                    github_facts.branch.name,
+                    source="external_facts.github_facts.branch",
+                )
+                _record_context_value(
+                    observations,
+                    "commit",
+                    github_facts.branch.head_commit_sha,
+                    source="external_facts.github_facts.branch",
+                )
+            if github_facts.commit is not None:
+                _record_context_value(
+                    observations,
+                    "commit",
+                    github_facts.commit.sha,
+                    source="external_facts.github_facts.commit",
+                )
+
+    attempts = _execution_attempts(request.task_envelope)
+    used_task_artifact_fallback = False
+    needs_repository = not observations.get("repository")
+    needs_branch = not observations.get("branch")
+    needs_commit = not observations.get("commit")
+    if len(attempts) == 1 and (needs_repository or needs_branch or needs_commit):
+        artifact_items = ((request.task_envelope.get("artifacts") or {}).get("items") or [])
+        if isinstance(artifact_items, list):
+            for index, artifact in enumerate(artifact_items):
+                if not isinstance(artifact, dict):
+                    continue
+                _collect_artifact_context_from_record(
+                    observations,
+                    artifact,
+                    source=f"task.artifacts[{index}]",
+                )
+                used_task_artifact_fallback = True
+
+    repository_values = observations.get("repository", {})
+    branch_values = observations.get("branch", {})
+    commit_values = observations.get("commit", {})
+
+    reasons: list[str] = []
+    if not repository_values:
+        reasons.append("Successful execution attempt is missing repository identity for the current run.")
+    if not branch_values:
+        reasons.append("Successful execution attempt is missing branch identity for the current run.")
+    if not commit_values:
+        reasons.append("Successful execution attempt is missing commit SHA for the current run.")
+
+    validation = {
+        "validated_at": _iso_now(),
+        "validated_by": "execution_validation",
+        "policy": {
+            "require_repository": True,
+            "require_exact_branch": True,
+            "require_commit": True,
+            "allow_missing_pull_request": True,
+            "task_artifact_fallback_requires_single_attempt": True,
+        },
+        "context_observations": {
+            **_observations_snapshot(observations),
+            "used_task_artifact_fallback": used_task_artifact_fallback,
+        },
+    }
+    if reasons:
+        validation["status"] = "invalid"
+        validation["failure_type"] = FailureType.INVALID_EXECUTION_ATTEMPT.value
+        validation["retryable"] = True
+        validation["reasons"] = reasons
+        return False, validation
+
+    validation["status"] = "valid"
+    validation["retryable"] = False
+    validation["reasons"] = []
+    return True, validation
+
+
+def _with_execution_attempt_validation(
+    task_envelope: dict[str, Any],
+    *,
+    completion_claim: dict[str, Any] | None,
+    validation: dict[str, Any],
+) -> dict[str, Any]:
+    linked_attempt = _execution_attempt_for_completion_claim(task_envelope, completion_claim=completion_claim)
+    if linked_attempt is None:
+        return task_envelope
+    linked_attempt_id = _normalized_string(linked_attempt.get("attempt_id"))
+    if linked_attempt_id is None:
+        return task_envelope
+
+    merged_task = deepcopy(task_envelope)
+    execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
+    existing_attempts = execution_metadata.get("execution_attempts")
+    if not isinstance(existing_attempts, list):
+        raise ApiRequestError("observability.execution_metadata.execution_attempts must be an array")
+
+    updated_attempts: list[Any] = [deepcopy(item) for item in existing_attempts]
+    for attempt in reversed(updated_attempts):
+        if not isinstance(attempt, dict):
+            continue
+        if attempt.get("attempt_id") != linked_attempt_id:
+            continue
+        metadata = dict(attempt.get("metadata") or {})
+        metadata["attempt_validation"] = deepcopy(validation)
+        attempt["metadata"] = metadata
+        break
+    else:
+        return merged_task
+
+    execution_metadata["execution_attempts"] = updated_attempts
+    merged_task["observability"]["execution_metadata"] = execution_metadata
+    merged_task["timestamps"]["updated_at"] = _iso_now()
+    return merged_task
+
+
+def _invalid_execution_attempt_count(task_envelope: dict[str, Any]) -> int:
+    count = 0
+    for attempt in _execution_attempts(task_envelope):
+        metadata = attempt.get("metadata") if isinstance(attempt.get("metadata"), dict) else {}
+        validation = metadata.get("attempt_validation") if isinstance(metadata.get("attempt_validation"), dict) else {}
+        if validation.get("failure_type") == FailureType.INVALID_EXECUTION_ATTEMPT.value:
+            count += 1
+    return count
+
+
+def _invalid_execution_retry_context(
+    *,
+    retry_number: int,
+    max_retries: int,
+    reason: str,
+) -> dict[str, Any]:
+    return {
+        "attempt_number": retry_number,
+        "max_retries": max_retries,
+        "triggered_by_category": FailureType.INVALID_EXECUTION_ATTEMPT.value,
+        "triggered_by_reason": reason,
+        "is_final_attempt": retry_number >= max_retries,
+        "scheduled_at": _iso_now(),
+    }
+
+
+def _invalid_execution_attempt_result(
+    *,
+    task_envelope: dict[str, Any],
+    reason: str,
+    retryable: bool,
+    target_status: str | None,
+) -> HarnessEvaluationResult:
+    failure = FailureClassification(
+        failure_type=FailureType.INVALID_EXECUTION_ATTEMPT,
+        source=FailureSource.EXECUTOR,
+        reason=reason,
+        terminal=not retryable,
+        recoverable=retryable,
+    )
+    action = EnforcementAction.NO_OP if target_status is None else EnforcementAction.TRANSITION_APPLIED
+    enforcement_result = EnforcementResult(
+        action=action,
+        task_envelope=task_envelope,
+        evidence_result=None,
+        reconciliation_result=None,
+        verification_result=None,
+        review_request=None,
+        review_decision=None,
+        transition_result=None,
+        target_status=target_status,
+        reasons=(reason,),
+        failure_classification=failure,
+        error=reason,
+    )
+    return HarnessEvaluationResult(
+        action=action,
+        target_status=target_status,
+        task_envelope=task_envelope,
+        enforcement_result=enforcement_result,
+        accepted_completion=False,
+        requires_review=False,
+        invalid_input=False,
+        failure_classification=failure,
+        reasons=(reason,),
+        error=reason,
+    )
 
 
 def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bool:
@@ -947,6 +1385,7 @@ class HarnessApiService:
         to_status: str,
         reason: str,
         actor: str,
+        facts: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if task_envelope.get("status") == to_status:
             return task_envelope
@@ -955,6 +1394,7 @@ class HarnessApiService:
             to_status=to_status,
             actor=actor,
             reason=reason,
+            facts=facts,
         )
         return transition.task_envelope
 
@@ -1115,6 +1555,118 @@ class HarnessApiService:
             return status, response_payload, None, tuple(attempts)
         attempts.append((active_request, result))
         return status, response_payload, result, tuple(attempts)
+
+    def _handle_invalid_execution_attempt(
+        self,
+        *,
+        task_id: str,
+        request: HarnessEvaluationRequest,
+        validation: dict[str, Any],
+    ) -> tuple[int, dict[str, Any]]:
+        completion_claim = _latest_advisory_completion_claim(request.task_envelope)
+        validated_task = _with_execution_attempt_validation(
+            request.task_envelope,
+            completion_claim=completion_claim,
+            validation=validation,
+        )
+        self.store.update_task(validated_task)
+
+        reasons = tuple(str(item) for item in validation.get("reasons") or () if isinstance(item, str) and item.strip())
+        reason = reasons[0] if reasons else "Execution attempt is invalid for completion handling."
+        retry_budget = _invalid_execution_retry_budget()
+        invalid_attempt_count = _invalid_execution_attempt_count(validated_task)
+        retry_number = invalid_attempt_count
+
+        executor = _executor_hint_from_task(validated_task)
+        can_retry = executor in _CODE_EXECUTOR_TYPES and retry_number <= retry_budget
+        retry_context = (
+            _invalid_execution_retry_context(
+                retry_number=retry_number,
+                max_retries=retry_budget,
+                reason=reason,
+            )
+            if can_retry
+            else None
+        )
+
+        evaluation_request = replace(
+            request,
+            task_envelope=validated_task,
+            retry_context=deepcopy(retry_context) if retry_context is not None else None,
+        )
+        evaluation_result = _invalid_execution_attempt_result(
+            task_envelope=validated_task,
+            reason=reason,
+            retryable=can_retry,
+            target_status=None,
+        )
+        evaluation_record = self.store.put_evaluation_record(request=evaluation_request, result=evaluation_result)
+
+        if can_retry:
+            dispatch_status, dispatch_payload = self.dispatch_task(
+                task_id,
+                {
+                    "request": {
+                        "executor": executor,
+                        "dispatch_mode": "automatic",
+                        "dispatch_trigger": "invalid_execution_attempt_retry",
+                        "dispatch_reason": reason,
+                        "execution_parameters": {
+                            "prior_invalid_attempt_id": ((completion_claim or {}).get("metadata") or {}).get("attempt_id"),
+                        },
+                    }
+                },
+            )
+            if isinstance(dispatch_payload, dict):
+                dispatch_payload["invalid_execution_attempt"] = {
+                    "status": "retry_scheduled",
+                    "validation": deepcopy(validation),
+                    "retry_context": deepcopy(retry_context),
+                    "evaluation_record": _serialize_evaluation_record(evaluation_record),
+                }
+            return dispatch_status, dispatch_payload
+
+        failed_reason = reason
+        if executor not in _CODE_EXECUTOR_TYPES:
+            failed_reason = (
+                f"{reason} Automatic retry could not be scheduled because no compatible executor was assigned."
+            )
+        failed_task = self._task_with_transition(
+            validated_task,
+            to_status="failed",
+            reason=failed_reason,
+            actor="verification",
+            facts={"terminal_failure": True, "reason_provided": True},
+        )
+        self.store.update_task(failed_task)
+        failure_record = self.store.put_evaluation_record(
+            request=replace(request, task_envelope=failed_task),
+            result=_invalid_execution_attempt_result(
+                task_envelope=failed_task,
+                reason=failed_reason,
+                retryable=False,
+                target_status="failed",
+            ),
+        )
+        return HTTPStatus.OK, {
+            "action": "invalid_execution_attempt_failed",
+            "accepted_completion": False,
+            "requires_review": False,
+            "invalid_input": False,
+            "target_status": "failed",
+            "error": failed_reason,
+            "reasons": list(reasons) or [failed_reason],
+            "invalid_execution_attempt": {
+                "status": "failed",
+                "validation": deepcopy(validation),
+                "retry_budget": retry_budget,
+                "invalid_attempt_count": invalid_attempt_count,
+                "initial_evaluation_record": _serialize_evaluation_record(evaluation_record),
+                "failure_evaluation_record": _serialize_evaluation_record(failure_record),
+            },
+            "task_envelope": _to_jsonable(failed_task),
+            "evaluation_record": _serialize_evaluation_record(failure_record),
+        }
 
     def submit(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
@@ -1316,6 +1868,7 @@ class HarnessApiService:
             return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
 
         try:
+            request_payload = _require_mapping(payload.get("request"), field_name="request")
             request = parse_completion_claim_request(stored_task, payload)
         except Exception as error:
             return HTTPStatus.BAD_REQUEST, {
@@ -1330,6 +1883,24 @@ class HarnessApiService:
                 self.store.list_evaluation_records(task_id),
             ),
         )
+
+        attempt_valid, attempt_validation = _validate_execution_attempt(request, request_payload=request_payload)
+        if not attempt_valid and attempt_validation is not None:
+            return self._handle_invalid_execution_attempt(
+                task_id=task_id,
+                request=request,
+                validation=attempt_validation,
+            )
+        if attempt_validation is not None:
+            completion_claim = _latest_advisory_completion_claim(request.task_envelope)
+            request = replace(
+                request,
+                task_envelope=_with_execution_attempt_validation(
+                    request.task_envelope,
+                    completion_claim=completion_claim,
+                    validation=attempt_validation,
+                ),
+            )
 
         request, reconciliation_response = self._run_completion_claim_reconciliation(request)
         if reconciliation_response is not None:
