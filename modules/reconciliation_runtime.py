@@ -29,8 +29,31 @@ class ReconciliationAttemptStatus(StrEnum):
     FAILED = "failed"
 
 
+class ReconciliationFailureDisposition(StrEnum):
+    """Disposition for a reconciliation failure after classification."""
+
+    REVIEW_REQUIRED = "review_required"
+    BLOCKED_RETRYABLE = "blocked_retryable"
+
+
 class ReconciliationRuntimeError(ValueError):
     """Raised when reconciliation runtime inputs are malformed."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        disposition: ReconciliationFailureDisposition = ReconciliationFailureDisposition.REVIEW_REQUIRED,
+    ) -> None:
+        super().__init__(message)
+        self.disposition = disposition
+
+
+class RetryableReconciliationRuntimeError(ReconciliationRuntimeError):
+    """Raised when reconciliation is blocked by a retryable provider/platform failure."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, disposition=ReconciliationFailureDisposition.BLOCKED_RETRYABLE)
 
 
 @dataclass(frozen=True)
@@ -94,6 +117,9 @@ class ReconciliationHandlerResult:
     attempt: dict[str, Any]
     pull_request: GitHubPullRequestRecord | None = None
     error: str | None = None
+    failure_disposition: ReconciliationFailureDisposition = ReconciliationFailureDisposition.REVIEW_REQUIRED
+    target_status: str = "in_review"
+    requires_review: bool = True
 
 
 class GitHubPullRequestGateway(Protocol):
@@ -827,6 +853,7 @@ class MissingPrAfterExecutionHandler:
                 },
                 "pull_request_candidates": [],
                 "created_pull_request": False,
+                "error_disposition": None,
                 "final_decision": {
                     "result": None,
                     "reason": None,
@@ -966,10 +993,22 @@ class MissingPrAfterExecutionHandler:
                 error=None,
             )
         except Exception as error_message:
+            if isinstance(error_message, ReconciliationRuntimeError):
+                failure_disposition = error_message.disposition
+            else:
+                failure_disposition = ReconciliationFailureDisposition.REVIEW_REQUIRED
+            target_status = "blocked" if failure_disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE else "in_review"
+            requires_review = target_status == "in_review"
             completed_at = _iso_now()
             attempt["status"] = ReconciliationAttemptStatus.FAILED.value
             attempt["completed_at"] = completed_at
             attempt["details"]["error"] = str(error_message)
+            attempt["details"]["error_disposition"] = failure_disposition.value
+            if attempt["details"]["final_decision"]["result"] is None:
+                attempt["details"]["final_decision"] = {
+                    "result": "blocked_retryable_failure" if not requires_review else "review_required_failure",
+                    "reason": "provider_platform_failure" if not requires_review else "reconciliation_runtime_error",
+                }
             updated_task = _record_reconciliation_attempt(
                 context.task_envelope,
                 attempt=attempt,
@@ -985,6 +1024,9 @@ class MissingPrAfterExecutionHandler:
                 attempt=attempt,
                 pull_request=None,
                 error=str(error_message),
+                failure_disposition=failure_disposition,
+                target_status=target_status,
+                requires_review=requires_review,
             )
 
 
@@ -1057,11 +1099,11 @@ class GitHubRestPullRequestGateway:
             response_body = http_error.read().decode("utf-8", errors="replace")
             if http_error.code == 404:
                 return None
-            raise ReconciliationRuntimeError(
+            raise RetryableReconciliationRuntimeError(
                 f"GitHub API request failed for {path}: HTTP {http_error.code} {response_body}".strip()
             ) from http_error
         except error.URLError as url_error:
-            raise ReconciliationRuntimeError(
+            raise RetryableReconciliationRuntimeError(
                 f"GitHub API request failed for {path}: {url_error.reason}"
             ) from url_error
 
@@ -1178,11 +1220,13 @@ __all__ = [
     "MissingPrMatchPolicy",
     "MissingPrAfterExecutionHandler",
     "ReconciliationAttemptStatus",
+    "ReconciliationFailureDisposition",
     "ReconciliationFailureType",
     "ReconciliationHandlerRegistry",
     "ReconciliationHandlerResult",
     "ReconciliationRuntimeContext",
     "ReconciliationRuntimeError",
+    "RetryableReconciliationRuntimeError",
     "build_default_reconciliation_registry",
     "default_reconciliation_state",
     "ensure_reconciliation_state",

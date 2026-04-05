@@ -8,6 +8,7 @@ from modules.reconciliation_runtime import (
     GitHubPullRequestRecord,
     ReconciliationFailureType,
     ReconciliationHandlerRegistry,
+    RetryableReconciliationRuntimeError,
     build_default_reconciliation_registry,
 )
 from modules.intake import create_task_envelope
@@ -24,11 +25,17 @@ class _FakeGitHubGateway:
         existing_commit_prs: tuple[GitHubPullRequestRecord, ...] = (),
         created_pr: GitHubPullRequestRecord | None = None,
         default_branch: str = "main",
+        branch_exists_error: Exception | None = None,
+        commit_exists_error: Exception | None = None,
+        create_pull_request_error: Exception | None = None,
     ) -> None:
         self._branch_exists = branch_exists
         self._commit_exists = commit_exists
         self._existing_branch_prs = existing_branch_prs
         self._existing_commit_prs = existing_commit_prs
+        self._branch_exists_error = branch_exists_error
+        self._commit_exists_error = commit_exists_error
+        self._create_pull_request_error = create_pull_request_error
         self._created_pr = created_pr or GitHubPullRequestRecord(
             number=401,
             url="https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/401",
@@ -44,10 +51,14 @@ class _FakeGitHubGateway:
 
     def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
         del owner, repo, branch_name
+        if self._branch_exists_error is not None:
+            raise self._branch_exists_error
         return self._branch_exists
 
     def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
         del owner, repo, commit_sha
+        if self._commit_exists_error is not None:
+            raise self._commit_exists_error
         return self._commit_exists
 
     def default_branch(self, *, owner: str, repo: str) -> str | None:
@@ -85,6 +96,8 @@ class _FakeGitHubGateway:
         base: str,
     ) -> GitHubPullRequestRecord:
         del owner, repo, title, body, head, base
+        if self._create_pull_request_error is not None:
+            raise self._create_pull_request_error
         self.create_calls += 1
         return self._created_pr
 
@@ -639,6 +652,33 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "in_review")
         self.assertEqual(stored_status, 200)
         self.assertEqual(stored_payload["task"]["status"], "in_review")
+
+    def test_submit_completion_claim_moves_task_to_blocked_for_retryable_provider_failure(self) -> None:
+        gateway = _FakeGitHubGateway(
+            branch_exists_error=RetryableReconciliationRuntimeError(
+                "GitHub API request failed for /repos/KnoxAnalytics/HARNESS-DRYRUN/branches/codex%2Fe2e-test: HTTP 502 bad gateway"
+            )
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-provider-blocked")
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-provider-blocked"))
+        stored_status, stored_payload = service.get_task(task["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "reconciliation_blocked")
+        self.assertEqual(payload["task_envelope"]["status"], "blocked")
+        self.assertFalse(payload["requires_review"])
+        self.assertEqual(payload["target_status"], "blocked")
+        self.assertEqual(payload["reconciliation_attempt"]["details"]["error_disposition"], "blocked_retryable")
+        self.assertEqual(payload["task_envelope"]["status_history"][-2]["to_status"], "reconciling")
+        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "blocked")
+        self.assertEqual(stored_status, 200)
+        self.assertEqual(stored_payload["task"]["status"], "blocked")
 
 
     def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:
