@@ -680,6 +680,48 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(stored_status, 200)
         self.assertEqual(stored_payload["task"]["status"], "blocked")
 
+    def test_submit_completion_claim_rejects_conflicting_code_context_sources(self) -> None:
+        gateway = _FakeGitHubGateway()
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-context-conflict")
+        service.store.create_task(task)
+
+        payload = _completion_claim_payload("claim-context-conflict")
+        payload["request"]["external_facts"]["expected_code_context"]["branch_name"] = "codex/conflicting-branch"
+        payload["request"]["external_facts"]["github_facts"]["branch"]["name"] = "codex/conflicting-branch"
+        payload["request"]["external_facts"]["github_facts"]["branch"]["head_commit_sha"] = (
+            "1111111111111111111111111111111111111111"
+        )
+        payload["request"]["external_facts"]["github_facts"]["commit"]["sha"] = (
+            "1111111111111111111111111111111111111111"
+        )
+
+        status, response = service.submit_completion_claim(task["id"], payload)
+        stored_status, stored_payload = service.get_task(task["id"])
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "reconciliation_failed")
+        self.assertEqual(response["task_envelope"]["status"], "in_review")
+        self.assertEqual(gateway.create_calls, 0)
+        self.assertEqual(
+            response["reconciliation_attempt"]["details"]["final_decision"]["result"],
+            "context_resolution_failed",
+        )
+        conflict_fields = {
+            item["field"]
+            for item in response["reconciliation_attempt"]["details"]["context_resolution"]["conflicts"]
+        }
+        self.assertIn("branch_name", conflict_fields)
+        self.assertIn("commit_sha", conflict_fields)
+        self.assertIn("external_facts", response["reconciliation_attempt"]["details"]["context_resolution"]["sources"])
+        self.assertIn("artifacts", response["reconciliation_attempt"]["details"]["context_resolution"]["sources"])
+        self.assertEqual(response["task_envelope"]["status_history"][-1]["to_status"], "in_review")
+        self.assertEqual(stored_status, 200)
+        self.assertEqual(stored_payload["task"]["status"], "in_review")
+
 
     def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:
         gateway = _FakeGitHubGateway(existing_branch_prs=(_pull_request(number=84),))

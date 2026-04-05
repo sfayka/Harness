@@ -302,13 +302,14 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 1. Check that the target branch exists through Git or the GitHub API.
 2. Validate that the commit SHA is present, non-empty, and resolvable.
 3. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest.
-4. Query GitHub for candidate PRs by branch.
-5. Query GitHub for candidate PRs by commit association.
-6. Validate each candidate against the current run context rather than treating branch lookup as success.
-7. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
-8. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-9. If no valid PR exists, create one through the GitHub API and validate the created PR against current-run policy.
-10. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
+4. Compare repository, branch, and commit context across `external_facts`, attached artifacts, and execution-attempt metadata. If those sources disagree, stop and record the conflict rather than choosing one implicitly.
+5. Query GitHub for candidate PRs by branch.
+6. Query GitHub for candidate PRs by commit association.
+7. Validate each candidate against the current run context rather than treating branch lookup as success.
+8. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
+9. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+10. If no valid PR exists, create one through the GitHub API and validate the created PR against current-run policy.
+11. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 
@@ -386,6 +387,7 @@ Non-recoverable or escalation outcomes for this class include:
 
 - the branch cannot be found
 - the commit SHA is empty or does not resolve
+- `external_facts`, artifacts, and execution metadata disagree about repository, branch, or commit identity
 - GitHub lookup returns only historical or otherwise stale PRs
 - GitHub lookup returns contradictory, ambiguous, or unusable results
 - GitHub refuses or blocks PR creation for a logical or policy reason
