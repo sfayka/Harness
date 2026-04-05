@@ -1,0 +1,2711 @@
+{
+  "accepted_completion": true,
+  "action": "transition_applied",
+  "enforcement_result": {
+    "action": "transition_applied",
+    "error": null,
+    "evidence_result": {
+      "artifact_results": [
+        {
+          "artifact_id": "artifact-commit-kno178-claimed",
+          "artifact_type": "commit",
+          "is_valid": true,
+          "issues": []
+        },
+        {
+          "artifact_id": "artifact-pr-155",
+          "artifact_type": "pull_request",
+          "is_valid": true,
+          "issues": []
+        }
+      ],
+      "is_sufficient": true,
+      "is_valid": true,
+      "issues": [],
+      "missing_required_artifact_types": [],
+      "unknown_validated_artifact_ids": [],
+      "validated_artifact_ids": [
+        "artifact-commit-kno178-claimed"
+      ]
+    },
+    "failure_classification": {
+      "category": "none",
+      "failure_type": "none",
+      "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+      "recoverable": false,
+      "retryable": false,
+      "source": "none",
+      "terminal": false
+    },
+    "reasons": [
+      "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+    ],
+    "reconciliation_result": {
+      "blocking": false,
+      "mismatch_categories": [],
+      "outcome": "no_mismatch",
+      "reasons": [
+        "Reconciliation evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against normalized external facts",
+        "No blocking reconciliation mismatch was detected"
+      ],
+      "status": "passed",
+      "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+      "terminal": false
+    },
+    "review_decision": null,
+    "review_request": null,
+    "target_status": "completed",
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "Claimed completion attempt is not the latest execution attempt",
+          "id": "ac-1",
+          "required": true
+        },
+        {
+          "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+          "id": "ac-2",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": null,
+          "policy": "required",
+          "required_artifact_types": [
+            "commit"
+          ],
+          "status": "satisfied",
+          "validated_artifact_ids": [
+            "artifact-commit-kno178-claimed"
+          ],
+          "validated_at": "2026-04-04T23:05:25Z",
+          "validation_method": "external_reconciliation",
+          "validator": {
+            "captured_by": "kno-178-proof",
+            "source_id": "verification-kno178",
+            "source_system": "harness",
+            "source_type": "verification"
+          }
+        },
+        "items": [
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "name": "codex/kno-178-claimed-attempt-run2"
+            },
+            "captured_at": "2026-04-04T23:05:20Z",
+            "changed_files": [],
+            "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "content_type": null,
+            "description": null,
+            "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "external_refs": [],
+            "id": "artifact-commit-kno178-claimed",
+            "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "metadata": {
+              "attempt_id": "kno178-attempt-claimed-1"
+            },
+            "provenance": {
+              "captured_by": "kno-178-proof",
+              "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": null,
+            "repository": {
+              "external_id": null,
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": null,
+            "title": null,
+            "type": "commit",
+            "verification_status": "verified"
+          },
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "name": "codex/kno-178-claimed-attempt-run2"
+            },
+            "captured_at": "2026-04-04T22:35:59.373150Z",
+            "changed_files": [],
+            "commit_sha": null,
+            "content_type": null,
+            "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+            "external_id": "PR-155",
+            "external_refs": [],
+            "id": "artifact-pr-155",
+            "location": "https://github.com/sfayka/Harness/pull/155",
+            "metadata": {
+              "attached_by": "missing_pr_after_execution",
+              "pull_request_state": "open"
+            },
+            "provenance": {
+              "captured_by": "reconciliation_handler",
+              "source_id": "pull/155",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": 155,
+            "repository": {
+              "external_id": null,
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            },
+            "review_state": null,
+            "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+            "type": "pull_request",
+            "verification_status": "verified"
+          }
+        ]
+      },
+      "assigned_executor": {
+        "assignment_reason": "runtime proof",
+        "executor_id": "codex-kno178",
+        "executor_type": "codex"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "coordination": {
+        "linear": {
+          "issue_id": "KNO-178",
+          "issue_key": "KNO-178",
+          "project": null,
+          "provenance": {
+            "linked_at": "2026-04-04T22:35:57.578186Z",
+            "linked_by": "reevaluation",
+            "source": "completion_claim.external_facts"
+          },
+          "reasons": [],
+          "record_found": true,
+          "state": "completed",
+          "task_reference": null,
+          "workflow": {
+            "state_type": "completed",
+            "workflow_id": "workflow-completed",
+            "workflow_name": "completed"
+          }
+        }
+      },
+      "dependencies": [],
+      "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+      "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+      "objective": {
+        "deliverable_type": "unspecified",
+        "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+        "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "advisory_completion_claims": [
+            {
+              "claim_id": "kno178-claim-1",
+              "metadata": {
+                "attempt_id": "kno178-attempt-claimed-1",
+                "issue": "KNO-178"
+              },
+              "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+              "reported_at": "2026-04-04T23:10:00Z",
+              "reported_by": "codex"
+            }
+          ],
+          "execution_attempts": [
+            {
+              "artifact_references": [
+                {
+                  "artifact_type": "execution_log",
+                  "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                  "reference_id": "attempt-claimed-log"
+                }
+              ],
+              "attempt_id": "kno178-attempt-claimed-1",
+              "completion_claim_id": null,
+              "metadata": {
+                "branch": "codex/kno-178-claimed-attempt-run2",
+                "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "executor_run_id": "run-kno178-attempt-claimed-1"
+              },
+              "recorded_at": "2026-04-04T23:04:00Z",
+              "reevaluation": {},
+              "reported_by": "codex",
+              "status": "completed"
+            },
+            {
+              "artifact_references": [
+                {
+                  "artifact_type": "execution_log",
+                  "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                  "reference_id": "attempt-latest-log"
+                }
+              ],
+              "attempt_id": "kno178-attempt-latest-2",
+              "completion_claim_id": null,
+              "metadata": {
+                "branch": "codex/kno-178-latest-attempt",
+                "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+                "executor_run_id": "run-kno178-attempt-latest-2"
+              },
+              "recorded_at": "2026-04-04T23:06:00Z",
+              "reevaluation": {},
+              "reported_by": "codex",
+              "status": "failed"
+            }
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": "linear-KNO-178",
+        "ingress_name": "Linear",
+        "requested_by": null,
+        "source_id": "KNO-178",
+        "source_system": "linear",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "reconciliation": {
+        "active_failure_type": null,
+        "attempts": [
+          {
+            "attempt_id": "reconciliation-attempt-1",
+            "completed_at": "2026-04-04T22:35:59.373150Z",
+            "details": {
+              "base_branch": "main",
+              "branch_exists": true,
+              "branch_name": "codex/kno-178-claimed-attempt-run2",
+              "commit_exists": true,
+              "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "created_pull_request": true,
+              "error": null,
+              "final_decision": {
+                "reason": "no_valid_existing_candidate",
+                "result": "created_new"
+              },
+              "policy": {
+                "allow_closed_pr_match": false,
+                "allow_commit_association_match": true,
+                "allow_open_pr_match": true,
+                "escalate_on_ambiguous_match": true,
+                "require_exact_branch_match": true,
+                "require_head_sha_match": true,
+                "require_task_linkage": false
+              },
+              "pull_request_candidates": [
+                {
+                  "base_branch": "main",
+                  "head": {
+                    "branch": "codex/kno-178-claimed-attempt-run2",
+                    "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                  },
+                  "lookup_sources": [
+                    "created"
+                  ],
+                  "merged": false,
+                  "number": 155,
+                  "repository": {
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "state": "open",
+                  "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                  "url": "https://github.com/sfayka/Harness/pull/155",
+                  "validation": {
+                    "accepted": true,
+                    "matched_by": [
+                      "head_sha_match",
+                      "task_linkage"
+                    ],
+                    "reasons": [],
+                    "signals": {
+                      "branch_match": true,
+                      "commit_association_match": false,
+                      "head_sha_match": true,
+                      "repository_match": true,
+                      "state": "open",
+                      "state_acceptable": true,
+                      "task_linkage": {
+                        "linked": true,
+                        "task_id_present": true,
+                        "task_title_present": true
+                      }
+                    }
+                  }
+                }
+              ],
+              "pull_request_lookup": {
+                "ambiguous": false,
+                "candidate_count": 1,
+                "found": true,
+                "number": 155,
+                "searched_by_branch": true,
+                "searched_by_commit": true,
+                "source": "created",
+                "url": "https://github.com/sfayka/Harness/pull/155",
+                "valid_candidate_count": 1
+              },
+              "repository": {
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              }
+            },
+            "failure_type": "missing_pr_after_execution",
+            "handler_key": "missing_pr_after_execution",
+            "started_at": "2026-04-04T22:35:57.598043Z",
+            "status": "resolved"
+          }
+        ],
+        "failed_at": null,
+        "last_attempt_id": "reconciliation-attempt-1",
+        "last_error": null,
+        "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+        "resolved_at": "2026-04-04T22:35:59.373150Z",
+        "status": "resolved"
+      },
+      "required_capabilities": [],
+      "status": "completed",
+      "status_history": [
+        {
+          "changed_at": "2026-04-04T22:35:57.588545Z",
+          "changed_by": "reconciliation",
+          "from_status": "executing",
+          "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+          "to_status": "reconciling"
+        },
+        {
+          "changed_at": "2026-04-04T22:35:59.446078Z",
+          "changed_by": "verification",
+          "from_status": "reconciling",
+          "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "to_status": "completed"
+        }
+      ],
+      "timestamps": {
+        "completed_at": "2026-04-04T22:35:59.446078Z",
+        "created_at": "2026-04-04T23:05:00Z",
+        "updated_at": "2026-04-04T22:35:59.446078Z"
+      },
+      "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+    },
+    "transition_result": {
+      "actor": "verification",
+      "changed_at": "2026-04-04T22:35:59.446078Z",
+      "from_status": "reconciling",
+      "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+      "status_history_entry": {
+        "changed_at": "2026-04-04T22:35:59.446078Z",
+        "changed_by": "verification",
+        "from_status": "reconciling",
+        "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Claimed completion attempt is not the latest execution attempt",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+            "id": "ac-2",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-kno178-claimed"
+            ],
+            "validated_at": "2026-04-04T23:05:25Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "kno-178-proof",
+              "source_id": "verification-kno178",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "name": "codex/kno-178-claimed-attempt-run2"
+              },
+              "captured_at": "2026-04-04T23:05:20Z",
+              "changed_files": [],
+              "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "external_refs": [],
+              "id": "artifact-commit-kno178-claimed",
+              "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "metadata": {
+                "attempt_id": "kno178-attempt-claimed-1"
+              },
+              "provenance": {
+                "captured_by": "kno-178-proof",
+                "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "name": "codex/kno-178-claimed-attempt-run2"
+              },
+              "captured_at": "2026-04-04T22:35:59.373150Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "external_id": "PR-155",
+              "external_refs": [],
+              "id": "artifact-pr-155",
+              "location": "https://github.com/sfayka/Harness/pull/155",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              },
+              "provenance": {
+                "captured_by": "reconciliation_handler",
+                "source_id": "pull/155",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 155,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+              "type": "pull_request",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "runtime proof",
+          "executor_id": "codex-kno178",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-178",
+            "issue_key": "KNO-178",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T22:35:57.578186Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "completed",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "completed",
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+        "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+          "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "kno178-claim-1",
+                "metadata": {
+                  "attempt_id": "kno178-attempt-claimed-1",
+                  "issue": "KNO-178"
+                },
+                "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+                "reported_at": "2026-04-04T23:10:00Z",
+                "reported_by": "codex"
+              }
+            ],
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                    "reference_id": "attempt-claimed-log"
+                  }
+                ],
+                "attempt_id": "kno178-attempt-claimed-1",
+                "completion_claim_id": null,
+                "metadata": {
+                  "branch": "codex/kno-178-claimed-attempt-run2",
+                  "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "executor_run_id": "run-kno178-attempt-claimed-1"
+                },
+                "recorded_at": "2026-04-04T23:04:00Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "completed"
+              },
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                    "reference_id": "attempt-latest-log"
+                  }
+                ],
+                "attempt_id": "kno178-attempt-latest-2",
+                "completion_claim_id": null,
+                "metadata": {
+                  "branch": "codex/kno-178-latest-attempt",
+                  "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+                  "executor_run_id": "run-kno178-attempt-latest-2"
+                },
+                "recorded_at": "2026-04-04T23:06:00Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "failed"
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "linear-KNO-178",
+          "ingress_name": "Linear",
+          "requested_by": null,
+          "source_id": "KNO-178",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "completed_at": "2026-04-04T22:35:59.373150Z",
+              "details": {
+                "base_branch": "main",
+                "branch_exists": true,
+                "branch_name": "codex/kno-178-claimed-attempt-run2",
+                "commit_exists": true,
+                "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "created_pull_request": true,
+                "error": null,
+                "final_decision": {
+                  "reason": "no_valid_existing_candidate",
+                  "result": "created_new"
+                },
+                "policy": {
+                  "allow_closed_pr_match": false,
+                  "allow_commit_association_match": true,
+                  "allow_open_pr_match": true,
+                  "escalate_on_ambiguous_match": true,
+                  "require_exact_branch_match": true,
+                  "require_head_sha_match": true,
+                  "require_task_linkage": false
+                },
+                "pull_request_candidates": [
+                  {
+                    "base_branch": "main",
+                    "head": {
+                      "branch": "codex/kno-178-claimed-attempt-run2",
+                      "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                    },
+                    "lookup_sources": [
+                      "created"
+                    ],
+                    "merged": false,
+                    "number": 155,
+                    "repository": {
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "state": "open",
+                    "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                    "url": "https://github.com/sfayka/Harness/pull/155",
+                    "validation": {
+                      "accepted": true,
+                      "matched_by": [
+                        "head_sha_match",
+                        "task_linkage"
+                      ],
+                      "reasons": [],
+                      "signals": {
+                        "branch_match": true,
+                        "commit_association_match": false,
+                        "head_sha_match": true,
+                        "repository_match": true,
+                        "state": "open",
+                        "state_acceptable": true,
+                        "task_linkage": {
+                          "linked": true,
+                          "task_id_present": true,
+                          "task_title_present": true
+                        }
+                      }
+                    }
+                  }
+                ],
+                "pull_request_lookup": {
+                  "ambiguous": false,
+                  "candidate_count": 1,
+                  "found": true,
+                  "number": 155,
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "source": "created",
+                  "url": "https://github.com/sfayka/Harness/pull/155",
+                  "valid_candidate_count": 1
+                },
+                "repository": {
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "started_at": "2026-04-04T22:35:57.598043Z",
+              "status": "resolved"
+            }
+          ],
+          "failed_at": null,
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_error": null,
+          "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+          "resolved_at": "2026-04-04T22:35:59.373150Z",
+          "status": "resolved"
+        },
+        "required_capabilities": [],
+        "status": "completed",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T22:35:57.588545Z",
+            "changed_by": "reconciliation",
+            "from_status": "executing",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "to_status": "reconciling"
+          },
+          {
+            "changed_at": "2026-04-04T22:35:59.446078Z",
+            "changed_by": "verification",
+            "from_status": "reconciling",
+            "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-04T22:35:59.446078Z",
+          "created_at": "2026-04-04T23:05:00Z",
+          "updated_at": "2026-04-04T22:35:59.446078Z"
+        },
+        "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+      },
+      "to_status": "completed"
+    },
+    "verification_result": {
+      "accepted_completion": true,
+      "claimed_completion": true,
+      "evidence_is_sufficient": true,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "is_terminal": false,
+      "outcome": "accepted_completion",
+      "reasons": [
+        "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy",
+        "Executor-reported success was treated as advisory input only",
+        "Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "reconciliation_status": "passed",
+      "requires_review": false,
+      "target_status": "completed",
+      "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+      "verification_passed": true
+    }
+  },
+  "error": null,
+  "evaluation_record": {
+    "evaluation_id": "2dd24052-9dc0-418e-b67a-64f551900160",
+    "recorded_at": "2026-04-04T22:35:59.461983Z",
+    "request": {
+      "acceptance_criteria_satisfied": true,
+      "claimed_completion": true,
+      "external_facts": {
+        "expected_code_context": {
+          "base_branch": "main",
+          "branch_name": "codex/kno-178-claimed-attempt-run2",
+          "repository_host": "github.com",
+          "repository_name": "Harness",
+          "repository_owner": "sfayka"
+        },
+        "github_facts": {
+          "artifact_found": true,
+          "artifact_refs": [
+            {
+              "artifact_type": "commit",
+              "external_id": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "url": null
+            }
+          ],
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "name": "codex/kno-178-claimed-attempt-run2"
+          },
+          "changed_files": null,
+          "commit": {
+            "message_summary": null,
+            "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "url": null
+          },
+          "pull_request": null,
+          "reasons": [],
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          }
+        },
+        "linear_facts": {
+          "issue_id": "KNO-178",
+          "issue_key": "KNO-178",
+          "project": null,
+          "reasons": [],
+          "record_found": true,
+          "state": "completed",
+          "task_reference": null,
+          "workflow": {
+            "state_type": "completed",
+            "workflow_id": "workflow-completed",
+            "workflow_name": "completed"
+          }
+        }
+      },
+      "retry_context": null,
+      "review_decision": null,
+      "review_is_active": false,
+      "review_reasons": [],
+      "review_request": null,
+      "runtime_facts": {
+        "attempt_count": 2,
+        "executor_reported_failure": false,
+        "executor_reported_success": true,
+        "latest_attempt_outcome": "failed",
+        "terminal_failure": false
+      },
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Claimed completion attempt is not the latest execution attempt",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+            "id": "ac-2",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-kno178-claimed"
+            ],
+            "validated_at": "2026-04-04T23:05:25Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "kno-178-proof",
+              "source_id": "verification-kno178",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "name": "codex/kno-178-claimed-attempt-run2"
+              },
+              "captured_at": "2026-04-04T23:05:20Z",
+              "changed_files": [],
+              "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "external_refs": [],
+              "id": "artifact-commit-kno178-claimed",
+              "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "metadata": {
+                "attempt_id": "kno178-attempt-claimed-1"
+              },
+              "provenance": {
+                "captured_by": "kno-178-proof",
+                "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "name": "codex/kno-178-claimed-attempt-run2"
+              },
+              "captured_at": "2026-04-04T22:35:59.373150Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "external_id": "PR-155",
+              "external_refs": [],
+              "id": "artifact-pr-155",
+              "location": "https://github.com/sfayka/Harness/pull/155",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              },
+              "provenance": {
+                "captured_by": "reconciliation_handler",
+                "source_id": "pull/155",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 155,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+              "type": "pull_request",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "runtime proof",
+          "executor_id": "codex-kno178",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-178",
+            "issue_key": "KNO-178",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T22:35:57.578186Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "completed",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "completed",
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+        "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+          "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "kno178-claim-1",
+                "metadata": {
+                  "attempt_id": "kno178-attempt-claimed-1",
+                  "issue": "KNO-178"
+                },
+                "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+                "reported_at": "2026-04-04T23:10:00Z",
+                "reported_by": "codex"
+              }
+            ],
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                    "reference_id": "attempt-claimed-log"
+                  }
+                ],
+                "attempt_id": "kno178-attempt-claimed-1",
+                "completion_claim_id": null,
+                "metadata": {
+                  "branch": "codex/kno-178-claimed-attempt-run2",
+                  "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "executor_run_id": "run-kno178-attempt-claimed-1"
+                },
+                "recorded_at": "2026-04-04T23:04:00Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "completed"
+              },
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                    "reference_id": "attempt-latest-log"
+                  }
+                ],
+                "attempt_id": "kno178-attempt-latest-2",
+                "completion_claim_id": null,
+                "metadata": {
+                  "branch": "codex/kno-178-latest-attempt",
+                  "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+                  "executor_run_id": "run-kno178-attempt-latest-2"
+                },
+                "recorded_at": "2026-04-04T23:06:00Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "failed"
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "linear-KNO-178",
+          "ingress_name": "Linear",
+          "requested_by": null,
+          "source_id": "KNO-178",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "completed_at": "2026-04-04T22:35:59.373150Z",
+              "details": {
+                "base_branch": "main",
+                "branch_exists": true,
+                "branch_name": "codex/kno-178-claimed-attempt-run2",
+                "commit_exists": true,
+                "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "created_pull_request": true,
+                "error": null,
+                "final_decision": {
+                  "reason": "no_valid_existing_candidate",
+                  "result": "created_new"
+                },
+                "policy": {
+                  "allow_closed_pr_match": false,
+                  "allow_commit_association_match": true,
+                  "allow_open_pr_match": true,
+                  "escalate_on_ambiguous_match": true,
+                  "require_exact_branch_match": true,
+                  "require_head_sha_match": true,
+                  "require_task_linkage": false
+                },
+                "pull_request_candidates": [
+                  {
+                    "base_branch": "main",
+                    "head": {
+                      "branch": "codex/kno-178-claimed-attempt-run2",
+                      "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                    },
+                    "lookup_sources": [
+                      "created"
+                    ],
+                    "merged": false,
+                    "number": 155,
+                    "repository": {
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "state": "open",
+                    "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                    "url": "https://github.com/sfayka/Harness/pull/155",
+                    "validation": {
+                      "accepted": true,
+                      "matched_by": [
+                        "head_sha_match",
+                        "task_linkage"
+                      ],
+                      "reasons": [],
+                      "signals": {
+                        "branch_match": true,
+                        "commit_association_match": false,
+                        "head_sha_match": true,
+                        "repository_match": true,
+                        "state": "open",
+                        "state_acceptable": true,
+                        "task_linkage": {
+                          "linked": true,
+                          "task_id_present": true,
+                          "task_title_present": true
+                        }
+                      }
+                    }
+                  }
+                ],
+                "pull_request_lookup": {
+                  "ambiguous": false,
+                  "candidate_count": 1,
+                  "found": true,
+                  "number": 155,
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "source": "created",
+                  "url": "https://github.com/sfayka/Harness/pull/155",
+                  "valid_candidate_count": 1
+                },
+                "repository": {
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "started_at": "2026-04-04T22:35:57.598043Z",
+              "status": "resolved"
+            }
+          ],
+          "failed_at": null,
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_error": null,
+          "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+          "resolved_at": "2026-04-04T22:35:59.373150Z",
+          "status": "resolved"
+        },
+        "required_capabilities": [],
+        "status": "reconciling",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T22:35:57.588545Z",
+            "changed_by": "reconciliation",
+            "from_status": "executing",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "to_status": "reconciling"
+          }
+        ],
+        "timestamps": {
+          "completed_at": null,
+          "created_at": "2026-04-04T23:05:00Z",
+          "updated_at": "2026-04-04T22:35:59.373150Z"
+        },
+        "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+      },
+      "unresolved_conditions": []
+    },
+    "result": {
+      "accepted_completion": true,
+      "action": "transition_applied",
+      "enforcement_result": {
+        "action": "transition_applied",
+        "error": null,
+        "evidence_result": {
+          "artifact_results": [
+            {
+              "artifact_id": "artifact-commit-kno178-claimed",
+              "artifact_type": "commit",
+              "is_valid": true,
+              "issues": []
+            },
+            {
+              "artifact_id": "artifact-pr-155",
+              "artifact_type": "pull_request",
+              "is_valid": true,
+              "issues": []
+            }
+          ],
+          "is_sufficient": true,
+          "is_valid": true,
+          "issues": [],
+          "missing_required_artifact_types": [],
+          "unknown_validated_artifact_ids": [],
+          "validated_artifact_ids": [
+            "artifact-commit-kno178-claimed"
+          ]
+        },
+        "failure_classification": {
+          "category": "none",
+          "failure_type": "none",
+          "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+          "recoverable": false,
+          "retryable": false,
+          "source": "none",
+          "terminal": false
+        },
+        "reasons": [
+          "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "reconciliation_result": {
+          "blocking": false,
+          "mismatch_categories": [],
+          "outcome": "no_mismatch",
+          "reasons": [
+            "Reconciliation evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against normalized external facts",
+            "No blocking reconciliation mismatch was detected"
+          ],
+          "status": "passed",
+          "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+          "terminal": false
+        },
+        "review_decision": null,
+        "review_request": null,
+        "target_status": "completed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Claimed completion attempt is not the latest execution attempt",
+              "id": "ac-1",
+              "required": true
+            },
+            {
+              "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+              "id": "ac-2",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "required",
+              "required_artifact_types": [
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-commit-kno178-claimed"
+              ],
+              "validated_at": "2026-04-04T23:05:25Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "kno-178-proof",
+                "source_id": "verification-kno178",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "name": "codex/kno-178-claimed-attempt-run2"
+                },
+                "captured_at": "2026-04-04T23:05:20Z",
+                "changed_files": [],
+                "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "external_refs": [],
+                "id": "artifact-commit-kno178-claimed",
+                "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "metadata": {
+                  "attempt_id": "kno178-attempt-claimed-1"
+                },
+                "provenance": {
+                  "captured_by": "kno-178-proof",
+                  "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": null,
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              },
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "name": "codex/kno-178-claimed-attempt-run2"
+                },
+                "captured_at": "2026-04-04T22:35:59.373150Z",
+                "changed_files": [],
+                "commit_sha": null,
+                "content_type": null,
+                "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                "external_id": "PR-155",
+                "external_refs": [],
+                "id": "artifact-pr-155",
+                "location": "https://github.com/sfayka/Harness/pull/155",
+                "metadata": {
+                  "attached_by": "missing_pr_after_execution",
+                  "pull_request_state": "open"
+                },
+                "provenance": {
+                  "captured_by": "reconciliation_handler",
+                  "source_id": "pull/155",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": 155,
+                "repository": {
+                  "external_id": null,
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+                "type": "pull_request",
+                "verification_status": "verified"
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "runtime proof",
+            "executor_id": "codex-kno178",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": {
+              "issue_id": "KNO-178",
+              "issue_key": "KNO-178",
+              "project": null,
+              "provenance": {
+                "linked_at": "2026-04-04T22:35:57.578186Z",
+                "linked_by": "reevaluation",
+                "source": "completion_claim.external_facts"
+              },
+              "reasons": [],
+              "record_found": true,
+              "state": "completed",
+              "task_reference": null,
+              "workflow": {
+                "state_type": "completed",
+                "workflow_id": "workflow-completed",
+                "workflow_name": "completed"
+              }
+            }
+          },
+          "dependencies": [],
+          "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+          "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+            "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "kno178-claim-1",
+                  "metadata": {
+                    "attempt_id": "kno178-attempt-claimed-1",
+                    "issue": "KNO-178"
+                  },
+                  "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+                  "reported_at": "2026-04-04T23:10:00Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                      "reference_id": "attempt-claimed-log"
+                    }
+                  ],
+                  "attempt_id": "kno178-attempt-claimed-1",
+                  "completion_claim_id": null,
+                  "metadata": {
+                    "branch": "codex/kno-178-claimed-attempt-run2",
+                    "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                    "executor_run_id": "run-kno178-attempt-claimed-1"
+                  },
+                  "recorded_at": "2026-04-04T23:04:00Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "completed"
+                },
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                      "reference_id": "attempt-latest-log"
+                    }
+                  ],
+                  "attempt_id": "kno178-attempt-latest-2",
+                  "completion_claim_id": null,
+                  "metadata": {
+                    "branch": "codex/kno-178-latest-attempt",
+                    "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+                    "executor_run_id": "run-kno178-attempt-latest-2"
+                  },
+                  "recorded_at": "2026-04-04T23:06:00Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "failed"
+                }
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": "linear-KNO-178",
+            "ingress_name": "Linear",
+            "requested_by": null,
+            "source_id": "KNO-178",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [
+              {
+                "attempt_id": "reconciliation-attempt-1",
+                "completed_at": "2026-04-04T22:35:59.373150Z",
+                "details": {
+                  "base_branch": "main",
+                  "branch_exists": true,
+                  "branch_name": "codex/kno-178-claimed-attempt-run2",
+                  "commit_exists": true,
+                  "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "created_pull_request": true,
+                  "error": null,
+                  "final_decision": {
+                    "reason": "no_valid_existing_candidate",
+                    "result": "created_new"
+                  },
+                  "policy": {
+                    "allow_closed_pr_match": false,
+                    "allow_commit_association_match": true,
+                    "allow_open_pr_match": true,
+                    "escalate_on_ambiguous_match": true,
+                    "require_exact_branch_match": true,
+                    "require_head_sha_match": true,
+                    "require_task_linkage": false
+                  },
+                  "pull_request_candidates": [
+                    {
+                      "base_branch": "main",
+                      "head": {
+                        "branch": "codex/kno-178-claimed-attempt-run2",
+                        "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                      },
+                      "lookup_sources": [
+                        "created"
+                      ],
+                      "merged": false,
+                      "number": 155,
+                      "repository": {
+                        "name": "Harness",
+                        "owner": "sfayka"
+                      },
+                      "review_state": null,
+                      "state": "open",
+                      "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                      "url": "https://github.com/sfayka/Harness/pull/155",
+                      "validation": {
+                        "accepted": true,
+                        "matched_by": [
+                          "head_sha_match",
+                          "task_linkage"
+                        ],
+                        "reasons": [],
+                        "signals": {
+                          "branch_match": true,
+                          "commit_association_match": false,
+                          "head_sha_match": true,
+                          "repository_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "task_linkage": {
+                            "linked": true,
+                            "task_id_present": true,
+                            "task_title_present": true
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "pull_request_lookup": {
+                    "ambiguous": false,
+                    "candidate_count": 1,
+                    "found": true,
+                    "number": 155,
+                    "searched_by_branch": true,
+                    "searched_by_commit": true,
+                    "source": "created",
+                    "url": "https://github.com/sfayka/Harness/pull/155",
+                    "valid_candidate_count": 1
+                  },
+                  "repository": {
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  }
+                },
+                "failure_type": "missing_pr_after_execution",
+                "handler_key": "missing_pr_after_execution",
+                "started_at": "2026-04-04T22:35:57.598043Z",
+                "status": "resolved"
+              }
+            ],
+            "failed_at": null,
+            "last_attempt_id": "reconciliation-attempt-1",
+            "last_error": null,
+            "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+            "resolved_at": "2026-04-04T22:35:59.373150Z",
+            "status": "resolved"
+          },
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "changed_at": "2026-04-04T22:35:57.588545Z",
+              "changed_by": "reconciliation",
+              "from_status": "executing",
+              "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+              "to_status": "reconciling"
+            },
+            {
+              "changed_at": "2026-04-04T22:35:59.446078Z",
+              "changed_by": "verification",
+              "from_status": "reconciling",
+              "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "to_status": "completed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-04-04T22:35:59.446078Z",
+            "created_at": "2026-04-04T23:05:00Z",
+            "updated_at": "2026-04-04T22:35:59.446078Z"
+          },
+          "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+        },
+        "transition_result": {
+          "actor": "verification",
+          "changed_at": "2026-04-04T22:35:59.446078Z",
+          "from_status": "reconciling",
+          "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "status_history_entry": {
+            "changed_at": "2026-04-04T22:35:59.446078Z",
+            "changed_by": "verification",
+            "from_status": "reconciling",
+            "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          },
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Claimed completion attempt is not the latest execution attempt",
+                "id": "ac-1",
+                "required": true
+              },
+              {
+                "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+                "id": "ac-2",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "required",
+                "required_artifact_types": [
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-commit-kno178-claimed"
+                ],
+                "validated_at": "2026-04-04T23:05:25Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "kno-178-proof",
+                  "source_id": "verification-kno178",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                    "name": "codex/kno-178-claimed-attempt-run2"
+                  },
+                  "captured_at": "2026-04-04T23:05:20Z",
+                  "changed_files": [],
+                  "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "external_refs": [],
+                  "id": "artifact-commit-kno178-claimed",
+                  "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "metadata": {
+                    "attempt_id": "kno178-attempt-claimed-1"
+                  },
+                  "provenance": {
+                    "captured_by": "kno-178-proof",
+                    "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": null,
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                },
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                    "name": "codex/kno-178-claimed-attempt-run2"
+                  },
+                  "captured_at": "2026-04-04T22:35:59.373150Z",
+                  "changed_files": [],
+                  "commit_sha": null,
+                  "content_type": null,
+                  "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                  "external_id": "PR-155",
+                  "external_refs": [],
+                  "id": "artifact-pr-155",
+                  "location": "https://github.com/sfayka/Harness/pull/155",
+                  "metadata": {
+                    "attached_by": "missing_pr_after_execution",
+                    "pull_request_state": "open"
+                  },
+                  "provenance": {
+                    "captured_by": "reconciliation_handler",
+                    "source_id": "pull/155",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": 155,
+                  "repository": {
+                    "external_id": null,
+                    "host": "github.com",
+                    "name": "Harness",
+                    "owner": "sfayka"
+                  },
+                  "review_state": null,
+                  "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+                  "type": "pull_request",
+                  "verification_status": "verified"
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "runtime proof",
+              "executor_id": "codex-kno178",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": {
+                "issue_id": "KNO-178",
+                "issue_key": "KNO-178",
+                "project": null,
+                "provenance": {
+                  "linked_at": "2026-04-04T22:35:57.578186Z",
+                  "linked_by": "reevaluation",
+                  "source": "completion_claim.external_facts"
+                },
+                "reasons": [],
+                "record_found": true,
+                "state": "completed",
+                "task_reference": null,
+                "workflow": {
+                  "state_type": "completed",
+                  "workflow_id": "workflow-completed",
+                  "workflow_name": "completed"
+                }
+              }
+            },
+            "dependencies": [],
+            "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+            "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+              "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "kno178-claim-1",
+                    "metadata": {
+                      "attempt_id": "kno178-attempt-claimed-1",
+                      "issue": "KNO-178"
+                    },
+                    "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+                    "reported_at": "2026-04-04T23:10:00Z",
+                    "reported_by": "codex"
+                  }
+                ],
+                "execution_attempts": [
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                        "reference_id": "attempt-claimed-log"
+                      }
+                    ],
+                    "attempt_id": "kno178-attempt-claimed-1",
+                    "completion_claim_id": null,
+                    "metadata": {
+                      "branch": "codex/kno-178-claimed-attempt-run2",
+                      "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                      "executor_run_id": "run-kno178-attempt-claimed-1"
+                    },
+                    "recorded_at": "2026-04-04T23:04:00Z",
+                    "reevaluation": {},
+                    "reported_by": "codex",
+                    "status": "completed"
+                  },
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                        "reference_id": "attempt-latest-log"
+                      }
+                    ],
+                    "attempt_id": "kno178-attempt-latest-2",
+                    "completion_claim_id": null,
+                    "metadata": {
+                      "branch": "codex/kno-178-latest-attempt",
+                      "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+                      "executor_run_id": "run-kno178-attempt-latest-2"
+                    },
+                    "recorded_at": "2026-04-04T23:06:00Z",
+                    "reevaluation": {},
+                    "reported_by": "codex",
+                    "status": "failed"
+                  }
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": "linear-KNO-178",
+              "ingress_name": "Linear",
+              "requested_by": null,
+              "source_id": "KNO-178",
+              "source_system": "linear",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "active_failure_type": null,
+              "attempts": [
+                {
+                  "attempt_id": "reconciliation-attempt-1",
+                  "completed_at": "2026-04-04T22:35:59.373150Z",
+                  "details": {
+                    "base_branch": "main",
+                    "branch_exists": true,
+                    "branch_name": "codex/kno-178-claimed-attempt-run2",
+                    "commit_exists": true,
+                    "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                    "created_pull_request": true,
+                    "error": null,
+                    "final_decision": {
+                      "reason": "no_valid_existing_candidate",
+                      "result": "created_new"
+                    },
+                    "policy": {
+                      "allow_closed_pr_match": false,
+                      "allow_commit_association_match": true,
+                      "allow_open_pr_match": true,
+                      "escalate_on_ambiguous_match": true,
+                      "require_exact_branch_match": true,
+                      "require_head_sha_match": true,
+                      "require_task_linkage": false
+                    },
+                    "pull_request_candidates": [
+                      {
+                        "base_branch": "main",
+                        "head": {
+                          "branch": "codex/kno-178-claimed-attempt-run2",
+                          "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                        },
+                        "lookup_sources": [
+                          "created"
+                        ],
+                        "merged": false,
+                        "number": 155,
+                        "repository": {
+                          "name": "Harness",
+                          "owner": "sfayka"
+                        },
+                        "review_state": null,
+                        "state": "open",
+                        "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                        "url": "https://github.com/sfayka/Harness/pull/155",
+                        "validation": {
+                          "accepted": true,
+                          "matched_by": [
+                            "head_sha_match",
+                            "task_linkage"
+                          ],
+                          "reasons": [],
+                          "signals": {
+                            "branch_match": true,
+                            "commit_association_match": false,
+                            "head_sha_match": true,
+                            "repository_match": true,
+                            "state": "open",
+                            "state_acceptable": true,
+                            "task_linkage": {
+                              "linked": true,
+                              "task_id_present": true,
+                              "task_title_present": true
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "pull_request_lookup": {
+                      "ambiguous": false,
+                      "candidate_count": 1,
+                      "found": true,
+                      "number": 155,
+                      "searched_by_branch": true,
+                      "searched_by_commit": true,
+                      "source": "created",
+                      "url": "https://github.com/sfayka/Harness/pull/155",
+                      "valid_candidate_count": 1
+                    },
+                    "repository": {
+                      "host": "github.com",
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    }
+                  },
+                  "failure_type": "missing_pr_after_execution",
+                  "handler_key": "missing_pr_after_execution",
+                  "started_at": "2026-04-04T22:35:57.598043Z",
+                  "status": "resolved"
+                }
+              ],
+              "failed_at": null,
+              "last_attempt_id": "reconciliation-attempt-1",
+              "last_error": null,
+              "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+              "resolved_at": "2026-04-04T22:35:59.373150Z",
+              "status": "resolved"
+            },
+            "required_capabilities": [],
+            "status": "completed",
+            "status_history": [
+              {
+                "changed_at": "2026-04-04T22:35:57.588545Z",
+                "changed_by": "reconciliation",
+                "from_status": "executing",
+                "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+                "to_status": "reconciling"
+              },
+              {
+                "changed_at": "2026-04-04T22:35:59.446078Z",
+                "changed_by": "verification",
+                "from_status": "reconciling",
+                "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "to_status": "completed"
+              }
+            ],
+            "timestamps": {
+              "completed_at": "2026-04-04T22:35:59.446078Z",
+              "created_at": "2026-04-04T23:05:00Z",
+              "updated_at": "2026-04-04T22:35:59.446078Z"
+            },
+            "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+          },
+          "to_status": "completed"
+        },
+        "verification_result": {
+          "accepted_completion": true,
+          "claimed_completion": true,
+          "evidence_is_sufficient": true,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "accepted_completion",
+          "reasons": [
+            "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy",
+            "Executor-reported success was treated as advisory input only",
+            "Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "reconciliation_status": "passed",
+          "requires_review": false,
+          "target_status": "completed",
+          "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+          "verification_passed": true
+        }
+      },
+      "error": null,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "invalid_input": false,
+      "reasons": [
+        "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "requires_review": false,
+      "target_status": "completed",
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Claimed completion attempt is not the latest execution attempt",
+            "id": "ac-1",
+            "required": true
+          },
+          {
+            "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+            "id": "ac-2",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-kno178-claimed"
+            ],
+            "validated_at": "2026-04-04T23:05:25Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "kno-178-proof",
+              "source_id": "verification-kno178",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "name": "codex/kno-178-claimed-attempt-run2"
+              },
+              "captured_at": "2026-04-04T23:05:20Z",
+              "changed_files": [],
+              "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "external_refs": [],
+              "id": "artifact-commit-kno178-claimed",
+              "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "metadata": {
+                "attempt_id": "kno178-attempt-claimed-1"
+              },
+              "provenance": {
+                "captured_by": "kno-178-proof",
+                "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "name": "codex/kno-178-claimed-attempt-run2"
+              },
+              "captured_at": "2026-04-04T22:35:59.373150Z",
+              "changed_files": [],
+              "commit_sha": null,
+              "content_type": null,
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "external_id": "PR-155",
+              "external_refs": [],
+              "id": "artifact-pr-155",
+              "location": "https://github.com/sfayka/Harness/pull/155",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              },
+              "provenance": {
+                "captured_by": "reconciliation_handler",
+                "source_id": "pull/155",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": 155,
+              "repository": {
+                "external_id": null,
+                "host": "github.com",
+                "name": "Harness",
+                "owner": "sfayka"
+              },
+              "review_state": null,
+              "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+              "type": "pull_request",
+              "verification_status": "verified"
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "runtime proof",
+          "executor_id": "codex-kno178",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "issue_id": "KNO-178",
+            "issue_key": "KNO-178",
+            "project": null,
+            "provenance": {
+              "linked_at": "2026-04-04T22:35:57.578186Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            },
+            "reasons": [],
+            "record_found": true,
+            "state": "completed",
+            "task_reference": null,
+            "workflow": {
+              "state_type": "completed",
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+        "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+          "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "advisory_completion_claims": [
+              {
+                "claim_id": "kno178-claim-1",
+                "metadata": {
+                  "attempt_id": "kno178-attempt-claimed-1",
+                  "issue": "KNO-178"
+                },
+                "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+                "reported_at": "2026-04-04T23:10:00Z",
+                "reported_by": "codex"
+              }
+            ],
+            "execution_attempts": [
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                    "reference_id": "attempt-claimed-log"
+                  }
+                ],
+                "attempt_id": "kno178-attempt-claimed-1",
+                "completion_claim_id": null,
+                "metadata": {
+                  "branch": "codex/kno-178-claimed-attempt-run2",
+                  "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                  "executor_run_id": "run-kno178-attempt-claimed-1"
+                },
+                "recorded_at": "2026-04-04T23:04:00Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "completed"
+              },
+              {
+                "artifact_references": [
+                  {
+                    "artifact_type": "execution_log",
+                    "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                    "reference_id": "attempt-latest-log"
+                  }
+                ],
+                "attempt_id": "kno178-attempt-latest-2",
+                "completion_claim_id": null,
+                "metadata": {
+                  "branch": "codex/kno-178-latest-attempt",
+                  "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+                  "executor_run_id": "run-kno178-attempt-latest-2"
+                },
+                "recorded_at": "2026-04-04T23:06:00Z",
+                "reevaluation": {},
+                "reported_by": "codex",
+                "status": "failed"
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": "linear-KNO-178",
+          "ingress_name": "Linear",
+          "requested_by": null,
+          "source_id": "KNO-178",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "completed_at": "2026-04-04T22:35:59.373150Z",
+              "details": {
+                "base_branch": "main",
+                "branch_exists": true,
+                "branch_name": "codex/kno-178-claimed-attempt-run2",
+                "commit_exists": true,
+                "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+                "created_pull_request": true,
+                "error": null,
+                "final_decision": {
+                  "reason": "no_valid_existing_candidate",
+                  "result": "created_new"
+                },
+                "policy": {
+                  "allow_closed_pr_match": false,
+                  "allow_commit_association_match": true,
+                  "allow_open_pr_match": true,
+                  "escalate_on_ambiguous_match": true,
+                  "require_exact_branch_match": true,
+                  "require_head_sha_match": true,
+                  "require_task_linkage": false
+                },
+                "pull_request_candidates": [
+                  {
+                    "base_branch": "main",
+                    "head": {
+                      "branch": "codex/kno-178-claimed-attempt-run2",
+                      "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                    },
+                    "lookup_sources": [
+                      "created"
+                    ],
+                    "merged": false,
+                    "number": 155,
+                    "repository": {
+                      "name": "Harness",
+                      "owner": "sfayka"
+                    },
+                    "review_state": null,
+                    "state": "open",
+                    "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                    "url": "https://github.com/sfayka/Harness/pull/155",
+                    "validation": {
+                      "accepted": true,
+                      "matched_by": [
+                        "head_sha_match",
+                        "task_linkage"
+                      ],
+                      "reasons": [],
+                      "signals": {
+                        "branch_match": true,
+                        "commit_association_match": false,
+                        "head_sha_match": true,
+                        "repository_match": true,
+                        "state": "open",
+                        "state_acceptable": true,
+                        "task_linkage": {
+                          "linked": true,
+                          "task_id_present": true,
+                          "task_title_present": true
+                        }
+                      }
+                    }
+                  }
+                ],
+                "pull_request_lookup": {
+                  "ambiguous": false,
+                  "candidate_count": 1,
+                  "found": true,
+                  "number": 155,
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "source": "created",
+                  "url": "https://github.com/sfayka/Harness/pull/155",
+                  "valid_candidate_count": 1
+                },
+                "repository": {
+                  "host": "github.com",
+                  "name": "Harness",
+                  "owner": "sfayka"
+                }
+              },
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "started_at": "2026-04-04T22:35:57.598043Z",
+              "status": "resolved"
+            }
+          ],
+          "failed_at": null,
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_error": null,
+          "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+          "resolved_at": "2026-04-04T22:35:59.373150Z",
+          "status": "resolved"
+        },
+        "required_capabilities": [],
+        "status": "completed",
+        "status_history": [
+          {
+            "changed_at": "2026-04-04T22:35:57.588545Z",
+            "changed_by": "reconciliation",
+            "from_status": "executing",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "to_status": "reconciling"
+          },
+          {
+            "changed_at": "2026-04-04T22:35:59.446078Z",
+            "changed_by": "verification",
+            "from_status": "reconciling",
+            "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "to_status": "completed"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-04T22:35:59.446078Z",
+          "created_at": "2026-04-04T23:05:00Z",
+          "updated_at": "2026-04-04T22:35:59.446078Z"
+        },
+        "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+      }
+    },
+    "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2"
+  },
+  "failure_classification": {
+    "category": "none",
+    "failure_type": "none",
+    "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+    "recoverable": false,
+    "retryable": false,
+    "source": "none",
+    "terminal": false
+  },
+  "invalid_input": false,
+  "reasons": [
+    "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+  ],
+  "requires_review": false,
+  "target_status": "completed",
+  "task_envelope": {
+    "acceptance_criteria": [
+      {
+        "description": "Claimed completion attempt is not the latest execution attempt",
+        "id": "ac-1",
+        "required": true
+      },
+      {
+        "description": "Reconciliation selects claimed attempt and creates or resolves a real PR for that attempt",
+        "id": "ac-2",
+        "required": true
+      }
+    ],
+    "artifacts": {
+      "completion_evidence": {
+        "notes": null,
+        "policy": "required",
+        "required_artifact_types": [
+          "commit"
+        ],
+        "status": "satisfied",
+        "validated_artifact_ids": [
+          "artifact-commit-kno178-claimed"
+        ],
+        "validated_at": "2026-04-04T23:05:25Z",
+        "validation_method": "external_reconciliation",
+        "validator": {
+          "captured_by": "kno-178-proof",
+          "source_id": "verification-kno178",
+          "source_system": "harness",
+          "source_type": "verification"
+        }
+      },
+      "items": [
+        {
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "name": "codex/kno-178-claimed-attempt-run2"
+          },
+          "captured_at": "2026-04-04T23:05:20Z",
+          "changed_files": [],
+          "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+          "content_type": null,
+          "description": null,
+          "external_id": "commit-02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+          "external_refs": [],
+          "id": "artifact-commit-kno178-claimed",
+          "location": "https://github.com/sfayka/Harness/commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+          "metadata": {
+            "attempt_id": "kno178-attempt-claimed-1"
+          },
+          "provenance": {
+            "captured_by": "kno-178-proof",
+            "source_id": "commit/02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": null,
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": null,
+          "title": null,
+          "type": "commit",
+          "verification_status": "verified"
+        },
+        {
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "name": "codex/kno-178-claimed-attempt-run2"
+          },
+          "captured_at": "2026-04-04T22:35:59.373150Z",
+          "changed_files": [],
+          "commit_sha": null,
+          "content_type": null,
+          "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+          "external_id": "PR-155",
+          "external_refs": [],
+          "id": "artifact-pr-155",
+          "location": "https://github.com/sfayka/Harness/pull/155",
+          "metadata": {
+            "attached_by": "missing_pr_after_execution",
+            "pull_request_state": "open"
+          },
+          "provenance": {
+            "captured_by": "reconciliation_handler",
+            "source_id": "pull/155",
+            "source_system": "github",
+            "source_type": "api"
+          },
+          "pull_request_number": 155,
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "review_state": null,
+          "title": "KNO-178 claimed non-latest attempt reconciliation binding proof PR",
+          "type": "pull_request",
+          "verification_status": "verified"
+        }
+      ]
+    },
+    "assigned_executor": {
+      "assignment_reason": "runtime proof",
+      "executor_id": "codex-kno178",
+      "executor_type": "codex"
+    },
+    "child_task_ids": [],
+    "constraints": [],
+    "coordination": {
+      "linear": {
+        "issue_id": "KNO-178",
+        "issue_key": "KNO-178",
+        "project": null,
+        "provenance": {
+          "linked_at": "2026-04-04T22:35:57.578186Z",
+          "linked_by": "reevaluation",
+          "source": "completion_claim.external_facts"
+        },
+        "reasons": [],
+        "record_found": true,
+        "state": "completed",
+        "task_reference": null,
+        "workflow": {
+          "state_type": "completed",
+          "workflow_id": "workflow-completed",
+          "workflow_name": "completed"
+        }
+      }
+    },
+    "dependencies": [],
+    "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+    "id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+    "objective": {
+      "deliverable_type": "unspecified",
+      "success_signal": "Reconciliation and reevaluation stay bound to claimed attempt and end in completed based on a real PR.",
+      "summary": "Prove claim attempt binding and real PR truth for non-latest attempt."
+    },
+    "observability": {
+      "errors": [],
+      "execution_metadata": {
+        "advisory_completion_claims": [
+          {
+            "claim_id": "kno178-claim-1",
+            "metadata": {
+              "attempt_id": "kno178-attempt-claimed-1",
+              "issue": "KNO-178"
+            },
+            "reason": "Completion claim intentionally references non-latest attempt for binding proof.",
+            "reported_at": "2026-04-04T23:10:00Z",
+            "reported_by": "codex"
+          }
+        ],
+        "execution_attempts": [
+          {
+            "artifact_references": [
+              {
+                "artifact_type": "execution_log",
+                "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+                "reference_id": "attempt-claimed-log"
+              }
+            ],
+            "attempt_id": "kno178-attempt-claimed-1",
+            "completion_claim_id": null,
+            "metadata": {
+              "branch": "codex/kno-178-claimed-attempt-run2",
+              "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+              "executor_run_id": "run-kno178-attempt-claimed-1"
+            },
+            "recorded_at": "2026-04-04T23:04:00Z",
+            "reevaluation": {
+              "action": "transition_applied",
+              "evaluation_id": "2dd24052-9dc0-418e-b67a-64f551900160",
+              "linked_at": "2026-04-04T22:35:59.461983Z"
+            },
+            "reported_by": "codex",
+            "status": "completed"
+          },
+          {
+            "artifact_references": [
+              {
+                "artifact_type": "execution_log",
+                "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+                "reference_id": "attempt-latest-log"
+              }
+            ],
+            "attempt_id": "kno178-attempt-latest-2",
+            "completion_claim_id": null,
+            "metadata": {
+              "branch": "codex/kno-178-latest-attempt",
+              "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+              "executor_run_id": "run-kno178-attempt-latest-2"
+            },
+            "recorded_at": "2026-04-04T23:06:00Z",
+            "reevaluation": {},
+            "reported_by": "codex",
+            "status": "failed"
+          }
+        ]
+      },
+      "retries": {
+        "attempt_count": 0,
+        "last_retry_at": null,
+        "max_attempts": 0
+      }
+    },
+    "origin": {
+      "ingress_id": "linear-KNO-178",
+      "ingress_name": "Linear",
+      "requested_by": null,
+      "source_id": "KNO-178",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "parent_task_id": null,
+    "priority": "normal",
+    "reconciliation": {
+      "active_failure_type": null,
+      "attempts": [
+        {
+          "attempt_id": "reconciliation-attempt-1",
+          "completed_at": "2026-04-04T22:35:59.373150Z",
+          "details": {
+            "base_branch": "main",
+            "branch_exists": true,
+            "branch_name": "codex/kno-178-claimed-attempt-run2",
+            "commit_exists": true,
+            "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "created_pull_request": true,
+            "error": null,
+            "final_decision": {
+              "reason": "no_valid_existing_candidate",
+              "result": "created_new"
+            },
+            "policy": {
+              "allow_closed_pr_match": false,
+              "allow_commit_association_match": true,
+              "allow_open_pr_match": true,
+              "escalate_on_ambiguous_match": true,
+              "require_exact_branch_match": true,
+              "require_head_sha_match": true,
+              "require_task_linkage": false
+            },
+            "pull_request_candidates": [
+              {
+                "base_branch": "main",
+                "head": {
+                  "branch": "codex/kno-178-claimed-attempt-run2",
+                  "sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da"
+                },
+                "lookup_sources": [
+                  "created"
+                ],
+                "merged": false,
+                "number": 155,
+                "repository": {
+                  "name": "Harness",
+                  "owner": "sfayka"
+                },
+                "review_state": null,
+                "state": "open",
+                "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+                "url": "https://github.com/sfayka/Harness/pull/155",
+                "validation": {
+                  "accepted": true,
+                  "matched_by": [
+                    "head_sha_match",
+                    "task_linkage"
+                  ],
+                  "reasons": [],
+                  "signals": {
+                    "branch_match": true,
+                    "commit_association_match": false,
+                    "head_sha_match": true,
+                    "repository_match": true,
+                    "state": "open",
+                    "state_acceptable": true,
+                    "task_linkage": {
+                      "linked": true,
+                      "task_id_present": true,
+                      "task_title_present": true
+                    }
+                  }
+                }
+              }
+            ],
+            "pull_request_lookup": {
+              "ambiguous": false,
+              "candidate_count": 1,
+              "found": true,
+              "number": 155,
+              "searched_by_branch": true,
+              "searched_by_commit": true,
+              "source": "created",
+              "url": "https://github.com/sfayka/Harness/pull/155",
+              "valid_candidate_count": 1
+            },
+            "repository": {
+              "host": "github.com",
+              "name": "Harness",
+              "owner": "sfayka"
+            }
+          },
+          "failure_type": "missing_pr_after_execution",
+          "handler_key": "missing_pr_after_execution",
+          "started_at": "2026-04-04T22:35:57.598043Z",
+          "status": "resolved"
+        }
+      ],
+      "failed_at": null,
+      "last_attempt_id": "reconciliation-attempt-1",
+      "last_error": null,
+      "last_pr_url": "https://github.com/sfayka/Harness/pull/155",
+      "resolved_at": "2026-04-04T22:35:59.373150Z",
+      "status": "resolved"
+    },
+    "required_capabilities": [],
+    "status": "completed",
+    "status_history": [
+      {
+        "changed_at": "2026-04-04T22:35:57.588545Z",
+        "changed_by": "reconciliation",
+        "from_status": "executing",
+        "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+        "to_status": "reconciling"
+      },
+      {
+        "changed_at": "2026-04-04T22:35:59.446078Z",
+        "changed_by": "verification",
+        "from_status": "reconciling",
+        "reason": "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "to_status": "completed"
+      }
+    ],
+    "timestamps": {
+      "completed_at": "2026-04-04T22:35:59.446078Z",
+      "created_at": "2026-04-04T23:05:00Z",
+      "updated_at": "2026-04-04T22:35:59.472314Z"
+    },
+    "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+  }
+}

@@ -1,0 +1,315 @@
+{
+  "task": {
+    "assigned_executor": {
+      "assignment_reason": "runtime proof",
+      "executor_id": "codex-kno178",
+      "executor_type": "codex"
+    },
+    "coordination_summary": {
+      "linear": null
+    },
+    "current_status": "executing",
+    "description": "Prove missing_pr_after_execution reconciliation binds to an explicit non-latest completion-claim attempt and resolves a real PR for that attempt.",
+    "evaluation_summary": {
+      "count": 1,
+      "history": [
+        {
+          "action": "no_op",
+          "evaluation_id": "085d104b-e679-4e08-89f6-61e10e35f7a7",
+          "recorded_at": "2026-04-04T22:35:57.474254Z",
+          "target_status": null
+        }
+      ],
+      "latest_action": "no_op",
+      "latest_recorded_at": "2026-04-04T22:35:57.474254Z",
+      "latest_target_status": null
+    },
+    "evidence_summary": {
+      "artifact_count": 1,
+      "artifact_type_counts": {
+        "commit": 1
+      },
+      "completion_evidence": {
+        "policy": "required",
+        "required_artifact_types": [
+          "commit"
+        ],
+        "status": "satisfied",
+        "validated_artifact_ids": [
+          "artifact-commit-kno178-claimed"
+        ],
+        "validated_at": "2026-04-04T23:05:25Z",
+        "validation_method": "external_reconciliation",
+        "validator": {
+          "captured_by": "kno-178-proof",
+          "source_id": "verification-kno178",
+          "source_system": "harness",
+          "source_type": "verification"
+        }
+      },
+      "validated_artifact_count": 1,
+      "verification_status_counts": {
+        "verified": 1
+      }
+    },
+    "execution_summary": {
+      "attempt_count": 2,
+      "failure_state": "clear",
+      "last_failure_type": "none",
+      "latest_artifact_references": [
+        {
+          "artifact_type": "execution_log",
+          "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+          "reference_id": "attempt-latest-log"
+        }
+      ],
+      "latest_attempt": {
+        "artifact_references": [
+          {
+            "artifact_type": "execution_log",
+            "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+            "reference_id": "attempt-latest-log"
+          }
+        ],
+        "attempt_id": "kno178-attempt-latest-2",
+        "completion_claim_id": null,
+        "metadata": {
+          "branch": "codex/kno-178-latest-attempt",
+          "commit_sha": "3ac0ef6a1770ff51d84f496f8c6f03fb335bab9d",
+          "executor_run_id": "run-kno178-attempt-latest-2"
+        },
+        "recorded_at": "2026-04-04T23:06:00Z",
+        "reevaluation": {},
+        "reported_by": "codex",
+        "status": "failed"
+      },
+      "latest_dispatch_origin": null,
+      "latest_status": "failed",
+      "retry_count": 0,
+      "retry_eligible": false,
+      "total_attempts": 1
+    },
+    "extensions": {},
+    "failure_summary": {
+      "failure_source": "none",
+      "failure_type": "none",
+      "recoverable": false,
+      "state": "clear",
+      "terminal": false
+    },
+    "lifecycle_history": [],
+    "objective_summary": "Prove claim attempt binding and real PR truth for non-latest attempt.",
+    "origin": {
+      "ingress_id": "linear-KNO-178",
+      "ingress_name": "Linear",
+      "requested_by": null,
+      "source_id": "KNO-178",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "reconciliation_summary": null,
+    "relationships": {
+      "child_task_ids": [],
+      "dependencies": [],
+      "parent_task_id": null
+    },
+    "review_summary": {
+      "decision_count": 0,
+      "decisions": [],
+      "latest_decision": null,
+      "latest_request": null,
+      "request_count": 0,
+      "requests": [],
+      "status": "none"
+    },
+    "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+    "timeline": [
+      {
+        "details": {
+          "accepted_completion": false,
+          "action": "no_op",
+          "evaluation_id": "085d104b-e679-4e08-89f6-61e10e35f7a7",
+          "reasons": [
+            "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_result": null,
+          "requires_review": false,
+          "target_status": null,
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": true,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "failure_type": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "recoverable": false,
+              "retryable": false,
+              "source": "none",
+              "terminal": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "pending",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+            "verification_passed": false
+          }
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:evaluation:085d104b-e679-4e08-89f6-61e10e35f7a7",
+        "event_type": "evaluation_recorded",
+        "occurred_at": "2026-04-04T22:35:57.474254Z",
+        "source": "harness",
+        "summary": "Evaluation recorded: no_op"
+      },
+      {
+        "details": {
+          "artifact_type": "execution_log",
+          "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+          "reference_id": "attempt-claimed-log"
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:execution_artifact:kno178-attempt-claimed-1:attempt-claimed-log",
+        "event_type": "execution_artifact_attached",
+        "occurred_at": "2026-04-04T23:04:00Z",
+        "source": "codex",
+        "summary": "Execution artifact attached: execution_log"
+      },
+      {
+        "details": {
+          "artifact_references": [
+            {
+              "artifact_type": "execution_log",
+              "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/runtime-marker-claimed-attempt-run2.txt",
+              "reference_id": "attempt-claimed-log"
+            }
+          ],
+          "attempt_id": "kno178-attempt-claimed-1",
+          "completion_claim_id": null,
+          "reevaluation": {},
+          "status": "completed"
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:execution_attempt:kno178-attempt-claimed-1",
+        "event_type": "execution_attempt_recorded",
+        "occurred_at": "2026-04-04T23:04:00Z",
+        "source": "codex",
+        "summary": "Execution attempt recorded: kno178-attempt-claimed-1"
+      },
+      {
+        "details": {
+          "origin": {
+            "ingress_id": "linear-KNO-178",
+            "ingress_name": "Linear",
+            "requested_by": null,
+            "source_id": "KNO-178",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "status": "executing",
+          "title": "KNO-178 claimed non-latest attempt reconciliation binding proof"
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:created",
+        "event_type": "task_created",
+        "occurred_at": "2026-04-04T23:05:00Z",
+        "source": "linear",
+        "summary": "Task created"
+      },
+      {
+        "details": {
+          "artifact_id": "artifact-commit-kno178-claimed",
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+            "name": "codex/kno-178-claimed-attempt-run2"
+          },
+          "commit_sha": "02fa924e576d8f69ea44907075b8fdc0dc64e6da",
+          "pull_request_number": null,
+          "repository": {
+            "external_id": null,
+            "host": "github.com",
+            "name": "Harness",
+            "owner": "sfayka"
+          },
+          "title": null,
+          "type": "commit",
+          "verification_status": "verified"
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:artifact:artifact-commit-kno178-claimed",
+        "event_type": "artifact_captured",
+        "occurred_at": "2026-04-04T23:05:20Z",
+        "source": "github",
+        "summary": "Artifact captured: commit"
+      },
+      {
+        "details": {
+          "artifact_type": "execution_log",
+          "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+          "reference_id": "attempt-latest-log"
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:execution_artifact:kno178-attempt-latest-2:attempt-latest-log",
+        "event_type": "execution_artifact_attached",
+        "occurred_at": "2026-04-04T23:06:00Z",
+        "source": "codex",
+        "summary": "Execution artifact attached: execution_log"
+      },
+      {
+        "details": {
+          "artifact_references": [
+            {
+              "artifact_type": "execution_log",
+              "location": "file://docs/demo/kno-178-missing-pr-attempt-binding/latest-attempt-log.txt",
+              "reference_id": "attempt-latest-log"
+            }
+          ],
+          "attempt_id": "kno178-attempt-latest-2",
+          "completion_claim_id": null,
+          "reevaluation": {},
+          "status": "failed"
+        },
+        "event_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2:execution_attempt:kno178-attempt-latest-2",
+        "event_type": "execution_attempt_recorded",
+        "occurred_at": "2026-04-04T23:06:00Z",
+        "source": "codex",
+        "summary": "Execution attempt recorded: kno178-attempt-latest-2"
+      }
+    ],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-04-04T23:05:00Z",
+      "updated_at": "2026-04-04T23:05:00Z"
+    },
+    "title": "KNO-178 claimed non-latest attempt reconciliation binding proof",
+    "verification_summary": {
+      "accepted_completion": false,
+      "claimed_completion": false,
+      "evidence_is_sufficient": true,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "No completion claim is currently being evaluated",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "is_terminal": false,
+      "outcome": "verification_deferred",
+      "reasons": [
+        "Verification evaluated task 'kno-178-missing-pr-attempt-binding-2026-04-04-run2' against canonical completion policy",
+        "No completion claim is currently being evaluated"
+      ],
+      "reconciliation_status": "pending",
+      "requires_review": false,
+      "target_status": null,
+      "task_id": "kno-178-missing-pr-attempt-binding-2026-04-04-run2",
+      "verification_passed": false
+    }
+  }
+}
