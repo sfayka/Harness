@@ -75,6 +75,8 @@ class ReconciliationRuntimeContext:
     task_envelope: TaskEnvelope
     failure_type: ReconciliationFailureType
     code_context: ReconciliationCodeContext
+    code_context_sources: dict[str, dict[str, Any]]
+    code_context_source: str | None = None
 
 
 @dataclass(frozen=True)
@@ -435,6 +437,94 @@ def _context_from_execution_attempt(task_envelope: TaskEnvelope) -> Reconciliati
     )
 
 
+def _code_context_details(context: ReconciliationCodeContext) -> dict[str, Any]:
+    return {
+        "repository_host": context.repository_host,
+        "repository_owner": context.repository_owner,
+        "repository_name": context.repository_name,
+        "branch_name": context.branch_name,
+        "base_branch": context.base_branch,
+        "commit_sha": context.commit_sha,
+    }
+
+
+def _code_context_conflicts(
+    contexts: dict[str, ReconciliationCodeContext],
+) -> tuple[dict[str, Any], ...]:
+    compared_fields = (
+        "repository_host",
+        "repository_owner",
+        "repository_name",
+        "branch_name",
+        "commit_sha",
+    )
+    items = list(contexts.items())
+    conflicts: list[dict[str, Any]] = []
+    for index, (left_source, left_context) in enumerate(items):
+        for right_source, right_context in items[index + 1 :]:
+            for field_name in compared_fields:
+                left_value = getattr(left_context, field_name)
+                right_value = getattr(right_context, field_name)
+                if left_value == right_value:
+                    continue
+                conflicts.append(
+                    {
+                        "field": field_name,
+                        "left_source": left_source,
+                        "left_value": left_value,
+                        "right_source": right_source,
+                        "right_value": right_value,
+                    }
+                )
+    return tuple(conflicts)
+
+
+def _code_context_candidates(
+    task_envelope: TaskEnvelope,
+    *,
+    external_facts: Any = None,
+) -> dict[str, ReconciliationCodeContext]:
+    source_contexts: dict[str, ReconciliationCodeContext] = {}
+    for source_name, resolver in (
+        ("external_facts", lambda: _context_from_external_facts(external_facts)),
+        ("artifacts", lambda: _context_from_artifacts(task_envelope)),
+        ("execution_attempt", lambda: _context_from_execution_attempt(task_envelope)),
+    ):
+        context = resolver()
+        if context is None:
+            continue
+        if context.repository_host != "github.com":
+            raise ReconciliationRuntimeError("missing_pr_after_execution currently supports github.com repositories only")
+        source_contexts[source_name] = context
+    return source_contexts
+
+
+def _resolved_code_context(
+    task_envelope: TaskEnvelope,
+    *,
+    external_facts: Any = None,
+) -> tuple[ReconciliationCodeContext, dict[str, dict[str, Any]], str]:
+    source_contexts = _code_context_candidates(task_envelope, external_facts=external_facts)
+    if not source_contexts:
+        raise ReconciliationRuntimeError(
+            "Unable to resolve repository, branch, and commit context for missing_pr_after_execution reconciliation"
+        )
+
+    conflicts = _code_context_conflicts(source_contexts)
+    if conflicts:
+        conflict_fields = ", ".join(sorted({str(item["field"]) for item in conflicts}))
+        raise ReconciliationRuntimeError(
+            f"Conflicting reconciliation code context across sources: {conflict_fields}"
+        )
+
+    selected_source = next(iter(source_contexts))
+    return (
+        source_contexts[selected_source],
+        {name: _code_context_details(context) for name, context in source_contexts.items()},
+        selected_source,
+    )
+
+
 def resolve_code_context(
     task_envelope: TaskEnvelope,
     *,
@@ -442,20 +532,8 @@ def resolve_code_context(
 ) -> ReconciliationCodeContext:
     """Resolve repository, branch, base branch, and commit context for PR reconciliation."""
 
-    for resolver in (
-        lambda: _context_from_external_facts(external_facts),
-        lambda: _context_from_artifacts(task_envelope),
-        lambda: _context_from_execution_attempt(task_envelope),
-    ):
-        context = resolver()
-        if context is not None:
-            if context.repository_host != "github.com":
-                raise ReconciliationRuntimeError("missing_pr_after_execution currently supports github.com repositories only")
-            return context
-
-    raise ReconciliationRuntimeError(
-        "Unable to resolve repository, branch, and commit context for missing_pr_after_execution reconciliation"
-    )
+    context, _, _ = _resolved_code_context(task_envelope, external_facts=external_facts)
+    return context
 
 
 def _reconciliation_attempt_id(task_envelope: TaskEnvelope) -> str:
@@ -834,6 +912,11 @@ class MissingPrAfterExecutionHandler:
                     "owner": code_context.repository_owner,
                     "name": code_context.repository_name,
                 },
+                "context_resolution": {
+                    "selected_source": context.code_context_source,
+                    "sources": deepcopy(context.code_context_sources),
+                    "conflicts": [],
+                },
                 "branch_name": code_context.branch_name,
                 "base_branch": code_context.base_branch,
                 "commit_sha": code_context.commit_sha,
@@ -1053,10 +1136,74 @@ class ReconciliationHandlerRegistry:
         external_facts: Any = None,
         started_at: str,
     ) -> ReconciliationHandlerResult:
+        normalized_task = ensure_reconciliation_state(task_envelope)
+        source_context_details: dict[str, dict[str, Any]] = {}
+        source_context_conflicts: list[dict[str, Any]] = []
+        try:
+            candidate_contexts = _code_context_candidates(normalized_task, external_facts=external_facts)
+            source_context_details = {
+                name: _code_context_details(context) for name, context in candidate_contexts.items()
+            }
+            source_context_conflicts = list(_code_context_conflicts(candidate_contexts))
+            code_context, resolved_source_contexts, selected_source = _resolved_code_context(
+                normalized_task,
+                external_facts=external_facts,
+            )
+        except ReconciliationRuntimeError as error:
+            completed_at = _iso_now()
+            attempt = {
+                "attempt_id": _reconciliation_attempt_id(normalized_task),
+                "failure_type": failure_type.value,
+                "handler_key": failure_type.value,
+                "status": ReconciliationAttemptStatus.FAILED.value,
+                "started_at": started_at,
+                "completed_at": completed_at,
+                "details": {
+                    "context_resolution": {
+                        "selected_source": None,
+                        "sources": source_context_details,
+                        "conflicts": source_context_conflicts,
+                    },
+                    "final_decision": {
+                        "result": "context_resolution_failed",
+                        "reason": "conflicting_or_missing_code_context",
+                    },
+                    "error": str(error),
+                    "error_disposition": error.disposition.value,
+                },
+            }
+            updated_task = _record_reconciliation_attempt(
+                normalized_task,
+                attempt=attempt,
+                status=ReconciliationAttemptStatus.FAILED,
+                failure_type=failure_type,
+                completed_at=completed_at,
+                pull_request_url=None,
+                error_message=str(error),
+            )
+            target_status = (
+                "blocked"
+                if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
+                else "in_review"
+            )
+            requires_review = target_status == "in_review"
+            return ReconciliationHandlerResult(
+                task_envelope=updated_task,
+                status=ReconciliationAttemptStatus.FAILED,
+                attempt=attempt,
+                pull_request=None,
+                error=str(error),
+                failure_disposition=error.disposition,
+                target_status=target_status,
+                requires_review=requires_review,
+            )
+
         context = ReconciliationRuntimeContext(
-            task_envelope=ensure_reconciliation_state(task_envelope),
+            task_envelope=normalized_task,
             failure_type=failure_type,
-            code_context=resolve_code_context(task_envelope, external_facts=external_facts),
+            code_context=code_context,
+            code_context_sources=resolved_source_contexts,
+            code_context_source=selected_source,
         )
         handler = self.get(failure_type)
         return handler.handle(context, started_at=started_at)
