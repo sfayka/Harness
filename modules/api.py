@@ -98,6 +98,13 @@ _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 _AUTO_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready"})
 _MANUAL_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready", "assigned", "blocked"})
+_DISPATCH_DEPENDENCY_STATUS_ORDER = {
+    "planned": 0,
+    "dispatch_ready": 1,
+    "assigned": 2,
+    "executing": 3,
+    "completed": 4,
+}
 
 
 def _iso_now() -> str:
@@ -661,7 +668,7 @@ def _dispatch_attempt_status(execution_events: tuple[dict[str, Any], ...]) -> st
     return "started"
 
 
-def _dispatch_policy_decision(task_envelope: dict[str, Any]) -> tuple[bool, str]:
+def _dispatch_policy_decision(task_envelope: dict[str, Any], *, store: HarnessStore) -> tuple[bool, str]:
     task_status = str(task_envelope.get("status") or "")
     if task_status not in _AUTO_DISPATCHABLE_STATUSES:
         return False, f"status={task_status} is not auto-dispatch eligible"
@@ -669,6 +676,9 @@ def _dispatch_policy_decision(task_envelope: dict[str, Any]) -> tuple[bool, str]
         return False, f"status={task_status} is terminal"
     if task_status in _DISPATCH_BLOCKED_STATUSES or task_status == "blocked":
         return False, f"status={task_status} is blocked for dispatch"
+    dependency_block_reason = _dispatch_dependency_block_reason(task_envelope, store=store)
+    if dependency_block_reason is not None:
+        return False, dependency_block_reason
 
     execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     if isinstance(execution_attempts, list) and any(isinstance(attempt, dict) for attempt in execution_attempts):
@@ -694,7 +704,45 @@ def _has_unresolved_clarification_for_dispatch(task_envelope: dict[str, Any]) ->
     return False
 
 
-def _manual_dispatch_allowed(task_envelope: dict[str, Any]) -> tuple[bool, str]:
+def _dispatch_dependency_status_satisfies(current_status: str, required_status: str) -> bool:
+    current_rank = _DISPATCH_DEPENDENCY_STATUS_ORDER.get(current_status)
+    required_rank = _DISPATCH_DEPENDENCY_STATUS_ORDER.get(required_status)
+    if current_rank is None or required_rank is None:
+        return False
+    return current_rank >= required_rank
+
+
+def _dispatch_dependency_block_reason(task_envelope: dict[str, Any], *, store: HarnessStore) -> str | None:
+    dependencies = task_envelope.get("dependencies")
+    if not isinstance(dependencies, list):
+        return None
+
+    task_id = str(task_envelope.get("id") or "")
+    for dependency in dependencies:
+        if not isinstance(dependency, dict):
+            continue
+        if dependency.get("dependency_type") != "blocks":
+            continue
+        dependency_task_id = str(dependency.get("task_id") or "").strip()
+        required_status = str(dependency.get("required_status") or "").strip()
+        if not dependency_task_id or not required_status:
+            continue
+        if dependency_task_id == task_id:
+            return f"Task {task_id!r} has an invalid self-dependency and cannot be dispatched"
+        try:
+            dependency_task = store.get_task(dependency_task_id)
+        except TaskEnvelopeNotFoundError:
+            return f"Task {task_id!r} is blocked on missing dependency {dependency_task_id!r}"
+        dependency_status = str(dependency_task.get("status") or "")
+        if not _dispatch_dependency_status_satisfies(dependency_status, required_status):
+            return (
+                f"Task {task_id!r} is blocked on dependency {dependency_task_id!r}; "
+                f"requires status {required_status!r} but current status is {dependency_status!r}"
+            )
+    return None
+
+
+def _manual_dispatch_allowed(task_envelope: dict[str, Any], *, store: HarnessStore) -> tuple[bool, str]:
     task_status = str(task_envelope.get("status") or "")
     if task_status in _TERMINAL_TASK_STATUSES:
         return False, f"Task {task_envelope.get('id')!r} is terminal and cannot be dispatched"
@@ -704,6 +752,9 @@ def _manual_dispatch_allowed(task_envelope: dict[str, Any]) -> tuple[bool, str]:
         return False, f"Task {task_envelope.get('id')!r} is not dispatch-ready; current status is {task_status!r}"
     if task_status == "blocked" and _has_unresolved_clarification_for_dispatch(task_envelope):
         return False, f"Task {task_envelope.get('id')!r} is blocked on clarification and cannot be dispatched"
+    dependency_block_reason = _dispatch_dependency_block_reason(task_envelope, store=store)
+    if dependency_block_reason is not None:
+        return False, dependency_block_reason
     return True, ""
 
 
@@ -2087,7 +2138,7 @@ class HarnessApiService:
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
 
-        should_dispatch, reason = _dispatch_policy_decision(stored_task)
+        should_dispatch, reason = _dispatch_policy_decision(stored_task, store=self.store)
         if should_dispatch:
             dispatch_status, dispatch_payload = self.dispatch_task(
                 task_id,
@@ -2316,7 +2367,7 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
 
-        dispatch_allowed, dispatch_reason = _manual_dispatch_allowed(stored_task)
+        dispatch_allowed, dispatch_reason = _manual_dispatch_allowed(stored_task, store=self.store)
         if not dispatch_allowed:
             return HTTPStatus.CONFLICT, {"error": dispatch_reason}
 

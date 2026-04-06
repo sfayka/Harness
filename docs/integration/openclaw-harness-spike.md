@@ -84,7 +84,11 @@ That ingress endpoint is now explicitly constrained to intake/planning handoff. 
 
 If OpenClaw submits a task as already `planned`, Harness now treats that as a stronger claim. The ingress payload must provide planning-grade objective fields, an explicit `plan_summary`, and must not carry unresolved conditions. Otherwise the handoff is rejected instead of letting vague orchestration look more resolved than it really is.
 
+OpenClaw may also attach canonical planning structure such as `parent_task_id`, `dependencies`, and `required_capabilities`, but Harness validates that structure on ingress. Contradictory plan edges such as self-dependencies are rejected instead of being treated as advisory planner notes.
+
 If OpenClaw still knows the task is ambiguous or incomplete, Harness now maps that upstream signal into canonical clarification state and blocks the task. The ambiguity is no longer preserved only as loose request baggage.
+
+Dispatch policy also now enforces declared blocking dependencies mechanically. A task that is `dispatch_ready` but still waiting on an upstream dependency does not auto-dispatch and cannot be manually forced through the dispatcher until the required upstream milestone is actually satisfied.
 
 ## Scope Limits
 

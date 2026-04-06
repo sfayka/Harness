@@ -109,10 +109,13 @@ Dispatch must respect explicit dependency edges.
 Dispatch is blocked when:
 
 - one or more required upstream tasks have not yet reached the dependency's required status
+- a blocking dependency points at a missing task record
 - a checkpoint gate task remains incomplete
 - a blocked upstream task prevents safe downstream assignment
 
 The dispatcher must not route around declared dependencies simply because an executor appears available.
+
+`required_status` is treated as a minimum dependency milestone, not an exact-status string match. For example, a dependency that requires `assigned` is satisfied by an upstream task that has progressed to `executing` or `completed`, but not by an upstream task that is still `planned`, `blocked`, `failed`, `canceled`, or missing entirely.
 
 ### Verification And Reconciliation Preconditions
 
