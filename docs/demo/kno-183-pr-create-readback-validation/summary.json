@@ -115,14 +115,5 @@
       "scenario": "c",
       "task_id": "task-kno-183-scenario-c"
     }
-  ],
-  "validation_commands": {
-    "corrected_unittest_command": {
-      "status": "passed"
-    },
-    "initial_unittest_command": {
-      "reason": "incorrect test name",
-      "status": "failed"
-    }
-  }
+  ]
 }

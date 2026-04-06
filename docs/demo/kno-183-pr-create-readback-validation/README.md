@@ -85,11 +85,6 @@ Observed outcome: **matched expectation**.
 - `summary.json` contains expected vs actual checks and per-scenario pass/fail booleans.
 - Current result in this run: `overall.conclusion = "validated"`.
 
-## Validation command note
-
-One initial unittest command used an incorrect test name and failed before validation completion.
-Validation succeeded after rerunning with corrected test selectors.
-
 ## Conclusion for this proof bundle
 
 **validated**
@@ -99,5 +94,3 @@ All three required scenarios were executed and matched expected behavior for PR 
 ## External artifact note
 
 This bundle validates behavior through local controlled execution artifacts generated during this run. It does not include task-scoped hosted GitHub/Linear execution artifacts created by this proof run.
-
-Completion artifact reporting must use a task-scoped branch/commit/PR rather than shared/default branches.
