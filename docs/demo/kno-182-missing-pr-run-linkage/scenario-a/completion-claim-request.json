@@ -1,0 +1,71 @@
+{
+  "request": {
+    "completion_claim": {
+      "claim_id": "claim-commit-run-linkage",
+      "reported_at": "2026-04-04T12:02:00Z",
+      "reported_by": "codex",
+      "reason": "Execution completed successfully.",
+      "metadata": {
+        "attempt_id": "claim-commit-run-linkage:attempt"
+      }
+    },
+    "execution_attempt": {
+      "attempt_id": "claim-commit-run-linkage:attempt",
+      "recorded_at": "2026-04-04T12:02:05Z",
+      "status": "completed",
+      "reported_by": "codex",
+      "artifact_references": [
+        {
+          "reference_id": "claim-commit-run-linkage:attempt:log",
+          "artifact_type": "execution_log",
+          "location": "stub://attempts/log"
+        }
+      ],
+      "metadata": {
+        "executor_run_id": "run-claim-commit-run-linkage"
+      }
+    },
+    "acceptance_criteria_satisfied": true,
+    "runtime_facts": {
+      "executor_reported_success": true,
+      "attempt_count": 1,
+      "latest_attempt_outcome": "completed"
+    },
+    "external_facts": {
+      "expected_code_context": {
+        "repository_host": "github.com",
+        "repository_owner": "KnoxAnalytics",
+        "repository_name": "HARNESS-DRYRUN",
+        "branch_name": "codex/e2e-test",
+        "base_branch": "main"
+      },
+      "github_facts": {
+        "artifact_found": true,
+        "repository": {
+          "host": "github.com",
+          "owner": "KnoxAnalytics",
+          "name": "HARNESS-DRYRUN"
+        },
+        "branch": {
+          "name": "codex/e2e-test",
+          "base_branch": "main",
+          "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+        },
+        "commit": {
+          "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+        }
+      },
+      "linear_facts": {
+        "record_found": true,
+        "issue_id": "lin-1",
+        "issue_key": "HAR-1",
+        "state": "completed",
+        "workflow": {
+          "workflow_id": "workflow-completed",
+          "workflow_name": "completed",
+          "state_type": "completed"
+        }
+      }
+    }
+  }
+}

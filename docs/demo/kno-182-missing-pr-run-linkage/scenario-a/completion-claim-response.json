@@ -1,0 +1,3757 @@
+{
+  "status_code": 200,
+  "response": {
+    "action": "transition_applied",
+    "target_status": "completed",
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "Harness can reconcile a missing PR after execution.",
+          "id": "ac-1",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": null,
+          "policy": "required",
+          "required_artifact_types": [
+            "commit"
+          ],
+          "status": "satisfied",
+          "validated_artifact_ids": [
+            "artifact-commit-1"
+          ],
+          "validated_at": "2026-04-04T12:01:30Z",
+          "validation_method": "external_reconciliation",
+          "validator": {
+            "captured_by": "github-sync",
+            "source_id": "verification-existing-1",
+            "source_system": "harness",
+            "source_type": "verification"
+          }
+        },
+        "items": [
+          {
+            "branch": {
+              "base_branch": "main",
+              "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "name": "codex/e2e-test"
+            },
+            "captured_at": "2026-04-04T12:01:00Z",
+            "changed_files": [],
+            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "content_type": null,
+            "description": null,
+            "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "external_refs": [],
+            "id": "artifact-commit-1",
+            "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "metadata": {},
+            "provenance": {
+              "captured_by": "github-sync",
+              "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "source_system": "github",
+              "source_type": "api"
+            },
+            "pull_request_number": null,
+            "repository": {
+              "external_id": "repo-dryrun-1",
+              "host": "github.com",
+              "name": "HARNESS-DRYRUN",
+              "owner": "KnoxAnalytics"
+            },
+            "review_state": null,
+            "title": null,
+            "type": "commit",
+            "verification_status": "verified"
+          },
+          {
+            "id": "artifact-pr-485",
+            "type": "pull_request",
+            "title": "Reconcile missing pull request PR",
+            "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+            "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+            "content_type": null,
+            "external_id": "PR-485",
+            "commit_sha": null,
+            "pull_request_number": 485,
+            "review_state": null,
+            "provenance": {
+              "source_system": "github",
+              "source_type": "api",
+              "source_id": "pull/485",
+              "captured_by": "reconciliation_handler"
+            },
+            "verification_status": "verified",
+            "repository": {
+              "host": "github.com",
+              "owner": "KnoxAnalytics",
+              "name": "HARNESS-DRYRUN",
+              "external_id": null
+            },
+            "branch": {
+              "name": "codex/e2e-test",
+              "base_branch": "main",
+              "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+            },
+            "changed_files": [],
+            "external_refs": [],
+            "captured_at": "2026-04-06T12:54:21.400450Z",
+            "metadata": {
+              "attached_by": "missing_pr_after_execution",
+              "pull_request_state": "open"
+            }
+          }
+        ]
+      },
+      "assigned_executor": {
+        "assignment_reason": "Runtime coverage for reconciliation.",
+        "executor_id": "executor-1",
+        "executor_type": "codex"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "coordination": {
+        "linear": {
+          "record_found": true,
+          "issue_id": "lin-1",
+          "issue_key": "HAR-1",
+          "state": "completed",
+          "workflow": {
+            "workflow_id": "workflow-completed",
+            "workflow_name": "completed",
+            "state_type": "completed"
+          },
+          "project": null,
+          "task_reference": null,
+          "reasons": [],
+          "provenance": {
+            "linked_at": "2026-04-06T12:54:21.372072Z",
+            "linked_by": "reevaluation",
+            "source": "completion_claim.external_facts"
+          }
+        }
+      },
+      "dependencies": [],
+      "description": "Exercise post-execution PR reconciliation.",
+      "id": "task-pr-reconcile-commit-run-linkage",
+      "objective": {
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria.",
+        "summary": "Exercise post-execution PR reconciliation."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ],
+          "advisory_completion_claims": [
+            {
+              "claim_id": "claim-commit-run-linkage",
+              "reported_at": "2026-04-04T12:02:00Z",
+              "reported_by": "codex",
+              "reason": "Execution completed successfully.",
+              "metadata": {
+                "attempt_id": "claim-commit-run-linkage:attempt"
+              }
+            }
+          ],
+          "execution_attempts": [
+            {
+              "attempt_id": "claim-commit-run-linkage:attempt",
+              "recorded_at": "2026-04-04T12:02:05Z",
+              "status": "completed",
+              "reported_by": "codex",
+              "completion_claim_id": "claim-commit-run-linkage",
+              "artifact_references": [
+                {
+                  "reference_id": "claim-commit-run-linkage:attempt:log",
+                  "artifact_type": "execution_log",
+                  "location": "stub://attempts/log"
+                }
+              ],
+              "metadata": {
+                "executor_run_id": "run-claim-commit-run-linkage",
+                "attempt_validation": {
+                  "validated_at": "2026-04-06T12:54:21.372309Z",
+                  "validated_by": "execution_validation",
+                  "policy": {
+                    "require_repository": true,
+                    "require_exact_branch": true,
+                    "require_commit": true,
+                    "allow_missing_pull_request": true,
+                    "task_artifact_fallback_requires_single_attempt": true
+                  },
+                  "context_observations": {
+                    "repository": [
+                      {
+                        "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                        "sources": [
+                          "external_facts.expected_code_context",
+                          "external_facts.github_facts.repository"
+                        ]
+                      }
+                    ],
+                    "branch": [
+                      {
+                        "value": "codex/e2e-test",
+                        "sources": [
+                          "external_facts.expected_code_context",
+                          "external_facts.github_facts.branch"
+                        ]
+                      }
+                    ],
+                    "commit": [
+                      {
+                        "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "sources": [
+                          "external_facts.github_facts.branch",
+                          "external_facts.github_facts.commit"
+                        ]
+                      }
+                    ],
+                    "used_task_artifact_fallback": false
+                  },
+                  "status": "valid",
+                  "retryable": false,
+                  "reasons": []
+                }
+              },
+              "reevaluation": {
+                "evaluation_id": "9a6245b7-777f-4529-8796-161e32a33d24",
+                "linked_at": "2026-04-06T12:54:21.506504Z",
+                "action": "transition_applied"
+              }
+            }
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": null,
+        "ingress_name": null,
+        "requested_by": null,
+        "source_id": "req-task-pr-reconcile-commit-run-linkage",
+        "source_system": "openclaw",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "reconciliation": {
+        "status": "resolved",
+        "active_failure_type": null,
+        "attempts": [
+          {
+            "attempt_id": "reconciliation-attempt-1",
+            "failure_type": "missing_pr_after_execution",
+            "handler_key": "missing_pr_after_execution",
+            "status": "resolved",
+            "started_at": "2026-04-06T12:54:21.399843Z",
+            "completed_at": "2026-04-06T12:54:21.400450Z",
+            "details": {
+              "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN"
+              },
+              "context_resolution": {
+                "selected_source": "external_facts",
+                "sources": {
+                  "external_facts": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                  },
+                  "artifacts": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                  }
+                },
+                "conflicts": []
+              },
+              "branch_name": "codex/e2e-test",
+              "base_branch": "main",
+              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "policy": {
+                "allow_open_pr_match": true,
+                "allow_closed_pr_match": false,
+                "require_head_sha_match": true,
+                "require_exact_branch_match": true,
+                "allow_commit_association_match": true,
+                "escalate_on_ambiguous_match": true,
+                "require_task_linkage": false,
+                "require_run_linkage_for_multiple_attempts": true,
+                "require_run_linkage_for_commit_association": true
+              },
+              "branch_exists": true,
+              "commit_exists": true,
+              "pull_request_lookup": {
+                "searched_by_branch": true,
+                "searched_by_commit": true,
+                "found": true,
+                "source": "created",
+                "number": 485,
+                "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                "candidate_count": 2,
+                "valid_candidate_count": 1,
+                "ambiguous": false
+              },
+              "pull_request_candidates": [
+                {
+                  "number": 185,
+                  "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                  "state": "open",
+                  "merged": false,
+                  "review_state": null,
+                  "title": "Reconcile missing pull request",
+                  "repository": {
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN"
+                  },
+                  "head": {
+                    "branch": "codex/e2e-test",
+                    "sha": "3333333333333333333333333333333333333333"
+                  },
+                  "base_branch": "main",
+                  "lookup_sources": [
+                    "commit"
+                  ],
+                  "validation": {
+                    "accepted": false,
+                    "matched_by": [
+                      "commit_association_match",
+                      "task_linkage"
+                    ],
+                    "reasons": [
+                      "run_linkage_missing"
+                    ],
+                    "signals": {
+                      "repository_match": true,
+                      "branch_match": true,
+                      "state": "open",
+                      "state_acceptable": true,
+                      "head_sha_match": false,
+                      "commit_association_match": true,
+                      "task_linkage": {
+                        "task_id_present": true,
+                        "task_title_present": true,
+                        "linked": true
+                      },
+                      "run_linkage": {
+                        "markers": {},
+                        "attempt_id_present": false,
+                        "completion_claim_id_present": false,
+                        "task_id_marker_present": false,
+                        "branch_name_present": false,
+                        "commit_sha_present": false,
+                        "linked": false,
+                        "current_run": {
+                          "task_id": "task-pr-reconcile-commit-run-linkage",
+                          "task_title": "Reconcile missing pull request",
+                          "attempt_id": "claim-commit-run-linkage:attempt",
+                          "completion_claim_id": "claim-commit-run-linkage",
+                          "branch_name": "codex/e2e-test",
+                          "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                          "attempt_count": 1,
+                          "multiple_attempts": false
+                        }
+                      },
+                      "linkage_policy": {
+                        "require_run_linkage": true,
+                        "reasons": [
+                          "commit_association_without_head_sha_match"
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "number": 485,
+                  "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                  "state": "open",
+                  "merged": false,
+                  "review_state": null,
+                  "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                  "repository": {
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN"
+                  },
+                  "head": {
+                    "branch": "codex/e2e-test",
+                    "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                  },
+                  "base_branch": "main",
+                  "lookup_sources": [
+                    "created"
+                  ],
+                  "validation": {
+                    "accepted": true,
+                    "matched_by": [
+                      "head_sha_match",
+                      "task_linkage",
+                      "attempt_linkage",
+                      "completion_claim_linkage"
+                    ],
+                    "reasons": [],
+                    "signals": {
+                      "repository_match": true,
+                      "branch_match": true,
+                      "state": "open",
+                      "state_acceptable": true,
+                      "head_sha_match": true,
+                      "commit_association_match": false,
+                      "task_linkage": {
+                        "task_id_present": true,
+                        "task_title_present": true,
+                        "linked": true
+                      },
+                      "run_linkage": {
+                        "markers": {
+                          "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                          "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                          "harness-completion-claim-id": "claim-commit-run-linkage",
+                          "harness-branch": "codex/e2e-test",
+                          "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                        },
+                        "attempt_id_present": true,
+                        "completion_claim_id_present": true,
+                        "task_id_marker_present": true,
+                        "branch_name_present": true,
+                        "commit_sha_present": true,
+                        "linked": true,
+                        "current_run": {
+                          "task_id": "task-pr-reconcile-commit-run-linkage",
+                          "task_title": "Reconcile missing pull request",
+                          "attempt_id": "claim-commit-run-linkage:attempt",
+                          "completion_claim_id": "claim-commit-run-linkage",
+                          "branch_name": "codex/e2e-test",
+                          "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                          "attempt_count": 1,
+                          "multiple_attempts": false
+                        }
+                      },
+                      "linkage_policy": {
+                        "require_run_linkage": false,
+                        "reasons": []
+                      }
+                    }
+                  }
+                }
+              ],
+              "created_pull_request": true,
+              "error_disposition": null,
+              "final_decision": {
+                "result": "created_new",
+                "reason": "no_valid_existing_candidate"
+              },
+              "error": null
+            }
+          }
+        ],
+        "last_attempt_id": "reconciliation-attempt-1",
+        "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+        "last_error": null,
+        "resolved_at": "2026-04-06T12:54:21.400450Z",
+        "failed_at": null
+      },
+      "required_capabilities": [],
+      "status": "completed",
+      "status_history": [
+        {
+          "from_status": "executing",
+          "to_status": "reconciling",
+          "changed_at": "2026-04-06T12:54:21.386359Z",
+          "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+          "changed_by": "reconciliation"
+        },
+        {
+          "from_status": "reconciling",
+          "to_status": "completed",
+          "changed_at": "2026-04-06T12:54:21.487905Z",
+          "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "changed_by": "verification"
+        }
+      ],
+      "timestamps": {
+        "completed_at": "2026-04-06T12:54:21.487905Z",
+        "created_at": "2026-04-04T12:00:00Z",
+        "updated_at": "2026-04-06T12:54:21.517520Z"
+      },
+      "title": "Reconcile missing pull request"
+    },
+    "enforcement_result": {
+      "action": "transition_applied",
+      "task_envelope": {
+        "acceptance_criteria": [
+          {
+            "description": "Harness can reconcile a missing PR after execution.",
+            "id": "ac-1",
+            "required": true
+          }
+        ],
+        "artifacts": {
+          "completion_evidence": {
+            "notes": null,
+            "policy": "required",
+            "required_artifact_types": [
+              "commit"
+            ],
+            "status": "satisfied",
+            "validated_artifact_ids": [
+              "artifact-commit-1"
+            ],
+            "validated_at": "2026-04-04T12:01:30Z",
+            "validation_method": "external_reconciliation",
+            "validator": {
+              "captured_by": "github-sync",
+              "source_id": "verification-existing-1",
+              "source_system": "harness",
+              "source_type": "verification"
+            }
+          },
+          "items": [
+            {
+              "branch": {
+                "base_branch": "main",
+                "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "name": "codex/e2e-test"
+              },
+              "captured_at": "2026-04-04T12:01:00Z",
+              "changed_files": [],
+              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "content_type": null,
+              "description": null,
+              "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "external_refs": [],
+              "id": "artifact-commit-1",
+              "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "metadata": {},
+              "provenance": {
+                "captured_by": "github-sync",
+                "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "source_system": "github",
+                "source_type": "api"
+              },
+              "pull_request_number": null,
+              "repository": {
+                "external_id": "repo-dryrun-1",
+                "host": "github.com",
+                "name": "HARNESS-DRYRUN",
+                "owner": "KnoxAnalytics"
+              },
+              "review_state": null,
+              "title": null,
+              "type": "commit",
+              "verification_status": "verified"
+            },
+            {
+              "id": "artifact-pr-485",
+              "type": "pull_request",
+              "title": "Reconcile missing pull request PR",
+              "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+              "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+              "content_type": null,
+              "external_id": "PR-485",
+              "commit_sha": null,
+              "pull_request_number": 485,
+              "review_state": null,
+              "provenance": {
+                "source_system": "github",
+                "source_type": "api",
+                "source_id": "pull/485",
+                "captured_by": "reconciliation_handler"
+              },
+              "verification_status": "verified",
+              "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN",
+                "external_id": null
+              },
+              "branch": {
+                "name": "codex/e2e-test",
+                "base_branch": "main",
+                "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+              },
+              "changed_files": [],
+              "external_refs": [],
+              "captured_at": "2026-04-06T12:54:21.400450Z",
+              "metadata": {
+                "attached_by": "missing_pr_after_execution",
+                "pull_request_state": "open"
+              }
+            }
+          ]
+        },
+        "assigned_executor": {
+          "assignment_reason": "Runtime coverage for reconciliation.",
+          "executor_id": "executor-1",
+          "executor_type": "codex"
+        },
+        "child_task_ids": [],
+        "constraints": [],
+        "coordination": {
+          "linear": {
+            "record_found": true,
+            "issue_id": "lin-1",
+            "issue_key": "HAR-1",
+            "state": "completed",
+            "workflow": {
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed",
+              "state_type": "completed"
+            },
+            "project": null,
+            "task_reference": null,
+            "reasons": [],
+            "provenance": {
+              "linked_at": "2026-04-06T12:54:21.372072Z",
+              "linked_by": "reevaluation",
+              "source": "completion_claim.external_facts"
+            }
+          }
+        },
+        "dependencies": [],
+        "description": "Exercise post-execution PR reconciliation.",
+        "id": "task-pr-reconcile-commit-run-linkage",
+        "objective": {
+          "deliverable_type": "unspecified",
+          "success_signal": "Task satisfies declared acceptance criteria.",
+          "summary": "Exercise post-execution PR reconciliation."
+        },
+        "observability": {
+          "errors": [],
+          "execution_metadata": {
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ],
+            "advisory_completion_claims": [
+              {
+                "claim_id": "claim-commit-run-linkage",
+                "reported_at": "2026-04-04T12:02:00Z",
+                "reported_by": "codex",
+                "reason": "Execution completed successfully.",
+                "metadata": {
+                  "attempt_id": "claim-commit-run-linkage:attempt"
+                }
+              }
+            ],
+            "execution_attempts": [
+              {
+                "attempt_id": "claim-commit-run-linkage:attempt",
+                "recorded_at": "2026-04-04T12:02:05Z",
+                "status": "completed",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-commit-run-linkage",
+                "artifact_references": [
+                  {
+                    "reference_id": "claim-commit-run-linkage:attempt:log",
+                    "artifact_type": "execution_log",
+                    "location": "stub://attempts/log"
+                  }
+                ],
+                "metadata": {
+                  "executor_run_id": "run-claim-commit-run-linkage",
+                  "attempt_validation": {
+                    "validated_at": "2026-04-06T12:54:21.372309Z",
+                    "validated_by": "execution_validation",
+                    "policy": {
+                      "require_repository": true,
+                      "require_exact_branch": true,
+                      "require_commit": true,
+                      "allow_missing_pull_request": true,
+                      "task_artifact_fallback_requires_single_attempt": true
+                    },
+                    "context_observations": {
+                      "repository": [
+                        {
+                          "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                          "sources": [
+                            "external_facts.expected_code_context",
+                            "external_facts.github_facts.repository"
+                          ]
+                        }
+                      ],
+                      "branch": [
+                        {
+                          "value": "codex/e2e-test",
+                          "sources": [
+                            "external_facts.expected_code_context",
+                            "external_facts.github_facts.branch"
+                          ]
+                        }
+                      ],
+                      "commit": [
+                        {
+                          "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                          "sources": [
+                            "external_facts.github_facts.branch",
+                            "external_facts.github_facts.commit"
+                          ]
+                        }
+                      ],
+                      "used_task_artifact_fallback": false
+                    },
+                    "status": "valid",
+                    "retryable": false,
+                    "reasons": []
+                  }
+                },
+                "reevaluation": {}
+              }
+            ]
+          },
+          "retries": {
+            "attempt_count": 0,
+            "last_retry_at": null,
+            "max_attempts": 0
+          }
+        },
+        "origin": {
+          "ingress_id": null,
+          "ingress_name": null,
+          "requested_by": null,
+          "source_id": "req-task-pr-reconcile-commit-run-linkage",
+          "source_system": "openclaw",
+          "source_type": "ingress_request"
+        },
+        "parent_task_id": null,
+        "priority": "normal",
+        "reconciliation": {
+          "status": "resolved",
+          "active_failure_type": null,
+          "attempts": [
+            {
+              "attempt_id": "reconciliation-attempt-1",
+              "failure_type": "missing_pr_after_execution",
+              "handler_key": "missing_pr_after_execution",
+              "status": "resolved",
+              "started_at": "2026-04-06T12:54:21.399843Z",
+              "completed_at": "2026-04-06T12:54:21.400450Z",
+              "details": {
+                "repository": {
+                  "host": "github.com",
+                  "owner": "KnoxAnalytics",
+                  "name": "HARNESS-DRYRUN"
+                },
+                "context_resolution": {
+                  "selected_source": "external_facts",
+                  "sources": {
+                    "external_facts": {
+                      "repository_host": "github.com",
+                      "repository_owner": "KnoxAnalytics",
+                      "repository_name": "HARNESS-DRYRUN",
+                      "branch_name": "codex/e2e-test",
+                      "base_branch": "main",
+                      "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                    },
+                    "artifacts": {
+                      "repository_host": "github.com",
+                      "repository_owner": "KnoxAnalytics",
+                      "repository_name": "HARNESS-DRYRUN",
+                      "branch_name": "codex/e2e-test",
+                      "base_branch": "main",
+                      "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                    }
+                  },
+                  "conflicts": []
+                },
+                "branch_name": "codex/e2e-test",
+                "base_branch": "main",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "policy": {
+                  "allow_open_pr_match": true,
+                  "allow_closed_pr_match": false,
+                  "require_head_sha_match": true,
+                  "require_exact_branch_match": true,
+                  "allow_commit_association_match": true,
+                  "escalate_on_ambiguous_match": true,
+                  "require_task_linkage": false,
+                  "require_run_linkage_for_multiple_attempts": true,
+                  "require_run_linkage_for_commit_association": true
+                },
+                "branch_exists": true,
+                "commit_exists": true,
+                "pull_request_lookup": {
+                  "searched_by_branch": true,
+                  "searched_by_commit": true,
+                  "found": true,
+                  "source": "created",
+                  "number": 485,
+                  "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                  "candidate_count": 2,
+                  "valid_candidate_count": 1,
+                  "ambiguous": false
+                },
+                "pull_request_candidates": [
+                  {
+                    "number": 185,
+                    "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                    "state": "open",
+                    "merged": false,
+                    "review_state": null,
+                    "title": "Reconcile missing pull request",
+                    "repository": {
+                      "owner": "KnoxAnalytics",
+                      "name": "HARNESS-DRYRUN"
+                    },
+                    "head": {
+                      "branch": "codex/e2e-test",
+                      "sha": "3333333333333333333333333333333333333333"
+                    },
+                    "base_branch": "main",
+                    "lookup_sources": [
+                      "commit"
+                    ],
+                    "validation": {
+                      "accepted": false,
+                      "matched_by": [
+                        "commit_association_match",
+                        "task_linkage"
+                      ],
+                      "reasons": [
+                        "run_linkage_missing"
+                      ],
+                      "signals": {
+                        "repository_match": true,
+                        "branch_match": true,
+                        "state": "open",
+                        "state_acceptable": true,
+                        "head_sha_match": false,
+                        "commit_association_match": true,
+                        "task_linkage": {
+                          "task_id_present": true,
+                          "task_title_present": true,
+                          "linked": true
+                        },
+                        "run_linkage": {
+                          "markers": {},
+                          "attempt_id_present": false,
+                          "completion_claim_id_present": false,
+                          "task_id_marker_present": false,
+                          "branch_name_present": false,
+                          "commit_sha_present": false,
+                          "linked": false,
+                          "current_run": {
+                            "task_id": "task-pr-reconcile-commit-run-linkage",
+                            "task_title": "Reconcile missing pull request",
+                            "attempt_id": "claim-commit-run-linkage:attempt",
+                            "completion_claim_id": "claim-commit-run-linkage",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "attempt_count": 1,
+                            "multiple_attempts": false
+                          }
+                        },
+                        "linkage_policy": {
+                          "require_run_linkage": true,
+                          "reasons": [
+                            "commit_association_without_head_sha_match"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "number": 485,
+                    "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                    "state": "open",
+                    "merged": false,
+                    "review_state": null,
+                    "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                    "repository": {
+                      "owner": "KnoxAnalytics",
+                      "name": "HARNESS-DRYRUN"
+                    },
+                    "head": {
+                      "branch": "codex/e2e-test",
+                      "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                    },
+                    "base_branch": "main",
+                    "lookup_sources": [
+                      "created"
+                    ],
+                    "validation": {
+                      "accepted": true,
+                      "matched_by": [
+                        "head_sha_match",
+                        "task_linkage",
+                        "attempt_linkage",
+                        "completion_claim_linkage"
+                      ],
+                      "reasons": [],
+                      "signals": {
+                        "repository_match": true,
+                        "branch_match": true,
+                        "state": "open",
+                        "state_acceptable": true,
+                        "head_sha_match": true,
+                        "commit_association_match": false,
+                        "task_linkage": {
+                          "task_id_present": true,
+                          "task_title_present": true,
+                          "linked": true
+                        },
+                        "run_linkage": {
+                          "markers": {
+                            "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                            "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                            "harness-completion-claim-id": "claim-commit-run-linkage",
+                            "harness-branch": "codex/e2e-test",
+                            "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                          },
+                          "attempt_id_present": true,
+                          "completion_claim_id_present": true,
+                          "task_id_marker_present": true,
+                          "branch_name_present": true,
+                          "commit_sha_present": true,
+                          "linked": true,
+                          "current_run": {
+                            "task_id": "task-pr-reconcile-commit-run-linkage",
+                            "task_title": "Reconcile missing pull request",
+                            "attempt_id": "claim-commit-run-linkage:attempt",
+                            "completion_claim_id": "claim-commit-run-linkage",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "attempt_count": 1,
+                            "multiple_attempts": false
+                          }
+                        },
+                        "linkage_policy": {
+                          "require_run_linkage": false,
+                          "reasons": []
+                        }
+                      }
+                    }
+                  }
+                ],
+                "created_pull_request": true,
+                "error_disposition": null,
+                "final_decision": {
+                  "result": "created_new",
+                  "reason": "no_valid_existing_candidate"
+                },
+                "error": null
+              }
+            }
+          ],
+          "last_attempt_id": "reconciliation-attempt-1",
+          "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+          "last_error": null,
+          "resolved_at": "2026-04-06T12:54:21.400450Z",
+          "failed_at": null
+        },
+        "required_capabilities": [],
+        "status": "completed",
+        "status_history": [
+          {
+            "from_status": "executing",
+            "to_status": "reconciling",
+            "changed_at": "2026-04-06T12:54:21.386359Z",
+            "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+            "changed_by": "reconciliation"
+          },
+          {
+            "from_status": "reconciling",
+            "to_status": "completed",
+            "changed_at": "2026-04-06T12:54:21.487905Z",
+            "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "changed_by": "verification"
+          }
+        ],
+        "timestamps": {
+          "completed_at": "2026-04-06T12:54:21.487905Z",
+          "created_at": "2026-04-04T12:00:00Z",
+          "updated_at": "2026-04-06T12:54:21.487905Z"
+        },
+        "title": "Reconcile missing pull request"
+      },
+      "evidence_result": {
+        "is_valid": true,
+        "is_sufficient": true,
+        "artifact_results": [
+          {
+            "artifact_id": "artifact-commit-1",
+            "artifact_type": "commit",
+            "is_valid": true,
+            "issues": []
+          },
+          {
+            "artifact_id": "artifact-pr-485",
+            "artifact_type": "pull_request",
+            "is_valid": true,
+            "issues": []
+          }
+        ],
+        "issues": [],
+        "validated_artifact_ids": [
+          "artifact-commit-1"
+        ],
+        "missing_required_artifact_types": [],
+        "unknown_validated_artifact_ids": []
+      },
+      "reconciliation_result": {
+        "task_id": "task-pr-reconcile-commit-run-linkage",
+        "outcome": "no_mismatch",
+        "status": "passed",
+        "blocking": false,
+        "terminal": false,
+        "mismatch_categories": [],
+        "reasons": [
+          "Reconciliation evaluated task 'task-pr-reconcile-commit-run-linkage' against normalized external facts",
+          "No blocking reconciliation mismatch was detected"
+        ]
+      },
+      "verification_result": {
+        "task_id": "task-pr-reconcile-commit-run-linkage",
+        "outcome": "accepted_completion",
+        "target_status": "completed",
+        "claimed_completion": true,
+        "accepted_completion": true,
+        "requires_review": false,
+        "is_terminal": false,
+        "verification_passed": true,
+        "evidence_is_valid": true,
+        "evidence_is_sufficient": true,
+        "reconciliation_status": "passed",
+        "reasons": [
+          "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy",
+          "Executor-reported success was treated as advisory input only",
+          "Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "failure_classification": {
+          "failure_type": "none",
+          "source": "none",
+          "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+          "terminal": false,
+          "recoverable": false,
+          "category": "none",
+          "retryable": false
+        }
+      },
+      "review_request": null,
+      "review_decision": null,
+      "transition_result": {
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness can reconcile a missing PR after execution.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "required",
+              "required_artifact_types": [
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-04-04T12:01:30Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-existing-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "name": "codex/e2e-test"
+                },
+                "captured_at": "2026-04-04T12:01:00Z",
+                "changed_files": [],
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-dryrun-1",
+                  "host": "github.com",
+                  "name": "HARNESS-DRYRUN",
+                  "owner": "KnoxAnalytics"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              },
+              {
+                "id": "artifact-pr-485",
+                "type": "pull_request",
+                "title": "Reconcile missing pull request PR",
+                "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                "content_type": null,
+                "external_id": "PR-485",
+                "commit_sha": null,
+                "pull_request_number": 485,
+                "review_state": null,
+                "provenance": {
+                  "source_system": "github",
+                  "source_type": "api",
+                  "source_id": "pull/485",
+                  "captured_by": "reconciliation_handler"
+                },
+                "verification_status": "verified",
+                "repository": {
+                  "host": "github.com",
+                  "owner": "KnoxAnalytics",
+                  "name": "HARNESS-DRYRUN",
+                  "external_id": null
+                },
+                "branch": {
+                  "name": "codex/e2e-test",
+                  "base_branch": "main",
+                  "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                },
+                "changed_files": [],
+                "external_refs": [],
+                "captured_at": "2026-04-06T12:54:21.400450Z",
+                "metadata": {
+                  "attached_by": "missing_pr_after_execution",
+                  "pull_request_state": "open"
+                }
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Runtime coverage for reconciliation.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": {
+              "record_found": true,
+              "issue_id": "lin-1",
+              "issue_key": "HAR-1",
+              "state": "completed",
+              "workflow": {
+                "workflow_id": "workflow-completed",
+                "workflow_name": "completed",
+                "state_type": "completed"
+              },
+              "project": null,
+              "task_reference": null,
+              "reasons": [],
+              "provenance": {
+                "linked_at": "2026-04-06T12:54:21.372072Z",
+                "linked_by": "reevaluation",
+                "source": "completion_claim.external_facts"
+              }
+            }
+          },
+          "dependencies": [],
+          "description": "Exercise post-execution PR reconciliation.",
+          "id": "task-pr-reconcile-commit-run-linkage",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise post-execution PR reconciliation."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ],
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-commit-run-linkage",
+                  "reported_at": "2026-04-04T12:02:00Z",
+                  "reported_by": "codex",
+                  "reason": "Execution completed successfully.",
+                  "metadata": {
+                    "attempt_id": "claim-commit-run-linkage:attempt"
+                  }
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "attempt_id": "claim-commit-run-linkage:attempt",
+                  "recorded_at": "2026-04-04T12:02:05Z",
+                  "status": "completed",
+                  "reported_by": "codex",
+                  "completion_claim_id": "claim-commit-run-linkage",
+                  "artifact_references": [
+                    {
+                      "reference_id": "claim-commit-run-linkage:attempt:log",
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log"
+                    }
+                  ],
+                  "metadata": {
+                    "executor_run_id": "run-claim-commit-run-linkage",
+                    "attempt_validation": {
+                      "validated_at": "2026-04-06T12:54:21.372309Z",
+                      "validated_by": "execution_validation",
+                      "policy": {
+                        "require_repository": true,
+                        "require_exact_branch": true,
+                        "require_commit": true,
+                        "allow_missing_pull_request": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "context_observations": {
+                        "repository": [
+                          {
+                            "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                            "sources": [
+                              "external_facts.expected_code_context",
+                              "external_facts.github_facts.repository"
+                            ]
+                          }
+                        ],
+                        "branch": [
+                          {
+                            "value": "codex/e2e-test",
+                            "sources": [
+                              "external_facts.expected_code_context",
+                              "external_facts.github_facts.branch"
+                            ]
+                          }
+                        ],
+                        "commit": [
+                          {
+                            "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "sources": [
+                              "external_facts.github_facts.branch",
+                              "external_facts.github_facts.commit"
+                            ]
+                          }
+                        ],
+                        "used_task_artifact_fallback": false
+                      },
+                      "status": "valid",
+                      "retryable": false,
+                      "reasons": []
+                    }
+                  },
+                  "reevaluation": {}
+                }
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-task-pr-reconcile-commit-run-linkage",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "status": "resolved",
+            "active_failure_type": null,
+            "attempts": [
+              {
+                "attempt_id": "reconciliation-attempt-1",
+                "failure_type": "missing_pr_after_execution",
+                "handler_key": "missing_pr_after_execution",
+                "status": "resolved",
+                "started_at": "2026-04-06T12:54:21.399843Z",
+                "completed_at": "2026-04-06T12:54:21.400450Z",
+                "details": {
+                  "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN"
+                  },
+                  "context_resolution": {
+                    "selected_source": "external_facts",
+                    "sources": {
+                      "external_facts": {
+                        "repository_host": "github.com",
+                        "repository_owner": "KnoxAnalytics",
+                        "repository_name": "HARNESS-DRYRUN",
+                        "branch_name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      },
+                      "artifacts": {
+                        "repository_host": "github.com",
+                        "repository_owner": "KnoxAnalytics",
+                        "repository_name": "HARNESS-DRYRUN",
+                        "branch_name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      }
+                    },
+                    "conflicts": []
+                  },
+                  "branch_name": "codex/e2e-test",
+                  "base_branch": "main",
+                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "policy": {
+                    "allow_open_pr_match": true,
+                    "allow_closed_pr_match": false,
+                    "require_head_sha_match": true,
+                    "require_exact_branch_match": true,
+                    "allow_commit_association_match": true,
+                    "escalate_on_ambiguous_match": true,
+                    "require_task_linkage": false,
+                    "require_run_linkage_for_multiple_attempts": true,
+                    "require_run_linkage_for_commit_association": true
+                  },
+                  "branch_exists": true,
+                  "commit_exists": true,
+                  "pull_request_lookup": {
+                    "searched_by_branch": true,
+                    "searched_by_commit": true,
+                    "found": true,
+                    "source": "created",
+                    "number": 485,
+                    "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                    "candidate_count": 2,
+                    "valid_candidate_count": 1,
+                    "ambiguous": false
+                  },
+                  "pull_request_candidates": [
+                    {
+                      "number": 185,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                      "state": "open",
+                      "merged": false,
+                      "review_state": null,
+                      "title": "Reconcile missing pull request",
+                      "repository": {
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "head": {
+                        "branch": "codex/e2e-test",
+                        "sha": "3333333333333333333333333333333333333333"
+                      },
+                      "base_branch": "main",
+                      "lookup_sources": [
+                        "commit"
+                      ],
+                      "validation": {
+                        "accepted": false,
+                        "matched_by": [
+                          "commit_association_match",
+                          "task_linkage"
+                        ],
+                        "reasons": [
+                          "run_linkage_missing"
+                        ],
+                        "signals": {
+                          "repository_match": true,
+                          "branch_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "head_sha_match": false,
+                          "commit_association_match": true,
+                          "task_linkage": {
+                            "task_id_present": true,
+                            "task_title_present": true,
+                            "linked": true
+                          },
+                          "run_linkage": {
+                            "markers": {},
+                            "attempt_id_present": false,
+                            "completion_claim_id_present": false,
+                            "task_id_marker_present": false,
+                            "branch_name_present": false,
+                            "commit_sha_present": false,
+                            "linked": false,
+                            "current_run": {
+                              "task_id": "task-pr-reconcile-commit-run-linkage",
+                              "task_title": "Reconcile missing pull request",
+                              "attempt_id": "claim-commit-run-linkage:attempt",
+                              "completion_claim_id": "claim-commit-run-linkage",
+                              "branch_name": "codex/e2e-test",
+                              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "attempt_count": 1,
+                              "multiple_attempts": false
+                            }
+                          },
+                          "linkage_policy": {
+                            "require_run_linkage": true,
+                            "reasons": [
+                              "commit_association_without_head_sha_match"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "number": 485,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                      "state": "open",
+                      "merged": false,
+                      "review_state": null,
+                      "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                      "repository": {
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "head": {
+                        "branch": "codex/e2e-test",
+                        "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      },
+                      "base_branch": "main",
+                      "lookup_sources": [
+                        "created"
+                      ],
+                      "validation": {
+                        "accepted": true,
+                        "matched_by": [
+                          "head_sha_match",
+                          "task_linkage",
+                          "attempt_linkage",
+                          "completion_claim_linkage"
+                        ],
+                        "reasons": [],
+                        "signals": {
+                          "repository_match": true,
+                          "branch_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "head_sha_match": true,
+                          "commit_association_match": false,
+                          "task_linkage": {
+                            "task_id_present": true,
+                            "task_title_present": true,
+                            "linked": true
+                          },
+                          "run_linkage": {
+                            "markers": {
+                              "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                              "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                              "harness-completion-claim-id": "claim-commit-run-linkage",
+                              "harness-branch": "codex/e2e-test",
+                              "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                            },
+                            "attempt_id_present": true,
+                            "completion_claim_id_present": true,
+                            "task_id_marker_present": true,
+                            "branch_name_present": true,
+                            "commit_sha_present": true,
+                            "linked": true,
+                            "current_run": {
+                              "task_id": "task-pr-reconcile-commit-run-linkage",
+                              "task_title": "Reconcile missing pull request",
+                              "attempt_id": "claim-commit-run-linkage:attempt",
+                              "completion_claim_id": "claim-commit-run-linkage",
+                              "branch_name": "codex/e2e-test",
+                              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "attempt_count": 1,
+                              "multiple_attempts": false
+                            }
+                          },
+                          "linkage_policy": {
+                            "require_run_linkage": false,
+                            "reasons": []
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "created_pull_request": true,
+                  "error_disposition": null,
+                  "final_decision": {
+                    "result": "created_new",
+                    "reason": "no_valid_existing_candidate"
+                  },
+                  "error": null
+                }
+              }
+            ],
+            "last_attempt_id": "reconciliation-attempt-1",
+            "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+            "last_error": null,
+            "resolved_at": "2026-04-06T12:54:21.400450Z",
+            "failed_at": null
+          },
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "from_status": "executing",
+              "to_status": "reconciling",
+              "changed_at": "2026-04-06T12:54:21.386359Z",
+              "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+              "changed_by": "reconciliation"
+            },
+            {
+              "from_status": "reconciling",
+              "to_status": "completed",
+              "changed_at": "2026-04-06T12:54:21.487905Z",
+              "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "changed_by": "verification"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-04-06T12:54:21.487905Z",
+            "created_at": "2026-04-04T12:00:00Z",
+            "updated_at": "2026-04-06T12:54:21.487905Z"
+          },
+          "title": "Reconcile missing pull request"
+        },
+        "from_status": "reconciling",
+        "to_status": "completed",
+        "changed_at": "2026-04-06T12:54:21.487905Z",
+        "actor": "verification",
+        "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+        "status_history_entry": {
+          "from_status": "reconciling",
+          "to_status": "completed",
+          "changed_at": "2026-04-06T12:54:21.487905Z",
+          "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+          "changed_by": "verification"
+        }
+      },
+      "target_status": "completed",
+      "reasons": [
+        "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+      ],
+      "failure_classification": {
+        "failure_type": "none",
+        "source": "none",
+        "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+        "terminal": false,
+        "recoverable": false,
+        "category": "none",
+        "retryable": false
+      },
+      "error": null
+    },
+    "accepted_completion": true,
+    "requires_review": false,
+    "invalid_input": false,
+    "failure_classification": {
+      "failure_type": "none",
+      "source": "none",
+      "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+      "terminal": false,
+      "recoverable": false,
+      "category": "none",
+      "retryable": false
+    },
+    "reasons": [
+      "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+    ],
+    "error": null,
+    "evaluation_record": {
+      "evaluation_id": "9a6245b7-777f-4529-8796-161e32a33d24",
+      "task_id": "task-pr-reconcile-commit-run-linkage",
+      "recorded_at": "2026-04-06T12:54:21.506504Z",
+      "request": {
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness can reconcile a missing PR after execution.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "required",
+              "required_artifact_types": [
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-04-04T12:01:30Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-existing-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "name": "codex/e2e-test"
+                },
+                "captured_at": "2026-04-04T12:01:00Z",
+                "changed_files": [],
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-dryrun-1",
+                  "host": "github.com",
+                  "name": "HARNESS-DRYRUN",
+                  "owner": "KnoxAnalytics"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              },
+              {
+                "id": "artifact-pr-485",
+                "type": "pull_request",
+                "title": "Reconcile missing pull request PR",
+                "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                "content_type": null,
+                "external_id": "PR-485",
+                "commit_sha": null,
+                "pull_request_number": 485,
+                "review_state": null,
+                "provenance": {
+                  "source_system": "github",
+                  "source_type": "api",
+                  "source_id": "pull/485",
+                  "captured_by": "reconciliation_handler"
+                },
+                "verification_status": "verified",
+                "repository": {
+                  "host": "github.com",
+                  "owner": "KnoxAnalytics",
+                  "name": "HARNESS-DRYRUN",
+                  "external_id": null
+                },
+                "branch": {
+                  "name": "codex/e2e-test",
+                  "base_branch": "main",
+                  "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                },
+                "changed_files": [],
+                "external_refs": [],
+                "captured_at": "2026-04-06T12:54:21.400450Z",
+                "metadata": {
+                  "attached_by": "missing_pr_after_execution",
+                  "pull_request_state": "open"
+                }
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Runtime coverage for reconciliation.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": {
+              "record_found": true,
+              "issue_id": "lin-1",
+              "issue_key": "HAR-1",
+              "state": "completed",
+              "workflow": {
+                "workflow_id": "workflow-completed",
+                "workflow_name": "completed",
+                "state_type": "completed"
+              },
+              "project": null,
+              "task_reference": null,
+              "reasons": [],
+              "provenance": {
+                "linked_at": "2026-04-06T12:54:21.372072Z",
+                "linked_by": "reevaluation",
+                "source": "completion_claim.external_facts"
+              }
+            }
+          },
+          "dependencies": [],
+          "description": "Exercise post-execution PR reconciliation.",
+          "id": "task-pr-reconcile-commit-run-linkage",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise post-execution PR reconciliation."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ],
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-commit-run-linkage",
+                  "reported_at": "2026-04-04T12:02:00Z",
+                  "reported_by": "codex",
+                  "reason": "Execution completed successfully.",
+                  "metadata": {
+                    "attempt_id": "claim-commit-run-linkage:attempt"
+                  }
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "attempt_id": "claim-commit-run-linkage:attempt",
+                  "recorded_at": "2026-04-04T12:02:05Z",
+                  "status": "completed",
+                  "reported_by": "codex",
+                  "completion_claim_id": "claim-commit-run-linkage",
+                  "artifact_references": [
+                    {
+                      "reference_id": "claim-commit-run-linkage:attempt:log",
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log"
+                    }
+                  ],
+                  "metadata": {
+                    "executor_run_id": "run-claim-commit-run-linkage",
+                    "attempt_validation": {
+                      "validated_at": "2026-04-06T12:54:21.372309Z",
+                      "validated_by": "execution_validation",
+                      "policy": {
+                        "require_repository": true,
+                        "require_exact_branch": true,
+                        "require_commit": true,
+                        "allow_missing_pull_request": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "context_observations": {
+                        "repository": [
+                          {
+                            "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                            "sources": [
+                              "external_facts.expected_code_context",
+                              "external_facts.github_facts.repository"
+                            ]
+                          }
+                        ],
+                        "branch": [
+                          {
+                            "value": "codex/e2e-test",
+                            "sources": [
+                              "external_facts.expected_code_context",
+                              "external_facts.github_facts.branch"
+                            ]
+                          }
+                        ],
+                        "commit": [
+                          {
+                            "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "sources": [
+                              "external_facts.github_facts.branch",
+                              "external_facts.github_facts.commit"
+                            ]
+                          }
+                        ],
+                        "used_task_artifact_fallback": false
+                      },
+                      "status": "valid",
+                      "retryable": false,
+                      "reasons": []
+                    }
+                  },
+                  "reevaluation": {}
+                }
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-task-pr-reconcile-commit-run-linkage",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "status": "resolved",
+            "active_failure_type": null,
+            "attempts": [
+              {
+                "attempt_id": "reconciliation-attempt-1",
+                "failure_type": "missing_pr_after_execution",
+                "handler_key": "missing_pr_after_execution",
+                "status": "resolved",
+                "started_at": "2026-04-06T12:54:21.399843Z",
+                "completed_at": "2026-04-06T12:54:21.400450Z",
+                "details": {
+                  "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN"
+                  },
+                  "context_resolution": {
+                    "selected_source": "external_facts",
+                    "sources": {
+                      "external_facts": {
+                        "repository_host": "github.com",
+                        "repository_owner": "KnoxAnalytics",
+                        "repository_name": "HARNESS-DRYRUN",
+                        "branch_name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      },
+                      "artifacts": {
+                        "repository_host": "github.com",
+                        "repository_owner": "KnoxAnalytics",
+                        "repository_name": "HARNESS-DRYRUN",
+                        "branch_name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      }
+                    },
+                    "conflicts": []
+                  },
+                  "branch_name": "codex/e2e-test",
+                  "base_branch": "main",
+                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "policy": {
+                    "allow_open_pr_match": true,
+                    "allow_closed_pr_match": false,
+                    "require_head_sha_match": true,
+                    "require_exact_branch_match": true,
+                    "allow_commit_association_match": true,
+                    "escalate_on_ambiguous_match": true,
+                    "require_task_linkage": false,
+                    "require_run_linkage_for_multiple_attempts": true,
+                    "require_run_linkage_for_commit_association": true
+                  },
+                  "branch_exists": true,
+                  "commit_exists": true,
+                  "pull_request_lookup": {
+                    "searched_by_branch": true,
+                    "searched_by_commit": true,
+                    "found": true,
+                    "source": "created",
+                    "number": 485,
+                    "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                    "candidate_count": 2,
+                    "valid_candidate_count": 1,
+                    "ambiguous": false
+                  },
+                  "pull_request_candidates": [
+                    {
+                      "number": 185,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                      "state": "open",
+                      "merged": false,
+                      "review_state": null,
+                      "title": "Reconcile missing pull request",
+                      "repository": {
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "head": {
+                        "branch": "codex/e2e-test",
+                        "sha": "3333333333333333333333333333333333333333"
+                      },
+                      "base_branch": "main",
+                      "lookup_sources": [
+                        "commit"
+                      ],
+                      "validation": {
+                        "accepted": false,
+                        "matched_by": [
+                          "commit_association_match",
+                          "task_linkage"
+                        ],
+                        "reasons": [
+                          "run_linkage_missing"
+                        ],
+                        "signals": {
+                          "repository_match": true,
+                          "branch_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "head_sha_match": false,
+                          "commit_association_match": true,
+                          "task_linkage": {
+                            "task_id_present": true,
+                            "task_title_present": true,
+                            "linked": true
+                          },
+                          "run_linkage": {
+                            "markers": {},
+                            "attempt_id_present": false,
+                            "completion_claim_id_present": false,
+                            "task_id_marker_present": false,
+                            "branch_name_present": false,
+                            "commit_sha_present": false,
+                            "linked": false,
+                            "current_run": {
+                              "task_id": "task-pr-reconcile-commit-run-linkage",
+                              "task_title": "Reconcile missing pull request",
+                              "attempt_id": "claim-commit-run-linkage:attempt",
+                              "completion_claim_id": "claim-commit-run-linkage",
+                              "branch_name": "codex/e2e-test",
+                              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "attempt_count": 1,
+                              "multiple_attempts": false
+                            }
+                          },
+                          "linkage_policy": {
+                            "require_run_linkage": true,
+                            "reasons": [
+                              "commit_association_without_head_sha_match"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "number": 485,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                      "state": "open",
+                      "merged": false,
+                      "review_state": null,
+                      "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                      "repository": {
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "head": {
+                        "branch": "codex/e2e-test",
+                        "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      },
+                      "base_branch": "main",
+                      "lookup_sources": [
+                        "created"
+                      ],
+                      "validation": {
+                        "accepted": true,
+                        "matched_by": [
+                          "head_sha_match",
+                          "task_linkage",
+                          "attempt_linkage",
+                          "completion_claim_linkage"
+                        ],
+                        "reasons": [],
+                        "signals": {
+                          "repository_match": true,
+                          "branch_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "head_sha_match": true,
+                          "commit_association_match": false,
+                          "task_linkage": {
+                            "task_id_present": true,
+                            "task_title_present": true,
+                            "linked": true
+                          },
+                          "run_linkage": {
+                            "markers": {
+                              "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                              "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                              "harness-completion-claim-id": "claim-commit-run-linkage",
+                              "harness-branch": "codex/e2e-test",
+                              "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                            },
+                            "attempt_id_present": true,
+                            "completion_claim_id_present": true,
+                            "task_id_marker_present": true,
+                            "branch_name_present": true,
+                            "commit_sha_present": true,
+                            "linked": true,
+                            "current_run": {
+                              "task_id": "task-pr-reconcile-commit-run-linkage",
+                              "task_title": "Reconcile missing pull request",
+                              "attempt_id": "claim-commit-run-linkage:attempt",
+                              "completion_claim_id": "claim-commit-run-linkage",
+                              "branch_name": "codex/e2e-test",
+                              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "attempt_count": 1,
+                              "multiple_attempts": false
+                            }
+                          },
+                          "linkage_policy": {
+                            "require_run_linkage": false,
+                            "reasons": []
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "created_pull_request": true,
+                  "error_disposition": null,
+                  "final_decision": {
+                    "result": "created_new",
+                    "reason": "no_valid_existing_candidate"
+                  },
+                  "error": null
+                }
+              }
+            ],
+            "last_attempt_id": "reconciliation-attempt-1",
+            "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+            "last_error": null,
+            "resolved_at": "2026-04-06T12:54:21.400450Z",
+            "failed_at": null
+          },
+          "required_capabilities": [],
+          "status": "reconciling",
+          "status_history": [
+            {
+              "from_status": "executing",
+              "to_status": "reconciling",
+              "changed_at": "2026-04-06T12:54:21.386359Z",
+              "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+              "changed_by": "reconciliation"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-04-04T12:00:00Z",
+            "updated_at": "2026-04-06T12:54:21.400450Z"
+          },
+          "title": "Reconcile missing pull request"
+        },
+        "external_facts": {
+          "expected_code_context": {
+            "repository_host": "github.com",
+            "repository_owner": "KnoxAnalytics",
+            "repository_name": "HARNESS-DRYRUN",
+            "branch_name": "codex/e2e-test",
+            "base_branch": "main"
+          },
+          "github_facts": {
+            "artifact_found": true,
+            "repository": {
+              "host": "github.com",
+              "owner": "KnoxAnalytics",
+              "name": "HARNESS-DRYRUN",
+              "external_id": null
+            },
+            "branch": {
+              "name": "codex/e2e-test",
+              "base_branch": "main",
+              "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+            },
+            "commit": {
+              "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "url": null,
+              "message_summary": null
+            },
+            "pull_request": null,
+            "changed_files": null,
+            "artifact_refs": [
+              {
+                "artifact_type": "commit",
+                "external_id": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "url": null
+              }
+            ],
+            "reasons": []
+          },
+          "linear_facts": {
+            "record_found": true,
+            "issue_id": "lin-1",
+            "issue_key": "HAR-1",
+            "state": "completed",
+            "workflow": {
+              "workflow_id": "workflow-completed",
+              "workflow_name": "completed",
+              "state_type": "completed"
+            },
+            "project": null,
+            "task_reference": null,
+            "reasons": []
+          }
+        },
+        "claimed_completion": true,
+        "acceptance_criteria_satisfied": true,
+        "runtime_facts": {
+          "executor_reported_success": true,
+          "executor_reported_failure": false,
+          "terminal_failure": false,
+          "attempt_count": 1,
+          "latest_attempt_outcome": "completed"
+        },
+        "unresolved_conditions": [],
+        "review_reasons": [],
+        "review_request": null,
+        "review_decision": null,
+        "review_is_active": false,
+        "retry_context": null
+      },
+      "result": {
+        "action": "transition_applied",
+        "target_status": "completed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness can reconcile a missing PR after execution.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "required",
+              "required_artifact_types": [
+                "commit"
+              ],
+              "status": "satisfied",
+              "validated_artifact_ids": [
+                "artifact-commit-1"
+              ],
+              "validated_at": "2026-04-04T12:01:30Z",
+              "validation_method": "external_reconciliation",
+              "validator": {
+                "captured_by": "github-sync",
+                "source_id": "verification-existing-1",
+                "source_system": "harness",
+                "source_type": "verification"
+              }
+            },
+            "items": [
+              {
+                "branch": {
+                  "base_branch": "main",
+                  "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "name": "codex/e2e-test"
+                },
+                "captured_at": "2026-04-04T12:01:00Z",
+                "changed_files": [],
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "content_type": null,
+                "description": null,
+                "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "external_refs": [],
+                "id": "artifact-commit-1",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {},
+                "provenance": {
+                  "captured_by": "github-sync",
+                  "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "source_system": "github",
+                  "source_type": "api"
+                },
+                "pull_request_number": null,
+                "repository": {
+                  "external_id": "repo-dryrun-1",
+                  "host": "github.com",
+                  "name": "HARNESS-DRYRUN",
+                  "owner": "KnoxAnalytics"
+                },
+                "review_state": null,
+                "title": null,
+                "type": "commit",
+                "verification_status": "verified"
+              },
+              {
+                "id": "artifact-pr-485",
+                "type": "pull_request",
+                "title": "Reconcile missing pull request PR",
+                "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                "content_type": null,
+                "external_id": "PR-485",
+                "commit_sha": null,
+                "pull_request_number": 485,
+                "review_state": null,
+                "provenance": {
+                  "source_system": "github",
+                  "source_type": "api",
+                  "source_id": "pull/485",
+                  "captured_by": "reconciliation_handler"
+                },
+                "verification_status": "verified",
+                "repository": {
+                  "host": "github.com",
+                  "owner": "KnoxAnalytics",
+                  "name": "HARNESS-DRYRUN",
+                  "external_id": null
+                },
+                "branch": {
+                  "name": "codex/e2e-test",
+                  "base_branch": "main",
+                  "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                },
+                "changed_files": [],
+                "external_refs": [],
+                "captured_at": "2026-04-06T12:54:21.400450Z",
+                "metadata": {
+                  "attached_by": "missing_pr_after_execution",
+                  "pull_request_state": "open"
+                }
+              }
+            ]
+          },
+          "assigned_executor": {
+            "assignment_reason": "Runtime coverage for reconciliation.",
+            "executor_id": "executor-1",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": {
+              "record_found": true,
+              "issue_id": "lin-1",
+              "issue_key": "HAR-1",
+              "state": "completed",
+              "workflow": {
+                "workflow_id": "workflow-completed",
+                "workflow_name": "completed",
+                "state_type": "completed"
+              },
+              "project": null,
+              "task_reference": null,
+              "reasons": [],
+              "provenance": {
+                "linked_at": "2026-04-06T12:54:21.372072Z",
+                "linked_by": "reevaluation",
+                "source": "completion_claim.external_facts"
+              }
+            }
+          },
+          "dependencies": [],
+          "description": "Exercise post-execution PR reconciliation.",
+          "id": "task-pr-reconcile-commit-run-linkage",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise post-execution PR reconciliation."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ],
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-commit-run-linkage",
+                  "reported_at": "2026-04-04T12:02:00Z",
+                  "reported_by": "codex",
+                  "reason": "Execution completed successfully.",
+                  "metadata": {
+                    "attempt_id": "claim-commit-run-linkage:attempt"
+                  }
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "attempt_id": "claim-commit-run-linkage:attempt",
+                  "recorded_at": "2026-04-04T12:02:05Z",
+                  "status": "completed",
+                  "reported_by": "codex",
+                  "completion_claim_id": "claim-commit-run-linkage",
+                  "artifact_references": [
+                    {
+                      "reference_id": "claim-commit-run-linkage:attempt:log",
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log"
+                    }
+                  ],
+                  "metadata": {
+                    "executor_run_id": "run-claim-commit-run-linkage",
+                    "attempt_validation": {
+                      "validated_at": "2026-04-06T12:54:21.372309Z",
+                      "validated_by": "execution_validation",
+                      "policy": {
+                        "require_repository": true,
+                        "require_exact_branch": true,
+                        "require_commit": true,
+                        "allow_missing_pull_request": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "context_observations": {
+                        "repository": [
+                          {
+                            "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                            "sources": [
+                              "external_facts.expected_code_context",
+                              "external_facts.github_facts.repository"
+                            ]
+                          }
+                        ],
+                        "branch": [
+                          {
+                            "value": "codex/e2e-test",
+                            "sources": [
+                              "external_facts.expected_code_context",
+                              "external_facts.github_facts.branch"
+                            ]
+                          }
+                        ],
+                        "commit": [
+                          {
+                            "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "sources": [
+                              "external_facts.github_facts.branch",
+                              "external_facts.github_facts.commit"
+                            ]
+                          }
+                        ],
+                        "used_task_artifact_fallback": false
+                      },
+                      "status": "valid",
+                      "retryable": false,
+                      "reasons": []
+                    }
+                  },
+                  "reevaluation": {}
+                }
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-task-pr-reconcile-commit-run-linkage",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "status": "resolved",
+            "active_failure_type": null,
+            "attempts": [
+              {
+                "attempt_id": "reconciliation-attempt-1",
+                "failure_type": "missing_pr_after_execution",
+                "handler_key": "missing_pr_after_execution",
+                "status": "resolved",
+                "started_at": "2026-04-06T12:54:21.399843Z",
+                "completed_at": "2026-04-06T12:54:21.400450Z",
+                "details": {
+                  "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN"
+                  },
+                  "context_resolution": {
+                    "selected_source": "external_facts",
+                    "sources": {
+                      "external_facts": {
+                        "repository_host": "github.com",
+                        "repository_owner": "KnoxAnalytics",
+                        "repository_name": "HARNESS-DRYRUN",
+                        "branch_name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      },
+                      "artifacts": {
+                        "repository_host": "github.com",
+                        "repository_owner": "KnoxAnalytics",
+                        "repository_name": "HARNESS-DRYRUN",
+                        "branch_name": "codex/e2e-test",
+                        "base_branch": "main",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      }
+                    },
+                    "conflicts": []
+                  },
+                  "branch_name": "codex/e2e-test",
+                  "base_branch": "main",
+                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "policy": {
+                    "allow_open_pr_match": true,
+                    "allow_closed_pr_match": false,
+                    "require_head_sha_match": true,
+                    "require_exact_branch_match": true,
+                    "allow_commit_association_match": true,
+                    "escalate_on_ambiguous_match": true,
+                    "require_task_linkage": false,
+                    "require_run_linkage_for_multiple_attempts": true,
+                    "require_run_linkage_for_commit_association": true
+                  },
+                  "branch_exists": true,
+                  "commit_exists": true,
+                  "pull_request_lookup": {
+                    "searched_by_branch": true,
+                    "searched_by_commit": true,
+                    "found": true,
+                    "source": "created",
+                    "number": 485,
+                    "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                    "candidate_count": 2,
+                    "valid_candidate_count": 1,
+                    "ambiguous": false
+                  },
+                  "pull_request_candidates": [
+                    {
+                      "number": 185,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                      "state": "open",
+                      "merged": false,
+                      "review_state": null,
+                      "title": "Reconcile missing pull request",
+                      "repository": {
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "head": {
+                        "branch": "codex/e2e-test",
+                        "sha": "3333333333333333333333333333333333333333"
+                      },
+                      "base_branch": "main",
+                      "lookup_sources": [
+                        "commit"
+                      ],
+                      "validation": {
+                        "accepted": false,
+                        "matched_by": [
+                          "commit_association_match",
+                          "task_linkage"
+                        ],
+                        "reasons": [
+                          "run_linkage_missing"
+                        ],
+                        "signals": {
+                          "repository_match": true,
+                          "branch_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "head_sha_match": false,
+                          "commit_association_match": true,
+                          "task_linkage": {
+                            "task_id_present": true,
+                            "task_title_present": true,
+                            "linked": true
+                          },
+                          "run_linkage": {
+                            "markers": {},
+                            "attempt_id_present": false,
+                            "completion_claim_id_present": false,
+                            "task_id_marker_present": false,
+                            "branch_name_present": false,
+                            "commit_sha_present": false,
+                            "linked": false,
+                            "current_run": {
+                              "task_id": "task-pr-reconcile-commit-run-linkage",
+                              "task_title": "Reconcile missing pull request",
+                              "attempt_id": "claim-commit-run-linkage:attempt",
+                              "completion_claim_id": "claim-commit-run-linkage",
+                              "branch_name": "codex/e2e-test",
+                              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "attempt_count": 1,
+                              "multiple_attempts": false
+                            }
+                          },
+                          "linkage_policy": {
+                            "require_run_linkage": true,
+                            "reasons": [
+                              "commit_association_without_head_sha_match"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "number": 485,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                      "state": "open",
+                      "merged": false,
+                      "review_state": null,
+                      "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                      "repository": {
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "head": {
+                        "branch": "codex/e2e-test",
+                        "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                      },
+                      "base_branch": "main",
+                      "lookup_sources": [
+                        "created"
+                      ],
+                      "validation": {
+                        "accepted": true,
+                        "matched_by": [
+                          "head_sha_match",
+                          "task_linkage",
+                          "attempt_linkage",
+                          "completion_claim_linkage"
+                        ],
+                        "reasons": [],
+                        "signals": {
+                          "repository_match": true,
+                          "branch_match": true,
+                          "state": "open",
+                          "state_acceptable": true,
+                          "head_sha_match": true,
+                          "commit_association_match": false,
+                          "task_linkage": {
+                            "task_id_present": true,
+                            "task_title_present": true,
+                            "linked": true
+                          },
+                          "run_linkage": {
+                            "markers": {
+                              "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                              "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                              "harness-completion-claim-id": "claim-commit-run-linkage",
+                              "harness-branch": "codex/e2e-test",
+                              "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                            },
+                            "attempt_id_present": true,
+                            "completion_claim_id_present": true,
+                            "task_id_marker_present": true,
+                            "branch_name_present": true,
+                            "commit_sha_present": true,
+                            "linked": true,
+                            "current_run": {
+                              "task_id": "task-pr-reconcile-commit-run-linkage",
+                              "task_title": "Reconcile missing pull request",
+                              "attempt_id": "claim-commit-run-linkage:attempt",
+                              "completion_claim_id": "claim-commit-run-linkage",
+                              "branch_name": "codex/e2e-test",
+                              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "attempt_count": 1,
+                              "multiple_attempts": false
+                            }
+                          },
+                          "linkage_policy": {
+                            "require_run_linkage": false,
+                            "reasons": []
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "created_pull_request": true,
+                  "error_disposition": null,
+                  "final_decision": {
+                    "result": "created_new",
+                    "reason": "no_valid_existing_candidate"
+                  },
+                  "error": null
+                }
+              }
+            ],
+            "last_attempt_id": "reconciliation-attempt-1",
+            "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+            "last_error": null,
+            "resolved_at": "2026-04-06T12:54:21.400450Z",
+            "failed_at": null
+          },
+          "required_capabilities": [],
+          "status": "completed",
+          "status_history": [
+            {
+              "from_status": "executing",
+              "to_status": "reconciling",
+              "changed_at": "2026-04-06T12:54:21.386359Z",
+              "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+              "changed_by": "reconciliation"
+            },
+            {
+              "from_status": "reconciling",
+              "to_status": "completed",
+              "changed_at": "2026-04-06T12:54:21.487905Z",
+              "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "changed_by": "verification"
+            }
+          ],
+          "timestamps": {
+            "completed_at": "2026-04-06T12:54:21.487905Z",
+            "created_at": "2026-04-04T12:00:00Z",
+            "updated_at": "2026-04-06T12:54:21.487905Z"
+          },
+          "title": "Reconcile missing pull request"
+        },
+        "enforcement_result": {
+          "action": "transition_applied",
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Harness can reconcile a missing PR after execution.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "required",
+                "required_artifact_types": [
+                  "commit"
+                ],
+                "status": "satisfied",
+                "validated_artifact_ids": [
+                  "artifact-commit-1"
+                ],
+                "validated_at": "2026-04-04T12:01:30Z",
+                "validation_method": "external_reconciliation",
+                "validator": {
+                  "captured_by": "github-sync",
+                  "source_id": "verification-existing-1",
+                  "source_system": "harness",
+                  "source_type": "verification"
+                }
+              },
+              "items": [
+                {
+                  "branch": {
+                    "base_branch": "main",
+                    "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "name": "codex/e2e-test"
+                  },
+                  "captured_at": "2026-04-04T12:01:00Z",
+                  "changed_files": [],
+                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "content_type": null,
+                  "description": null,
+                  "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "external_refs": [],
+                  "id": "artifact-commit-1",
+                  "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "metadata": {},
+                  "provenance": {
+                    "captured_by": "github-sync",
+                    "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "source_system": "github",
+                    "source_type": "api"
+                  },
+                  "pull_request_number": null,
+                  "repository": {
+                    "external_id": "repo-dryrun-1",
+                    "host": "github.com",
+                    "name": "HARNESS-DRYRUN",
+                    "owner": "KnoxAnalytics"
+                  },
+                  "review_state": null,
+                  "title": null,
+                  "type": "commit",
+                  "verification_status": "verified"
+                },
+                {
+                  "id": "artifact-pr-485",
+                  "type": "pull_request",
+                  "title": "Reconcile missing pull request PR",
+                  "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                  "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                  "content_type": null,
+                  "external_id": "PR-485",
+                  "commit_sha": null,
+                  "pull_request_number": 485,
+                  "review_state": null,
+                  "provenance": {
+                    "source_system": "github",
+                    "source_type": "api",
+                    "source_id": "pull/485",
+                    "captured_by": "reconciliation_handler"
+                  },
+                  "verification_status": "verified",
+                  "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                    "external_id": null
+                  },
+                  "branch": {
+                    "name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                  },
+                  "changed_files": [],
+                  "external_refs": [],
+                  "captured_at": "2026-04-06T12:54:21.400450Z",
+                  "metadata": {
+                    "attached_by": "missing_pr_after_execution",
+                    "pull_request_state": "open"
+                  }
+                }
+              ]
+            },
+            "assigned_executor": {
+              "assignment_reason": "Runtime coverage for reconciliation.",
+              "executor_id": "executor-1",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": {
+                "record_found": true,
+                "issue_id": "lin-1",
+                "issue_key": "HAR-1",
+                "state": "completed",
+                "workflow": {
+                  "workflow_id": "workflow-completed",
+                  "workflow_name": "completed",
+                  "state_type": "completed"
+                },
+                "project": null,
+                "task_reference": null,
+                "reasons": [],
+                "provenance": {
+                  "linked_at": "2026-04-06T12:54:21.372072Z",
+                  "linked_by": "reevaluation",
+                  "source": "completion_claim.external_facts"
+                }
+              }
+            },
+            "dependencies": [],
+            "description": "Exercise post-execution PR reconciliation.",
+            "id": "task-pr-reconcile-commit-run-linkage",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Exercise post-execution PR reconciliation."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ],
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "claim-commit-run-linkage",
+                    "reported_at": "2026-04-04T12:02:00Z",
+                    "reported_by": "codex",
+                    "reason": "Execution completed successfully.",
+                    "metadata": {
+                      "attempt_id": "claim-commit-run-linkage:attempt"
+                    }
+                  }
+                ],
+                "execution_attempts": [
+                  {
+                    "attempt_id": "claim-commit-run-linkage:attempt",
+                    "recorded_at": "2026-04-04T12:02:05Z",
+                    "status": "completed",
+                    "reported_by": "codex",
+                    "completion_claim_id": "claim-commit-run-linkage",
+                    "artifact_references": [
+                      {
+                        "reference_id": "claim-commit-run-linkage:attempt:log",
+                        "artifact_type": "execution_log",
+                        "location": "stub://attempts/log"
+                      }
+                    ],
+                    "metadata": {
+                      "executor_run_id": "run-claim-commit-run-linkage",
+                      "attempt_validation": {
+                        "validated_at": "2026-04-06T12:54:21.372309Z",
+                        "validated_by": "execution_validation",
+                        "policy": {
+                          "require_repository": true,
+                          "require_exact_branch": true,
+                          "require_commit": true,
+                          "allow_missing_pull_request": true,
+                          "task_artifact_fallback_requires_single_attempt": true
+                        },
+                        "context_observations": {
+                          "repository": [
+                            {
+                              "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                              "sources": [
+                                "external_facts.expected_code_context",
+                                "external_facts.github_facts.repository"
+                              ]
+                            }
+                          ],
+                          "branch": [
+                            {
+                              "value": "codex/e2e-test",
+                              "sources": [
+                                "external_facts.expected_code_context",
+                                "external_facts.github_facts.branch"
+                              ]
+                            }
+                          ],
+                          "commit": [
+                            {
+                              "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                              "sources": [
+                                "external_facts.github_facts.branch",
+                                "external_facts.github_facts.commit"
+                              ]
+                            }
+                          ],
+                          "used_task_artifact_fallback": false
+                        },
+                        "status": "valid",
+                        "retryable": false,
+                        "reasons": []
+                      }
+                    },
+                    "reevaluation": {}
+                  }
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": null,
+              "requested_by": null,
+              "source_id": "req-task-pr-reconcile-commit-run-linkage",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "status": "resolved",
+              "active_failure_type": null,
+              "attempts": [
+                {
+                  "attempt_id": "reconciliation-attempt-1",
+                  "failure_type": "missing_pr_after_execution",
+                  "handler_key": "missing_pr_after_execution",
+                  "status": "resolved",
+                  "started_at": "2026-04-06T12:54:21.399843Z",
+                  "completed_at": "2026-04-06T12:54:21.400450Z",
+                  "details": {
+                    "repository": {
+                      "host": "github.com",
+                      "owner": "KnoxAnalytics",
+                      "name": "HARNESS-DRYRUN"
+                    },
+                    "context_resolution": {
+                      "selected_source": "external_facts",
+                      "sources": {
+                        "external_facts": {
+                          "repository_host": "github.com",
+                          "repository_owner": "KnoxAnalytics",
+                          "repository_name": "HARNESS-DRYRUN",
+                          "branch_name": "codex/e2e-test",
+                          "base_branch": "main",
+                          "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                        },
+                        "artifacts": {
+                          "repository_host": "github.com",
+                          "repository_owner": "KnoxAnalytics",
+                          "repository_name": "HARNESS-DRYRUN",
+                          "branch_name": "codex/e2e-test",
+                          "base_branch": "main",
+                          "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                        }
+                      },
+                      "conflicts": []
+                    },
+                    "branch_name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "policy": {
+                      "allow_open_pr_match": true,
+                      "allow_closed_pr_match": false,
+                      "require_head_sha_match": true,
+                      "require_exact_branch_match": true,
+                      "allow_commit_association_match": true,
+                      "escalate_on_ambiguous_match": true,
+                      "require_task_linkage": false,
+                      "require_run_linkage_for_multiple_attempts": true,
+                      "require_run_linkage_for_commit_association": true
+                    },
+                    "branch_exists": true,
+                    "commit_exists": true,
+                    "pull_request_lookup": {
+                      "searched_by_branch": true,
+                      "searched_by_commit": true,
+                      "found": true,
+                      "source": "created",
+                      "number": 485,
+                      "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                      "candidate_count": 2,
+                      "valid_candidate_count": 1,
+                      "ambiguous": false
+                    },
+                    "pull_request_candidates": [
+                      {
+                        "number": 185,
+                        "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                        "state": "open",
+                        "merged": false,
+                        "review_state": null,
+                        "title": "Reconcile missing pull request",
+                        "repository": {
+                          "owner": "KnoxAnalytics",
+                          "name": "HARNESS-DRYRUN"
+                        },
+                        "head": {
+                          "branch": "codex/e2e-test",
+                          "sha": "3333333333333333333333333333333333333333"
+                        },
+                        "base_branch": "main",
+                        "lookup_sources": [
+                          "commit"
+                        ],
+                        "validation": {
+                          "accepted": false,
+                          "matched_by": [
+                            "commit_association_match",
+                            "task_linkage"
+                          ],
+                          "reasons": [
+                            "run_linkage_missing"
+                          ],
+                          "signals": {
+                            "repository_match": true,
+                            "branch_match": true,
+                            "state": "open",
+                            "state_acceptable": true,
+                            "head_sha_match": false,
+                            "commit_association_match": true,
+                            "task_linkage": {
+                              "task_id_present": true,
+                              "task_title_present": true,
+                              "linked": true
+                            },
+                            "run_linkage": {
+                              "markers": {},
+                              "attempt_id_present": false,
+                              "completion_claim_id_present": false,
+                              "task_id_marker_present": false,
+                              "branch_name_present": false,
+                              "commit_sha_present": false,
+                              "linked": false,
+                              "current_run": {
+                                "task_id": "task-pr-reconcile-commit-run-linkage",
+                                "task_title": "Reconcile missing pull request",
+                                "attempt_id": "claim-commit-run-linkage:attempt",
+                                "completion_claim_id": "claim-commit-run-linkage",
+                                "branch_name": "codex/e2e-test",
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "attempt_count": 1,
+                                "multiple_attempts": false
+                              }
+                            },
+                            "linkage_policy": {
+                              "require_run_linkage": true,
+                              "reasons": [
+                                "commit_association_without_head_sha_match"
+                              ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "number": 485,
+                        "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                        "state": "open",
+                        "merged": false,
+                        "review_state": null,
+                        "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                        "repository": {
+                          "owner": "KnoxAnalytics",
+                          "name": "HARNESS-DRYRUN"
+                        },
+                        "head": {
+                          "branch": "codex/e2e-test",
+                          "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                        },
+                        "base_branch": "main",
+                        "lookup_sources": [
+                          "created"
+                        ],
+                        "validation": {
+                          "accepted": true,
+                          "matched_by": [
+                            "head_sha_match",
+                            "task_linkage",
+                            "attempt_linkage",
+                            "completion_claim_linkage"
+                          ],
+                          "reasons": [],
+                          "signals": {
+                            "repository_match": true,
+                            "branch_match": true,
+                            "state": "open",
+                            "state_acceptable": true,
+                            "head_sha_match": true,
+                            "commit_association_match": false,
+                            "task_linkage": {
+                              "task_id_present": true,
+                              "task_title_present": true,
+                              "linked": true
+                            },
+                            "run_linkage": {
+                              "markers": {
+                                "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                                "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                                "harness-completion-claim-id": "claim-commit-run-linkage",
+                                "harness-branch": "codex/e2e-test",
+                                "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                              },
+                              "attempt_id_present": true,
+                              "completion_claim_id_present": true,
+                              "task_id_marker_present": true,
+                              "branch_name_present": true,
+                              "commit_sha_present": true,
+                              "linked": true,
+                              "current_run": {
+                                "task_id": "task-pr-reconcile-commit-run-linkage",
+                                "task_title": "Reconcile missing pull request",
+                                "attempt_id": "claim-commit-run-linkage:attempt",
+                                "completion_claim_id": "claim-commit-run-linkage",
+                                "branch_name": "codex/e2e-test",
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "attempt_count": 1,
+                                "multiple_attempts": false
+                              }
+                            },
+                            "linkage_policy": {
+                              "require_run_linkage": false,
+                              "reasons": []
+                            }
+                          }
+                        }
+                      }
+                    ],
+                    "created_pull_request": true,
+                    "error_disposition": null,
+                    "final_decision": {
+                      "result": "created_new",
+                      "reason": "no_valid_existing_candidate"
+                    },
+                    "error": null
+                  }
+                }
+              ],
+              "last_attempt_id": "reconciliation-attempt-1",
+              "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+              "last_error": null,
+              "resolved_at": "2026-04-06T12:54:21.400450Z",
+              "failed_at": null
+            },
+            "required_capabilities": [],
+            "status": "completed",
+            "status_history": [
+              {
+                "from_status": "executing",
+                "to_status": "reconciling",
+                "changed_at": "2026-04-06T12:54:21.386359Z",
+                "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+                "changed_by": "reconciliation"
+              },
+              {
+                "from_status": "reconciling",
+                "to_status": "completed",
+                "changed_at": "2026-04-06T12:54:21.487905Z",
+                "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                "changed_by": "verification"
+              }
+            ],
+            "timestamps": {
+              "completed_at": "2026-04-06T12:54:21.487905Z",
+              "created_at": "2026-04-04T12:00:00Z",
+              "updated_at": "2026-04-06T12:54:21.487905Z"
+            },
+            "title": "Reconcile missing pull request"
+          },
+          "evidence_result": {
+            "is_valid": true,
+            "is_sufficient": true,
+            "artifact_results": [
+              {
+                "artifact_id": "artifact-commit-1",
+                "artifact_type": "commit",
+                "is_valid": true,
+                "issues": []
+              },
+              {
+                "artifact_id": "artifact-pr-485",
+                "artifact_type": "pull_request",
+                "is_valid": true,
+                "issues": []
+              }
+            ],
+            "issues": [],
+            "validated_artifact_ids": [
+              "artifact-commit-1"
+            ],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": []
+          },
+          "reconciliation_result": {
+            "task_id": "task-pr-reconcile-commit-run-linkage",
+            "outcome": "no_mismatch",
+            "status": "passed",
+            "blocking": false,
+            "terminal": false,
+            "mismatch_categories": [],
+            "reasons": [
+              "Reconciliation evaluated task 'task-pr-reconcile-commit-run-linkage' against normalized external facts",
+              "No blocking reconciliation mismatch was detected"
+            ]
+          },
+          "verification_result": {
+            "task_id": "task-pr-reconcile-commit-run-linkage",
+            "outcome": "accepted_completion",
+            "target_status": "completed",
+            "claimed_completion": true,
+            "accepted_completion": true,
+            "requires_review": false,
+            "is_terminal": false,
+            "verification_passed": true,
+            "evidence_is_valid": true,
+            "evidence_is_sufficient": true,
+            "reconciliation_status": "passed",
+            "reasons": [
+              "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy",
+              "Executor-reported success was treated as advisory input only",
+              "Acceptance criteria, evidence, and reconciliation all support completion"
+            ],
+            "failure_classification": {
+              "failure_type": "none",
+              "source": "none",
+              "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+              "terminal": false,
+              "recoverable": false,
+              "category": "none",
+              "retryable": false
+            }
+          },
+          "review_request": null,
+          "review_decision": null,
+          "transition_result": {
+            "task_envelope": {
+              "acceptance_criteria": [
+                {
+                  "description": "Harness can reconcile a missing PR after execution.",
+                  "id": "ac-1",
+                  "required": true
+                }
+              ],
+              "artifacts": {
+                "completion_evidence": {
+                  "notes": null,
+                  "policy": "required",
+                  "required_artifact_types": [
+                    "commit"
+                  ],
+                  "status": "satisfied",
+                  "validated_artifact_ids": [
+                    "artifact-commit-1"
+                  ],
+                  "validated_at": "2026-04-04T12:01:30Z",
+                  "validation_method": "external_reconciliation",
+                  "validator": {
+                    "captured_by": "github-sync",
+                    "source_id": "verification-existing-1",
+                    "source_system": "harness",
+                    "source_type": "verification"
+                  }
+                },
+                "items": [
+                  {
+                    "branch": {
+                      "base_branch": "main",
+                      "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                      "name": "codex/e2e-test"
+                    },
+                    "captured_at": "2026-04-04T12:01:00Z",
+                    "changed_files": [],
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "content_type": null,
+                    "description": null,
+                    "external_id": "commit-8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "external_refs": [],
+                    "id": "artifact-commit-1",
+                    "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                    "metadata": {},
+                    "provenance": {
+                      "captured_by": "github-sync",
+                      "source_id": "commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                      "source_system": "github",
+                      "source_type": "api"
+                    },
+                    "pull_request_number": null,
+                    "repository": {
+                      "external_id": "repo-dryrun-1",
+                      "host": "github.com",
+                      "name": "HARNESS-DRYRUN",
+                      "owner": "KnoxAnalytics"
+                    },
+                    "review_state": null,
+                    "title": null,
+                    "type": "commit",
+                    "verification_status": "verified"
+                  },
+                  {
+                    "id": "artifact-pr-485",
+                    "type": "pull_request",
+                    "title": "Reconcile missing pull request PR",
+                    "description": "Attached by Harness reconciliation after execution completed without a pull request artifact.",
+                    "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                    "content_type": null,
+                    "external_id": "PR-485",
+                    "commit_sha": null,
+                    "pull_request_number": 485,
+                    "review_state": null,
+                    "provenance": {
+                      "source_system": "github",
+                      "source_type": "api",
+                      "source_id": "pull/485",
+                      "captured_by": "reconciliation_handler"
+                    },
+                    "verification_status": "verified",
+                    "repository": {
+                      "host": "github.com",
+                      "owner": "KnoxAnalytics",
+                      "name": "HARNESS-DRYRUN",
+                      "external_id": null
+                    },
+                    "branch": {
+                      "name": "codex/e2e-test",
+                      "base_branch": "main",
+                      "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                    },
+                    "changed_files": [],
+                    "external_refs": [],
+                    "captured_at": "2026-04-06T12:54:21.400450Z",
+                    "metadata": {
+                      "attached_by": "missing_pr_after_execution",
+                      "pull_request_state": "open"
+                    }
+                  }
+                ]
+              },
+              "assigned_executor": {
+                "assignment_reason": "Runtime coverage for reconciliation.",
+                "executor_id": "executor-1",
+                "executor_type": "codex"
+              },
+              "child_task_ids": [],
+              "constraints": [],
+              "coordination": {
+                "linear": {
+                  "record_found": true,
+                  "issue_id": "lin-1",
+                  "issue_key": "HAR-1",
+                  "state": "completed",
+                  "workflow": {
+                    "workflow_id": "workflow-completed",
+                    "workflow_name": "completed",
+                    "state_type": "completed"
+                  },
+                  "project": null,
+                  "task_reference": null,
+                  "reasons": [],
+                  "provenance": {
+                    "linked_at": "2026-04-06T12:54:21.372072Z",
+                    "linked_by": "reevaluation",
+                    "source": "completion_claim.external_facts"
+                  }
+                }
+              },
+              "dependencies": [],
+              "description": "Exercise post-execution PR reconciliation.",
+              "id": "task-pr-reconcile-commit-run-linkage",
+              "objective": {
+                "deliverable_type": "unspecified",
+                "success_signal": "Task satisfies declared acceptance criteria.",
+                "summary": "Exercise post-execution PR reconciliation."
+              },
+              "observability": {
+                "errors": [],
+                "execution_metadata": {
+                  "schema_required_deferred_fields": [
+                    "parent_task_id",
+                    "child_task_ids",
+                    "dependencies",
+                    "assigned_executor",
+                    "required_capabilities",
+                    "priority",
+                    "artifacts.items",
+                    "artifacts.completion_evidence",
+                    "observability"
+                  ],
+                  "advisory_completion_claims": [
+                    {
+                      "claim_id": "claim-commit-run-linkage",
+                      "reported_at": "2026-04-04T12:02:00Z",
+                      "reported_by": "codex",
+                      "reason": "Execution completed successfully.",
+                      "metadata": {
+                        "attempt_id": "claim-commit-run-linkage:attempt"
+                      }
+                    }
+                  ],
+                  "execution_attempts": [
+                    {
+                      "attempt_id": "claim-commit-run-linkage:attempt",
+                      "recorded_at": "2026-04-04T12:02:05Z",
+                      "status": "completed",
+                      "reported_by": "codex",
+                      "completion_claim_id": "claim-commit-run-linkage",
+                      "artifact_references": [
+                        {
+                          "reference_id": "claim-commit-run-linkage:attempt:log",
+                          "artifact_type": "execution_log",
+                          "location": "stub://attempts/log"
+                        }
+                      ],
+                      "metadata": {
+                        "executor_run_id": "run-claim-commit-run-linkage",
+                        "attempt_validation": {
+                          "validated_at": "2026-04-06T12:54:21.372309Z",
+                          "validated_by": "execution_validation",
+                          "policy": {
+                            "require_repository": true,
+                            "require_exact_branch": true,
+                            "require_commit": true,
+                            "allow_missing_pull_request": true,
+                            "task_artifact_fallback_requires_single_attempt": true
+                          },
+                          "context_observations": {
+                            "repository": [
+                              {
+                                "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                                "sources": [
+                                  "external_facts.expected_code_context",
+                                  "external_facts.github_facts.repository"
+                                ]
+                              }
+                            ],
+                            "branch": [
+                              {
+                                "value": "codex/e2e-test",
+                                "sources": [
+                                  "external_facts.expected_code_context",
+                                  "external_facts.github_facts.branch"
+                                ]
+                              }
+                            ],
+                            "commit": [
+                              {
+                                "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "sources": [
+                                  "external_facts.github_facts.branch",
+                                  "external_facts.github_facts.commit"
+                                ]
+                              }
+                            ],
+                            "used_task_artifact_fallback": false
+                          },
+                          "status": "valid",
+                          "retryable": false,
+                          "reasons": []
+                        }
+                      },
+                      "reevaluation": {}
+                    }
+                  ]
+                },
+                "retries": {
+                  "attempt_count": 0,
+                  "last_retry_at": null,
+                  "max_attempts": 0
+                }
+              },
+              "origin": {
+                "ingress_id": null,
+                "ingress_name": null,
+                "requested_by": null,
+                "source_id": "req-task-pr-reconcile-commit-run-linkage",
+                "source_system": "openclaw",
+                "source_type": "ingress_request"
+              },
+              "parent_task_id": null,
+              "priority": "normal",
+              "reconciliation": {
+                "status": "resolved",
+                "active_failure_type": null,
+                "attempts": [
+                  {
+                    "attempt_id": "reconciliation-attempt-1",
+                    "failure_type": "missing_pr_after_execution",
+                    "handler_key": "missing_pr_after_execution",
+                    "status": "resolved",
+                    "started_at": "2026-04-06T12:54:21.399843Z",
+                    "completed_at": "2026-04-06T12:54:21.400450Z",
+                    "details": {
+                      "repository": {
+                        "host": "github.com",
+                        "owner": "KnoxAnalytics",
+                        "name": "HARNESS-DRYRUN"
+                      },
+                      "context_resolution": {
+                        "selected_source": "external_facts",
+                        "sources": {
+                          "external_facts": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "base_branch": "main",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                          },
+                          "artifacts": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "base_branch": "main",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                          }
+                        },
+                        "conflicts": []
+                      },
+                      "branch_name": "codex/e2e-test",
+                      "base_branch": "main",
+                      "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                      "policy": {
+                        "allow_open_pr_match": true,
+                        "allow_closed_pr_match": false,
+                        "require_head_sha_match": true,
+                        "require_exact_branch_match": true,
+                        "allow_commit_association_match": true,
+                        "escalate_on_ambiguous_match": true,
+                        "require_task_linkage": false,
+                        "require_run_linkage_for_multiple_attempts": true,
+                        "require_run_linkage_for_commit_association": true
+                      },
+                      "branch_exists": true,
+                      "commit_exists": true,
+                      "pull_request_lookup": {
+                        "searched_by_branch": true,
+                        "searched_by_commit": true,
+                        "found": true,
+                        "source": "created",
+                        "number": 485,
+                        "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                        "candidate_count": 2,
+                        "valid_candidate_count": 1,
+                        "ambiguous": false
+                      },
+                      "pull_request_candidates": [
+                        {
+                          "number": 185,
+                          "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/185",
+                          "state": "open",
+                          "merged": false,
+                          "review_state": null,
+                          "title": "Reconcile missing pull request",
+                          "repository": {
+                            "owner": "KnoxAnalytics",
+                            "name": "HARNESS-DRYRUN"
+                          },
+                          "head": {
+                            "branch": "codex/e2e-test",
+                            "sha": "3333333333333333333333333333333333333333"
+                          },
+                          "base_branch": "main",
+                          "lookup_sources": [
+                            "commit"
+                          ],
+                          "validation": {
+                            "accepted": false,
+                            "matched_by": [
+                              "commit_association_match",
+                              "task_linkage"
+                            ],
+                            "reasons": [
+                              "run_linkage_missing"
+                            ],
+                            "signals": {
+                              "repository_match": true,
+                              "branch_match": true,
+                              "state": "open",
+                              "state_acceptable": true,
+                              "head_sha_match": false,
+                              "commit_association_match": true,
+                              "task_linkage": {
+                                "task_id_present": true,
+                                "task_title_present": true,
+                                "linked": true
+                              },
+                              "run_linkage": {
+                                "markers": {},
+                                "attempt_id_present": false,
+                                "completion_claim_id_present": false,
+                                "task_id_marker_present": false,
+                                "branch_name_present": false,
+                                "commit_sha_present": false,
+                                "linked": false,
+                                "current_run": {
+                                  "task_id": "task-pr-reconcile-commit-run-linkage",
+                                  "task_title": "Reconcile missing pull request",
+                                  "attempt_id": "claim-commit-run-linkage:attempt",
+                                  "completion_claim_id": "claim-commit-run-linkage",
+                                  "branch_name": "codex/e2e-test",
+                                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                  "attempt_count": 1,
+                                  "multiple_attempts": false
+                                }
+                              },
+                              "linkage_policy": {
+                                "require_run_linkage": true,
+                                "reasons": [
+                                  "commit_association_without_head_sha_match"
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "number": 485,
+                          "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                          "state": "open",
+                          "merged": false,
+                          "review_state": null,
+                          "title": "Reconcile missing pull request (task-pr-reconcile-commit-run-linkage)",
+                          "repository": {
+                            "owner": "KnoxAnalytics",
+                            "name": "HARNESS-DRYRUN"
+                          },
+                          "head": {
+                            "branch": "codex/e2e-test",
+                            "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                          },
+                          "base_branch": "main",
+                          "lookup_sources": [
+                            "created"
+                          ],
+                          "validation": {
+                            "accepted": true,
+                            "matched_by": [
+                              "head_sha_match",
+                              "task_linkage",
+                              "attempt_linkage",
+                              "completion_claim_linkage"
+                            ],
+                            "reasons": [],
+                            "signals": {
+                              "repository_match": true,
+                              "branch_match": true,
+                              "state": "open",
+                              "state_acceptable": true,
+                              "head_sha_match": true,
+                              "commit_association_match": false,
+                              "task_linkage": {
+                                "task_id_present": true,
+                                "task_title_present": true,
+                                "linked": true
+                              },
+                              "run_linkage": {
+                                "markers": {
+                                  "harness-task-id": "task-pr-reconcile-commit-run-linkage",
+                                  "harness-attempt-id": "claim-commit-run-linkage:attempt",
+                                  "harness-completion-claim-id": "claim-commit-run-linkage",
+                                  "harness-branch": "codex/e2e-test",
+                                  "harness-commit-sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                                },
+                                "attempt_id_present": true,
+                                "completion_claim_id_present": true,
+                                "task_id_marker_present": true,
+                                "branch_name_present": true,
+                                "commit_sha_present": true,
+                                "linked": true,
+                                "current_run": {
+                                  "task_id": "task-pr-reconcile-commit-run-linkage",
+                                  "task_title": "Reconcile missing pull request",
+                                  "attempt_id": "claim-commit-run-linkage:attempt",
+                                  "completion_claim_id": "claim-commit-run-linkage",
+                                  "branch_name": "codex/e2e-test",
+                                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                  "attempt_count": 1,
+                                  "multiple_attempts": false
+                                }
+                              },
+                              "linkage_policy": {
+                                "require_run_linkage": false,
+                                "reasons": []
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "created_pull_request": true,
+                      "error_disposition": null,
+                      "final_decision": {
+                        "result": "created_new",
+                        "reason": "no_valid_existing_candidate"
+                      },
+                      "error": null
+                    }
+                  }
+                ],
+                "last_attempt_id": "reconciliation-attempt-1",
+                "last_pr_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/485",
+                "last_error": null,
+                "resolved_at": "2026-04-06T12:54:21.400450Z",
+                "failed_at": null
+              },
+              "required_capabilities": [],
+              "status": "completed",
+              "status_history": [
+                {
+                  "from_status": "executing",
+                  "to_status": "reconciling",
+                  "changed_at": "2026-04-06T12:54:21.386359Z",
+                  "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+                  "changed_by": "reconciliation"
+                },
+                {
+                  "from_status": "reconciling",
+                  "to_status": "completed",
+                  "changed_at": "2026-04-06T12:54:21.487905Z",
+                  "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+                  "changed_by": "verification"
+                }
+              ],
+              "timestamps": {
+                "completed_at": "2026-04-06T12:54:21.487905Z",
+                "created_at": "2026-04-04T12:00:00Z",
+                "updated_at": "2026-04-06T12:54:21.487905Z"
+              },
+              "title": "Reconcile missing pull request"
+            },
+            "from_status": "reconciling",
+            "to_status": "completed",
+            "changed_at": "2026-04-06T12:54:21.487905Z",
+            "actor": "verification",
+            "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+            "status_history_entry": {
+              "from_status": "reconciling",
+              "to_status": "completed",
+              "changed_at": "2026-04-06T12:54:21.487905Z",
+              "reason": "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion",
+              "changed_by": "verification"
+            }
+          },
+          "target_status": "completed",
+          "reasons": [
+            "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+          ],
+          "failure_classification": {
+            "failure_type": "none",
+            "source": "none",
+            "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+            "terminal": false,
+            "recoverable": false,
+            "category": "none",
+            "retryable": false
+          },
+          "error": null
+        },
+        "accepted_completion": true,
+        "requires_review": false,
+        "invalid_input": false,
+        "failure_classification": {
+          "failure_type": "none",
+          "source": "none",
+          "reason": "Acceptance criteria, evidence, and reconciliation all support completion",
+          "terminal": false,
+          "recoverable": false,
+          "category": "none",
+          "retryable": false
+        },
+        "reasons": [
+          "Verification evaluated task 'task-pr-reconcile-commit-run-linkage' against canonical completion policy; Executor-reported success was treated as advisory input only; Acceptance criteria, evidence, and reconciliation all support completion"
+        ],
+        "error": null
+      }
+    }
+  }
+}
