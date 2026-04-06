@@ -1417,7 +1417,7 @@
       }
     },
     "jsonValue": {
-      "oneOf": [
+      "anyOf": [
         {
           "type": "string"
         },

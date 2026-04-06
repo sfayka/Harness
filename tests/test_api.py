@@ -261,6 +261,8 @@ def _manual_happy_path_overlay_payload() -> dict:
                     },
                     "pull_request": {
                         "number": 2,
+                        "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                        "state": "open",
                         "review_state": "approved",
                     },
                     "changed_files": {
@@ -952,6 +954,19 @@ class HarnessApiServiceTests(unittest.TestCase):
         }
         submit_status, submit_response = self.service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
+        invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-invalid-1")
+        invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-invalid-1:commit",
+                "artifact_type": "commit",
+                "location": "stub://attempts/attempt-invalid-1/commit",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
 
         with patch.dict(os.environ, {"HARNESS_INVALID_EXECUTION_RETRY_BUDGET": "1"}):
             claim_status, claim_response = self.service.submit_completion_claim(
@@ -959,7 +974,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 {
                     "request": {
                         **_completion_claim_payload(claim_id="claim-invalid-attempt-1"),
-                        **_execution_attempt_payload(attempt_id="attempt-invalid-1"),
+                        **invalid_attempt_payload,
                         "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
                     }
                 },
@@ -969,9 +984,9 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(claim_status, 200)
-        self.assertEqual(claim_response["action"], "invalid_execution_attempt_failed")
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
         self.assertEqual(claim_response["task_envelope"]["status"], "failed")
-        self.assertEqual(claim_response["evaluation_record"]["result"]["failure_classification"]["failure_type"], "invalid_execution_attempt")
+        self.assertEqual(claim_response["evaluation_record"]["result"]["failure_classification"]["failure_type"], "contract_violation")
         self.assertEqual(
             claim_response["invalid_execution_attempt"]["validation"]["failure_type"],
             "invalid_execution_attempt",
@@ -979,8 +994,12 @@ class HarnessApiServiceTests(unittest.TestCase):
         execution_attempts = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"]
         self.assertEqual(len(execution_attempts), 2)
         self.assertEqual(
-            execution_attempts[-1]["metadata"]["attempt_validation"]["failure_type"],
+            execution_attempts[0]["metadata"]["attempt_validation"]["failure_type"],
             "invalid_execution_attempt",
+        )
+        self.assertEqual(
+            execution_attempts[-1]["metadata"]["attempt_validation"]["failure_type"],
+            "contract_violation",
         )
         self.assertEqual(history_status, 200)
         self.assertGreaterEqual(len(history_payload["evaluations"]), 3)
@@ -994,15 +1013,256 @@ class HarnessApiServiceTests(unittest.TestCase):
         )
         self.assertEqual(
             history_payload["evaluations"][-1]["result"]["failure_classification"]["failure_type"],
-            "invalid_execution_attempt",
+            "contract_violation",
         )
         self.assertEqual(read_status, 200)
-        self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 2)
+        self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 1)
         self.assertEqual(
             read_payload["task"]["execution_summary"]["latest_attempt_validation"]["failure_type"],
-            "invalid_execution_attempt",
+            "contract_violation",
         )
-        self.assertEqual(read_payload["task"]["failure_summary"]["failure_type"], "invalid_execution_attempt")
+        self.assertEqual(read_payload["task"]["failure_summary"]["failure_type"], "contract_violation")
+
+    def test_service_completion_claim_rejects_reserved_work_branch_as_contract_violation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-work-branch-1",
+                    "assignment_reason": "Exercise reserved branch enforcement.",
+                },
+            }
+        }
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-work-branch-1")
+        invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-work-branch-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "work",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        linked_artifacts = deepcopy(payload["request"]["linked_artifacts"])
+        linked_artifacts[0]["branch"]["name"] = "work"
+        external_facts = deepcopy(payload["request"]["external_facts"])
+        external_facts["expected_code_context"]["branch_name"] = "work"
+        external_facts["github_facts"]["branch"]["name"] = "work"
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-work-branch-1"),
+                    **invalid_attempt_payload,
+                    "new_artifacts": linked_artifacts,
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": external_facts,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(claim_response["task_envelope"]["status"], "failed")
+        self.assertEqual(
+            claim_response["evaluation_record"]["result"]["failure_classification"]["failure_type"],
+            "contract_violation",
+        )
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "reserved_shared_branch",
+        )
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["failure_summary"]["failure_type"], "contract_violation")
+        self.assertEqual(
+            read_payload["task"]["execution_summary"]["latest_attempt_validation"]["rule_failures"][0]["rule"],
+            "reserved_shared_branch",
+        )
+        self.assertEqual(timeline_status, 200)
+        execution_attempt_events = [
+            event for event in timeline_payload["timeline"] if event["event_type"] == "execution_attempt_recorded"
+        ]
+        self.assertTrue(execution_attempt_events)
+        self.assertEqual(
+            execution_attempt_events[-1]["details"]["attempt_validation"]["rule_failures"][0]["rule"],
+            "reserved_shared_branch",
+        )
+
+    def test_service_completion_claim_rejects_missing_branch_identity(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-missing-branch-1",
+                    "assignment_reason": "Exercise missing branch enforcement.",
+                },
+            }
+        }
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        attempt_payload = _execution_attempt_payload(attempt_id="attempt-missing-branch-1")
+        attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-missing-branch-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        external_facts = deepcopy(payload["request"]["external_facts"])
+        external_facts["expected_code_context"].pop("branch_name", None)
+        external_facts["github_facts"].pop("branch", None)
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-missing-branch-1"),
+                    **attempt_payload,
+                    "external_facts": external_facts,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(claim_response["task_envelope"]["status"], "failed")
+        self.assertEqual(
+            claim_response["evaluation_record"]["result"]["failure_classification"]["failure_type"],
+            "contract_violation",
+        )
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "missing_branch_identity",
+        )
+
+    def test_service_completion_claim_rejects_missing_pr_url_when_pr_proof_is_supplied(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        linked_artifacts = deepcopy(payload["request"]["linked_artifacts"])
+        linked_artifacts[0]["location"] = None
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-missing-pr-url-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-missing-pr-url-1"),
+                    "new_artifacts": linked_artifacts,
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "missing_pr_url",
+        )
+
+    def test_service_completion_claim_rejects_invalid_non_numeric_pr_url(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        linked_artifacts = deepcopy(payload["request"]["linked_artifacts"])
+        linked_artifacts[0]["location"] = "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/compare/main...work"
+        external_facts = deepcopy(payload["request"]["external_facts"])
+        external_facts["github_facts"]["pull_request"]["url"] = "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/new/work"
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-invalid-pr-url-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-invalid-pr-url-1"),
+                    "new_artifacts": linked_artifacts,
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": external_facts,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        failed_rules = {
+            item["rule"] for item in claim_response["contract_violation"]["validation"]["rule_failures"]
+        }
+        self.assertIn("invalid_pr_url", failed_rules)
+
+    def test_service_completion_claim_rejects_closed_pr_as_current_run_proof(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        linked_artifacts = deepcopy(payload["request"]["linked_artifacts"])
+        linked_artifacts[0]["metadata"]["pull_request_state"] = "closed"
+        external_facts = deepcopy(payload["request"]["external_facts"])
+        external_facts["github_facts"]["pull_request"]["state"] = "closed"
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-closed-pr-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-closed-pr-1"),
+                    "new_artifacts": linked_artifacts,
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": external_facts,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        failed_rules = {
+            item["rule"] for item in claim_response["contract_violation"]["validation"]["rule_failures"]
+        }
+        self.assertIn("stale_pull_request_not_allowed", failed_rules)
 
     def test_service_completion_claim_allows_valid_execution_attempt_with_repo_branch_and_commit(self) -> None:
         payload = _manual_happy_path_overlay_payload()
@@ -1238,9 +1498,9 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
         self.assertEqual(read_model_status, 200)
         self.assertEqual(read_model_payload["task"]["current_status"], "failed")
-        self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 2)
-        self.assertEqual(read_model_payload["task"]["execution_summary"]["invalid_attempt_count"], 2)
-        self.assertEqual(read_model_payload["task"]["failure_summary"]["failure_type"], "invalid_execution_attempt")
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
+        self.assertEqual(read_model_payload["task"]["execution_summary"]["invalid_attempt_count"], 0)
+        self.assertEqual(read_model_payload["task"]["failure_summary"]["failure_type"], "contract_violation")
         self.assertEqual(read_model_payload["task"]["execution_summary"]["latest_dispatch_origin"], "automatic")
         self.assertEqual(timeline_status, 200)
         dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
@@ -1248,7 +1508,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(dispatch_events[-1]["details"]["dispatch_mode"], "automatic")
         dispatch_triggers = {event["details"]["dispatch_trigger"] for event in dispatch_events}
         self.assertIn("automatic_policy_post_ingestion", dispatch_triggers)
-        self.assertIn("invalid_execution_attempt_retry", dispatch_triggers)
+        self.assertNotIn("invalid_execution_attempt_retry", dispatch_triggers)
 
     def test_service_dispatch_rejects_terminal_tasks(self) -> None:
         submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))

@@ -358,6 +358,17 @@ Harness distinguishes a failed execution attempt from an invalid execution attem
 
 For the current implemented policy, a code-bearing successful attempt must provide coherent current-run repository and branch context, plus commit context unless that commit can be recovered safely during governed reconciliation.
 
+Some failures in that gate are stricter than a generic invalid attempt. Harness treats them as executor-side contract violations rather than as retryable malformed output:
+
+- reserved shared branches such as `work`
+- missing branch identity for a delegated code-bearing run
+- non-task-scoped branch names where policy requires task-scoped branches
+- malformed GitHub PR URLs
+- closed, historical, or otherwise stale PR artifacts presented as current-run proof
+- branch, commit, and PR evidence that does not form one coherent current-run artifact chain
+
+These do not authorize reconciliation. They are rejected before reconciliation because the executor has not produced trustworthy current-run evidence.
+
 Examples of `invalid_execution_attempt`:
 
 - no repository/branch/commit context for the current run
@@ -376,9 +387,10 @@ The control-plane policy is:
 
 1. execution completes and reports success
 2. Harness validates the execution attempt shape
-3. if valid, the claim can proceed to completion handling and, if needed, reconciliation
-4. if invalid and retry budget remains, Harness schedules a fresh execution attempt
-5. if invalid attempts exhaust the retry budget, Harness transitions the task to `failed`
+3. if the attempt violates the execution contract, Harness fails it explicitly without treating it as flaky progress
+4. if valid, the claim can proceed to completion handling and, if needed, reconciliation
+5. if invalid and retry budget remains, Harness schedules a fresh execution attempt
+6. if invalid attempts exhaust the retry budget, Harness transitions the task to `failed`
 
 This keeps routine executor misses out of manual review while preserving truthful completion boundaries.
 
