@@ -42,12 +42,19 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         task = request["task_envelope"]
 
         self.assertEqual(task["id"], "task-openclaw-ingress-1")
+        self.assertEqual(task["status"], "blocked")
         self.assertEqual(task["origin"]["source_system"], "openclaw")
         self.assertEqual(task["origin"]["source_id"], "msg-456")
         self.assertEqual(task["origin"]["ingress_id"], "conv-123")
         self.assertEqual(task["extensions"]["openclaw"]["conversation_id"], "conv-123")
         self.assertEqual(task["extensions"]["openclaw"]["metadata"]["source"], "openclaw-integration-test")
-        self.assertEqual(request["unresolved_conditions"], ["Awaiting external evidence."])
+        self.assertEqual(task["clarification"]["status"], "required")
+        self.assertEqual(task["clarification"]["resume_target_status"], "intake_ready")
+        self.assertEqual(
+            task["clarification"]["required_inputs"][0]["description"],
+            "Awaiting external evidence.",
+        )
+        self.assertNotIn("unresolved_conditions", request)
 
     def test_translate_openclaw_submission_payload_requires_context_shape(self) -> None:
         payload = self._payload()
@@ -62,6 +69,7 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
         payload["task"]["objective_deliverable_type"] = "code_change"
         payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["metadata"]["plan_summary"] = "Single-task implementation handoff is ready for dispatcher review."
         payload["unresolved_conditions"] = []
 
         translated = translate_openclaw_submission_payload(payload)
@@ -88,8 +96,19 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
         payload["task"]["objective_deliverable_type"] = "unspecified"
         payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["metadata"]["plan_summary"] = "Single-task implementation handoff is ready for dispatcher review."
 
         with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+        payload = self._payload()
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["unresolved_conditions"] = []
+
+        with self.assertRaisesRegex(OpenClawIngressInputError, "metadata.plan_summary"):
             translate_openclaw_submission_payload(payload)
 
     def test_translate_openclaw_submission_payload_rejects_planned_handoff_with_unresolved_conditions(self) -> None:

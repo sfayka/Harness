@@ -14,7 +14,7 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
-OpenClaw ingress is also intentionally narrow. It can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If OpenClaw wants to hand work off as `planned`, it must provide explicit planning-grade objective fields such as a non-default deliverable type and success signal, and it cannot declare unresolved conditions at the same time. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
+OpenClaw ingress is also intentionally narrow. It can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If OpenClaw wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
 ## Governed Reconciliation
 
@@ -31,6 +31,8 @@ Tasks only reach terminal success through artifact-backed reevaluation, not exec
 If recovery succeeds, the task can proceed to canonical reevaluation. If recovery is blocked by a retryable provider problem, Harness moves the task to `blocked`. If recovery proves the execution proof chain is unusable, Harness marks the task `failed`. Only unresolved ambiguity or review-only judgment paths escalate to `in_review`. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context, reruns or branch reuse require explicit task/run linkage rather than branch or task-name matching alone, commit association is discovery evidence rather than present-run proof when the PR head no longer matches the expected commit, a newly created PR is only trusted after Harness reads back the persisted GitHub record and revalidates it, and a missing commit SHA may be recovered from the current branch head before the handler gives up.
 
 Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
+
+Harness also does not auto-dispatch work just because it is merely `planned`. Normal automatic dispatch begins from `dispatch_ready`, after planning and clarification boundaries have actually been satisfied.
 
 Governed reconciliation (current scope):
 
