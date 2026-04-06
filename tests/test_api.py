@@ -801,6 +801,47 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
+    def test_service_openclaw_ingress_rejects_planned_handoff_without_explicit_objective_contract(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-planned-weak-1")
+        payload["task"]["status"] = "planned"
+
+        status, response_payload = self.service.submit_openclaw_ingress(payload)
+        task_status, task_payload = self.service.get_task("task-openclaw-planned-weak-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("planned handoff requires task.objective_summary", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_service_openclaw_ingress_accepts_structured_planned_handoff(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-planned-valid-1")
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["task"]["acceptance_criteria"] = [
+            "The task records an explicit deliverable type.",
+            "The task records an explicit success signal.",
+        ]
+        payload["unresolved_conditions"] = []
+
+        status, response_payload = self.service.submit_openclaw_ingress(payload)
+        task_status, task_payload = self.service.get_task("task-openclaw-planned-valid-1")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            response_payload["task_envelope"]["objective"]["deliverable_type"],
+            "code_change",
+        )
+        self.assertEqual(
+            response_payload["task_envelope"]["objective"]["success_signal"],
+            "The task is defined enough to route without clarification.",
+        )
+        self.assertTrue(response_payload["automatic_dispatch"]["attempted"])
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["objective"]["deliverable_type"], "code_change")
+
     def test_service_openclaw_ingress_rejects_runtime_facts_without_persisting_task(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-runtime-facts-1")
         payload["runtime_facts"] = {"attempt_count": 1}
@@ -2110,6 +2151,23 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(response_payload["invalid_input"])
         self.assertIn("cannot assert acceptance_criteria_satisfied", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_openclaw_ingress_rejects_planned_handoff_with_unresolved_conditions(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-api-invalid-planned-1")
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["unresolved_conditions"] = ["Need repo confirmation"]
+
+        status, response_payload = self._post_json("/ingress/openclaw", payload)
+        task_status, task_payload = self._get_json("/tasks/task-openclaw-api-invalid-planned-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot include unresolved_conditions", response_payload["error"].lower())
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 

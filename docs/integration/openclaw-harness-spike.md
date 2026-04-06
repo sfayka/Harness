@@ -82,6 +82,8 @@ Since the spike was written, Harness added a dedicated OpenClaw ingress adapter 
 
 That ingress endpoint is now explicitly constrained to intake/planning handoff. It accepts task intent, provenance, and other ingress-owned context, but it rejects executor runtime facts, completion claims, and execution/terminal lifecycle states. OpenClaw can describe the work; it cannot declare the work executed or complete through ingress.
 
+If OpenClaw submits a task as already `planned`, Harness now treats that as a stronger claim. The ingress payload must provide planning-grade objective fields and must not carry unresolved conditions. Otherwise the handoff is rejected instead of letting vague orchestration look more resolved than it really is.
+
 ## Scope Limits
 
 This spike does not implement:
