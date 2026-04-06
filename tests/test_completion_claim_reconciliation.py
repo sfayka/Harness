@@ -794,7 +794,7 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             "ambiguous_existing_candidates",
         )
 
-    def test_submit_completion_claim_attaches_valid_pr_found_by_commit_association(self) -> None:
+    def test_submit_completion_claim_attaches_valid_pr_found_by_commit_association_when_head_sha_matches(self) -> None:
         task_id = "task-pr-reconcile-commit"
         claim_id = "claim-commit"
         attempt_id = f"{claim_id}:attempt"
@@ -802,7 +802,7 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             existing_commit_prs=(
                 _pull_request(
                     number=83,
-                    head_sha="3333333333333333333333333333333333333333",
+                    head_sha="8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                     body=_run_linkage_markers(task_id=task_id, attempt_id=attempt_id, claim_id=claim_id),
                 ),
             ),
@@ -822,8 +822,9 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         attempt = _latest_reconciliation_attempt(payload["task_envelope"])
         candidate = attempt["details"]["pull_request_candidates"][0]
         self.assertTrue(candidate["validation"]["accepted"])
+        self.assertIn("head_sha_match", candidate["validation"]["matched_by"])
         self.assertIn("commit_association_match", candidate["validation"]["matched_by"])
-        self.assertNotEqual(candidate["head"]["sha"], "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+        self.assertEqual(candidate["head"]["sha"], "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
 
     def test_submit_completion_claim_rejects_commit_association_candidate_without_run_linkage(self) -> None:
         gateway = _FakeGitHubGateway(
@@ -852,13 +853,17 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         rejected_candidate = attempt["details"]["pull_request_candidates"][0]
         self.assertEqual(rejected_candidate["number"], 85)
         self.assertIn("commit_association_match", rejected_candidate["validation"]["matched_by"])
-        self.assertIn("run_linkage_missing", rejected_candidate["validation"]["reasons"])
+        self.assertIn(
+            "commit_association_without_current_head_evidence",
+            rejected_candidate["validation"]["reasons"],
+        )
+        self.assertNotIn("run_linkage_missing", rejected_candidate["validation"]["reasons"])
         self.assertEqual(
             rejected_candidate["validation"]["signals"]["linkage_policy"]["reasons"],
-            ["commit_association_without_head_sha_match"],
+            [],
         )
 
-    def test_submit_completion_claim_accepts_commit_association_candidate_with_run_linkage(self) -> None:
+    def test_submit_completion_claim_rejects_non_head_commit_association_candidate_even_with_run_linkage(self) -> None:
         task_id = "task-pr-reconcile-commit-run-linkage-valid"
         claim_id = "claim-commit-run-linkage-valid"
         attempt_id = f"{claim_id}:attempt"
@@ -882,10 +887,14 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["status"], "completed")
-        self.assertEqual(gateway.create_calls, 0)
+        self.assertEqual(gateway.create_calls, 1)
         candidate = _latest_reconciliation_attempt(payload["task_envelope"])["details"]["pull_request_candidates"][0]
-        self.assertTrue(candidate["validation"]["accepted"])
+        self.assertFalse(candidate["validation"]["accepted"])
         self.assertIn("commit_association_match", candidate["validation"]["matched_by"])
+        self.assertIn(
+            "commit_association_without_current_head_evidence",
+            candidate["validation"]["reasons"],
+        )
         self.assertIn("attempt_linkage", candidate["validation"]["matched_by"])
         self.assertIn("completion_claim_linkage", candidate["validation"]["matched_by"])
 

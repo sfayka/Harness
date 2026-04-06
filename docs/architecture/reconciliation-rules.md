@@ -309,11 +309,12 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 6. Query GitHub for candidate PRs by branch.
 7. Query GitHub for candidate PRs by commit association.
 8. Validate each candidate against the current run context rather than treating branch lookup as success.
-9. When the task has multiple execution attempts, or when a candidate only matches through commit association, require explicit run linkage to the current attempt rather than relying on task linkage alone.
-10. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
-11. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-12. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
-13. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
+9. Treat commit-association lookup as discovery evidence, not current-run proof, unless the PR head still matches the current expected commit or policy explicitly allows weaker matching.
+10. When the task has multiple execution attempts, require explicit run linkage to the current attempt rather than relying on task linkage alone.
+11. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
+12. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+13. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
+14. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 
@@ -328,8 +329,9 @@ A candidate PR only satisfies reconciliation by default if it passes all of the 
 - repository matches the expected repository
 - head branch matches the expected current branch exactly
 - PR state is acceptable under policy
-- head SHA matches the expected commit SHA, or the expected commit is demonstrably associated with that PR
-- when the task has multiple execution attempts, or when the candidate only matches by commit association, the PR must also prove current-run linkage to the active attempt or completion claim
+- head SHA matches the expected commit SHA
+- commit association may surface audit candidates, but by default it does not override a head-SHA mismatch
+- when the task has multiple execution attempts, the PR must also prove current-run linkage to the active attempt or completion claim
 
 Current default policy is intentionally strict:
 
@@ -338,11 +340,14 @@ Current default policy is intentionally strict:
 - `require_head_sha_match: true`
 - `require_exact_branch_match: true`
 - `allow_commit_association_match: true`
+- `allow_non_head_commit_association_match: false`
 - `escalate_on_ambiguous_match: true`
 - `require_run_linkage_for_multiple_attempts: true`
 - `require_run_linkage_for_commit_association: true`
 
 Task linkage in the PR title or body is still recorded for auditability, but it is weaker than run linkage. Branch reuse and reruns mean `task exists in this PR somewhere` is not strong enough proof for the current run.
+
+By default, a PR where the current commit merely appears somewhere in history is not accepted as proof for the current run if the PR head no longer matches the expected commit. Harness records that candidate and why it was rejected, then continues to create-or-escalate rather than accepting stale history as present truth.
 
 Harness run linkage uses explicit PR markers for:
 
