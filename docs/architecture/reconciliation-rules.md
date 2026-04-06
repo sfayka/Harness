@@ -309,10 +309,12 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 8. When the task has multiple execution attempts, or when a candidate only matches through commit association, require explicit run linkage to the current attempt rather than relying on task linkage alone.
 9. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
 10. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-11. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, and validate the created PR against current-run policy.
-12. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
+11. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
+12. If PR creation fails, the created PR cannot be revalidated from persisted state, or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
+
+The synchronous create response is not sufficient proof on its own. Harness only treats a newly created PR as valid after a read-after-write fetch returns a persisted PR record that still satisfies current-run validation.
 
 ### Candidate Validation Policy
 
