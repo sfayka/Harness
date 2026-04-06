@@ -24,7 +24,7 @@ Harness also rejects executor-side contract violations mechanically. Delegated c
 
 Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
 
-Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
+Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution` and `missing_commit_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
 
 If recovery succeeds, the task can proceed to canonical reevaluation. If recovery fails or is blocked, Harness escalates explicitly instead of silently accepting the task as done. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context, reruns or branch reuse require explicit task/run linkage rather than branch or task-name matching alone, a newly created PR is only trusted after Harness reads back the persisted GitHub record and revalidates it, and a missing commit SHA may be recovered from the current branch head before the handler gives up.
 
@@ -38,8 +38,9 @@ Governed reconciliation (current scope):
 - Proven success-path: KNO-175
   → recovery succeeds → PR attached → reevaluation → `completed`
 
-- Current implemented class:
+- Current implemented classes:
   → missing_pr_after_execution
+  → missing_commit_after_execution
 
 - Principle:
   → Harness spends automation before operator attention
@@ -51,7 +52,7 @@ The repository now includes proof records for the `missing_pr_after_execution` r
 - [`docs/demo/kno-174-missing-pr-after-execution/README.md`](docs/demo/kno-174-missing-pr-after-execution/README.md): governed failure-path proof. This shows safe escalation when recovery is blocked by external GitHub limitations and the task lands in `in_review` with structured reconciliation evidence.
 - [`docs/demo/kno-175-missing-pr-success/README.md`](docs/demo/kno-175-missing-pr-success/README.md): success-path proof. This shows Harness creating and attaching the missing PR, then completing canonical reevaluation to `completed` without operator intervention.
 
-These proofs are specific to `missing_pr_after_execution`. They do not claim that every reconciliation class is already automated or proven.
+These proofs are specific to `missing_pr_after_execution`. They do not claim that every reconciliation class is already automated or proven. `missing_commit_after_execution` is implemented as a bounded reconciliation class, but it is not part of this proof set yet.
 
 ## Planned Capabilities
 

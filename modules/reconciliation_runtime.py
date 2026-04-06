@@ -19,6 +19,7 @@ class ReconciliationFailureType(StrEnum):
     """Failure classes that may invoke a reconciliation handler."""
 
     MISSING_PR_AFTER_EXECUTION = "missing_pr_after_execution"
+    MISSING_COMMIT_AFTER_EXECUTION = "missing_commit_after_execution"
 
 
 class ReconciliationAttemptStatus(StrEnum):
@@ -222,14 +223,24 @@ def task_has_valid_current_run_pull_request_artifact(
 ) -> bool:
     """Return whether the task already carries a PR artifact that proves the current run."""
 
+    return _current_run_pull_request_artifact(task_envelope, external_facts=external_facts) is not None
+
+
+def _current_run_pull_request_artifact(
+    task_envelope: TaskEnvelope,
+    *,
+    external_facts: Any = None,
+) -> dict[str, Any] | None:
+    """Return the verified current-run PR artifact when one is already attached."""
+
     artifacts = ((task_envelope.get("artifacts") or {}).get("items") or [])
     if not isinstance(artifacts, list):
-        return False
+        return None
 
     try:
         code_context = resolve_code_context(task_envelope, external_facts=external_facts)
     except ReconciliationRuntimeError:
-        return False
+        return None
 
     for artifact in artifacts:
         if not isinstance(artifact, dict):
@@ -272,6 +283,54 @@ def task_has_valid_current_run_pull_request_artifact(
         state = _normalize_sha(metadata.get("pull_request_state"))
         if state is not None and state.strip().lower() != "open":
             continue
+
+        return artifact
+
+    return None
+
+
+def task_has_valid_current_run_commit_artifact(
+    task_envelope: TaskEnvelope,
+    *,
+    external_facts: Any = None,
+) -> bool:
+    """Return whether the task already carries a commit artifact that proves the current run."""
+
+    artifacts = ((task_envelope.get("artifacts") or {}).get("items") or [])
+    if not isinstance(artifacts, list):
+        return False
+
+    try:
+        code_context = resolve_code_context(task_envelope, external_facts=external_facts)
+    except ReconciliationRuntimeError:
+        return False
+    if not code_context.commit_sha:
+        return False
+
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        if artifact.get("type") != "commit":
+            continue
+        if str(artifact.get("verification_status") or "").strip().lower() != "verified":
+            continue
+
+        repository = _repository_from_artifact(artifact)
+        if repository is None:
+            continue
+        _, owner, name = repository
+        if owner != code_context.repository_owner or name != code_context.repository_name:
+            continue
+
+        commit_sha = _normalize_sha(artifact.get("commit_sha"))
+        if commit_sha != code_context.commit_sha:
+            continue
+
+        branch = artifact.get("branch")
+        if isinstance(branch, dict):
+            branch_name = _normalize_sha(branch.get("name"))
+            if branch_name is not None and branch_name != code_context.branch_name:
+                continue
 
         return True
 
@@ -523,7 +582,7 @@ def _code_context_candidates(
         if context is None:
             continue
         if context.repository_host != "github.com":
-            raise ReconciliationRuntimeError("missing_pr_after_execution currently supports github.com repositories only")
+            raise ReconciliationRuntimeError("reconciliation handlers currently support github.com repositories only")
         source_contexts[source_name] = context
     return source_contexts
 
@@ -536,7 +595,7 @@ def _resolved_code_context(
     source_contexts = _code_context_candidates(task_envelope, external_facts=external_facts)
     if not source_contexts:
         raise ReconciliationRuntimeError(
-            "Unable to resolve repository, branch, and commit context for missing_pr_after_execution reconciliation"
+            "Unable to resolve repository, branch, and commit context for reconciliation"
         )
 
     conflicts = _code_context_conflicts(source_contexts)
@@ -821,13 +880,70 @@ def _pull_request_artifact(
     }
 
 
-def _attach_pull_request_artifact(
+def _commit_artifact(
+    *,
+    task_envelope: TaskEnvelope,
+    code_context: ReconciliationCodeContext,
+    captured_at: str,
+    pull_request_artifact: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    pull_request_url = None
+    pull_request_number = None
+    if isinstance(pull_request_artifact, dict):
+        pull_request_url = _normalize_sha(pull_request_artifact.get("location"))
+        raw_pull_request_number = pull_request_artifact.get("pull_request_number")
+        if isinstance(raw_pull_request_number, int):
+            pull_request_number = raw_pull_request_number
+
+    return {
+        "id": f"artifact-commit-{code_context.commit_sha[:12]}",
+        "type": "commit",
+        "title": None,
+        "description": "Attached by Harness reconciliation after execution completed without a commit artifact.",
+        "location": (
+            f"https://github.com/{code_context.repository_owner}/{code_context.repository_name}/commit/"
+            f"{code_context.commit_sha}"
+        ),
+        "content_type": None,
+        "external_id": f"commit-{code_context.commit_sha}",
+        "commit_sha": code_context.commit_sha,
+        "pull_request_number": pull_request_number,
+        "review_state": None,
+        "provenance": {
+            "source_system": "github",
+            "source_type": "api",
+            "source_id": f"commit/{code_context.commit_sha}",
+            "captured_by": "reconciliation_handler",
+        },
+        "verification_status": "verified",
+        "repository": {
+            "host": code_context.repository_host,
+            "owner": code_context.repository_owner,
+            "name": code_context.repository_name,
+            "external_id": None,
+        },
+        "branch": {
+            "name": code_context.branch_name,
+            "base_branch": code_context.base_branch,
+            "head_commit_sha": code_context.commit_sha,
+        },
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": captured_at,
+        "metadata": {
+            "attached_by": "missing_commit_after_execution",
+            "linked_pull_request_url": pull_request_url,
+        },
+    }
+
+
+def _ensure_pull_request_artifact(
     task_envelope: TaskEnvelope,
     *,
     code_context: ReconciliationCodeContext,
     pull_request: GitHubPullRequestRecord,
     captured_at: str,
-) -> TaskEnvelope:
+) -> tuple[TaskEnvelope, str]:
     updated = deepcopy(task_envelope)
     artifacts = updated.setdefault("artifacts", {}).setdefault("items", [])
     if not isinstance(artifacts, list):
@@ -839,16 +955,75 @@ def _attach_pull_request_artifact(
         if artifact.get("type") != "pull_request":
             continue
         if artifact.get("pull_request_number") == pull_request.number or artifact.get("location") == pull_request.url:
-            return updated
+            return updated, str(artifact.get("id") or f"artifact-pr-{pull_request.number}")
 
-    artifacts.append(
-        _pull_request_artifact(
-            task_envelope=updated,
-            code_context=code_context,
-            pull_request=pull_request,
-            captured_at=captured_at,
-        )
+    artifact = _pull_request_artifact(
+        task_envelope=updated,
+        code_context=code_context,
+        pull_request=pull_request,
+        captured_at=captured_at,
     )
+    artifacts.append(artifact)
+    return updated, str(artifact["id"])
+
+
+def _ensure_commit_artifact(
+    task_envelope: TaskEnvelope,
+    *,
+    code_context: ReconciliationCodeContext,
+    captured_at: str,
+    pull_request_artifact: dict[str, Any] | None = None,
+) -> tuple[TaskEnvelope, str]:
+    updated = deepcopy(task_envelope)
+    artifacts = updated.setdefault("artifacts", {}).setdefault("items", [])
+    if not isinstance(artifacts, list):
+        raise ReconciliationRuntimeError("task.artifacts.items must be a list")
+
+    expected_location = (
+        f"https://github.com/{code_context.repository_owner}/{code_context.repository_name}/commit/{code_context.commit_sha}"
+    )
+    for artifact in artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        if artifact.get("type") != "commit":
+            continue
+        if _normalize_sha(artifact.get("commit_sha")) == code_context.commit_sha or artifact.get("location") == expected_location:
+            return updated, str(artifact.get("id") or f"artifact-commit-{code_context.commit_sha[:12]}")
+
+    artifact = _commit_artifact(
+        task_envelope=updated,
+        code_context=code_context,
+        captured_at=captured_at,
+        pull_request_artifact=pull_request_artifact,
+    )
+    artifacts.append(artifact)
+    return updated, str(artifact["id"])
+
+
+def _mark_reconciled_artifact_validated(
+    task_envelope: TaskEnvelope,
+    *,
+    artifact_id: str,
+    artifact_type: str,
+) -> TaskEnvelope:
+    updated = deepcopy(task_envelope)
+    completion_evidence = ((updated.get("artifacts") or {}).get("completion_evidence") or {})
+    if not isinstance(completion_evidence, dict):
+        return updated
+
+    required_types = completion_evidence.get("required_artifact_types")
+    if not isinstance(required_types, list) or artifact_type not in required_types:
+        return updated
+
+    validated_artifact_ids = completion_evidence.get("validated_artifact_ids")
+    if not isinstance(validated_artifact_ids, list):
+        validated_artifact_ids = []
+        completion_evidence["validated_artifact_ids"] = validated_artifact_ids
+    if artifact_id not in validated_artifact_ids:
+        validated_artifact_ids.append(artifact_id)
+    if not completion_evidence.get("validation_method"):
+        completion_evidence["validation_method"] = "external_reconciliation"
+    updated["artifacts"]["completion_evidence"] = completion_evidence
     return updated
 
 
@@ -1362,11 +1537,16 @@ class MissingPrAfterExecutionHandler:
             attempt["status"] = ReconciliationAttemptStatus.RESOLVED.value
             attempt["completed_at"] = completed_at
 
-            updated_task = _attach_pull_request_artifact(
+            updated_task, artifact_id = _ensure_pull_request_artifact(
                 context.task_envelope,
                 code_context=code_context,
                 pull_request=pull_request,
                 captured_at=completed_at,
+            )
+            updated_task = _mark_reconciled_artifact_validated(
+                updated_task,
+                artifact_id=artifact_id,
+                artifact_type="pull_request",
             )
             updated_task = _record_reconciliation_attempt(
                 updated_task,
@@ -1382,6 +1562,199 @@ class MissingPrAfterExecutionHandler:
                 status=ReconciliationAttemptStatus.RESOLVED,
                 attempt=attempt,
                 pull_request=pull_request,
+                error=None,
+            )
+        except Exception as error_message:
+            if isinstance(error_message, ReconciliationRuntimeError):
+                failure_disposition = error_message.disposition
+            else:
+                failure_disposition = ReconciliationFailureDisposition.REVIEW_REQUIRED
+            target_status = "blocked" if failure_disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE else "in_review"
+            requires_review = target_status == "in_review"
+            completed_at = _iso_now()
+            attempt["status"] = ReconciliationAttemptStatus.FAILED.value
+            attempt["completed_at"] = completed_at
+            attempt["details"]["error"] = str(error_message)
+            attempt["details"]["error_disposition"] = failure_disposition.value
+            if attempt["details"]["final_decision"]["result"] is None:
+                attempt["details"]["final_decision"] = {
+                    "result": "blocked_retryable_failure" if not requires_review else "review_required_failure",
+                    "reason": "provider_platform_failure" if not requires_review else "reconciliation_runtime_error",
+                }
+            updated_task = _record_reconciliation_attempt(
+                context.task_envelope,
+                attempt=attempt,
+                status=ReconciliationAttemptStatus.FAILED,
+                failure_type=context.failure_type,
+                completed_at=completed_at,
+                pull_request_url=None,
+                error_message=str(error_message),
+            )
+            return ReconciliationHandlerResult(
+                task_envelope=updated_task,
+                status=ReconciliationAttemptStatus.FAILED,
+                attempt=attempt,
+                pull_request=None,
+                error=str(error_message),
+                failure_disposition=failure_disposition,
+                target_status=target_status,
+                requires_review=requires_review,
+            )
+
+
+class MissingCommitAfterExecutionHandler:
+    """Reconcile a successful execution attempt that lacks a commit artifact."""
+
+    def __init__(
+        self,
+        *,
+        github: GitHubPullRequestGateway,
+    ) -> None:
+        self.github = github
+
+    def handle(self, context: ReconciliationRuntimeContext, *, started_at: str) -> ReconciliationHandlerResult:
+        attempt_id = _reconciliation_attempt_id(context.task_envelope)
+        code_context = context.code_context
+        completed_at = started_at
+        attempt = {
+            "attempt_id": attempt_id,
+            "failure_type": context.failure_type.value,
+            "handler_key": context.failure_type.value,
+            "status": ReconciliationAttemptStatus.PENDING.value,
+            "started_at": started_at,
+            "completed_at": None,
+            "details": {
+                "repository": {
+                    "host": code_context.repository_host,
+                    "owner": code_context.repository_owner,
+                    "name": code_context.repository_name,
+                },
+                "context_resolution": {
+                    "selected_source": context.code_context_source,
+                    "sources": deepcopy(context.code_context_sources),
+                    "conflicts": [],
+                },
+                "branch_name": code_context.branch_name,
+                "base_branch": code_context.base_branch,
+                "commit_sha": code_context.commit_sha,
+                "branch_exists": None,
+                "branch_head_commit_sha": None,
+                "commit_exists": None,
+                "pull_request_proof": {
+                    "found": False,
+                    "artifact_id": None,
+                    "url": None,
+                    "number": None,
+                    "verification_status": None,
+                },
+                "created_commit_artifact": False,
+                "error_disposition": None,
+                "final_decision": {
+                    "result": None,
+                    "reason": None,
+                },
+                "error": None,
+            },
+        }
+
+        try:
+            branch_exists = self.github.branch_exists(
+                owner=code_context.repository_owner,
+                repo=code_context.repository_name,
+                branch_name=code_context.branch_name,
+            )
+            attempt["details"]["branch_exists"] = branch_exists
+            if not branch_exists:
+                raise ReconciliationRuntimeError(
+                    f"GitHub branch {code_context.branch_name!r} was not found in "
+                    f"{code_context.repository_owner}/{code_context.repository_name}"
+                )
+
+            if not code_context.commit_sha.strip():
+                branch_head_commit_sha = self.github.branch_head_commit_sha(
+                    owner=code_context.repository_owner,
+                    repo=code_context.repository_name,
+                    branch_name=code_context.branch_name,
+                )
+                attempt["details"]["branch_head_commit_sha"] = branch_head_commit_sha
+                if not branch_head_commit_sha:
+                    raise ReconciliationRuntimeError(
+                        "Commit SHA is required for missing_commit_after_execution reconciliation and "
+                        "could not be resolved from the branch head"
+                    )
+                code_context = ReconciliationCodeContext(
+                    repository_host=code_context.repository_host,
+                    repository_owner=code_context.repository_owner,
+                    repository_name=code_context.repository_name,
+                    branch_name=code_context.branch_name,
+                    base_branch=code_context.base_branch,
+                    commit_sha=branch_head_commit_sha,
+                )
+                attempt["details"]["commit_sha"] = branch_head_commit_sha
+
+            commit_exists = self.github.commit_exists(
+                owner=code_context.repository_owner,
+                repo=code_context.repository_name,
+                commit_sha=code_context.commit_sha,
+            )
+            attempt["details"]["commit_exists"] = commit_exists
+            if not commit_exists:
+                raise ReconciliationRuntimeError(
+                    f"GitHub commit {code_context.commit_sha!r} was not found in "
+                    f"{code_context.repository_owner}/{code_context.repository_name}"
+                )
+
+            pull_request_artifact = _current_run_pull_request_artifact(context.task_envelope)
+            if pull_request_artifact is None:
+                attempt["details"]["final_decision"] = {
+                    "result": "missing_current_run_pull_request_proof",
+                    "reason": "verified_pull_request_artifact_required",
+                }
+                raise ReconciliationRuntimeError(
+                    "A verified current-run pull request artifact is required for missing_commit_after_execution reconciliation"
+                )
+
+            raw_number = pull_request_artifact.get("pull_request_number")
+            attempt["details"]["pull_request_proof"] = {
+                "found": True,
+                "artifact_id": pull_request_artifact.get("id"),
+                "url": pull_request_artifact.get("location"),
+                "number": raw_number if isinstance(raw_number, int) else None,
+                "verification_status": pull_request_artifact.get("verification_status"),
+            }
+
+            updated_task, artifact_id = _ensure_commit_artifact(
+                context.task_envelope,
+                code_context=code_context,
+                captured_at=completed_at,
+                pull_request_artifact=pull_request_artifact,
+            )
+            updated_task = _mark_reconciled_artifact_validated(
+                updated_task,
+                artifact_id=artifact_id,
+                artifact_type="commit",
+            )
+            attempt["details"]["created_commit_artifact"] = True
+            attempt["details"]["final_decision"] = {
+                "result": "attached_commit_artifact",
+                "reason": "verified_pull_request_proof_and_commit_resolved",
+            }
+            attempt["status"] = ReconciliationAttemptStatus.RESOLVED.value
+            attempt["completed_at"] = completed_at
+            updated_task = _record_reconciliation_attempt(
+                updated_task,
+                attempt=attempt,
+                status=ReconciliationAttemptStatus.RESOLVED,
+                failure_type=context.failure_type,
+                completed_at=completed_at,
+                pull_request_url=_normalize_sha(pull_request_artifact.get("location")),
+                error_message=None,
+            )
+            return ReconciliationHandlerResult(
+                task_envelope=updated_task,
+                status=ReconciliationAttemptStatus.RESOLVED,
+                attempt=attempt,
+                pull_request=None,
                 error=None,
             )
         except Exception as error_message:
@@ -1679,9 +2052,14 @@ def build_default_reconciliation_registry() -> ReconciliationHandlerRegistry:
     """Build the default operational reconciliation handler registry."""
 
     registry = ReconciliationHandlerRegistry()
+    github = GitHubRestPullRequestGateway()
     registry.register(
         ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
-        MissingPrAfterExecutionHandler(github=GitHubRestPullRequestGateway()),
+        MissingPrAfterExecutionHandler(github=github),
+    )
+    registry.register(
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+        MissingCommitAfterExecutionHandler(github=github),
     )
     return registry
 
@@ -1696,6 +2074,7 @@ __all__ = [
     "GitHubPullRequestGateway",
     "GitHubPullRequestRecord",
     "GitHubRestPullRequestGateway",
+    "MissingCommitAfterExecutionHandler",
     "MissingPrMatchPolicy",
     "MissingPrAfterExecutionHandler",
     "ReconciliationAttemptStatus",
@@ -1711,4 +2090,6 @@ __all__ = [
     "ensure_reconciliation_state",
     "resolve_code_context",
     "task_has_pull_request_artifact",
+    "task_has_valid_current_run_commit_artifact",
+    "task_has_valid_current_run_pull_request_artifact",
 ]
