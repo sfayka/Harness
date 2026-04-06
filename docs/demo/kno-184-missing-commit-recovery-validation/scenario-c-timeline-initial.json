@@ -1,0 +1,26 @@
+{
+  "current_status": "executing",
+  "event_count": 1,
+  "task_id": "task-kno-184-scenario-c",
+  "timeline": [
+    {
+      "details": {
+        "origin": {
+          "ingress_id": null,
+          "ingress_name": null,
+          "requested_by": null,
+          "source_id": "KNO-184",
+          "source_system": "linear",
+          "source_type": "ingress_request"
+        },
+        "status": "executing",
+        "title": "KNO-184 scenario C validation"
+      },
+      "event_id": "task-kno-184-scenario-c:created",
+      "event_type": "task_created",
+      "occurred_at": "2026-04-06T00:00:00Z",
+      "source": "linear",
+      "summary": "Task created"
+    }
+  ]
+}

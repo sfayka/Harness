@@ -1,0 +1,112 @@
+{
+  "task": {
+    "assigned_executor": {
+      "assignment_reason": "Validate invalid execution attempt boundary.",
+      "executor_id": "executor-kno-184-scenario-c",
+      "executor_type": "codex"
+    },
+    "coordination_summary": {
+      "linear": null
+    },
+    "current_status": "executing",
+    "description": "Validate invalid execution attempt boundary remains enforced.",
+    "evaluation_summary": {
+      "count": 0,
+      "history": [],
+      "latest_action": null,
+      "latest_recorded_at": null,
+      "latest_target_status": null
+    },
+    "evidence_summary": {
+      "artifact_count": 0,
+      "artifact_type_counts": {},
+      "completion_evidence": {
+        "policy": "deferred",
+        "required_artifact_types": [],
+        "status": "deferred",
+        "validated_artifact_ids": [],
+        "validated_at": null,
+        "validation_method": "deferred",
+        "validator": null
+      },
+      "validated_artifact_count": 0,
+      "verification_status_counts": {}
+    },
+    "execution_summary": {
+      "attempt_count": 0,
+      "failure_state": "clear",
+      "invalid_attempt_count": 0,
+      "last_failure_type": "none",
+      "latest_artifact_references": [],
+      "latest_attempt": null,
+      "latest_attempt_validation": null,
+      "latest_dispatch_origin": null,
+      "latest_status": null,
+      "retry_count": 0,
+      "retry_eligible": false,
+      "total_attempts": 0
+    },
+    "extensions": {},
+    "failure_summary": {
+      "failure_source": "none",
+      "failure_type": "none",
+      "recoverable": false,
+      "state": "clear",
+      "terminal": false
+    },
+    "lifecycle_history": [],
+    "objective_summary": "Validate invalid execution attempt boundary remains enforced.",
+    "origin": {
+      "ingress_id": null,
+      "ingress_name": null,
+      "requested_by": null,
+      "source_id": "KNO-184",
+      "source_system": "linear",
+      "source_type": "ingress_request"
+    },
+    "reconciliation_summary": null,
+    "relationships": {
+      "child_task_ids": [],
+      "dependencies": [],
+      "parent_task_id": null
+    },
+    "review_summary": {
+      "decision_count": 0,
+      "decisions": [],
+      "latest_decision": null,
+      "latest_request": null,
+      "request_count": 0,
+      "requests": [],
+      "status": "none"
+    },
+    "task_id": "task-kno-184-scenario-c",
+    "timeline": [
+      {
+        "details": {
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "KNO-184",
+            "source_system": "linear",
+            "source_type": "ingress_request"
+          },
+          "status": "executing",
+          "title": "KNO-184 scenario C validation"
+        },
+        "event_id": "task-kno-184-scenario-c:created",
+        "event_type": "task_created",
+        "occurred_at": "2026-04-06T00:00:00Z",
+        "source": "linear",
+        "summary": "Task created"
+      }
+    ],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-04-06T00:00:00Z",
+      "updated_at": "2026-04-06T00:00:00Z"
+    },
+    "title": "KNO-184 scenario C validation",
+    "verification_summary": null
+  }
+}
