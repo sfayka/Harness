@@ -59,6 +59,10 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
     def test_translate_openclaw_submission_payload_allows_planned_handoff_status(self) -> None:
         payload = self._payload()
         payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["unresolved_conditions"] = []
 
         translated = translate_openclaw_submission_payload(payload)
 
@@ -71,6 +75,32 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
 
             with self.assertRaises(OpenClawIngressInputError):
                 translate_openclaw_submission_payload(payload)
+
+    def test_translate_openclaw_submission_payload_rejects_planned_handoff_without_explicit_objective_contract(self) -> None:
+        payload = self._payload()
+        payload["task"]["status"] = "planned"
+
+        with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+        payload = self._payload()
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "unspecified"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+
+        with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+    def test_translate_openclaw_submission_payload_rejects_planned_handoff_with_unresolved_conditions(self) -> None:
+        payload = self._payload()
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+
+        with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
 
     def test_translate_openclaw_submission_payload_rejects_completion_claim_fields(self) -> None:
         payload = self._payload()

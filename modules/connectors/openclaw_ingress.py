@@ -90,6 +90,31 @@ def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
         raise OpenClawIngressInputError(
             "OpenClaw ingress cannot submit executor runtime_facts; execution telemetry must come from execution or reevaluation paths"
         )
+    if task_status == "planned":
+        if _optional_string(task.get("objective_summary"), field_name="task.objective_summary") is None:
+            raise OpenClawIngressInputError(
+                "OpenClaw ingress planned handoff requires task.objective_summary"
+            )
+        deliverable_type = _optional_string(
+            task.get("objective_deliverable_type"),
+            field_name="task.objective_deliverable_type",
+        )
+        if deliverable_type is None or deliverable_type == "unspecified":
+            raise OpenClawIngressInputError(
+                "OpenClaw ingress planned handoff requires a non-default task.objective_deliverable_type"
+            )
+        if _optional_string(task.get("objective_success_signal"), field_name="task.objective_success_signal") is None:
+            raise OpenClawIngressInputError(
+                "OpenClaw ingress planned handoff requires task.objective_success_signal"
+            )
+        unresolved_conditions = _optional_non_empty_string_list(
+            payload.get("unresolved_conditions"),
+            field_name="unresolved_conditions",
+        )
+        if unresolved_conditions:
+            raise OpenClawIngressInputError(
+                "OpenClaw ingress planned handoff cannot include unresolved_conditions; unresolved ambiguity must stay intake_ready or blocked"
+            )
 
 
 def _build_openclaw_context(payload: Mapping[str, Any]) -> IngressSourceContext:
