@@ -759,6 +759,26 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
+    def test_service_manual_ingress_converts_unresolved_conditions_into_clarification_block(self) -> None:
+        payload_in = _manual_ingress_payload(task_id="task-manual-clarification-1")
+        payload_in["task_status"] = "dispatch_ready"
+        payload_in["unresolved_conditions"] = ["Need target repository before dispatch can begin."]
+
+        status, payload = self.service.submit_manual_ingress(payload_in)
+        task_id = payload["task_envelope"]["id"]
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "blocked")
+        self.assertEqual(payload["task_envelope"]["clarification"]["status"], "required")
+        self.assertEqual(payload["task_envelope"]["clarification"]["resume_target_status"], "dispatch_ready")
+        self.assertFalse(payload["automatic_dispatch"]["attempted"])
+        self.assertFalse(payload["automatic_dispatch"]["dispatchable"])
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "blocked")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["status"], "required")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["resume_target_status"], "dispatch_ready")
+
     def test_service_can_submit_openclaw_ingress_payload_and_persist_openclaw_provenance(self) -> None:
         payload_in = _openclaw_ingress_payload()
         payload_in["unresolved_conditions"] = ["Need repository confirmation before planning can continue."]
@@ -779,6 +799,56 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["current_status"], "blocked")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_service_submit_blocks_requested_dispatch_ready_task_when_unresolved_conditions_exist(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-submit-clarification-1",
+                "title": "Task with unresolved clarification",
+                "description": "Direct submit should not preserve dispatch-ready when information is missing.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-submit-clarification-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Task is safe to route only after repository clarification.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+
+        status, payload = self.service.submit(
+            {
+                "request": {
+                    "task_envelope": task_envelope,
+                    "task_status": "dispatch_ready",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-clarification-1",
+                        "assignment_reason": "Clarification gating regression test.",
+                    },
+                    "unresolved_conditions": ["Need the target repository before dispatch."],
+                }
+            }
+        )
+        timeline_status, timeline_payload = self.service.get_task_timeline("task-submit-clarification-1")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "blocked")
+        self.assertEqual(payload["task_envelope"]["clarification"]["status"], "required")
+        self.assertEqual(payload["task_envelope"]["clarification"]["resume_target_status"], "dispatch_ready")
+        self.assertFalse(payload["automatic_dispatch"]["attempted"])
+        self.assertFalse(payload["automatic_dispatch"]["dispatchable"])
+        self.assertIn("clarification unresolved", payload["automatic_dispatch"]["reason"])
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(
+            any(event["event_type"] == "clarification_updated" for event in timeline_payload["timeline"])
+        )
 
     def test_service_openclaw_ingress_rejects_completion_shaped_handoff_without_persisting_task(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-completion-shaped-1")

@@ -98,6 +98,7 @@ _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 _AUTO_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready"})
 _MANUAL_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready", "assigned", "blocked"})
+_CLARIFICATION_RESUME_TARGET_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "executing"})
 _DISPATCH_DEPENDENCY_STATUS_ORDER = {
     "planned": 0,
     "dispatch_ready": 1,
@@ -310,6 +311,132 @@ def _apply_submission_task_overlays(
     return merged_task
 
 
+def _infer_clarification_need_type(condition: str) -> str:
+    normalized = condition.strip().lower()
+    if "ambig" in normalized or "unclear" in normalized or "multiple" in normalized or "conflict" in normalized:
+        return "ambiguous"
+    if "missing" in normalized or "unknown" in normalized or "not provided" in normalized:
+        return "missing"
+    return "incomplete"
+
+
+def _infer_clarification_blocking_reason(unresolved_conditions: tuple[str, ...]) -> str:
+    if any(_infer_clarification_need_type(condition) == "ambiguous" for condition in unresolved_conditions):
+        return "ambiguous_information"
+    return "missing_information"
+
+
+def _clarification_transition_actor(from_status: str) -> str:
+    if from_status in {"intake_ready", "executing", "blocked"}:
+        return "clarification"
+    if from_status == "assigned":
+        return "dispatcher"
+    if from_status == "reconciling":
+        return "reconciliation"
+    return "verification"
+
+
+def _clarification_resume_target(
+    task_envelope: dict[str, Any],
+    *,
+    preferred_status: str | None,
+) -> str | None:
+    if preferred_status in _CLARIFICATION_RESUME_TARGET_STATUSES:
+        return preferred_status
+    existing = task_envelope.get("clarification")
+    if isinstance(existing, dict):
+        existing_resume_target = existing.get("resume_target_status")
+        if isinstance(existing_resume_target, str) and existing_resume_target in _CLARIFICATION_RESUME_TARGET_STATUSES:
+            return existing_resume_target
+    current_status = str(task_envelope.get("status") or "")
+    if current_status in _CLARIFICATION_RESUME_TARGET_STATUSES:
+        return current_status
+    return "intake_ready"
+
+
+def _with_submission_clarification(
+    task_envelope: dict[str, Any],
+    *,
+    unresolved_conditions: tuple[str, ...],
+    preferred_resume_target_status: str | None,
+    requested_by: str,
+) -> dict[str, Any]:
+    if not unresolved_conditions:
+        return task_envelope
+
+    updated_task = deepcopy(task_envelope)
+    blocking_reason = _infer_clarification_blocking_reason(unresolved_conditions)
+    requested_at = _iso_now()
+    resume_target_status = _clarification_resume_target(
+        updated_task,
+        preferred_status=preferred_resume_target_status,
+    )
+    current_status = str(updated_task.get("status") or "")
+    if current_status != "blocked":
+        transition = apply_task_transition(
+            updated_task,
+            to_status="blocked",
+            actor=_clarification_transition_actor(current_status),
+            reason=f"Clarification is required before work can continue: {unresolved_conditions[0]}",
+            facts={"reason_provided": True},
+        )
+        updated_task = transition.task_envelope
+        requested_at = transition.changed_at
+    else:
+        updated_task["timestamps"]["updated_at"] = requested_at
+
+    existing_clarification = updated_task.get("clarification")
+    clarification = dict(existing_clarification) if isinstance(existing_clarification, dict) else {}
+    existing_required_inputs = [
+        deepcopy(item)
+        for item in clarification.get("required_inputs", [])
+        if isinstance(item, dict)
+    ]
+    existing_descriptions = {
+        str(item.get("description") or "").strip()
+        for item in existing_required_inputs
+        if str(item.get("description") or "").strip()
+    }
+    next_index = len(existing_required_inputs)
+    for condition in unresolved_conditions:
+        if condition in existing_descriptions:
+            continue
+        next_index += 1
+        existing_required_inputs.append(
+            {
+                "id": f"clarification-input-{next_index}",
+                "label": f"Required clarification {next_index}",
+                "description": condition,
+                "required": True,
+                "need_type": _infer_clarification_need_type(condition),
+                "status": "open",
+                "value_summary": None,
+            }
+        )
+        existing_descriptions.add(condition)
+
+    clarification["status"] = "required"
+    clarification["blocking_reason"] = blocking_reason
+    clarification["resume_target_status"] = resume_target_status
+    clarification["required_inputs"] = existing_required_inputs
+    clarification["questions"] = [
+        deepcopy(item)
+        for item in clarification.get("questions", [])
+        if isinstance(item, dict)
+    ]
+    clarification["responses"] = [
+        deepcopy(item)
+        for item in clarification.get("responses", [])
+        if isinstance(item, dict)
+    ]
+    clarification["requested_at"] = clarification.get("requested_at") or requested_at
+    clarification["resolved_at"] = None
+    clarification["requested_by"] = clarification.get("requested_by") or requested_by
+    clarification["resolution_summary"] = None
+    updated_task["clarification"] = clarification
+    return updated_task
+
+
 def _with_linear_coordination(
     task_envelope: dict[str, Any],
     *,
@@ -345,9 +472,20 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     """Parse a canonical HTTP evaluation request into the public evaluator input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
+    unresolved_conditions = _optional_string_tuple(
+        request_payload.get("unresolved_conditions"),
+        field_name="unresolved_conditions",
+    )
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
+    requested_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
+    task_envelope = _with_submission_clarification(
+        task_envelope,
+        unresolved_conditions=unresolved_conditions,
+        preferred_resume_target_status=requested_status,
+        requested_by="submission",
+    )
 
     external_facts = _parse_external_facts(
         _optional_mapping(request_payload.get("external_facts"), field_name="external_facts")
@@ -365,10 +503,7 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
         claimed_completion=bool(request_payload.get("claimed_completion", False)),
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
-        unresolved_conditions=_optional_string_tuple(
-            request_payload.get("unresolved_conditions"),
-            field_name="unresolved_conditions",
-        ),
+        unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
         review_request=_parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request")),
         review_decision=_parse_review_decision(_optional_mapping(request_payload.get("review_decision"), field_name="review_decision")),
@@ -670,12 +805,16 @@ def _dispatch_attempt_status(execution_events: tuple[dict[str, Any], ...]) -> st
 
 def _dispatch_policy_decision(task_envelope: dict[str, Any], *, store: HarnessStore) -> tuple[bool, str]:
     task_status = str(task_envelope.get("status") or "")
-    if task_status not in _AUTO_DISPATCHABLE_STATUSES:
-        return False, f"status={task_status} is not auto-dispatch eligible"
     if task_status in _TERMINAL_TASK_STATUSES:
         return False, f"status={task_status} is terminal"
-    if task_status in _DISPATCH_BLOCKED_STATUSES or task_status == "blocked":
+    if task_status == "blocked":
+        if _has_unresolved_clarification_for_dispatch(task_envelope):
+            return False, "status=blocked: clarification unresolved"
         return False, f"status={task_status} is blocked for dispatch"
+    if task_status in _DISPATCH_BLOCKED_STATUSES:
+        return False, f"status={task_status} is blocked for dispatch"
+    if task_status not in _AUTO_DISPATCHABLE_STATUSES:
+        return False, f"status={task_status} is not auto-dispatch eligible"
     dependency_block_reason = _dispatch_dependency_block_reason(task_envelope, store=store)
     if dependency_block_reason is not None:
         return False, dependency_block_reason
