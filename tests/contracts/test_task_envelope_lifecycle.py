@@ -246,6 +246,23 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
         self.assertEqual(result.task_envelope["timestamps"]["updated_at"], "2026-03-25T12:18:00Z")
         self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "reconciling")
 
+    def test_reconciling_can_transition_to_failed_for_terminal_reconciliation_failure(self) -> None:
+        task = _base_task()
+        task["status"] = "reconciling"
+
+        result = apply_task_transition(
+            task,
+            to_status="failed",
+            actor="reconciliation",
+            reason="Reconciliation proved the execution proof chain is terminally invalid.",
+            now="2026-03-25T12:19:00Z",
+            facts={"terminal_failure": True},
+        )
+
+        self.assertEqual(result.task_envelope["status"], "failed")
+        self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], "reconciling")
+        self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "failed")
+
     def test_rejects_completion_without_verification_preconditions(self) -> None:
         task = _base_task()
         task["status"] = "executing"

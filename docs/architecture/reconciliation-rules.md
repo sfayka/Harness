@@ -387,9 +387,12 @@ If reconciliation fails or is blocked:
 - Harness records the failed attempt and error details under `task.reconciliation`
 - the task does not silently remain `completed`
 - retryable provider or platform failures move the task to `blocked`
+- objective proof-chain contradictions move the task to `failed`
 - logical ambiguity, unsupported context, or other unresolved exceptions move the task to `in_review`
 
 `blocked` means progress stopped because the reconciliation environment or provider could not safely complete the repair yet, but no human judgment has been proven necessary.
+
+`failed` means reconciliation proved the execution outcome is terminally unusable. Examples include missing GitHub branches, commits that do not exist, or other objective contradictions that do not require operator interpretation.
 
 `in_review` means safe automation has stopped and human judgment is now required. This is different from `reconciling`, where system repair is still actively running.
 
@@ -456,6 +459,8 @@ Escalation outcomes for this class include:
 - commit SHA cannot be resolved from the current branch head
 - the resolved commit does not exist
 - the attached PR artifact does not actually prove the current run
+
+These are objective contradictions, not review-only ambiguities. By default they terminate this class into task status `failed` rather than `in_review`.
 
 Like other reconciliation handlers, `missing_commit_after_execution` does not authorize terminal success on its own. The task may only reach `completed` if canonical reevaluation accepts the resulting evidence.
 
