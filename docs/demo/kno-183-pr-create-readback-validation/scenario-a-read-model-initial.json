@@ -1,0 +1,151 @@
+{
+  "task": {
+    "assigned_executor": {
+      "assignment_reason": "Runtime coverage for reconciliation.",
+      "executor_id": "executor-1",
+      "executor_type": "codex"
+    },
+    "coordination_summary": {
+      "linear": null
+    },
+    "current_status": "executing",
+    "description": "Exercise post-execution PR reconciliation.",
+    "evaluation_summary": {
+      "count": 0,
+      "history": [],
+      "latest_action": null,
+      "latest_recorded_at": null,
+      "latest_target_status": null
+    },
+    "evidence_summary": {
+      "artifact_count": 1,
+      "artifact_type_counts": {
+        "commit": 1
+      },
+      "completion_evidence": {
+        "policy": "required",
+        "required_artifact_types": [
+          "commit"
+        ],
+        "status": "satisfied",
+        "validated_artifact_ids": [
+          "artifact-commit-1"
+        ],
+        "validated_at": "2026-04-04T12:01:30Z",
+        "validation_method": "external_reconciliation",
+        "validator": {
+          "captured_by": "github-sync",
+          "source_id": "verification-existing-1",
+          "source_system": "harness",
+          "source_type": "verification"
+        }
+      },
+      "validated_artifact_count": 1,
+      "verification_status_counts": {
+        "verified": 1
+      }
+    },
+    "execution_summary": {
+      "attempt_count": 0,
+      "failure_state": "clear",
+      "invalid_attempt_count": 0,
+      "last_failure_type": "none",
+      "latest_artifact_references": [],
+      "latest_attempt": null,
+      "latest_attempt_validation": null,
+      "latest_dispatch_origin": null,
+      "latest_status": null,
+      "retry_count": 0,
+      "retry_eligible": false,
+      "total_attempts": 0
+    },
+    "extensions": {},
+    "failure_summary": {
+      "failure_source": "none",
+      "failure_type": "none",
+      "recoverable": false,
+      "state": "clear",
+      "terminal": false
+    },
+    "lifecycle_history": [],
+    "objective_summary": "Exercise post-execution PR reconciliation.",
+    "origin": {
+      "ingress_id": null,
+      "ingress_name": null,
+      "requested_by": null,
+      "source_id": "req-task-kno-183-scenario-a",
+      "source_system": "openclaw",
+      "source_type": "ingress_request"
+    },
+    "reconciliation_summary": null,
+    "relationships": {
+      "child_task_ids": [],
+      "dependencies": [],
+      "parent_task_id": null
+    },
+    "review_summary": {
+      "decision_count": 0,
+      "decisions": [],
+      "latest_decision": null,
+      "latest_request": null,
+      "request_count": 0,
+      "requests": [],
+      "status": "none"
+    },
+    "task_id": "task-kno-183-scenario-a",
+    "timeline": [
+      {
+        "details": {
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-task-kno-183-scenario-a",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "status": "executing",
+          "title": "Reconcile missing pull request"
+        },
+        "event_id": "task-kno-183-scenario-a:created",
+        "event_type": "task_created",
+        "occurred_at": "2026-04-04T12:00:00Z",
+        "source": "openclaw",
+        "summary": "Task created"
+      },
+      {
+        "details": {
+          "artifact_id": "artifact-commit-1",
+          "branch": {
+            "base_branch": "main",
+            "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "name": "codex/e2e-test"
+          },
+          "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+          "pull_request_number": null,
+          "repository": {
+            "external_id": "repo-dryrun-1",
+            "host": "github.com",
+            "name": "HARNESS-DRYRUN",
+            "owner": "KnoxAnalytics"
+          },
+          "title": null,
+          "type": "commit",
+          "verification_status": "verified"
+        },
+        "event_id": "task-kno-183-scenario-a:artifact:artifact-commit-1",
+        "event_type": "artifact_captured",
+        "occurred_at": "2026-04-04T12:01:00Z",
+        "source": "github",
+        "summary": "Artifact captured: commit"
+      }
+    ],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-04-04T12:00:00Z",
+      "updated_at": "2026-04-04T12:00:00Z"
+    },
+    "title": "Reconcile missing pull request",
+    "verification_summary": null
+  }
+}
