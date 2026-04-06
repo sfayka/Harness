@@ -1,0 +1,637 @@
+{
+  "status": 200,
+  "response": {
+    "action": "no_op",
+    "target_status": null,
+    "task_envelope": {
+      "id": "task-kno-181-scenario-b",
+      "title": "KNO-181 task-kno-181-scenario-b",
+      "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+      "origin": {
+        "source_system": "openclaw",
+        "source_type": "ingress_request",
+        "source_id": "req-happy-overlay-1",
+        "ingress_id": null,
+        "ingress_name": null,
+        "requested_by": null
+      },
+      "status": "intake_ready",
+      "timestamps": {
+        "created_at": "2026-03-31T14:30:00Z",
+        "updated_at": "2026-03-31T14:30:00Z",
+        "completed_at": null
+      },
+      "status_history": [],
+      "objective": {
+        "summary": "Exercise /evaluate with top-level evidence overlays.",
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria."
+      },
+      "constraints": [],
+      "acceptance_criteria": [
+        {
+          "id": "ac-1",
+          "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+          "required": true
+        }
+      ],
+      "parent_task_id": null,
+      "child_task_ids": [],
+      "dependencies": [],
+      "assigned_executor": {
+        "executor_type": "codex",
+        "executor_id": "executor-kno-181-b",
+        "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof."
+      },
+      "required_capabilities": [],
+      "priority": "normal",
+      "artifacts": {
+        "items": [],
+        "completion_evidence": {
+          "policy": "deferred",
+          "status": "deferred",
+          "required_artifact_types": [],
+          "validated_artifact_ids": [],
+          "validation_method": "deferred",
+          "validated_at": null,
+          "validator": null,
+          "notes": null
+        }
+      },
+      "coordination": {
+        "linear": null
+      },
+      "reconciliation": {
+        "status": "not_required",
+        "active_failure_type": null,
+        "attempts": [],
+        "last_attempt_id": null,
+        "last_pr_url": null,
+        "last_error": null,
+        "resolved_at": null,
+        "failed_at": null
+      },
+      "observability": {
+        "errors": [],
+        "retries": {
+          "attempt_count": 0,
+          "max_attempts": 0,
+          "last_retry_at": null
+        },
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        }
+      }
+    },
+    "enforcement_result": {
+      "action": "no_op",
+      "task_envelope": {
+        "id": "task-kno-181-scenario-b",
+        "title": "KNO-181 task-kno-181-scenario-b",
+        "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+        "origin": {
+          "source_system": "openclaw",
+          "source_type": "ingress_request",
+          "source_id": "req-happy-overlay-1",
+          "ingress_id": null,
+          "ingress_name": null,
+          "requested_by": null
+        },
+        "status": "intake_ready",
+        "timestamps": {
+          "created_at": "2026-03-31T14:30:00Z",
+          "updated_at": "2026-03-31T14:30:00Z",
+          "completed_at": null
+        },
+        "status_history": [],
+        "objective": {
+          "summary": "Exercise /evaluate with top-level evidence overlays.",
+          "deliverable_type": "unspecified",
+          "success_signal": "Task satisfies declared acceptance criteria."
+        },
+        "constraints": [],
+        "acceptance_criteria": [
+          {
+            "id": "ac-1",
+            "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+            "required": true
+          }
+        ],
+        "parent_task_id": null,
+        "child_task_ids": [],
+        "dependencies": [],
+        "assigned_executor": {
+          "executor_type": "codex",
+          "executor_id": "executor-kno-181-b",
+          "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof."
+        },
+        "required_capabilities": [],
+        "priority": "normal",
+        "artifacts": {
+          "items": [],
+          "completion_evidence": {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": [],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": null,
+            "validator": null,
+            "notes": null
+          }
+        },
+        "coordination": {
+          "linear": null
+        },
+        "reconciliation": {
+          "status": "not_required",
+          "active_failure_type": null,
+          "attempts": [],
+          "last_attempt_id": null,
+          "last_pr_url": null,
+          "last_error": null,
+          "resolved_at": null,
+          "failed_at": null
+        },
+        "observability": {
+          "errors": [],
+          "retries": {
+            "attempt_count": 0,
+            "max_attempts": 0,
+            "last_retry_at": null
+          },
+          "execution_metadata": {
+            "schema_required_deferred_fields": [
+              "parent_task_id",
+              "child_task_ids",
+              "dependencies",
+              "assigned_executor",
+              "required_capabilities",
+              "priority",
+              "artifacts.items",
+              "artifacts.completion_evidence",
+              "observability"
+            ]
+          }
+        }
+      },
+      "evidence_result": {
+        "is_valid": true,
+        "is_sufficient": false,
+        "artifact_results": [],
+        "issues": [],
+        "validated_artifact_ids": [],
+        "missing_required_artifact_types": [],
+        "unknown_validated_artifact_ids": []
+      },
+      "reconciliation_result": null,
+      "verification_result": {
+        "task_id": "task-kno-181-scenario-b",
+        "outcome": "verification_deferred",
+        "target_status": null,
+        "claimed_completion": false,
+        "accepted_completion": false,
+        "requires_review": false,
+        "is_terminal": false,
+        "verification_passed": false,
+        "evidence_is_valid": true,
+        "evidence_is_sufficient": false,
+        "reconciliation_status": "pending",
+        "reasons": [
+          "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "failure_classification": {
+          "failure_type": "none",
+          "source": "none",
+          "reason": "No completion claim is currently being evaluated",
+          "terminal": false,
+          "recoverable": false,
+          "category": "none",
+          "retryable": false
+        }
+      },
+      "review_request": null,
+      "review_decision": null,
+      "transition_result": null,
+      "target_status": null,
+      "reasons": [
+        "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+        "No completion claim is currently being evaluated"
+      ],
+      "failure_classification": {
+        "failure_type": "none",
+        "source": "none",
+        "reason": "No completion claim is currently being evaluated",
+        "terminal": false,
+        "recoverable": false,
+        "category": "none",
+        "retryable": false
+      },
+      "error": null
+    },
+    "accepted_completion": false,
+    "requires_review": false,
+    "invalid_input": false,
+    "failure_classification": {
+      "failure_type": "none",
+      "source": "none",
+      "reason": "No completion claim is currently being evaluated",
+      "terminal": false,
+      "recoverable": false,
+      "category": "none",
+      "retryable": false
+    },
+    "reasons": [
+      "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+      "No completion claim is currently being evaluated"
+    ],
+    "error": null,
+    "evaluation_record": {
+      "evaluation_id": "5e90ceee-579d-4795-93e3-26aa0508dfdc",
+      "task_id": "task-kno-181-scenario-b",
+      "recorded_at": "2026-04-05T17:30:31.776247Z",
+      "request": {
+        "task_envelope": {
+          "id": "task-kno-181-scenario-b",
+          "title": "KNO-181 task-kno-181-scenario-b",
+          "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+          "origin": {
+            "source_system": "openclaw",
+            "source_type": "ingress_request",
+            "source_id": "req-happy-overlay-1",
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null
+          },
+          "status": "intake_ready",
+          "timestamps": {
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-03-31T14:30:00Z",
+            "completed_at": null
+          },
+          "status_history": [],
+          "objective": {
+            "summary": "Exercise /evaluate with top-level evidence overlays.",
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria."
+          },
+          "constraints": [],
+          "acceptance_criteria": [
+            {
+              "id": "ac-1",
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "required": true
+            }
+          ],
+          "parent_task_id": null,
+          "child_task_ids": [],
+          "dependencies": [],
+          "assigned_executor": {
+            "executor_type": "codex",
+            "executor_id": "executor-kno-181-b",
+            "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof."
+          },
+          "required_capabilities": [],
+          "priority": "normal",
+          "artifacts": {
+            "items": [],
+            "completion_evidence": {
+              "policy": "deferred",
+              "status": "deferred",
+              "required_artifact_types": [],
+              "validated_artifact_ids": [],
+              "validation_method": "deferred",
+              "validated_at": null,
+              "validator": null,
+              "notes": null
+            }
+          },
+          "coordination": {
+            "linear": null
+          },
+          "reconciliation": {
+            "status": "not_required",
+            "active_failure_type": null,
+            "attempts": [],
+            "last_attempt_id": null,
+            "last_pr_url": null,
+            "last_error": null,
+            "resolved_at": null,
+            "failed_at": null
+          },
+          "observability": {
+            "errors": [],
+            "retries": {
+              "attempt_count": 0,
+              "max_attempts": 0,
+              "last_retry_at": null
+            },
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            }
+          }
+        },
+        "external_facts": null,
+        "claimed_completion": false,
+        "acceptance_criteria_satisfied": false,
+        "runtime_facts": {
+          "executor_reported_success": false,
+          "executor_reported_failure": false,
+          "terminal_failure": false,
+          "attempt_count": 0,
+          "latest_attempt_outcome": null
+        },
+        "unresolved_conditions": [],
+        "review_reasons": [],
+        "review_request": null,
+        "review_decision": null,
+        "review_is_active": false,
+        "retry_context": null
+      },
+      "result": {
+        "action": "no_op",
+        "target_status": null,
+        "task_envelope": {
+          "id": "task-kno-181-scenario-b",
+          "title": "KNO-181 task-kno-181-scenario-b",
+          "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+          "origin": {
+            "source_system": "openclaw",
+            "source_type": "ingress_request",
+            "source_id": "req-happy-overlay-1",
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null
+          },
+          "status": "intake_ready",
+          "timestamps": {
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-03-31T14:30:00Z",
+            "completed_at": null
+          },
+          "status_history": [],
+          "objective": {
+            "summary": "Exercise /evaluate with top-level evidence overlays.",
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria."
+          },
+          "constraints": [],
+          "acceptance_criteria": [
+            {
+              "id": "ac-1",
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "required": true
+            }
+          ],
+          "parent_task_id": null,
+          "child_task_ids": [],
+          "dependencies": [],
+          "assigned_executor": {
+            "executor_type": "codex",
+            "executor_id": "executor-kno-181-b",
+            "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof."
+          },
+          "required_capabilities": [],
+          "priority": "normal",
+          "artifacts": {
+            "items": [],
+            "completion_evidence": {
+              "policy": "deferred",
+              "status": "deferred",
+              "required_artifact_types": [],
+              "validated_artifact_ids": [],
+              "validation_method": "deferred",
+              "validated_at": null,
+              "validator": null,
+              "notes": null
+            }
+          },
+          "coordination": {
+            "linear": null
+          },
+          "reconciliation": {
+            "status": "not_required",
+            "active_failure_type": null,
+            "attempts": [],
+            "last_attempt_id": null,
+            "last_pr_url": null,
+            "last_error": null,
+            "resolved_at": null,
+            "failed_at": null
+          },
+          "observability": {
+            "errors": [],
+            "retries": {
+              "attempt_count": 0,
+              "max_attempts": 0,
+              "last_retry_at": null
+            },
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            }
+          }
+        },
+        "enforcement_result": {
+          "action": "no_op",
+          "task_envelope": {
+            "id": "task-kno-181-scenario-b",
+            "title": "KNO-181 task-kno-181-scenario-b",
+            "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+            "origin": {
+              "source_system": "openclaw",
+              "source_type": "ingress_request",
+              "source_id": "req-happy-overlay-1",
+              "ingress_id": null,
+              "ingress_name": null,
+              "requested_by": null
+            },
+            "status": "intake_ready",
+            "timestamps": {
+              "created_at": "2026-03-31T14:30:00Z",
+              "updated_at": "2026-03-31T14:30:00Z",
+              "completed_at": null
+            },
+            "status_history": [],
+            "objective": {
+              "summary": "Exercise /evaluate with top-level evidence overlays.",
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria."
+            },
+            "constraints": [],
+            "acceptance_criteria": [
+              {
+                "id": "ac-1",
+                "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+                "required": true
+              }
+            ],
+            "parent_task_id": null,
+            "child_task_ids": [],
+            "dependencies": [],
+            "assigned_executor": {
+              "executor_type": "codex",
+              "executor_id": "executor-kno-181-b",
+              "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof."
+            },
+            "required_capabilities": [],
+            "priority": "normal",
+            "artifacts": {
+              "items": [],
+              "completion_evidence": {
+                "policy": "deferred",
+                "status": "deferred",
+                "required_artifact_types": [],
+                "validated_artifact_ids": [],
+                "validation_method": "deferred",
+                "validated_at": null,
+                "validator": null,
+                "notes": null
+              }
+            },
+            "coordination": {
+              "linear": null
+            },
+            "reconciliation": {
+              "status": "not_required",
+              "active_failure_type": null,
+              "attempts": [],
+              "last_attempt_id": null,
+              "last_pr_url": null,
+              "last_error": null,
+              "resolved_at": null,
+              "failed_at": null
+            },
+            "observability": {
+              "errors": [],
+              "retries": {
+                "attempt_count": 0,
+                "max_attempts": 0,
+                "last_retry_at": null
+              },
+              "execution_metadata": {
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              }
+            }
+          },
+          "evidence_result": {
+            "is_valid": true,
+            "is_sufficient": false,
+            "artifact_results": [],
+            "issues": [],
+            "validated_artifact_ids": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": []
+          },
+          "reconciliation_result": null,
+          "verification_result": {
+            "task_id": "task-kno-181-scenario-b",
+            "outcome": "verification_deferred",
+            "target_status": null,
+            "claimed_completion": false,
+            "accepted_completion": false,
+            "requires_review": false,
+            "is_terminal": false,
+            "verification_passed": false,
+            "evidence_is_valid": true,
+            "evidence_is_sufficient": false,
+            "reconciliation_status": "pending",
+            "reasons": [
+              "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "failure_classification": {
+              "failure_type": "none",
+              "source": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "terminal": false,
+              "recoverable": false,
+              "category": "none",
+              "retryable": false
+            }
+          },
+          "review_request": null,
+          "review_decision": null,
+          "transition_result": null,
+          "target_status": null,
+          "reasons": [
+            "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "failure_classification": {
+            "failure_type": "none",
+            "source": "none",
+            "reason": "No completion claim is currently being evaluated",
+            "terminal": false,
+            "recoverable": false,
+            "category": "none",
+            "retryable": false
+          },
+          "error": null
+        },
+        "accepted_completion": false,
+        "requires_review": false,
+        "invalid_input": false,
+        "failure_classification": {
+          "failure_type": "none",
+          "source": "none",
+          "reason": "No completion claim is currently being evaluated",
+          "terminal": false,
+          "recoverable": false,
+          "category": "none",
+          "retryable": false
+        },
+        "reasons": [
+          "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "error": null
+      }
+    },
+    "automatic_dispatch": {
+      "attempted": false,
+      "dispatchable": false,
+      "reason": "status=intake_ready is not auto-dispatch eligible"
+    }
+  }
+}

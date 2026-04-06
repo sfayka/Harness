@@ -1,0 +1,71 @@
+{
+  "task_id": "task-kno-181-scenario-a",
+  "current_status": "intake_ready",
+  "event_count": 2,
+  "timeline": [
+    {
+      "event_id": "task-kno-181-scenario-a:created",
+      "event_type": "task_created",
+      "occurred_at": "2026-03-31T14:30:00Z",
+      "summary": "Task created",
+      "source": "openclaw",
+      "details": {
+        "status": "intake_ready",
+        "title": "KNO-181 task-kno-181-scenario-a",
+        "origin": {
+          "ingress_id": null,
+          "ingress_name": null,
+          "requested_by": null,
+          "source_id": "req-happy-overlay-1",
+          "source_system": "openclaw",
+          "source_type": "ingress_request"
+        }
+      }
+    },
+    {
+      "event_id": "task-kno-181-scenario-a:evaluation:c460c507-1dc8-4525-8355-4126a428b996",
+      "event_type": "evaluation_recorded",
+      "occurred_at": "2026-04-05T17:30:31.525822Z",
+      "summary": "Evaluation recorded: no_op",
+      "source": "harness",
+      "details": {
+        "evaluation_id": "c460c507-1dc8-4525-8355-4126a428b996",
+        "action": "no_op",
+        "target_status": null,
+        "accepted_completion": false,
+        "requires_review": false,
+        "reasons": [
+          "Verification evaluated task 'task-kno-181-scenario-a' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "verification_result": {
+          "accepted_completion": false,
+          "claimed_completion": false,
+          "evidence_is_sufficient": false,
+          "evidence_is_valid": true,
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "No completion claim is currently being evaluated",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "is_terminal": false,
+          "outcome": "verification_deferred",
+          "reasons": [
+            "Verification evaluated task 'task-kno-181-scenario-a' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_status": "pending",
+          "requires_review": false,
+          "target_status": null,
+          "task_id": "task-kno-181-scenario-a",
+          "verification_passed": false
+        },
+        "reconciliation_result": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "task": {
+    "task_id": "task-kno-181-scenario-b",
+    "title": "KNO-181 task-kno-181-scenario-b",
+    "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+    "current_status": "intake_ready",
+    "objective_summary": "Exercise /evaluate with top-level evidence overlays.",
+    "origin": {
+      "ingress_id": null,
+      "ingress_name": null,
+      "requested_by": null,
+      "source_id": "req-happy-overlay-1",
+      "source_system": "openclaw",
+      "source_type": "ingress_request"
+    },
+    "relationships": {
+      "parent_task_id": null,
+      "child_task_ids": [],
+      "dependencies": []
+    },
+    "assigned_executor": {
+      "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof.",
+      "executor_id": "executor-kno-181-b",
+      "executor_type": "codex"
+    },
+    "evidence_summary": {
+      "artifact_count": 0,
+      "artifact_type_counts": {},
+      "verification_status_counts": {},
+      "validated_artifact_count": 0,
+      "completion_evidence": {
+        "policy": "deferred",
+        "status": "deferred",
+        "required_artifact_types": [],
+        "validated_artifact_ids": [],
+        "validation_method": "deferred",
+        "validated_at": null,
+        "validator": null
+      }
+    },
+    "coordination_summary": {
+      "linear": null
+    },
+    "verification_summary": {
+      "accepted_completion": false,
+      "claimed_completion": false,
+      "evidence_is_sufficient": false,
+      "evidence_is_valid": true,
+      "failure_classification": {
+        "category": "none",
+        "failure_type": "none",
+        "reason": "No completion claim is currently being evaluated",
+        "recoverable": false,
+        "retryable": false,
+        "source": "none",
+        "terminal": false
+      },
+      "is_terminal": false,
+      "outcome": "verification_deferred",
+      "reasons": [
+        "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+        "No completion claim is currently being evaluated"
+      ],
+      "reconciliation_status": "pending",
+      "requires_review": false,
+      "target_status": null,
+      "task_id": "task-kno-181-scenario-b",
+      "verification_passed": false
+    },
+    "reconciliation_summary": null,
+    "review_summary": {
+      "status": "none",
+      "request_count": 0,
+      "decision_count": 0,
+      "latest_request": null,
+      "latest_decision": null,
+      "requests": [],
+      "decisions": []
+    },
+    "execution_summary": {
+      "attempt_count": 0,
+      "latest_attempt": null,
+      "latest_status": null,
+      "latest_dispatch_origin": null,
+      "latest_attempt_validation": null,
+      "latest_artifact_references": [],
+      "total_attempts": 1,
+      "retry_count": 0,
+      "invalid_attempt_count": 0,
+      "last_failure_type": "none",
+      "retry_eligible": false,
+      "failure_state": "clear"
+    },
+    "failure_summary": {
+      "state": "clear",
+      "failure_type": "none",
+      "failure_source": "none",
+      "terminal": false,
+      "recoverable": false
+    },
+    "evaluation_summary": {
+      "count": 1,
+      "latest_recorded_at": "2026-04-05T17:30:31.776247Z",
+      "latest_action": "no_op",
+      "latest_target_status": null,
+      "history": [
+        {
+          "evaluation_id": "5e90ceee-579d-4795-93e3-26aa0508dfdc",
+          "recorded_at": "2026-04-05T17:30:31.776247Z",
+          "action": "no_op",
+          "target_status": null
+        }
+      ]
+    },
+    "lifecycle_history": [],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-03-31T14:30:00Z",
+      "updated_at": "2026-03-31T14:30:00Z"
+    },
+    "extensions": {},
+    "timeline": [
+      {
+        "event_id": "task-kno-181-scenario-b:created",
+        "event_type": "task_created",
+        "occurred_at": "2026-03-31T14:30:00Z",
+        "summary": "Task created",
+        "source": "openclaw",
+        "details": {
+          "status": "intake_ready",
+          "title": "KNO-181 task-kno-181-scenario-b",
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          }
+        }
+      },
+      {
+        "event_id": "task-kno-181-scenario-b:evaluation:5e90ceee-579d-4795-93e3-26aa0508dfdc",
+        "event_type": "evaluation_recorded",
+        "occurred_at": "2026-04-05T17:30:31.776247Z",
+        "summary": "Evaluation recorded: no_op",
+        "source": "harness",
+        "details": {
+          "evaluation_id": "5e90ceee-579d-4795-93e3-26aa0508dfdc",
+          "action": "no_op",
+          "target_status": null,
+          "accepted_completion": false,
+          "requires_review": false,
+          "reasons": [
+            "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": false,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "failure_type": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "recoverable": false,
+              "retryable": false,
+              "source": "none",
+              "terminal": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'task-kno-181-scenario-b' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "pending",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "task-kno-181-scenario-b",
+            "verification_passed": false
+          },
+          "reconciliation_result": null
+        }
+      }
+    ]
+  }
+}

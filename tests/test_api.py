@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 
 from modules.adapters.executor_adapter import StubExecutorAdapter
 from modules.api import HarnessApiService, build_parser, evaluate_http_payload, run_server
+from modules.reconciliation_runtime import ReconciliationFailureType, build_default_reconciliation_registry
 from modules.contracts.task_envelope_review import (
     ReviewOutcome,
     ReviewRequest,
@@ -63,6 +64,44 @@ class _FakeConnection:
 
     def cursor(self) -> _FakeCursor:
         return _FakeCursor(list(self._rows))
+
+
+class _NoCreatePullRequestGateway:
+    """Deterministic gateway stub that preserves missing-PR failure behavior."""
+
+    def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
+        del owner, repo, branch_name
+        return True
+
+    def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
+        del owner, repo, commit_sha
+        return True
+
+    def default_branch(self, *, owner: str, repo: str) -> str | None:
+        del owner, repo
+        return "main"
+
+    def find_pull_requests_by_branch(self, *, owner: str, repo: str, branch_name: str) -> tuple:
+        del owner, repo, branch_name
+        return ()
+
+    def find_pull_requests_by_commit(self, *, owner: str, repo: str, commit_sha: str) -> tuple:
+        del owner, repo, commit_sha
+        return ()
+
+    def create_pull_request(self, *, owner: str, repo: str, title: str, body: str, head: str, base: str):
+        del owner, repo, title, body, head, base
+        raise RuntimeError("PR creation intentionally disabled for deterministic tests")
+
+
+def _registry_with_no_create_pull_request_gateway():
+    registry = build_default_reconciliation_registry()
+    handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    registry.register(
+        ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+        handler.__class__(github=_NoCreatePullRequestGateway()),
+    )
+    return registry
 
 
 def _to_jsonable(value):
@@ -1012,6 +1051,65 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(claim_response["accepted_completion"])
         latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
         self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
+
+    def test_service_completion_claim_routes_valid_attempt_without_pr_to_missing_pr_boundary(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-valid-no-pr-1",
+                    "assignment_reason": "Exercise missing PR boundary after valid execution attempt.",
+                },
+            }
+        }
+        submit_status, submit_response = service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-no-pr-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-valid-no-pr-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-valid-no-pr-1"),
+                    **valid_attempt_payload,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        read_status, read_payload = service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "reconciliation_failed")
+        self.assertEqual(claim_response["reconciliation_attempt"]["failure_type"], "missing_pr_after_execution")
+        self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
+        latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
+        self.assertNotIn("invalid_execution_attempt", claim_response)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "in_review")
+        self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 0)
 
     def test_service_dispatch_task_records_attempt_and_runs_reevaluation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
