@@ -35,6 +35,7 @@ Each module below has one owner. Ownership here means responsibility for the mod
 - OpenClaw may submit work to Harness, but not mutate internal orchestration state directly.
 - OpenClaw ingress may hand off intake/planning work only; it must not submit executor runtime facts, completion claims, or terminal/executing lifecycle truth on initial task creation.
 - `planned` ingress handoff requires planning-grade structure. If OpenClaw says work is already `planned`, it must provide an explicit objective summary, non-default deliverable type, explicit success signal, explicit `plan_summary`, and no declared unresolved conditions.
+- If OpenClaw includes canonical planning fields such as `parent_task_id`, `child_task_ids`, `dependencies`, or `required_capabilities`, Harness validates that structure before persisting it. Self-dependencies, self-parenting, and other structurally contradictory planning edges are rejected at ingress.
 - If OpenClaw still reports unresolved ambiguity or missing information, Harness must represent that canonically as clarification plus a blocked task state rather than letting the ambiguity ride downstream as an informal note.
 - Linear may remain the visible coordination surface, but Harness still decides whether completion is trustworthy.
 - Harness core may request persistence from the workflow substrate, but should not couple business rules to a specific substrate API.

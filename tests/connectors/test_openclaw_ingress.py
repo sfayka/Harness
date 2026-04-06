@@ -69,12 +69,31 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
         payload["task"]["objective_deliverable_type"] = "code_change"
         payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["task"]["parent_task_id"] = "epic-openclaw-1"
+        payload["task"]["dependencies"] = [
+            {
+                "task_id": "task-upstream-1",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+                "description": "Upstream repository bootstrap must finish first.",
+            }
+        ]
+        payload["task"]["required_capabilities"] = ["github", "python"]
         payload["metadata"]["plan_summary"] = "Single-task implementation handoff is ready for dispatcher review."
         payload["unresolved_conditions"] = []
 
         translated = translate_openclaw_submission_payload(payload)
 
         self.assertEqual(translated["request"]["task_envelope"]["status"], "planned")
+        self.assertEqual(translated["request"]["task_envelope"]["parent_task_id"], "epic-openclaw-1")
+        self.assertEqual(
+            translated["request"]["task_envelope"]["dependencies"][0]["task_id"],
+            "task-upstream-1",
+        )
+        self.assertEqual(
+            translated["request"]["task_envelope"]["required_capabilities"],
+            ["github", "python"],
+        )
 
     def test_translate_openclaw_submission_payload_rejects_execution_or_terminal_status(self) -> None:
         for invalid_status in ("dispatch_ready", "assigned", "executing", "completed"):
@@ -119,6 +138,25 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
 
         with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+    def test_translate_openclaw_submission_payload_rejects_self_referential_plan_structure(self) -> None:
+        payload = self._payload()
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["metadata"]["plan_summary"] = "Single-task implementation handoff is ready for dispatcher review."
+        payload["unresolved_conditions"] = []
+        payload["task"]["dependencies"] = [
+            {
+                "task_id": "task-openclaw-ingress-1",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+            }
+        ]
+
+        with self.assertRaisesRegex(OpenClawIngressInputError, "self-dependency"):
             translate_openclaw_submission_payload(payload)
 
     def test_translate_openclaw_submission_payload_rejects_completion_claim_fields(self) -> None:

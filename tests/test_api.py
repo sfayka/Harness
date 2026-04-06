@@ -825,6 +825,16 @@ class HarnessApiServiceTests(unittest.TestCase):
         payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
         payload["task"]["objective_deliverable_type"] = "code_change"
         payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["task"]["parent_task_id"] = "epic-openclaw-1"
+        payload["task"]["dependencies"] = [
+            {
+                "task_id": "task-bootstrap-prereq-1",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+                "description": "Repository bootstrap must complete first.",
+            }
+        ]
+        payload["task"]["required_capabilities"] = ["github", "python"]
         payload["metadata"]["plan_summary"] = "Single-task implementation handoff is ready for dispatcher review."
         payload["task"]["acceptance_criteria"] = [
             "The task records an explicit deliverable type.",
@@ -849,6 +859,9 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["status"], "planned")
         self.assertEqual(task_payload["task"]["objective"]["deliverable_type"], "code_change")
+        self.assertEqual(task_payload["task"]["parent_task_id"], "epic-openclaw-1")
+        self.assertEqual(task_payload["task"]["dependencies"][0]["task_id"], "task-bootstrap-prereq-1")
+        self.assertEqual(task_payload["task"]["required_capabilities"], ["github", "python"])
 
     def test_service_openclaw_ingress_rejects_planned_handoff_without_plan_summary(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-planned-no-summary-1")
@@ -867,6 +880,31 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
+    def test_service_openclaw_ingress_rejects_self_referential_dependency_structure(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-self-dependency-1")
+        payload["task"]["status"] = "planned"
+        payload["task"]["objective_summary"] = "Produce a routing-ready implementation task."
+        payload["task"]["objective_deliverable_type"] = "code_change"
+        payload["task"]["objective_success_signal"] = "The task is defined enough to route without clarification."
+        payload["task"]["dependencies"] = [
+            {
+                "task_id": "task-openclaw-self-dependency-1",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+            }
+        ]
+        payload["metadata"]["plan_summary"] = "Single-task implementation handoff is ready for dispatcher review."
+        payload["unresolved_conditions"] = []
+
+        status, response_payload = self.service.submit_openclaw_ingress(payload)
+        task_status, task_payload = self.service.get_task("task-openclaw-self-dependency-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("self-dependency", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
     def test_service_dispatch_rejects_task_blocked_on_clarification(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-clarification-blocked-1")
         payload["unresolved_conditions"] = ["Need repository confirmation before planning can continue."]
@@ -881,6 +919,164 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_payload["task_envelope"]["status"], "blocked")
         self.assertEqual(dispatch_status, 409)
         self.assertIn("blocked on clarification", dispatch_payload["error"])
+
+    def test_service_submit_does_not_auto_dispatch_task_blocked_on_dependency(self) -> None:
+        upstream_task = create_task_envelope(
+            {
+                "id": "task-upstream-planned-1",
+                "title": "Bootstrap repo",
+                "description": "Finish bootstrap before downstream work starts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "msg-upstream-1",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Bootstrap completes.", "required": True}],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        upstream_task["status"] = "planned"
+        self.service.store.put_task(upstream_task)
+
+        downstream_task = create_task_envelope(
+            {
+                "id": "task-downstream-dependency-1",
+                "title": "Implement downstream task",
+                "description": "Only start after bootstrap finishes.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "msg-downstream-1",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Downstream code lands.", "required": True}],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        downstream_task["dependencies"] = [
+            {
+                "task_id": "task-upstream-planned-1",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+                "description": "Bootstrap must complete first.",
+            }
+        ]
+
+        status, response_payload = self.service.submit(
+            {
+                "request": {
+                    "task_envelope": downstream_task,
+                    "task_status": "dispatch_ready",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-dependency-1",
+                        "assignment_reason": "Dependency regression test.",
+                    },
+                }
+            }
+        )
+
+        self.assertEqual(status, 200)
+        self.assertFalse(response_payload["automatic_dispatch"]["attempted"])
+        self.assertFalse(response_payload["automatic_dispatch"]["dispatchable"])
+        self.assertIn("blocked on dependency", response_payload["automatic_dispatch"]["reason"])
+
+    def test_service_dispatch_rejects_task_with_unmet_blocking_dependency(self) -> None:
+        upstream_task = create_task_envelope(
+            {
+                "id": "task-upstream-planned-2",
+                "title": "Bootstrap repo",
+                "description": "Finish bootstrap before downstream work starts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "msg-upstream-2",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Bootstrap completes.", "required": True}],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        upstream_task["status"] = "planned"
+        self.service.store.put_task(upstream_task)
+
+        downstream_task = create_task_envelope(
+            {
+                "id": "task-downstream-dependency-2",
+                "title": "Implement downstream task",
+                "description": "Only start after bootstrap finishes.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "msg-downstream-2",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Downstream code lands.", "required": True}],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        downstream_task["dependencies"] = [
+            {
+                "task_id": "task-upstream-planned-2",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+            }
+        ]
+        self.service.store.put_task({**downstream_task, "status": "assigned"})
+
+        dispatch_status, dispatch_payload = self.service.dispatch_task(
+            "task-downstream-dependency-2",
+            {"request": {"executor": "codex"}},
+        )
+
+        self.assertEqual(dispatch_status, 409)
+        self.assertIn("blocked on dependency", dispatch_payload["error"])
+
+    def test_service_dispatch_allows_task_once_blocking_dependency_reaches_required_status(self) -> None:
+        upstream_task = create_task_envelope(
+            {
+                "id": "task-upstream-completed-1",
+                "title": "Bootstrap repo",
+                "description": "Finish bootstrap before downstream work starts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "msg-upstream-3",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Bootstrap completes.", "required": True}],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        upstream_task["status"] = "completed"
+        self.service.store.put_task(upstream_task)
+
+        downstream_task = create_task_envelope(
+            {
+                "id": "task-downstream-dependency-3",
+                "title": "Implement downstream task",
+                "description": "Only start after bootstrap finishes.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "msg-downstream-3",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Downstream code lands.", "required": True}],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        downstream_task["dependencies"] = [
+            {
+                "task_id": "task-upstream-completed-1",
+                "dependency_type": "blocks",
+                "required_status": "completed",
+            }
+        ]
+        self.service.store.put_task({**downstream_task, "status": "assigned"})
+
+        dispatch_status, dispatch_payload = self.service.dispatch_task(
+            "task-downstream-dependency-3",
+            {"request": {"executor": "codex"}},
+        )
+
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(dispatch_payload["dispatch"]["task_id"], "task-downstream-dependency-3")
 
     def test_service_openclaw_ingress_rejects_runtime_facts_without_persisting_task(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-runtime-facts-1")

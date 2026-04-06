@@ -24,6 +24,8 @@ class OpenClawIngressInputError(ValueError):
 
 
 _ALLOWED_OPENCLAW_HANDOFF_STATUSES = frozenset({"intake_ready", "planned"})
+_ALLOWED_DEPENDENCY_TYPES = frozenset({"blocks", "related"})
+_ALLOWED_DEPENDENCY_REQUIRED_STATUSES = frozenset({"planned", "dispatch_ready", "assigned", "executing", "completed"})
 
 
 def _require_mapping(payload: Any, *, field_name: str) -> Mapping[str, Any]:
@@ -61,6 +63,66 @@ def _optional_non_empty_string_list(value: Any, *, field_name: str) -> tuple[str
     return tuple(item.strip() for item in value)
 
 
+def _normalize_openclaw_child_task_ids(value: Any, *, task_id: str) -> list[str]:
+    child_task_ids = list(_optional_non_empty_string_list(value, field_name="task.child_task_ids"))
+    if task_id in child_task_ids:
+        raise OpenClawIngressInputError("task.child_task_ids must not include the task's own id")
+    return child_task_ids
+
+
+def _normalize_openclaw_required_capabilities(value: Any) -> list[str]:
+    return list(_optional_non_empty_string_list(value, field_name="task.required_capabilities"))
+
+
+def _normalize_openclaw_dependencies(value: Any, *, task_id: str) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise OpenClawIngressInputError("task.dependencies must be a list when provided")
+
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for index, dependency in enumerate(value):
+        if not isinstance(dependency, Mapping):
+            raise OpenClawIngressInputError(f"task.dependencies[{index}] must be an object")
+        dependency_task_id = _require_string(dependency.get("task_id"), field_name=f"task.dependencies[{index}].task_id")
+        if dependency_task_id == task_id:
+            raise OpenClawIngressInputError("task.dependencies must not declare a self-dependency")
+        dependency_type = _require_string(
+            dependency.get("dependency_type"),
+            field_name=f"task.dependencies[{index}].dependency_type",
+        )
+        if dependency_type not in _ALLOWED_DEPENDENCY_TYPES:
+            raise OpenClawIngressInputError(
+                f"task.dependencies[{index}].dependency_type must be one of {', '.join(sorted(_ALLOWED_DEPENDENCY_TYPES))}"
+            )
+        required_status = _require_string(
+            dependency.get("required_status"),
+            field_name=f"task.dependencies[{index}].required_status",
+        )
+        if required_status not in _ALLOWED_DEPENDENCY_REQUIRED_STATUSES:
+            raise OpenClawIngressInputError(
+                "task.dependencies["
+                f"{index}].required_status must be one of {', '.join(sorted(_ALLOWED_DEPENDENCY_REQUIRED_STATUSES))}"
+            )
+        dedupe_key = (dependency_task_id, dependency_type, required_status)
+        if dedupe_key in seen:
+            raise OpenClawIngressInputError("task.dependencies must not contain duplicate dependency edges")
+        seen.add(dedupe_key)
+        normalized.append(
+            {
+                "task_id": dependency_task_id,
+                "dependency_type": dependency_type,
+                "required_status": required_status,
+                "description": _optional_string(
+                    dependency.get("description"),
+                    field_name=f"task.dependencies[{index}].description",
+                ),
+            }
+        )
+    return normalized
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -75,7 +137,12 @@ def _to_jsonable(value: Any) -> Any:
 
 def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
     task = _require_mapping(payload.get("task"), field_name="task")
+    context = _require_mapping(payload.get("context"), field_name="context")
     metadata = _optional_mapping(payload.get("metadata"), field_name="metadata") or {}
+    task_id = _optional_string(payload.get("task_id"), field_name="task_id") or _require_string(
+        context.get("message_id"),
+        field_name="context.message_id",
+    )
     task_status = _optional_string(task.get("status"), field_name="task.status") or "intake_ready"
     if task_status not in _ALLOWED_OPENCLAW_HANDOFF_STATUSES:
         allowed_statuses = ", ".join(sorted(_ALLOWED_OPENCLAW_HANDOFF_STATUSES))
@@ -95,6 +162,14 @@ def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
         raise OpenClawIngressInputError(
             "OpenClaw ingress cannot submit executor runtime_facts; execution telemetry must come from execution or reevaluation paths"
         )
+    parent_task_id = _optional_string(task.get("parent_task_id"), field_name="task.parent_task_id")
+    if parent_task_id == task_id:
+        raise OpenClawIngressInputError("task.parent_task_id must not match task_id")
+    child_task_ids = _normalize_openclaw_child_task_ids(task.get("child_task_ids"), task_id=task_id)
+    if parent_task_id is not None and parent_task_id in child_task_ids:
+        raise OpenClawIngressInputError("task.parent_task_id must not also appear in task.child_task_ids")
+    _normalize_openclaw_dependencies(task.get("dependencies"), task_id=task_id)
+    _normalize_openclaw_required_capabilities(task.get("required_capabilities"))
     if task_status == "planned":
         if _optional_string(task.get("objective_summary"), field_name="task.objective_summary") is None:
             raise OpenClawIngressInputError(
@@ -124,6 +199,34 @@ def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
             raise OpenClawIngressInputError(
                 "OpenClaw ingress planned handoff cannot include unresolved_conditions; unresolved ambiguity must stay intake_ready or blocked"
             )
+
+
+def _apply_openclaw_planning_structure(
+    *,
+    canonical_payload: dict[str, Any],
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    request_payload = dict(canonical_payload["request"])
+    task_envelope = deepcopy(request_payload["task_envelope"])
+    task = _require_mapping(payload.get("task"), field_name="task")
+    task_id = _require_string(task_envelope.get("id"), field_name="task_envelope.id")
+
+    parent_task_id = _optional_string(task.get("parent_task_id"), field_name="task.parent_task_id")
+    child_task_ids = _normalize_openclaw_child_task_ids(task.get("child_task_ids"), task_id=task_id)
+    dependencies = _normalize_openclaw_dependencies(task.get("dependencies"), task_id=task_id)
+    required_capabilities = _normalize_openclaw_required_capabilities(task.get("required_capabilities"))
+
+    if parent_task_id is not None:
+        task_envelope["parent_task_id"] = parent_task_id
+    if child_task_ids:
+        task_envelope["child_task_ids"] = child_task_ids
+    if dependencies:
+        task_envelope["dependencies"] = dependencies
+    if required_capabilities:
+        task_envelope["required_capabilities"] = required_capabilities
+
+    request_payload["task_envelope"] = assert_valid_task_envelope(task_envelope)
+    return {"request": request_payload}
 
 
 def _infer_need_type(condition: str) -> str:
@@ -263,6 +366,11 @@ def translate_openclaw_submission_payload(payload: Mapping[str, Any]) -> dict[st
         )
     except IngressRequestBuilderError as error:
         raise OpenClawIngressInputError(str(error)) from error
+
+    canonical_payload = _apply_openclaw_planning_structure(
+        canonical_payload=canonical_payload,
+        payload=payload,
+    )
 
     canonical_payload = _with_openclaw_clarification_handoff(
         canonical_payload=canonical_payload,
