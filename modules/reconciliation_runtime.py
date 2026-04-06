@@ -12,6 +12,7 @@ from urllib import error, parse, request
 
 
 TaskEnvelope = dict[str, Any]
+_RESERVED_SHARED_BRANCH_NAMES = frozenset({"work", "main", "master", "develop", "development", "trunk", "default"})
 
 
 class ReconciliationFailureType(StrEnum):
@@ -252,12 +253,24 @@ def task_has_valid_current_run_pull_request_artifact(
         head_commit_sha = _normalize_sha(branch.get("head_commit_sha"))
         if branch_name != code_context.branch_name:
             continue
+        if branch_name is None or branch_name.casefold() in _RESERVED_SHARED_BRANCH_NAMES:
+            continue
         if head_commit_sha != code_context.commit_sha:
             continue
 
         location = artifact.get("location")
         pull_request_number = artifact.get("pull_request_number")
-        if not (isinstance(location, str) and location.strip()) and pull_request_number is None:
+        parsed_location = _parse_github_location(location)
+        if parsed_location is None or parsed_location[2] != "pull" or not parsed_location[3].isdigit():
+            continue
+        if pull_request_number is None:
+            continue
+        if int(parsed_location[3]) != pull_request_number:
+            continue
+
+        metadata = artifact.get("metadata") if isinstance(artifact.get("metadata"), dict) else {}
+        state = _normalize_sha(metadata.get("pull_request_state"))
+        if state is not None and state.strip().lower() != "open":
             continue
 
         return True

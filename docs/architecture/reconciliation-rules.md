@@ -295,6 +295,8 @@ Harness distinguishes execution from completion. A completion claim without a PR
 
 Even if a PR artifact is already attached to the task, Harness should only treat that artifact as sufficient when it proves the current run. A stale attached PR must not suppress reconciliation by itself.
 
+This handler only applies once the execution attempt itself is trustworthy enough to reconcile. If the executor reports a reserved/shared branch such as `work`, omits branch identity, supplies a malformed PR URL, or presents stale historical PR evidence as if it were current-run proof, Harness treats that as an execution contract violation before reconciliation starts. `missing_pr_after_execution` is for missing recoverable PR proof on an otherwise valid run, not for malformed or misleading PR proof.
+
 ### Bounded Recovery Steps
 
 For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handler with the following bounded sequence:

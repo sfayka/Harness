@@ -91,6 +91,8 @@ _RETRYABLE_FAILURE_CATEGORIES = frozenset(
 )
 _CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
 _CODE_EXECUTOR_TYPES = frozenset({"codex", "openclaw", "stub-executor", "stub"})
+_RESERVED_SHARED_BRANCH_NAMES = frozenset({"work", "main", "master", "develop", "development", "trunk", "default"})
+_TASK_SCOPED_CODE_BRANCH_PREFIXES = ("codex/", "kno-")
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 _AUTO_DISPATCHABLE_STATUSES = frozenset({"planned", "dispatch_ready", "assigned"})
@@ -858,6 +860,19 @@ def _parse_github_repository_location(location: Any) -> tuple[str | None, str | 
     return "github.com", parts[0], parts[1]
 
 
+def _parse_github_pull_request_location(location: Any) -> tuple[str, str, str, int] | None:
+    if not isinstance(location, str) or not location.strip():
+        return None
+    parsed = urlparse(location)
+    host = (parsed.hostname or "").strip().lower()
+    if host not in {"github.com", "www.github.com"}:
+        return None
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) != 4 or parts[2] != "pull" or not parts[3].isdigit():
+        return None
+    return "github.com", parts[0], parts[1], int(parts[3])
+
+
 def _normalized_string(value: Any) -> str | None:
     if not isinstance(value, str):
         return None
@@ -879,6 +894,128 @@ def _record_context_value(
     sources = observed.setdefault(normalized, [])
     if source not in sources:
         sources.append(source)
+
+
+def _branch_contract_rule(
+    branch_name: str | None,
+    *,
+    executor_type: str | None,
+) -> dict[str, Any] | None:
+    normalized_branch = _normalized_string(branch_name)
+    if normalized_branch is None:
+        return None
+    branch_key = normalized_branch.casefold()
+    if branch_key in _RESERVED_SHARED_BRANCH_NAMES:
+        return {
+            "rule": "reserved_shared_branch",
+            "value": normalized_branch,
+            "message": f"Branch {normalized_branch!r} is reserved/shared and cannot be used as delegated task completion evidence.",
+        }
+    if executor_type in _CODE_EXECUTOR_TYPES and not normalized_branch.startswith(_TASK_SCOPED_CODE_BRANCH_PREFIXES):
+        return {
+            "rule": "branch_not_task_scoped",
+            "value": normalized_branch,
+            "message": (
+                f"Branch {normalized_branch!r} is not task-scoped delegated execution evidence. "
+                f"Expected a branch under one of: {', '.join(_TASK_SCOPED_CODE_BRANCH_PREFIXES)}."
+            ),
+        }
+    return None
+
+
+def _pull_request_detail_from_artifact(
+    artifact: dict[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any] | None:
+    if artifact.get("type") != "pull_request":
+        return None
+    repository = artifact.get("repository") if isinstance(artifact.get("repository"), dict) else {}
+    branch = artifact.get("branch") if isinstance(artifact.get("branch"), dict) else {}
+    metadata = artifact.get("metadata") if isinstance(artifact.get("metadata"), dict) else {}
+    repository_host = _normalized_string(repository.get("host"))
+    repository_owner = _normalized_string(repository.get("owner"))
+    repository_name = _normalized_string(repository.get("name"))
+    return {
+        "source": source,
+        "url": _normalized_string(artifact.get("location")),
+        "number": artifact.get("pull_request_number"),
+        "state": _normalized_string(metadata.get("pull_request_state")),
+        "merged": metadata.get("pull_request_merged"),
+        "repository": (
+            f"{repository_host}/{repository_owner}/{repository_name}"
+            if repository_host and repository_owner and repository_name
+            else None
+        ),
+        "branch_name": _normalized_string(branch.get("name")),
+        "commit_sha": _normalized_string(branch.get("head_commit_sha")) or _normalized_string(artifact.get("commit_sha")),
+    }
+
+
+def _pull_request_detail_from_artifact_reference(
+    artifact_reference: dict[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any] | None:
+    metadata = artifact_reference.get("metadata") if isinstance(artifact_reference.get("metadata"), dict) else {}
+    reference_type = _normalized_string(artifact_reference.get("artifact_type"))
+    location = _normalized_string(artifact_reference.get("location"))
+    explicit_url = _normalized_string(metadata.get("pull_request_url")) or _normalized_string(metadata.get("url"))
+    url = location if _parse_github_pull_request_location(location) is not None else explicit_url
+    if reference_type != "pull_request" and url is None:
+        return None
+
+    repository_host, repository_owner, repository_name = _parse_github_repository_location(url or location)
+    return {
+        "source": source,
+        "url": url,
+        "number": metadata.get("pull_request_number") or metadata.get("number"),
+        "state": _normalized_string(metadata.get("pull_request_state")) or _normalized_string(metadata.get("state")),
+        "merged": metadata.get("merged"),
+        "repository": (
+            f"{repository_host}/{repository_owner}/{repository_name}"
+            if repository_host and repository_owner and repository_name
+            else None
+        ),
+        "branch_name": (
+            _normalized_string(metadata.get("branch_name"))
+            or _normalized_string(metadata.get("head_branch"))
+            or _normalized_string(metadata.get("branch"))
+        ),
+        "commit_sha": (
+            _normalized_string(artifact_reference.get("commit_sha"))
+            or _normalized_string(metadata.get("commit_sha"))
+            or _normalized_string(metadata.get("head_commit_sha"))
+            or _normalized_string(metadata.get("head_sha"))
+            or _normalized_string(metadata.get("sha"))
+        ),
+    }
+
+
+def _pull_request_detail_from_external_facts(github_facts: GitHubArtifactFacts) -> dict[str, Any] | None:
+    if github_facts.pull_request is None:
+        return None
+    repository = None
+    if github_facts.repository is not None:
+        repository = (
+            f"{github_facts.repository.host}/"
+            f"{github_facts.repository.owner}/"
+            f"{github_facts.repository.name}"
+        )
+    return {
+        "source": "external_facts.github_facts.pull_request",
+        "url": _normalized_string(github_facts.pull_request.url),
+        "number": github_facts.pull_request.number,
+        "state": _normalized_string(github_facts.pull_request.state),
+        "merged": github_facts.pull_request.merged,
+        "repository": repository,
+        "branch_name": github_facts.branch.name if github_facts.branch is not None else None,
+        "commit_sha": (
+            github_facts.commit.sha
+            if github_facts.commit is not None
+            else (github_facts.branch.head_commit_sha if github_facts.branch is not None else None)
+        ),
+    }
 
 
 def _collect_artifact_context_from_record(
@@ -987,12 +1124,19 @@ def _validate_execution_attempt(
         return True, None
 
     observations: dict[str, dict[str, list[str]]] = {}
+    pull_request_observations: list[dict[str, Any]] = []
     payload_artifacts = _optional_object_list(
         request_payload.get("new_artifacts"),
         field_name="request.new_artifacts",
     )
     for index, artifact in enumerate(payload_artifacts):
         _collect_artifact_context_from_record(observations, artifact, source=f"request.new_artifacts[{index}]")
+        pull_request_detail = _pull_request_detail_from_artifact(
+            artifact,
+            source=f"request.new_artifacts[{index}]",
+        )
+        if pull_request_detail is not None:
+            pull_request_observations.append(pull_request_detail)
 
     attempt_artifacts = attempt.get("artifact_references") if isinstance(attempt.get("artifact_references"), list) else []
     for index, artifact_reference in enumerate(attempt_artifacts):
@@ -1003,6 +1147,12 @@ def _validate_execution_attempt(
             artifact_reference,
             source=f"execution_attempt.artifact_references[{index}]",
         )
+        pull_request_detail = _pull_request_detail_from_artifact_reference(
+            artifact_reference,
+            source=f"execution_attempt.artifact_references[{index}]",
+        )
+        if pull_request_detail is not None:
+            pull_request_observations.append(pull_request_detail)
 
     if request.external_facts is not None:
         expected_context = request.external_facts.expected_code_context
@@ -1068,6 +1218,9 @@ def _validate_execution_attempt(
                     github_facts.commit.sha,
                     source="external_facts.github_facts.commit",
                 )
+            pull_request_detail = _pull_request_detail_from_external_facts(github_facts)
+            if pull_request_detail is not None:
+                pull_request_observations.append(pull_request_detail)
 
     attempts = _execution_attempts(request.task_envelope)
     used_task_artifact_fallback = False
@@ -1086,10 +1239,17 @@ def _validate_execution_attempt(
                     source=f"task.artifacts[{index}]",
                 )
                 used_task_artifact_fallback = True
+                pull_request_detail = _pull_request_detail_from_artifact(
+                    artifact,
+                    source=f"task.artifacts[{index}]",
+                )
+                if pull_request_detail is not None:
+                    pull_request_observations.append(pull_request_detail)
 
     repository_values = observations.get("repository", {})
     branch_values = observations.get("branch", {})
     commit_values = observations.get("commit", {})
+    executor_type = _executor_hint_from_task(request.task_envelope)
     existing_artifacts = ((request.task_envelope.get("artifacts") or {}).get("items") or [])
     has_pull_request_artifact = (
         any(isinstance(item, dict) and item.get("type") == "pull_request" for item in existing_artifacts)
@@ -1100,10 +1260,103 @@ def _validate_execution_attempt(
     reasons: list[str] = []
     if not repository_values:
         reasons.append("Successful execution attempt is missing repository identity for the current run.")
-    if not branch_values:
-        reasons.append("Successful execution attempt is missing branch identity for the current run.")
     if not commit_values and not commit_resolution_pending:
         reasons.append("Successful execution attempt is missing commit SHA for the current run.")
+
+    rule_failures: list[dict[str, Any]] = []
+    if not branch_values:
+        rule_failures.append(
+            {
+                "rule": "missing_branch_identity",
+                "message": "Successful execution attempt is missing branch identity for the current run.",
+            }
+        )
+    for branch_name in branch_values.keys():
+        branch_rule = _branch_contract_rule(branch_name, executor_type=executor_type)
+        if branch_rule is not None:
+            rule_failures.append(branch_rule)
+
+    current_repository = next(iter(repository_values.keys()), None) if len(repository_values) == 1 else None
+    current_branch = next(iter(branch_values.keys()), None) if len(branch_values) == 1 else None
+    current_commit = next(iter(commit_values.keys()), None) if len(commit_values) == 1 else None
+
+    for detail in pull_request_observations:
+        url = _normalized_string(detail.get("url"))
+        parsed_pr = _parse_github_pull_request_location(url) if url is not None else None
+        raw_number = detail.get("number")
+        number = raw_number if isinstance(raw_number, int) else None
+        state = _normalized_string(detail.get("state"))
+        merged = detail.get("merged")
+        repository = _normalized_string(detail.get("repository"))
+        branch_name = _normalized_string(detail.get("branch_name"))
+        commit_sha = _normalized_string(detail.get("commit_sha"))
+        source = str(detail.get("source") or "pull_request")
+
+        if url is None:
+            rule_failures.append(
+                {
+                    "rule": "missing_pr_url",
+                    "source": source,
+                    "message": f"{source} is missing a GitHub pull request URL.",
+                }
+            )
+            continue
+        if parsed_pr is None:
+            rule_failures.append(
+                {
+                    "rule": "invalid_pr_url",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} does not contain a real numeric GitHub pull request URL.",
+                }
+            )
+            continue
+        _, _, _, parsed_number = parsed_pr
+        if number is not None and number != parsed_number:
+            rule_failures.append(
+                {
+                    "rule": "pull_request_number_mismatch",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} reports PR number {number} but URL points to PR #{parsed_number}.",
+                }
+            )
+        if state == "closed" or merged is True:
+            rule_failures.append(
+                {
+                    "rule": "stale_pull_request_not_allowed",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} references a closed or historical pull request and cannot prove the current run.",
+                }
+            )
+        if current_repository is not None and repository is not None and repository != current_repository:
+            rule_failures.append(
+                {
+                    "rule": "pull_request_repository_mismatch",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} references a pull request from a different repository than the current run.",
+                }
+            )
+        if current_branch is not None and branch_name is not None and branch_name != current_branch:
+            rule_failures.append(
+                {
+                    "rule": "pull_request_branch_mismatch",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} references a pull request branch that does not match the current run branch.",
+                }
+            )
+        if current_commit is not None and commit_sha is not None and commit_sha != current_commit:
+            rule_failures.append(
+                {
+                    "rule": "pull_request_commit_mismatch",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} references a pull request commit that does not match the current run commit.",
+                }
+            )
 
     validation = {
         "validated_at": _iso_now(),
@@ -1115,13 +1368,24 @@ def _validate_execution_attempt(
             "allow_missing_pull_request": True,
             "task_artifact_fallback_requires_single_attempt": True,
             "allow_commit_resolution_via_reconciliation": True,
+            "reject_reserved_shared_branch": True,
+            "reject_non_numeric_pull_request_url": True,
+            "reject_closed_or_historical_pull_request": True,
         },
         "context_observations": {
             **_observations_snapshot(observations),
             "used_task_artifact_fallback": used_task_artifact_fallback,
             "commit_resolution_pending": commit_resolution_pending,
         },
+        "pull_request_observations": deepcopy(pull_request_observations),
+        "rule_failures": deepcopy(rule_failures),
     }
+    if rule_failures:
+        validation["status"] = "invalid"
+        validation["failure_type"] = FailureType.CONTRACT_VIOLATION.value
+        validation["retryable"] = False
+        validation["reasons"] = [str(item["message"]) for item in rule_failures if isinstance(item.get("message"), str)]
+        return False, validation
     if reasons:
         validation["status"] = "invalid"
         validation["failure_type"] = FailureType.INVALID_EXECUTION_ATTEMPT.value
@@ -1199,15 +1463,16 @@ def _invalid_execution_retry_context(
     }
 
 
-def _invalid_execution_attempt_result(
+def _execution_attempt_failure_result(
     *,
     task_envelope: dict[str, Any],
+    failure_type: FailureType,
     reason: str,
     retryable: bool,
     target_status: str | None,
 ) -> HarnessEvaluationResult:
     failure = FailureClassification(
-        failure_type=FailureType.INVALID_EXECUTION_ATTEMPT,
+        failure_type=failure_type,
         source=FailureSource.EXECUTOR,
         reason=reason,
         terminal=not retryable,
@@ -1581,12 +1846,19 @@ class HarnessApiService:
 
         reasons = tuple(str(item) for item in validation.get("reasons") or () if isinstance(item, str) and item.strip())
         reason = reasons[0] if reasons else "Execution attempt is invalid for completion handling."
+        failure_type = FailureType(str(validation.get("failure_type") or FailureType.INVALID_EXECUTION_ATTEMPT.value))
+        retryable_validation = bool(validation.get("retryable"))
         retry_budget = _invalid_execution_retry_budget()
         invalid_attempt_count = _invalid_execution_attempt_count(validated_task)
         retry_number = invalid_attempt_count
 
         executor = _executor_hint_from_task(validated_task)
-        can_retry = executor in _CODE_EXECUTOR_TYPES and retry_number <= retry_budget
+        can_retry = (
+            failure_type == FailureType.INVALID_EXECUTION_ATTEMPT
+            and retryable_validation
+            and executor in _CODE_EXECUTOR_TYPES
+            and retry_number <= retry_budget
+        )
         retry_context = (
             _invalid_execution_retry_context(
                 retry_number=retry_number,
@@ -1602,8 +1874,9 @@ class HarnessApiService:
             task_envelope=validated_task,
             retry_context=deepcopy(retry_context) if retry_context is not None else None,
         )
-        evaluation_result = _invalid_execution_attempt_result(
+        evaluation_result = _execution_attempt_failure_result(
             task_envelope=validated_task,
+            failure_type=failure_type,
             reason=reason,
             retryable=can_retry,
             target_status=None,
@@ -1649,22 +1922,33 @@ class HarnessApiService:
         self.store.update_task(failed_task)
         failure_record = self.store.put_evaluation_record(
             request=replace(request, task_envelope=failed_task),
-            result=_invalid_execution_attempt_result(
+            result=_execution_attempt_failure_result(
                 task_envelope=failed_task,
+                failure_type=failure_type,
                 reason=failed_reason,
                 retryable=False,
                 target_status="failed",
             ),
         )
+        response_action = (
+            "contract_violation_failed"
+            if failure_type == FailureType.CONTRACT_VIOLATION
+            else "invalid_execution_attempt_failed"
+        )
+        response_key = (
+            "contract_violation"
+            if failure_type == FailureType.CONTRACT_VIOLATION
+            else "invalid_execution_attempt"
+        )
         return HTTPStatus.OK, {
-            "action": "invalid_execution_attempt_failed",
+            "action": response_action,
             "accepted_completion": False,
             "requires_review": False,
             "invalid_input": False,
             "target_status": "failed",
             "error": failed_reason,
             "reasons": list(reasons) or [failed_reason],
-            "invalid_execution_attempt": {
+            response_key: {
                 "status": "failed",
                 "validation": deepcopy(validation),
                 "retry_budget": retry_budget,
