@@ -15,6 +15,9 @@ from modules.intake import create_task_envelope
 from modules.store import FileBackedHarnessStore
 
 
+_USE_CREATED_RESPONSE = object()
+
+
 class _FakeGitHubGateway:
     def __init__(
         self,
@@ -24,6 +27,7 @@ class _FakeGitHubGateway:
         existing_branch_prs: tuple[GitHubPullRequestRecord, ...] = (),
         existing_commit_prs: tuple[GitHubPullRequestRecord, ...] = (),
         created_pr: GitHubPullRequestRecord | None = None,
+        persisted_created_pr: GitHubPullRequestRecord | object | None = _USE_CREATED_RESPONSE,
         default_branch: str = "main",
         branch_exists_error: Exception | None = None,
         commit_exists_error: Exception | None = None,
@@ -49,6 +53,8 @@ class _FakeGitHubGateway:
         self._default_branch = default_branch
         self.create_calls = 0
         self.last_create_pull_request: dict[str, str] | None = None
+        self.get_pull_request_calls = 0
+        self._persisted_created_pr = persisted_created_pr
 
     def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
         del owner, repo, branch_name
@@ -121,6 +127,38 @@ class _FakeGitHubGateway:
             title=title,
             body=body,
         )
+
+    def get_pull_request(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        number: int,
+    ) -> GitHubPullRequestRecord | None:
+        del owner, repo
+        self.get_pull_request_calls += 1
+        if self._persisted_created_pr is _USE_CREATED_RESPONSE:
+            if self.last_create_pull_request is None:
+                return None
+            return GitHubPullRequestRecord(
+                number=self._created_pr.number,
+                url=self._created_pr.url,
+                state=self._created_pr.state,
+                review_state=self._created_pr.review_state,
+                merged=self._created_pr.merged,
+                repository_owner=self.last_create_pull_request["owner"],
+                repository_name=self.last_create_pull_request["repo"],
+                head_branch=self.last_create_pull_request["head"],
+                head_sha=self._created_pr.head_sha,
+                base_branch=self.last_create_pull_request["base"],
+                title=self.last_create_pull_request["title"],
+                body=self.last_create_pull_request["body"],
+            )
+        if self._persisted_created_pr is None:
+            return None
+        if self._persisted_created_pr.number != number:
+            return None
+        return self._persisted_created_pr
 
 
 def _registry_with_gateway(gateway: _FakeGitHubGateway) -> ReconciliationHandlerRegistry:
@@ -478,7 +516,8 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         )
 
     def test_submit_completion_claim_does_not_skip_reconciliation_for_stale_attached_pr_artifact(self) -> None:
-        gateway = _FakeGitHubGateway(created_pr=_pull_request(number=404))
+        created_pr = _pull_request(number=404)
+        gateway = _FakeGitHubGateway(created_pr=created_pr)
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
             reconciliation_registry=_registry_with_gateway(gateway),
@@ -495,8 +534,10 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["status"], "completed")
         self.assertEqual(gateway.create_calls, 1)
+        self.assertEqual(gateway.get_pull_request_calls, 1)
         attempt = _latest_reconciliation_attempt(payload["task_envelope"])
         self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
+        self.assertTrue(attempt["details"]["created_pull_request_revalidated"])
         self.assertEqual(payload["task_envelope"]["reconciliation"]["last_pr_url"], gateway._created_pr.url)
         self.assertEqual(
             len([item for item in payload["task_envelope"]["artifacts"]["items"] if item["type"] == "pull_request"]),
@@ -592,7 +633,8 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
 
     def test_submit_completion_claim_creates_pr_once_and_is_idempotent_on_repeat(self) -> None:
-        gateway = _FakeGitHubGateway()
+        created_pr = _pull_request(number=401)
+        gateway = _FakeGitHubGateway(created_pr=created_pr)
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
             reconciliation_registry=_registry_with_gateway(gateway),
@@ -610,6 +652,7 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(first_status, 200)
         self.assertEqual(second_status, 200)
         self.assertEqual(gateway.create_calls, 1)
+        self.assertEqual(gateway.get_pull_request_calls, 1)
         self.assertEqual(first_payload["task_envelope"]["reconciliation"]["last_pr_url"], gateway._created_pr.url)
         self.assertEqual(second_payload["task_envelope"]["reconciliation"]["last_pr_url"], gateway._created_pr.url)
         self.assertEqual(
@@ -779,6 +822,63 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             "Harness-Completion-Claim-ID: claim-multiple-attempts",
             gateway.last_create_pull_request["body"],
         )
+
+    def test_submit_completion_claim_requires_persisted_created_pr_to_validate_before_attachment(self) -> None:
+        created_pr = _pull_request(number=407)
+        gateway = _FakeGitHubGateway(created_pr=created_pr, persisted_created_pr=None)
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-create-readback-missing")
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-create-readback-missing"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "reconciliation_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "in_review")
+        self.assertEqual(gateway.create_calls, 1)
+        self.assertEqual(gateway.get_pull_request_calls, 1)
+        attempt = payload["reconciliation_attempt"]
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "created_pull_request_revalidation_failed")
+        self.assertEqual(
+            attempt["details"]["final_decision"]["reason"],
+            "created_pull_request_not_visible_after_create",
+        )
+        self.assertFalse(attempt["details"]["created_pull_request_revalidated"])
+
+    def test_submit_completion_claim_rejects_persisted_created_pr_that_fails_validation(self) -> None:
+        created_pr = _pull_request(number=408)
+        persisted_created_pr = _pull_request(
+            number=408,
+            head_sha="1111111111111111111111111111111111111111",
+        )
+        gateway = _FakeGitHubGateway(created_pr=created_pr, persisted_created_pr=persisted_created_pr)
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-create-readback-invalid")
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-create-readback-invalid"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "reconciliation_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "in_review")
+        self.assertEqual(gateway.create_calls, 1)
+        self.assertEqual(gateway.get_pull_request_calls, 1)
+        attempt = payload["reconciliation_attempt"]
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "created_pull_request_revalidation_failed")
+        self.assertEqual(
+            attempt["details"]["final_decision"]["reason"],
+            "persisted_pull_request_failed_validation",
+        )
+        created_candidates = attempt["details"]["pull_request_candidates"]
+        self.assertEqual(created_candidates[0]["lookup_sources"], ["created_response"])
+        self.assertEqual(created_candidates[1]["lookup_sources"], ["created_persisted"])
+        self.assertIn("head_sha_mismatch", created_candidates[1]["validation"]["reasons"])
 
     def test_submit_completion_claim_accepts_existing_candidate_with_matching_run_linkage_when_multiple_attempts_exist(self) -> None:
         task_id = "task-pr-reconcile-multiple-attempts-valid"

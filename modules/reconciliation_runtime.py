@@ -162,6 +162,14 @@ class GitHubPullRequestGateway(Protocol):
         base: str,
     ) -> GitHubPullRequestRecord: ...
 
+    def get_pull_request(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        number: int,
+    ) -> GitHubPullRequestRecord | None: ...
+
 
 def default_reconciliation_state() -> dict[str, Any]:
     """Return the canonical default reconciliation state."""
@@ -1128,6 +1136,7 @@ class MissingPrAfterExecutionHandler:
                 },
                 "pull_request_candidates": [],
                 "created_pull_request": False,
+                "created_pull_request_revalidated": False,
                 "error_disposition": None,
                 "final_decision": {
                     "result": None,
@@ -1193,7 +1202,7 @@ class MissingPrAfterExecutionHandler:
                 )
                 source = "created"
                 attempt["details"]["created_pull_request"] = True
-                created_sources = {"created"}
+                created_sources = {"created_response"}
                 created_accepted, created_reasons, created_matched_by, created_task_linkage, created_run_linkage, created_linkage_policy = self._validate_candidate(
                     pull_request,
                     code_context=code_context,
@@ -1214,13 +1223,7 @@ class MissingPrAfterExecutionHandler:
                     )
                 )
                 attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
-                if created_accepted:
-                    attempt["details"]["pull_request_lookup"]["valid_candidate_count"] += 1
-                    attempt["details"]["final_decision"] = {
-                        "result": "created_new",
-                        "reason": "no_valid_existing_candidate",
-                    }
-                else:
+                if not created_accepted:
                     attempt["details"]["final_decision"] = {
                         "result": "created_candidate_rejected",
                         "reason": "created_pull_request_failed_validation",
@@ -1228,6 +1231,55 @@ class MissingPrAfterExecutionHandler:
                     raise ReconciliationRuntimeError(
                         "Created pull request did not satisfy current-run validation policy"
                     )
+                persisted_pull_request = self.github.get_pull_request(
+                    owner=code_context.repository_owner,
+                    repo=code_context.repository_name,
+                    number=pull_request.number,
+                )
+                if persisted_pull_request is None:
+                    attempt["details"]["final_decision"] = {
+                        "result": "created_pull_request_revalidation_failed",
+                        "reason": "created_pull_request_not_visible_after_create",
+                    }
+                    raise ReconciliationRuntimeError(
+                        "Created pull request could not be revalidated from persisted GitHub state"
+                    )
+                persisted_sources = {"created_persisted"}
+                persisted_accepted, persisted_reasons, persisted_matched_by, persisted_task_linkage, persisted_run_linkage, persisted_linkage_policy = self._validate_candidate(
+                    persisted_pull_request,
+                    code_context=code_context,
+                    task_envelope=context.task_envelope,
+                    sources=persisted_sources,
+                )
+                attempt["details"]["pull_request_candidates"].append(
+                    self._candidate_details(
+                        persisted_pull_request,
+                        sources=persisted_sources,
+                        accepted=persisted_accepted,
+                        reasons=persisted_reasons,
+                        matched_by=persisted_matched_by,
+                        task_linkage=persisted_task_linkage,
+                        run_linkage=persisted_run_linkage,
+                        linkage_policy=persisted_linkage_policy,
+                        code_context=code_context,
+                    )
+                )
+                attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
+                if not persisted_accepted:
+                    attempt["details"]["final_decision"] = {
+                        "result": "created_pull_request_revalidation_failed",
+                        "reason": "persisted_pull_request_failed_validation",
+                    }
+                    raise ReconciliationRuntimeError(
+                        "Created pull request did not satisfy current-run validation policy after read-back"
+                    )
+                attempt["details"]["created_pull_request_revalidated"] = True
+                attempt["details"]["pull_request_lookup"]["valid_candidate_count"] += 1
+                attempt["details"]["final_decision"] = {
+                    "result": "created_new",
+                    "reason": "no_valid_existing_candidate",
+                }
+                pull_request = persisted_pull_request
                 code_context = ReconciliationCodeContext(
                     repository_host=code_context.repository_host,
                     repository_owner=code_context.repository_owner,
@@ -1534,6 +1586,18 @@ class GitHubRestPullRequestGateway:
         )
         if not isinstance(response, dict):
             raise ReconciliationRuntimeError("GitHub create pull request response was malformed")
+        return self._normalize_pull_request(response)
+
+    def get_pull_request(
+        self,
+        *,
+        owner: str,
+        repo: str,
+        number: int,
+    ) -> GitHubPullRequestRecord | None:
+        response = self._request_json(f"/repos/{owner}/{repo}/pulls/{number}")
+        if not isinstance(response, dict):
+            return None
         return self._normalize_pull_request(response)
 
 
