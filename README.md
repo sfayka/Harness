@@ -14,6 +14,8 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
+OpenClaw ingress is also intentionally narrow. It can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
+
 ## Governed Reconciliation
 
 Harness distinguishes execution from completion.

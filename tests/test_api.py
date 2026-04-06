@@ -444,7 +444,6 @@ def _openclaw_ingress_payload(*, task_id: str | None = None) -> dict:
             "priority": "high",
         },
         "metadata": {"request_kind": "openclaw"},
-        "runtime_facts": {"attempt_count": 1},
         "claimed_completion": False,
         "acceptance_criteria_satisfied": False,
     }
@@ -775,6 +774,45 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["extensions"]["openclaw"]["metadata"]["request_kind"], "openclaw")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_service_openclaw_ingress_rejects_completion_shaped_handoff_without_persisting_task(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-completion-shaped-1")
+        payload["claimed_completion"] = True
+
+        status, response_payload = self.service.submit_openclaw_ingress(payload)
+        task_status, task_payload = self.service.get_task("task-openclaw-completion-shaped-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot claim completion", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_service_openclaw_ingress_rejects_execution_status_handoff_without_persisting_task(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-executing-1")
+        payload["task"]["status"] = "executing"
+
+        status, response_payload = self.service.submit_openclaw_ingress(payload)
+        task_status, task_payload = self.service.get_task("task-openclaw-executing-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("task.status must be one of", response_payload["error"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_service_openclaw_ingress_rejects_runtime_facts_without_persisting_task(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-runtime-facts-1")
+        payload["runtime_facts"] = {"attempt_count": 1}
+
+        status, response_payload = self.service.submit_openclaw_ingress(payload)
+        task_status, task_payload = self.service.get_task("task-openclaw-runtime-facts-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("runtime_facts", response_payload["error"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
 
     def test_service_can_reevaluate_existing_blocked_task_to_completed(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")
@@ -2059,6 +2097,19 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 400)
         self.assertTrue(response_payload["invalid_input"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_openclaw_ingress_rejects_completion_shaped_handoff(self) -> None:
+        payload = _openclaw_ingress_payload(task_id="task-openclaw-api-invalid-completion-1")
+        payload["acceptance_criteria_satisfied"] = True
+
+        status, response_payload = self._post_json("/ingress/openclaw", payload)
+        task_status, task_payload = self._get_json("/tasks/task-openclaw-api-invalid-completion-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot assert acceptance_criteria_satisfied", response_payload["error"].lower())
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 

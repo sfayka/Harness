@@ -19,6 +19,9 @@ class OpenClawIngressInputError(ValueError):
     """Raised when an OpenClaw-shaped ingress payload cannot be normalized canonically."""
 
 
+_ALLOWED_OPENCLAW_HANDOFF_STATUSES = frozenset({"intake_ready", "planned"})
+
+
 def _require_mapping(payload: Any, *, field_name: str) -> Mapping[str, Any]:
     if not isinstance(payload, Mapping):
         raise OpenClawIngressInputError(f"{field_name} must be a mapping")
@@ -64,6 +67,29 @@ def _to_jsonable(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_to_jsonable(item) for item in value]
     return value
+
+
+def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
+    task = _require_mapping(payload.get("task"), field_name="task")
+    task_status = _optional_string(task.get("status"), field_name="task.status") or "intake_ready"
+    if task_status not in _ALLOWED_OPENCLAW_HANDOFF_STATUSES:
+        allowed_statuses = ", ".join(sorted(_ALLOWED_OPENCLAW_HANDOFF_STATUSES))
+        raise OpenClawIngressInputError(
+            f"task.status must be one of {allowed_statuses} for OpenClaw ingress handoff"
+        )
+    if bool(payload.get("claimed_completion", False)):
+        raise OpenClawIngressInputError(
+            "OpenClaw ingress cannot claim completion; completion must flow through executor/reporting paths"
+        )
+    if bool(payload.get("acceptance_criteria_satisfied", False)):
+        raise OpenClawIngressInputError(
+            "OpenClaw ingress cannot assert acceptance_criteria_satisfied on initial handoff"
+        )
+    runtime_facts = _optional_mapping(payload.get("runtime_facts"), field_name="runtime_facts")
+    if runtime_facts:
+        raise OpenClawIngressInputError(
+            "OpenClaw ingress cannot submit executor runtime_facts; execution telemetry must come from execution or reevaluation paths"
+        )
 
 
 def _build_openclaw_context(payload: Mapping[str, Any]) -> IngressSourceContext:
@@ -130,6 +156,7 @@ def translate_openclaw_submission_payload(payload: Mapping[str, Any]) -> dict[st
     """Translate an OpenClaw ingress payload into canonical ``POST /tasks`` input."""
 
     payload = _require_mapping(payload, field_name="openclaw_ingress_payload")
+    _validate_openclaw_handoff_contract(payload)
     try:
         canonical_payload = build_task_submission_payload(
             intent=_build_task_intent(payload),

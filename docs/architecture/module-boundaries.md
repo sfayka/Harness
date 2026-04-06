@@ -33,6 +33,7 @@ Each module below has one owner. Ownership here means responsibility for the mod
 ## Interaction Rules
 
 - OpenClaw may submit work to Harness, but not mutate internal orchestration state directly.
+- OpenClaw ingress may hand off intake/planning work only; it must not submit executor runtime facts, completion claims, or terminal/executing lifecycle truth on initial task creation.
 - Linear may remain the visible coordination surface, but Harness still decides whether completion is trustworthy.
 - Harness core may request persistence from the workflow substrate, but should not couple business rules to a specific substrate API.
 - Harness core may update structured work through the Linear integration layer, but should not treat executor events as the source of truth.
@@ -52,6 +53,8 @@ Required fields should eventually include:
 - validated objective
 - constraints
 - requested deliverable shape
+
+Fields that express execution telemetry or accepted completion do not belong in this ingress contract. Those belong to executor/reporting and reevaluation paths, where Harness can verify them mechanically.
 
 ### Task Contract
 

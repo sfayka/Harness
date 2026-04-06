@@ -31,7 +31,6 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
             },
             "metadata": {"source": "openclaw-integration-test"},
             "external_facts": {"expected_code_context": {"repository_owner": "sfayka"}},
-            "runtime_facts": {"attempt_count": 1},
             "claimed_completion": False,
             "acceptance_criteria_satisfied": False,
             "unresolved_conditions": ["Awaiting external evidence."],
@@ -48,12 +47,47 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         self.assertEqual(task["origin"]["ingress_id"], "conv-123")
         self.assertEqual(task["extensions"]["openclaw"]["conversation_id"], "conv-123")
         self.assertEqual(task["extensions"]["openclaw"]["metadata"]["source"], "openclaw-integration-test")
-        self.assertEqual(request["runtime_facts"]["attempt_count"], 1)
         self.assertEqual(request["unresolved_conditions"], ["Awaiting external evidence."])
 
     def test_translate_openclaw_submission_payload_requires_context_shape(self) -> None:
         payload = self._payload()
         payload["context"] = "invalid"
+
+        with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+    def test_translate_openclaw_submission_payload_allows_planned_handoff_status(self) -> None:
+        payload = self._payload()
+        payload["task"]["status"] = "planned"
+
+        translated = translate_openclaw_submission_payload(payload)
+
+        self.assertEqual(translated["request"]["task_envelope"]["status"], "planned")
+
+    def test_translate_openclaw_submission_payload_rejects_execution_or_terminal_status(self) -> None:
+        for invalid_status in ("dispatch_ready", "assigned", "executing", "completed"):
+            payload = self._payload()
+            payload["task"]["status"] = invalid_status
+
+            with self.assertRaises(OpenClawIngressInputError):
+                translate_openclaw_submission_payload(payload)
+
+    def test_translate_openclaw_submission_payload_rejects_completion_claim_fields(self) -> None:
+        payload = self._payload()
+        payload["claimed_completion"] = True
+
+        with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+        payload = self._payload()
+        payload["acceptance_criteria_satisfied"] = True
+
+        with self.assertRaises(OpenClawIngressInputError):
+            translate_openclaw_submission_payload(payload)
+
+    def test_translate_openclaw_submission_payload_rejects_runtime_facts(self) -> None:
+        payload = self._payload()
+        payload["runtime_facts"] = {"attempt_count": 1}
 
         with self.assertRaises(OpenClawIngressInputError):
             translate_openclaw_submission_payload(payload)
