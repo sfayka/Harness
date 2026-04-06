@@ -1090,13 +1090,19 @@ def _validate_execution_attempt(
     repository_values = observations.get("repository", {})
     branch_values = observations.get("branch", {})
     commit_values = observations.get("commit", {})
+    existing_artifacts = ((request.task_envelope.get("artifacts") or {}).get("items") or [])
+    has_pull_request_artifact = (
+        any(isinstance(item, dict) and item.get("type") == "pull_request" for item in existing_artifacts)
+        or any(isinstance(item, dict) and item.get("type") == "pull_request" for item in payload_artifacts)
+    )
+    commit_resolution_pending = bool(repository_values and branch_values and not commit_values and not has_pull_request_artifact)
 
     reasons: list[str] = []
     if not repository_values:
         reasons.append("Successful execution attempt is missing repository identity for the current run.")
     if not branch_values:
         reasons.append("Successful execution attempt is missing branch identity for the current run.")
-    if not commit_values:
+    if not commit_values and not commit_resolution_pending:
         reasons.append("Successful execution attempt is missing commit SHA for the current run.")
 
     validation = {
@@ -1108,10 +1114,12 @@ def _validate_execution_attempt(
             "require_commit": True,
             "allow_missing_pull_request": True,
             "task_artifact_fallback_requires_single_attempt": True,
+            "allow_commit_resolution_via_reconciliation": True,
         },
         "context_observations": {
             **_observations_snapshot(observations),
             "used_task_artifact_fallback": used_task_artifact_fallback,
+            "commit_resolution_pending": commit_resolution_pending,
         },
     }
     if reasons:

@@ -356,13 +356,16 @@ Harness distinguishes a failed execution attempt from an invalid execution attem
 - failed attempt: the executor actually ran and reported an unsuccessful terminal outcome
 - invalid execution attempt: the executor claimed success, but the current run did not produce the minimum proof needed to trust that claim as a real code-bearing attempt
 
-For the current implemented policy, a code-bearing successful attempt must provide coherent current-run repository, branch, and commit context before Harness will let that claim proceed into completion handling.
+For the current implemented policy, a code-bearing successful attempt must provide coherent current-run repository and branch context, plus commit context unless that commit can be recovered safely during governed reconciliation.
 
 Examples of `invalid_execution_attempt`:
 
 - no repository/branch/commit context for the current run
+- repository or branch context is missing, so Harness cannot recover commit identity later
 - conflicting repo/branch/commit values inside the attempt payload
 - malformed success-shaped output that cannot identify the current execution attempt coherently
+
+A narrow exception exists for `missing_pr_after_execution`: if repository and branch identity are present but commit SHA is still absent, Harness may allow the completion claim to enter reconciliation so the handler can resolve the current branch head SHA before PR lookup. That exception does not relax the requirement for repository and branch identity, and it does not authorize terminal success on its own.
 
 This is intentionally earlier than reconciliation.
 

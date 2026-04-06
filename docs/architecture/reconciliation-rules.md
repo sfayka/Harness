@@ -288,7 +288,7 @@ This reconciliation handler applies when all of the following are true:
 
 - execution has completed or a completion claim was submitted
 - the task has enough repository context to reason about GitHub artifacts
-- a commit artifact exists or a commit SHA was supplied
+- a commit artifact exists, a commit SHA was supplied, or repository and branch identity are present strongly enough for Harness to recover the branch head SHA before PR lookup
 - the required PR artifact is still missing
 
 Harness distinguishes execution from completion. A completion claim without a PR artifact is not enough to reach terminal success when reconciliation policy requires GitHub proof.
@@ -300,17 +300,18 @@ Even if a PR artifact is already attached to the task, Harness should only treat
 For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handler with the following bounded sequence:
 
 1. Check that the target branch exists through Git or the GitHub API.
-2. Validate that the commit SHA is present, non-empty, and resolvable.
-3. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest.
-4. Compare repository, branch, and commit context across `external_facts`, attached artifacts, and execution-attempt metadata. If those sources disagree, stop and record the conflict rather than choosing one implicitly.
-5. Query GitHub for candidate PRs by branch.
-6. Query GitHub for candidate PRs by commit association.
-7. Validate each candidate against the current run context rather than treating branch lookup as success.
-8. When the task has multiple execution attempts, or when a candidate only matches through commit association, require explicit run linkage to the current attempt rather than relying on task linkage alone.
-9. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
-10. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-11. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
-12. If PR creation fails, the created PR cannot be revalidated from persisted state, or ambiguity remains, capture the error and mark reconciliation `failed`.
+2. If the commit SHA is missing but repository and branch are known, resolve the current branch head SHA through Git or the GitHub API.
+3. Validate that the resulting commit SHA is present, non-empty, and resolvable.
+4. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest.
+5. Compare repository, branch, and commit context across `external_facts`, attached artifacts, and execution-attempt metadata. If those sources disagree, stop and record the conflict rather than choosing one implicitly.
+6. Query GitHub for candidate PRs by branch.
+7. Query GitHub for candidate PRs by commit association.
+8. Validate each candidate against the current run context rather than treating branch lookup as success.
+9. When the task has multiple execution attempts, or when a candidate only matches through commit association, require explicit run linkage to the current attempt rather than relying on task linkage alone.
+10. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
+11. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+12. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
+13. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 
