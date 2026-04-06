@@ -116,6 +116,7 @@ class MissingPrMatchPolicy:
     require_head_sha_match: bool = True
     require_exact_branch_match: bool = True
     allow_commit_association_match: bool = True
+    allow_non_head_commit_association_match: bool = False
     escalate_on_ambiguous_match: bool = True
     require_task_linkage: bool = False
     require_run_linkage_for_multiple_attempts: bool = True
@@ -1177,12 +1178,17 @@ class MissingPrAfterExecutionHandler:
 
         head_sha_match = bool(pull_request.head_sha) and pull_request.head_sha == code_context.commit_sha
         commit_association_match = self.policy.allow_commit_association_match and "commit" in sources
+        non_head_commit_association_match = commit_association_match and not head_sha_match
 
         if self.policy.require_head_sha_match:
             if head_sha_match:
                 matched_by.append("head_sha_match")
+                if commit_association_match:
+                    matched_by.append("commit_association_match")
             elif commit_association_match:
                 matched_by.append("commit_association_match")
+                if not self.policy.allow_non_head_commit_association_match:
+                    reasons.append("commit_association_without_current_head_evidence")
             else:
                 reasons.append("head_sha_mismatch" if pull_request.head_sha else "missing_head_sha")
         elif commit_association_match:
@@ -1199,7 +1205,11 @@ class MissingPrAfterExecutionHandler:
         if self.policy.require_run_linkage_for_multiple_attempts and run_linkage["current_run"]["multiple_attempts"]:
             require_run_linkage = True
             linkage_reasons.append("multiple_execution_attempts")
-        if self.policy.require_run_linkage_for_commit_association and commit_association_match and not head_sha_match:
+        if (
+            self.policy.allow_non_head_commit_association_match
+            and self.policy.require_run_linkage_for_commit_association
+            and non_head_commit_association_match
+        ):
             require_run_linkage = True
             linkage_reasons.append("commit_association_without_head_sha_match")
 
