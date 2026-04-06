@@ -1,0 +1,119 @@
+{
+  "execution_mode": "local-controlled",
+  "hosted_validation": "not_performed",
+  "overall": {
+    "all_scenarios_passed": true,
+    "conclusion": "validated"
+  },
+  "proof_name": "kno-183-pr-create-readback-validation",
+  "scenarios": [
+    {
+      "actual": {
+        "action": "transition_applied",
+        "create_pull_request_calls": 1,
+        "created_pull_request": true,
+        "created_pull_request_revalidated": true,
+        "final_decision": {
+          "reason": "no_valid_existing_candidate",
+          "result": "created_new"
+        },
+        "get_pull_request_calls": 1,
+        "http_status": 200,
+        "task_status": "completed"
+      },
+      "all_checks_passed": true,
+      "checks": {
+        "claim_status": true,
+        "expected_action": true,
+        "expected_final_decision": true,
+        "expected_revalidation": true,
+        "expected_task_status": true,
+        "final_read_model_status": true,
+        "final_timeline_status": true,
+        "initial_read_model_status": true,
+        "initial_timeline_status": true
+      },
+      "claim_id": "claim-kno-183-a",
+      "expected": {
+        "action": "transition_applied",
+        "created_pull_request_revalidated": true,
+        "final_decision_result": "created_new",
+        "task_status": "completed"
+      },
+      "scenario": "a",
+      "task_id": "task-kno-183-scenario-a"
+    },
+    {
+      "actual": {
+        "action": "reconciliation_failed",
+        "create_pull_request_calls": 1,
+        "created_pull_request": true,
+        "created_pull_request_revalidated": false,
+        "final_decision": {
+          "reason": "created_pull_request_not_visible_after_create",
+          "result": "created_pull_request_revalidation_failed"
+        },
+        "get_pull_request_calls": 1,
+        "http_status": 200,
+        "task_status": "in_review"
+      },
+      "all_checks_passed": true,
+      "checks": {
+        "claim_status": true,
+        "expected_action": true,
+        "expected_final_decision": true,
+        "expected_revalidation": true,
+        "expected_task_status": true,
+        "final_read_model_status": true,
+        "final_timeline_status": true,
+        "initial_read_model_status": true,
+        "initial_timeline_status": true
+      },
+      "claim_id": "claim-kno-183-b",
+      "expected": {
+        "action": "reconciliation_failed",
+        "created_pull_request_revalidated": false,
+        "final_decision_result": "created_pull_request_revalidation_failed",
+        "task_status": "in_review"
+      },
+      "scenario": "b",
+      "task_id": "task-kno-183-scenario-b"
+    },
+    {
+      "actual": {
+        "action": "reconciliation_failed",
+        "create_pull_request_calls": 1,
+        "created_pull_request": true,
+        "created_pull_request_revalidated": false,
+        "final_decision": {
+          "reason": "persisted_pull_request_failed_validation",
+          "result": "created_pull_request_revalidation_failed"
+        },
+        "get_pull_request_calls": 1,
+        "http_status": 200,
+        "task_status": "in_review"
+      },
+      "all_checks_passed": true,
+      "checks": {
+        "claim_status": true,
+        "expected_action": true,
+        "expected_final_decision": true,
+        "expected_revalidation": true,
+        "expected_task_status": true,
+        "final_read_model_status": true,
+        "final_timeline_status": true,
+        "initial_read_model_status": true,
+        "initial_timeline_status": true
+      },
+      "claim_id": "claim-kno-183-c",
+      "expected": {
+        "action": "reconciliation_failed",
+        "created_pull_request_revalidated": false,
+        "final_decision_result": "created_pull_request_revalidation_failed",
+        "task_status": "in_review"
+      },
+      "scenario": "c",
+      "task_id": "task-kno-183-scenario-c"
+    }
+  ]
+}

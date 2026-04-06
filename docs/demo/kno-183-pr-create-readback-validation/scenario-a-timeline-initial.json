@@ -1,0 +1,52 @@
+{
+  "current_status": "executing",
+  "event_count": 2,
+  "task_id": "task-kno-183-scenario-a",
+  "timeline": [
+    {
+      "details": {
+        "origin": {
+          "ingress_id": null,
+          "ingress_name": null,
+          "requested_by": null,
+          "source_id": "req-task-kno-183-scenario-a",
+          "source_system": "openclaw",
+          "source_type": "ingress_request"
+        },
+        "status": "executing",
+        "title": "Reconcile missing pull request"
+      },
+      "event_id": "task-kno-183-scenario-a:created",
+      "event_type": "task_created",
+      "occurred_at": "2026-04-04T12:00:00Z",
+      "source": "openclaw",
+      "summary": "Task created"
+    },
+    {
+      "details": {
+        "artifact_id": "artifact-commit-1",
+        "branch": {
+          "base_branch": "main",
+          "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+          "name": "codex/e2e-test"
+        },
+        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        "pull_request_number": null,
+        "repository": {
+          "external_id": "repo-dryrun-1",
+          "host": "github.com",
+          "name": "HARNESS-DRYRUN",
+          "owner": "KnoxAnalytics"
+        },
+        "title": null,
+        "type": "commit",
+        "verification_status": "verified"
+      },
+      "event_id": "task-kno-183-scenario-a:artifact:artifact-commit-1",
+      "event_type": "artifact_captured",
+      "occurred_at": "2026-04-04T12:01:00Z",
+      "source": "github",
+      "summary": "Artifact captured: commit"
+    }
+  ]
+}
