@@ -1,0 +1,26 @@
+{
+  "current_status": "executing",
+  "event_count": 1,
+  "task_id": "task-kno-184-scenario-b",
+  "timeline": [
+    {
+      "details": {
+        "origin": {
+          "ingress_id": null,
+          "ingress_name": null,
+          "requested_by": null,
+          "source_id": "req-task-kno-184-scenario-b",
+          "source_system": "openclaw",
+          "source_type": "ingress_request"
+        },
+        "status": "executing",
+        "title": "Reconcile missing pull request"
+      },
+      "event_id": "task-kno-184-scenario-b:created",
+      "event_type": "task_created",
+      "occurred_at": "2026-04-04T12:00:00Z",
+      "source": "openclaw",
+      "summary": "Task created"
+    }
+  ]
+}

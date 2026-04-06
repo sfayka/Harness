@@ -1,0 +1,112 @@
+{
+  "task": {
+    "assigned_executor": {
+      "assignment_reason": "Runtime coverage for reconciliation.",
+      "executor_id": "executor-1",
+      "executor_type": "codex"
+    },
+    "coordination_summary": {
+      "linear": null
+    },
+    "current_status": "executing",
+    "description": "Exercise post-execution PR reconciliation.",
+    "evaluation_summary": {
+      "count": 0,
+      "history": [],
+      "latest_action": null,
+      "latest_recorded_at": null,
+      "latest_target_status": null
+    },
+    "evidence_summary": {
+      "artifact_count": 0,
+      "artifact_type_counts": {},
+      "completion_evidence": {
+        "policy": "not_applicable",
+        "required_artifact_types": [],
+        "status": "not_applicable",
+        "validated_artifact_ids": [],
+        "validated_at": null,
+        "validation_method": "none",
+        "validator": null
+      },
+      "validated_artifact_count": 0,
+      "verification_status_counts": {}
+    },
+    "execution_summary": {
+      "attempt_count": 0,
+      "failure_state": "clear",
+      "invalid_attempt_count": 0,
+      "last_failure_type": "none",
+      "latest_artifact_references": [],
+      "latest_attempt": null,
+      "latest_attempt_validation": null,
+      "latest_dispatch_origin": null,
+      "latest_status": null,
+      "retry_count": 0,
+      "retry_eligible": false,
+      "total_attempts": 0
+    },
+    "extensions": {},
+    "failure_summary": {
+      "failure_source": "none",
+      "failure_type": "none",
+      "recoverable": false,
+      "state": "clear",
+      "terminal": false
+    },
+    "lifecycle_history": [],
+    "objective_summary": "Exercise post-execution PR reconciliation.",
+    "origin": {
+      "ingress_id": null,
+      "ingress_name": null,
+      "requested_by": null,
+      "source_id": "req-task-kno-184-scenario-a",
+      "source_system": "openclaw",
+      "source_type": "ingress_request"
+    },
+    "reconciliation_summary": null,
+    "relationships": {
+      "child_task_ids": [],
+      "dependencies": [],
+      "parent_task_id": null
+    },
+    "review_summary": {
+      "decision_count": 0,
+      "decisions": [],
+      "latest_decision": null,
+      "latest_request": null,
+      "request_count": 0,
+      "requests": [],
+      "status": "none"
+    },
+    "task_id": "task-kno-184-scenario-a",
+    "timeline": [
+      {
+        "details": {
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-task-kno-184-scenario-a",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "status": "executing",
+          "title": "Reconcile missing pull request"
+        },
+        "event_id": "task-kno-184-scenario-a:created",
+        "event_type": "task_created",
+        "occurred_at": "2026-04-04T12:00:00Z",
+        "source": "openclaw",
+        "summary": "Task created"
+      }
+    ],
+    "timestamps": {
+      "completed_at": null,
+      "created_at": "2026-04-04T12:00:00Z",
+      "updated_at": "2026-04-04T12:00:00Z"
+    },
+    "title": "Reconcile missing pull request",
+    "verification_summary": null
+  }
+}
