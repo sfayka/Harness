@@ -115,3 +115,5 @@ Both boundaries were validated with concrete machine-readable artifacts produced
 
 - This is local controlled proof, not hosted proof.
 - Hosted proof was not fabricated.
+- This validation run generated repository-local docs/test artifacts only; it did **not** create task-scoped external execution artifacts (for example, a new execution branch in a target repo, a new execution commit in that target repo, or a new task PR tied to live execution).
+- Contract-compliant reporting for this proof mode is therefore: **`BLOCKED: no task-specific external artifacts created`**.
