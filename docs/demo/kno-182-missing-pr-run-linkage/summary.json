@@ -1,0 +1,25 @@
+{
+  "scenario_a": {
+    "status": 200,
+    "read_model_status": 200,
+    "timeline_status": 200,
+    "final_decision": "created_new",
+    "rejected_reasons": [
+      "run_linkage_missing"
+    ],
+    "create_calls": 1
+  },
+  "scenario_b": {
+    "status": 200,
+    "read_model_status": 200,
+    "timeline_status": 200,
+    "accepted": true,
+    "matched_by": [
+      "commit_association_match",
+      "task_linkage",
+      "attempt_linkage",
+      "completion_claim_linkage"
+    ],
+    "create_calls": 0
+  }
+}
