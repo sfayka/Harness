@@ -83,9 +83,9 @@ No module may cause lifecycle movement outside its authority just because it obs
 | `executing` | `failed` | yes | runtime or verification | execution attempt or resulting outcome is terminally unusable under policy |
 | `executing` | `canceled` | yes | operator or authorized control-plane policy | execution is intentionally stopped |
 | `reconciling` | `completed` | yes | verification | reconciliation resolved the defect and canonical reevaluation accepted completion |
-| `reconciling` | `in_review` | yes | reconciliation runtime or verification | bounded automated recovery failed or was blocked and explicit human judgment is now required |
+| `reconciling` | `in_review` | yes | reconciliation runtime or verification | bounded automated recovery stopped at unresolved ambiguity or other judgment-requiring conditions |
 | `reconciling` | `blocked` | yes | reconciliation runtime or verification | recovery exposed a non-terminal blocker that does not yet require manual review |
-| `reconciling` | `failed` | yes | verification | reconciliation or reevaluation determined the task outcome is terminally invalid |
+| `reconciling` | `failed` | yes | reconciliation runtime or verification | recovery proved the execution proof chain is terminally invalid, or reevaluation determined the task outcome is terminally invalid |
 | `reconciling` | `canceled` | yes | operator or authorized control-plane policy | reconciliation was intentionally stopped |
 | `completed` | `blocked` | yes | verification or reconciliation-driven control-plane policy | later verification/reconciliation shows outcome is provisional, insufficient, or contradictory |
 | `blocked` | `completed` | yes | verification or manual review | the task was blocked on unresolved completion acceptance and later evidence/reconciliation resolves that blocker |

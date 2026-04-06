@@ -179,9 +179,10 @@ Tasks enter `reconciling` only when Harness has enough structured context to att
 
 - `reconciling` means system repair or recovery is still in progress.
 - `blocked` means reconciliation stopped because a retryable external or platform condition prevented progress, but explicit human judgment is not yet required.
+- `failed` means reconciliation proved the execution outcome is terminally unusable and the task should not continue automatically.
 - `in_review` means the system has reached the limit of safe automation and now requires explicit human judgment or intervention.
 
-Leaving `reconciling` does not grant terminal success by itself. If reconciliation resolves the defect, Harness must return to canonical reevaluation and only then decide whether the task can be accepted as `completed`. If reconciliation is blocked by a retryable provider or platform failure, the task may move to `blocked`. If reconciliation fails because safe automation cannot resolve ambiguity or contradiction, it must escalate to `in_review`.
+Leaving `reconciling` does not grant terminal success by itself. If reconciliation resolves the defect, Harness must return to canonical reevaluation and only then decide whether the task can be accepted as `completed`. If reconciliation is blocked by a retryable provider or platform failure, the task may move to `blocked`. If reconciliation proves that the execution proof chain is terminally invalid, it may move to `failed`. If reconciliation fails because safe automation cannot resolve ambiguity or contradiction, it must escalate to `in_review`.
 
 `completed` is preserved only when verification policy accepts the outcome. Executor-reported success, evidence attachment, or reconciliation in isolation are not enough by themselves.
 

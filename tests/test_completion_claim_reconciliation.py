@@ -729,10 +729,12 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         status, response = service.submit_completion_claim(task["id"], payload)
 
         self.assertEqual(status, 200)
-        self.assertEqual(response["action"], "reconciliation_failed")
-        self.assertEqual(response["task_envelope"]["status"], "in_review")
+        self.assertEqual(response["action"], "reconciliation_terminal_failed")
+        self.assertEqual(response["task_envelope"]["status"], "failed")
+        self.assertFalse(response["requires_review"])
         attempt = response["reconciliation_attempt"]
         self.assertEqual(attempt["details"]["branch_head_commit_sha"], None)
+        self.assertEqual(attempt["details"]["error_disposition"], "terminal_failed")
         self.assertEqual(
             attempt["details"]["error"],
             "Commit SHA is required for missing_pr_after_execution reconciliation and could not be resolved from the branch head",
@@ -1036,15 +1038,15 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         stored_status, stored_payload = service.get_task(task["id"])
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["action"], "reconciliation_failed")
-        self.assertEqual(payload["task_envelope"]["status"], "in_review")
-        self.assertTrue(payload["requires_review"])
+        self.assertEqual(payload["action"], "reconciliation_terminal_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "failed")
+        self.assertFalse(payload["requires_review"])
         self.assertEqual(payload["task_envelope"]["reconciliation"]["status"], "failed")
         self.assertEqual(payload["task_envelope"]["reconciliation"]["active_failure_type"], "missing_pr_after_execution")
         self.assertEqual(payload["task_envelope"]["status_history"][-2]["to_status"], "reconciling")
-        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "in_review")
+        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "failed")
         self.assertEqual(stored_status, 200)
-        self.assertEqual(stored_payload["task"]["status"], "in_review")
+        self.assertEqual(stored_payload["task"]["status"], "failed")
 
     def test_submit_completion_claim_moves_task_to_blocked_for_retryable_provider_failure(self) -> None:
         gateway = _FakeGitHubGateway(
@@ -1143,6 +1145,28 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
         )
         self.assertIn(commit_artifacts[0]["id"], payload["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"])
+
+    def test_submit_completion_claim_terminally_fails_missing_commit_reconciliation_when_branch_is_missing(self) -> None:
+        gateway = _FakeGitHubGateway(branch_exists=False)
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _without_commit_artifact(
+            _with_pull_request_artifact(_task_envelope(task_id="task-missing-commit-branch-missing"), number=79)
+        )
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-missing-commit-branch"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "reconciliation_terminal_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "failed")
+        self.assertFalse(payload["requires_review"])
+        attempt = _latest_reconciliation_attempt(payload["task_envelope"])
+        self.assertEqual(attempt["failure_type"], "missing_commit_after_execution")
+        self.assertEqual(attempt["details"]["error_disposition"], "terminal_failed")
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "terminal_failed")
 
 
     def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:

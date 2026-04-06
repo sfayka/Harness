@@ -1565,6 +1565,8 @@ def _reconciliation_failure_response_shape(
 ) -> tuple[str, bool]:
     if target_status == "blocked":
         return "reconciliation_blocked", False
+    if target_status == "failed":
+        return "reconciliation_terminal_failed", False
     return "reconciliation_failed", True
 
 
@@ -1743,12 +1745,16 @@ class HarnessApiService:
             target_status = (
                 "blocked"
                 if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
+                else "failed"
+                if error.disposition == ReconciliationFailureDisposition.TERMINAL_FAILED
                 else "in_review"
             )
             action, requires_review = _reconciliation_failure_response_shape(target_status=target_status)
             reason_prefix = (
                 "Post-execution reconciliation blocked by retryable provider failure"
                 if target_status == "blocked"
+                else "Post-execution reconciliation established a terminal execution failure"
+                if target_status == "failed"
                 else "Post-execution reconciliation failed"
             )
             failed_task = self._task_with_transition(
@@ -1756,6 +1762,7 @@ class HarnessApiService:
                 to_status=target_status,
                 reason=f"{reason_prefix}: {error}",
                 actor="reconciliation",
+                facts={"terminal_failure": True} if target_status == "failed" else None,
             )
             failed_task = ensure_reconciliation_state(failed_task)
             failed_task["reconciliation"]["status"] = ReconciliationAttemptStatus.FAILED.value
@@ -1780,6 +1787,8 @@ class HarnessApiService:
             reason_prefix = (
                 "Post-execution reconciliation blocked by retryable provider failure"
                 if handler_result.target_status == "blocked"
+                else "Post-execution reconciliation established a terminal execution failure"
+                if handler_result.target_status == "failed"
                 else "Post-execution reconciliation failed"
             )
             failed_task = self._task_with_transition(
@@ -1787,6 +1796,7 @@ class HarnessApiService:
                 to_status=handler_result.target_status,
                 reason=f"{reason_prefix}: {handler_result.error}",
                 actor="reconciliation",
+                facts={"terminal_failure": True} if handler_result.target_status == "failed" else None,
             )
             self.store.update_task(failed_task)
             return None, {
