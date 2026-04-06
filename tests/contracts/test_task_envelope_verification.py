@@ -202,6 +202,31 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.failure_classification.category, FailureType.NONE)
         self.assertEqual(result.failure_classification.source, FailureSource.NONE)
 
+    def test_requires_review_when_required_acceptance_criteria_are_too_vague(self) -> None:
+        task_envelope = _base_task_envelope()
+        task_envelope["acceptance_criteria"] = [
+            {
+                "id": "ac-vague",
+                "description": "Task works properly.",
+                "required": True,
+            }
+        ]
+        task_envelope["objective"]["success_signal"] = "Task satisfies declared acceptance criteria."
+
+        result = _evaluate(task_envelope)
+
+        self.assertEqual(result.outcome, VerificationOutcome.REVIEW_REQUIRED)
+        self.assertEqual(result.target_status, "in_review")
+        self.assertFalse(result.accepted_completion)
+        self.assertTrue(result.requires_review)
+        self.assertFalse(result.acceptance_criteria_assessment.automatic_completion_safe)
+        self.assertEqual(result.acceptance_criteria_assessment.concrete_required_criteria_count, 0)
+        self.assertIn(
+            "too vague for automatic completion",
+            " ".join(result.acceptance_criteria_assessment.reasons).lower(),
+        )
+        self.assertEqual(result.failure_classification.category, FailureType.REVIEW_REQUIRED)
+
     def test_returns_insufficient_evidence_when_validated_evidence_is_not_sufficient(self) -> None:
         task_envelope = _base_task_envelope()
         task_envelope["artifacts"]["completion_evidence"]["required_artifact_types"].append("review_note")
