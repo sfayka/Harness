@@ -127,6 +127,30 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
     }
 
 
+def _build_clarification_summary(task_envelope: TaskEnvelope) -> dict[str, Any] | None:
+    clarification = task_envelope.get("clarification")
+    if not isinstance(clarification, dict):
+        return None
+    required_inputs = [item for item in clarification.get("required_inputs", []) if isinstance(item, dict)]
+    open_required_inputs = [
+        item
+        for item in required_inputs
+        if bool(item.get("required")) and item.get("status") == "open"
+    ]
+    return {
+        "status": clarification.get("status"),
+        "blocking_reason": clarification.get("blocking_reason"),
+        "resume_target_status": clarification.get("resume_target_status"),
+        "required_input_count": len(required_inputs),
+        "open_required_input_count": len(open_required_inputs),
+        "required_inputs": required_inputs,
+        "requested_at": clarification.get("requested_at"),
+        "resolved_at": clarification.get("resolved_at"),
+        "requested_by": clarification.get("requested_by"),
+        "resolution_summary": clarification.get("resolution_summary"),
+    }
+
+
 def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
     execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     latest_failure_summary = _latest_failure_summary(records)
@@ -244,6 +268,25 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                     "commit_sha": artifact.get("commit_sha"),
                     "repository": artifact.get("repository"),
                     "branch": artifact.get("branch"),
+                },
+            }
+        )
+    clarification = task_envelope.get("clarification")
+    if isinstance(clarification, dict):
+        events.append(
+            {
+                "event_id": f"{task_envelope['id']}:clarification",
+                "event_type": "clarification_updated",
+                "occurred_at": clarification.get("requested_at")
+                or clarification.get("resolved_at")
+                or timestamps.get("updated_at"),
+                "summary": f"Clarification status: {clarification.get('status')}",
+                "source": clarification.get("requested_by") or "harness",
+                "details": {
+                    "status": clarification.get("status"),
+                    "blocking_reason": clarification.get("blocking_reason"),
+                    "resume_target_status": clarification.get("resume_target_status"),
+                    "required_inputs": list(clarification.get("required_inputs") or []),
                 },
             }
         )
@@ -500,6 +543,7 @@ class TaskReadModel:
     origin: dict[str, Any]
     relationships: dict[str, Any]
     assigned_executor: dict[str, Any] | None
+    clarification_summary: dict[str, Any] | None
     evidence_summary: dict[str, Any]
     coordination_summary: dict[str, Any]
     verification_summary: dict[str, Any] | None
@@ -544,6 +588,7 @@ class HarnessReadModelService:
         )
         verification_summary = _latest_mapping(records, ("enforcement_result", "verification_result"))
         reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
+        clarification_summary = _build_clarification_summary(task)
         review_summary = _build_review_summary(records)
         execution_summary = _build_execution_summary(task, records)
         failure_summary = _latest_failure_summary(records)
@@ -562,6 +607,7 @@ class HarnessReadModelService:
                 "dependencies": list(task.get("dependencies") or []),
             },
             assigned_executor=dict(task.get("assigned_executor") or {}) if task.get("assigned_executor") is not None else None,
+            clarification_summary=clarification_summary,
             evidence_summary=_build_evidence_summary(task),
             coordination_summary={
                 "linear": dict(((task.get("coordination") or {}).get("linear") or {}))

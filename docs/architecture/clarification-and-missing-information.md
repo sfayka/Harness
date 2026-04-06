@@ -14,6 +14,8 @@ Clarification is therefore part of the control-plane contract, not a conversatio
 
 Ingress adapters must not leave known ambiguity as an informal note while still presenting the task as ready. If an upstream system such as OpenClaw already knows required information is missing or ambiguous, Harness should convert that signal into canonical clarification state and block the task rather than letting the ambiguity drift downstream.
 
+That rule is not limited to one adapter. Canonical submission paths such as `POST /tasks` must also treat `unresolved_conditions` as clarification truth. A caller may express the status it wanted the task to reach, but if required information is still unresolved Harness records that desired state as `clarification.resume_target_status` and stores the current task as `blocked` until the missing information is resolved.
+
 ## What Counts As Clarification
 
 Clarification applies when the task lacks enough trustworthy information to proceed.
