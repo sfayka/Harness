@@ -48,6 +48,7 @@ class _FakeGitHubGateway:
         )
         self._default_branch = default_branch
         self.create_calls = 0
+        self.last_create_pull_request: dict[str, str] | None = None
 
     def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
         del owner, repo, branch_name
@@ -95,11 +96,31 @@ class _FakeGitHubGateway:
         head: str,
         base: str,
     ) -> GitHubPullRequestRecord:
-        del owner, repo, title, body, head, base
         if self._create_pull_request_error is not None:
             raise self._create_pull_request_error
         self.create_calls += 1
-        return self._created_pr
+        self.last_create_pull_request = {
+            "owner": owner,
+            "repo": repo,
+            "title": title,
+            "body": body,
+            "head": head,
+            "base": base,
+        }
+        return GitHubPullRequestRecord(
+            number=self._created_pr.number,
+            url=self._created_pr.url,
+            state=self._created_pr.state,
+            review_state=self._created_pr.review_state,
+            merged=self._created_pr.merged,
+            repository_owner=owner,
+            repository_name=repo,
+            head_branch=head,
+            head_sha=self._created_pr.head_sha,
+            base_branch=base,
+            title=title,
+            body=body,
+        )
 
 
 def _registry_with_gateway(gateway: _FakeGitHubGateway) -> ReconciliationHandlerRegistry:
@@ -135,6 +156,25 @@ def _pull_request(
         base_branch="main",
         title=title,
         body=body,
+    )
+
+
+def _run_linkage_markers(
+    *,
+    task_id: str,
+    attempt_id: str,
+    claim_id: str,
+    branch_name: str = "codex/e2e-test",
+    commit_sha: str = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+) -> str:
+    return "\n".join(
+        [
+            f"Harness-Task-ID: {task_id}",
+            f"Harness-Attempt-ID: {attempt_id}",
+            f"Harness-Completion-Claim-ID: {claim_id}",
+            f"Harness-Branch: {branch_name}",
+            f"Harness-Commit-SHA: {commit_sha}",
+        ]
     )
 
 
@@ -604,11 +644,15 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         )
 
     def test_submit_completion_claim_attaches_valid_pr_found_by_commit_association(self) -> None:
+        task_id = "task-pr-reconcile-commit"
+        claim_id = "claim-commit"
+        attempt_id = f"{claim_id}:attempt"
         gateway = _FakeGitHubGateway(
             existing_commit_prs=(
                 _pull_request(
                     number=83,
                     head_sha="3333333333333333333333333333333333333333",
+                    body=_run_linkage_markers(task_id=task_id, attempt_id=attempt_id, claim_id=claim_id),
                 ),
             ),
         )
@@ -616,10 +660,10 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             store=FileBackedHarnessStore(self.temp_dir.name),
             reconciliation_registry=_registry_with_gateway(gateway),
         )
-        task = _task_envelope(task_id="task-pr-reconcile-commit")
+        task = _task_envelope(task_id=task_id)
         service.store.create_task(task)
 
-        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-commit"))
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload(claim_id))
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["status"], "completed")
@@ -629,6 +673,149 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertTrue(candidate["validation"]["accepted"])
         self.assertIn("commit_association_match", candidate["validation"]["matched_by"])
         self.assertNotEqual(candidate["head"]["sha"], "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+
+    def test_submit_completion_claim_rejects_commit_association_candidate_without_run_linkage(self) -> None:
+        gateway = _FakeGitHubGateway(
+            existing_commit_prs=(
+                _pull_request(
+                    number=85,
+                    head_sha="3333333333333333333333333333333333333333",
+                    body="Task task-pr-reconcile-commit-run-linkage",
+                ),
+            ),
+            created_pr=_pull_request(number=405),
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-commit-run-linkage")
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-commit-run-linkage"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 1)
+        attempt = _latest_reconciliation_attempt(payload["task_envelope"])
+        rejected_candidate = attempt["details"]["pull_request_candidates"][0]
+        self.assertEqual(rejected_candidate["number"], 85)
+        self.assertIn("commit_association_match", rejected_candidate["validation"]["matched_by"])
+        self.assertIn("run_linkage_missing", rejected_candidate["validation"]["reasons"])
+        self.assertEqual(
+            rejected_candidate["validation"]["signals"]["linkage_policy"]["reasons"],
+            ["commit_association_without_head_sha_match"],
+        )
+
+    def test_submit_completion_claim_accepts_commit_association_candidate_with_run_linkage(self) -> None:
+        task_id = "task-pr-reconcile-commit-run-linkage-valid"
+        claim_id = "claim-commit-run-linkage-valid"
+        attempt_id = f"{claim_id}:attempt"
+        gateway = _FakeGitHubGateway(
+            existing_commit_prs=(
+                _pull_request(
+                    number=86,
+                    head_sha="3333333333333333333333333333333333333333",
+                    body=_run_linkage_markers(task_id=task_id, attempt_id=attempt_id, claim_id=claim_id),
+                ),
+            ),
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id=task_id)
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload(claim_id))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 0)
+        candidate = _latest_reconciliation_attempt(payload["task_envelope"])["details"]["pull_request_candidates"][0]
+        self.assertTrue(candidate["validation"]["accepted"])
+        self.assertIn("commit_association_match", candidate["validation"]["matched_by"])
+        self.assertIn("attempt_linkage", candidate["validation"]["matched_by"])
+        self.assertIn("completion_claim_linkage", candidate["validation"]["matched_by"])
+
+    def test_submit_completion_claim_requires_run_linkage_when_multiple_attempts_exist(self) -> None:
+        gateway = _FakeGitHubGateway(
+            existing_branch_prs=(
+                _pull_request(number=87, body="Task task-pr-reconcile-multiple-attempts"),
+            ),
+            created_pr=_pull_request(number=406),
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id="task-pr-reconcile-multiple-attempts")
+        task = _record_execution_attempt(
+            task,
+            claim_id="historical-claim-1",
+            attempt_id="historical-attempt-1",
+            status="completed",
+            recorded_at="2026-04-04T12:01:45Z",
+        )
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-multiple-attempts"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 1)
+        attempt = _latest_reconciliation_attempt(payload["task_envelope"])
+        rejected_candidate = attempt["details"]["pull_request_candidates"][0]
+        self.assertIn("head_sha_match", rejected_candidate["validation"]["matched_by"])
+        self.assertIn("run_linkage_missing", rejected_candidate["validation"]["reasons"])
+        self.assertEqual(
+            rejected_candidate["validation"]["signals"]["linkage_policy"]["reasons"],
+            ["multiple_execution_attempts"],
+        )
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
+        self.assertIsNotNone(gateway.last_create_pull_request)
+        self.assertIn("Harness-Attempt-ID: claim-multiple-attempts:attempt", gateway.last_create_pull_request["body"])
+        self.assertIn(
+            "Harness-Completion-Claim-ID: claim-multiple-attempts",
+            gateway.last_create_pull_request["body"],
+        )
+
+    def test_submit_completion_claim_accepts_existing_candidate_with_matching_run_linkage_when_multiple_attempts_exist(self) -> None:
+        task_id = "task-pr-reconcile-multiple-attempts-valid"
+        claim_id = "claim-multiple-attempts-valid"
+        attempt_id = f"{claim_id}:attempt"
+        gateway = _FakeGitHubGateway(
+            existing_branch_prs=(
+                _pull_request(
+                    number=88,
+                    body=_run_linkage_markers(task_id=task_id, attempt_id=attempt_id, claim_id=claim_id),
+                ),
+            ),
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _task_envelope(task_id=task_id)
+        task = _record_execution_attempt(
+            task,
+            claim_id="historical-claim-1",
+            attempt_id="historical-attempt-1",
+            status="completed",
+            recorded_at="2026-04-04T12:01:45Z",
+        )
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload(claim_id))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(gateway.create_calls, 0)
+        candidate = _latest_reconciliation_attempt(payload["task_envelope"])["details"]["pull_request_candidates"][0]
+        self.assertTrue(candidate["validation"]["accepted"])
+        self.assertIn("head_sha_match", candidate["validation"]["matched_by"])
+        self.assertIn("attempt_linkage", candidate["validation"]["matched_by"])
+        self.assertIn("completion_claim_linkage", candidate["validation"]["matched_by"])
 
     def test_submit_completion_claim_moves_task_to_in_review_when_reconciliation_fails(self) -> None:
         gateway = _FakeGitHubGateway(branch_exists=False)
@@ -724,7 +911,18 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
 
 
     def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:
-        gateway = _FakeGitHubGateway(existing_branch_prs=(_pull_request(number=84),))
+        gateway = _FakeGitHubGateway(
+            existing_branch_prs=(
+                _pull_request(
+                    number=84,
+                    body=_run_linkage_markers(
+                        task_id="task-pr-reconcile-explicit-attempt",
+                        attempt_id="attempt-success-1",
+                        claim_id="historical-claim-success",
+                    ),
+                ),
+            )
+        )
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
             reconciliation_registry=_registry_with_gateway(gateway),

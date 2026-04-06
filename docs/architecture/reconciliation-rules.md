@@ -306,10 +306,11 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 5. Query GitHub for candidate PRs by branch.
 6. Query GitHub for candidate PRs by commit association.
 7. Validate each candidate against the current run context rather than treating branch lookup as success.
-8. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
-9. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-10. If no valid PR exists, create one through the GitHub API and validate the created PR against current-run policy.
-11. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
+8. When the task has multiple execution attempts, or when a candidate only matches through commit association, require explicit run linkage to the current attempt rather than relying on task linkage alone.
+9. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
+10. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+11. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, and validate the created PR against current-run policy.
+12. If PR creation fails or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 
@@ -323,6 +324,7 @@ A candidate PR only satisfies reconciliation by default if it passes all of the 
 - head branch matches the expected current branch exactly
 - PR state is acceptable under policy
 - head SHA matches the expected commit SHA, or the expected commit is demonstrably associated with that PR
+- when the task has multiple execution attempts, or when the candidate only matches by commit association, the PR must also prove current-run linkage to the active attempt or completion claim
 
 Current default policy is intentionally strict:
 
@@ -332,8 +334,18 @@ Current default policy is intentionally strict:
 - `require_exact_branch_match: true`
 - `allow_commit_association_match: true`
 - `escalate_on_ambiguous_match: true`
+- `require_run_linkage_for_multiple_attempts: true`
+- `require_run_linkage_for_commit_association: true`
 
-Task linkage in the PR title or body is recorded when available and can strengthen auditability, but it is not the primary proof signal by default.
+Task linkage in the PR title or body is still recorded for auditability, but it is weaker than run linkage. Branch reuse and reruns mean `task exists in this PR somewhere` is not strong enough proof for the current run.
+
+Harness run linkage uses explicit PR markers for:
+
+- `Harness-Task-ID`
+- `Harness-Attempt-ID`
+- `Harness-Completion-Claim-ID`
+- `Harness-Branch`
+- `Harness-Commit-SHA`
 
 This means a branch-only match is not sufficient proof for the current run.
 
@@ -345,7 +357,7 @@ The handler must always perform PR lookup before PR creation:
 
 - lookup by branch surfaces likely candidates on the expected head
 - lookup by commit surfaces candidates that actually correspond to the expected commit
-- candidate validation rejects stale, closed, merged, wrong-SHA, wrong-branch, or otherwise non-current matches
+- candidate validation rejects stale, closed, merged, wrong-SHA, wrong-branch, run-unlinked, or otherwise non-current matches
 - only the absence of a valid current-run candidate may proceed to PR creation
 
 This keeps retries safe and makes the handler suitable for bounded repeated execution.

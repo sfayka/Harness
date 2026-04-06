@@ -108,6 +108,8 @@ class MissingPrMatchPolicy:
     allow_commit_association_match: bool = True
     escalate_on_ambiguous_match: bool = True
     require_task_linkage: bool = False
+    require_run_linkage_for_multiple_attempts: bool = True
+    require_run_linkage_for_commit_association: bool = True
 
 
 @dataclass(frozen=True)
@@ -572,6 +574,156 @@ def _task_linkage_details(task_envelope: TaskEnvelope, pull_request: GitHubPullR
     }
 
 
+def _current_completion_claim(task_envelope: TaskEnvelope) -> dict[str, Any] | None:
+    execution_metadata = ((task_envelope.get("observability") or {}).get("execution_metadata") or {})
+    claims = execution_metadata.get("advisory_completion_claims") or []
+    if not isinstance(claims, list):
+        return None
+    return next((claim for claim in reversed(claims) if isinstance(claim, dict)), None)
+
+
+def _current_execution_attempt(task_envelope: TaskEnvelope) -> dict[str, Any] | None:
+    execution_metadata = ((task_envelope.get("observability") or {}).get("execution_metadata") or {})
+    attempts = execution_metadata.get("execution_attempts") or []
+    if not isinstance(attempts, list):
+        return None
+
+    claim = _current_completion_claim(task_envelope)
+    if claim is None:
+        return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+
+    claim_metadata = claim.get("metadata") if isinstance(claim.get("metadata"), dict) else {}
+    attempt_id = _normalize_sha(claim_metadata.get("attempt_id"))
+    if attempt_id is not None:
+        for attempt in reversed(attempts):
+            if not isinstance(attempt, dict):
+                continue
+            if _normalize_sha(attempt.get("attempt_id")) == attempt_id:
+                return attempt
+
+    claim_id = _normalize_sha(claim.get("claim_id"))
+    if claim_id is not None:
+        for attempt in reversed(attempts):
+            if not isinstance(attempt, dict):
+                continue
+            if _normalize_sha(attempt.get("completion_claim_id")) == claim_id:
+                return attempt
+
+    return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+
+
+def _execution_attempt_count(task_envelope: TaskEnvelope) -> int:
+    execution_metadata = ((task_envelope.get("observability") or {}).get("execution_metadata") or {})
+    attempts = execution_metadata.get("execution_attempts") or []
+    if not isinstance(attempts, list):
+        return 0
+    return len([attempt for attempt in attempts if isinstance(attempt, dict)])
+
+
+def _parse_harness_linkage_markers(text: str | None) -> dict[str, str]:
+    if not isinstance(text, str) or not text.strip():
+        return {}
+    markers: dict[str, str] = {}
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line.startswith("Harness-"):
+            continue
+        key, separator, value = line.partition(":")
+        if not separator:
+            continue
+        normalized_key = key.strip().casefold()
+        normalized_value = value.strip()
+        if normalized_value:
+            markers[normalized_key] = normalized_value
+    return markers
+
+
+def _current_run_linkage_details(
+    task_envelope: TaskEnvelope,
+    *,
+    code_context: ReconciliationCodeContext,
+) -> dict[str, Any]:
+    claim = _current_completion_claim(task_envelope)
+    attempt = _current_execution_attempt(task_envelope)
+    attempt_count = _execution_attempt_count(task_envelope)
+    return {
+        "task_id": _normalize_sha(task_envelope.get("id")),
+        "task_title": _normalize_sha(task_envelope.get("title")),
+        "attempt_id": _normalize_sha((attempt or {}).get("attempt_id")),
+        "completion_claim_id": _normalize_sha((claim or {}).get("claim_id")),
+        "branch_name": code_context.branch_name,
+        "commit_sha": code_context.commit_sha,
+        "attempt_count": attempt_count,
+        "multiple_attempts": attempt_count > 1,
+    }
+
+
+def _run_linkage_details(
+    task_envelope: TaskEnvelope,
+    pull_request: GitHubPullRequestRecord,
+    *,
+    code_context: ReconciliationCodeContext,
+) -> dict[str, Any]:
+    current = _current_run_linkage_details(task_envelope, code_context=code_context)
+    title_markers = _parse_harness_linkage_markers(pull_request.title)
+    body_markers = _parse_harness_linkage_markers(pull_request.body)
+    markers = {**title_markers, **body_markers}
+
+    attempt_id = current["attempt_id"]
+    completion_claim_id = current["completion_claim_id"]
+    task_id = current["task_id"]
+    branch_name = current["branch_name"]
+    commit_sha = current["commit_sha"]
+
+    attempt_id_present = bool(attempt_id) and markers.get("harness-attempt-id") == attempt_id
+    completion_claim_id_present = bool(completion_claim_id) and markers.get("harness-completion-claim-id") == completion_claim_id
+    task_id_present = bool(task_id) and markers.get("harness-task-id") == task_id
+    branch_name_present = bool(branch_name) and markers.get("harness-branch") == branch_name
+    commit_sha_present = bool(commit_sha) and markers.get("harness-commit-sha") == commit_sha
+
+    return {
+        "markers": markers,
+        "attempt_id_present": attempt_id_present,
+        "completion_claim_id_present": completion_claim_id_present,
+        "task_id_marker_present": task_id_present,
+        "branch_name_present": branch_name_present,
+        "commit_sha_present": commit_sha_present,
+        "linked": attempt_id_present or completion_claim_id_present,
+        "current_run": current,
+    }
+
+
+def _created_pull_request_title(task_envelope: TaskEnvelope) -> str:
+    task_id = str(task_envelope.get("id") or "").strip()
+    task_title = str(task_envelope.get("title") or "").strip()
+    if task_title and task_id and task_id not in task_title:
+        return f"{task_title} ({task_id})"
+    return task_title or task_id
+
+
+def _created_pull_request_body(
+    task_envelope: TaskEnvelope,
+    *,
+    code_context: ReconciliationCodeContext,
+) -> str:
+    run_linkage = _current_run_linkage_details(task_envelope, code_context=code_context)
+    lines = [
+        (
+            "Harness reconciliation created this pull request after execution completed "
+            "without a PR artifact."
+        ),
+    ]
+    if run_linkage["task_id"]:
+        lines.append(f"Harness-Task-ID: {run_linkage['task_id']}")
+    if run_linkage["attempt_id"]:
+        lines.append(f"Harness-Attempt-ID: {run_linkage['attempt_id']}")
+    if run_linkage["completion_claim_id"]:
+        lines.append(f"Harness-Completion-Claim-ID: {run_linkage['completion_claim_id']}")
+    lines.append(f"Harness-Branch: {code_context.branch_name}")
+    lines.append(f"Harness-Commit-SHA: {code_context.commit_sha}")
+    return "\n".join(lines)
+
+
 def _pull_request_artifact(
     *,
     task_envelope: TaskEnvelope,
@@ -698,6 +850,8 @@ class MissingPrAfterExecutionHandler:
         reasons: list[str],
         matched_by: list[str],
         task_linkage: dict[str, Any],
+        run_linkage: dict[str, Any],
+        linkage_policy: dict[str, Any],
         code_context: ReconciliationCodeContext,
     ) -> dict[str, Any]:
         repository_match = (
@@ -740,6 +894,8 @@ class MissingPrAfterExecutionHandler:
                     "head_sha_match": head_sha_match,
                     "commit_association_match": commit_association_match,
                     "task_linkage": task_linkage,
+                    "run_linkage": run_linkage,
+                    "linkage_policy": linkage_policy,
                 },
             },
         }
@@ -751,7 +907,14 @@ class MissingPrAfterExecutionHandler:
         code_context: ReconciliationCodeContext,
         task_envelope: TaskEnvelope,
         sources: set[str],
-    ) -> tuple[bool, list[str], list[str], dict[str, Any]]:
+    ) -> tuple[
+        bool,
+        list[str],
+        list[str],
+        dict[str, Any],
+        dict[str, Any],
+        dict[str, Any],
+    ]:
         reasons: list[str] = []
         matched_by: list[str] = []
 
@@ -796,8 +959,35 @@ class MissingPrAfterExecutionHandler:
             reasons.append("task_linkage_missing")
         elif task_linkage["linked"]:
             matched_by.append("task_linkage")
+        run_linkage = _run_linkage_details(task_envelope, pull_request, code_context=code_context)
+        require_run_linkage = False
+        linkage_reasons: list[str] = []
+        if self.policy.require_run_linkage_for_multiple_attempts and run_linkage["current_run"]["multiple_attempts"]:
+            require_run_linkage = True
+            linkage_reasons.append("multiple_execution_attempts")
+        if self.policy.require_run_linkage_for_commit_association and commit_association_match and not head_sha_match:
+            require_run_linkage = True
+            linkage_reasons.append("commit_association_without_head_sha_match")
 
-        return not reasons, reasons, matched_by, task_linkage
+        if require_run_linkage:
+            if not run_linkage["linked"]:
+                reasons.append("run_linkage_missing")
+            else:
+                if run_linkage["attempt_id_present"]:
+                    matched_by.append("attempt_linkage")
+                if run_linkage["completion_claim_id_present"]:
+                    matched_by.append("completion_claim_linkage")
+        elif run_linkage["linked"]:
+            if run_linkage["attempt_id_present"]:
+                matched_by.append("attempt_linkage")
+            if run_linkage["completion_claim_id_present"]:
+                matched_by.append("completion_claim_linkage")
+
+        linkage_policy = {
+            "require_run_linkage": require_run_linkage,
+            "reasons": linkage_reasons,
+        }
+        return not reasons, reasons, matched_by, task_linkage, run_linkage, linkage_policy
 
     def _lookup_candidates(
         self,
@@ -841,7 +1031,7 @@ class MissingPrAfterExecutionHandler:
         for key in sorted(candidates.keys(), key=lambda item: int(item)):
             candidate = candidates[key]["pull_request"]
             sources = candidates[key]["sources"]
-            accepted, reasons, matched_by, task_linkage = self._validate_candidate(
+            accepted, reasons, matched_by, task_linkage, run_linkage, linkage_policy = self._validate_candidate(
                 candidate,
                 code_context=code_context,
                 task_envelope=task_envelope,
@@ -855,6 +1045,8 @@ class MissingPrAfterExecutionHandler:
                     reasons=reasons,
                     matched_by=matched_by,
                     task_linkage=task_linkage,
+                    run_linkage=run_linkage,
+                    linkage_policy=linkage_policy,
                     code_context=code_context,
                 )
             )
@@ -991,10 +1183,10 @@ class MissingPrAfterExecutionHandler:
                 pull_request = self.github.create_pull_request(
                     owner=code_context.repository_owner,
                     repo=code_context.repository_name,
-                    title=str(context.task_envelope.get("title") or context.task_envelope.get("id")),
-                    body=(
-                        f"Harness reconciliation created this pull request for task "
-                        f"{context.task_envelope.get('id')} after execution completed without a PR artifact."
+                    title=_created_pull_request_title(context.task_envelope),
+                    body=_created_pull_request_body(
+                        context.task_envelope,
+                        code_context=code_context,
                     ),
                     head=code_context.branch_name,
                     base=base_branch,
@@ -1002,7 +1194,7 @@ class MissingPrAfterExecutionHandler:
                 source = "created"
                 attempt["details"]["created_pull_request"] = True
                 created_sources = {"created"}
-                created_accepted, created_reasons, created_matched_by, created_task_linkage = self._validate_candidate(
+                created_accepted, created_reasons, created_matched_by, created_task_linkage, created_run_linkage, created_linkage_policy = self._validate_candidate(
                     pull_request,
                     code_context=code_context,
                     task_envelope=context.task_envelope,
@@ -1016,6 +1208,8 @@ class MissingPrAfterExecutionHandler:
                         reasons=created_reasons,
                         matched_by=created_matched_by,
                         task_linkage=created_task_linkage,
+                        run_linkage=created_run_linkage,
+                        linkage_policy=created_linkage_policy,
                         code_context=code_context,
                     )
                 )

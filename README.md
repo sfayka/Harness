@@ -22,7 +22,7 @@ Before completion claims reach reconciliation, Harness now validates whether a s
 
 Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
 
-If recovery succeeds, the task can proceed to `completed` through normal reevaluation. If recovery fails or is blocked, Harness escalates explicitly to `in_review` instead of silently accepting the task as done. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context.
+If recovery succeeds, the task can proceed to `completed` through normal reevaluation. If recovery fails or is blocked, Harness escalates explicitly to `in_review` instead of silently accepting the task as done. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context, and reruns or branch reuse require explicit task/run linkage rather than branch or task-name matching alone.
 
 Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
 
