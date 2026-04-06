@@ -416,6 +416,49 @@ Retryable blocked outcomes for this class include:
 
 These outcomes remain specific to `missing_pr_after_execution`. Other reconciliation classes may have different recovery boundaries.
 
+## Failure Class: `missing_commit_after_execution`
+
+### Trigger Condition
+
+This reconciliation handler applies when all of the following are true:
+
+- execution has completed or a completion claim was submitted
+- the task already carries a verified current-run PR artifact
+- repository and branch identity are coherent enough to resolve current-run GitHub context
+- the required commit artifact is still missing
+
+This class is intentionally narrower than `missing_pr_after_execution`. Harness only attempts it when PR truth is already established strongly enough for the current run. If PR proof is missing, weak, stale, or ambiguous, Harness does not use this handler as a shortcut.
+
+### Bounded Recovery Steps
+
+For `missing_commit_after_execution`, Harness runs a pluggable reconciliation handler with the following bounded sequence:
+
+1. Check that the target branch exists through Git or the GitHub API.
+2. If commit SHA is missing from current code context, resolve the current branch head SHA through Git or the GitHub API.
+3. Validate that the resulting commit SHA is present, non-empty, and resolvable.
+4. Confirm that a verified current-run PR artifact is already attached to the task.
+5. Attach a verified commit artifact for the resolved SHA.
+6. Update completion evidence when commit proof is a required artifact type.
+7. Mark reconciliation `resolved` and return to canonical reevaluation.
+
+If branch lookup fails, commit resolution fails, the commit does not exist, or the task does not actually carry a verified current-run PR artifact, Harness records the failed attempt and escalates rather than fabricating commit proof.
+
+### Recovery Boundary
+
+Recoverable outcomes for this class include:
+
+- a verified current-run PR artifact already exists and the commit SHA can be resolved and attached
+- branch and commit identity are present already, so commit attachment is mechanical
+
+Escalation outcomes for this class include:
+
+- the branch cannot be found
+- commit SHA cannot be resolved from the current branch head
+- the resolved commit does not exist
+- the attached PR artifact does not actually prove the current run
+
+Like other reconciliation handlers, `missing_commit_after_execution` does not authorize terminal success on its own. The task may only reach `completed` if canonical reevaluation accepts the resulting evidence.
+
 ## Governed Proofs
 
 The current proof set for `missing_pr_after_execution` shows both sides of the bounded recovery contract:
@@ -423,7 +466,7 @@ The current proof set for `missing_pr_after_execution` shows both sides of the b
 - [`docs/demo/kno-174-missing-pr-after-execution/README.md`](../demo/kno-174-missing-pr-after-execution/README.md): failure-path proof. This establishes safe escalation when recovery is blocked and the task lands in `in_review` with structured reconciliation evidence.
 - [`docs/demo/kno-175-missing-pr-success/README.md`](../demo/kno-175-missing-pr-success/README.md): success-path proof. This establishes successful auto-repair for this failure class, followed by canonical reevaluation to `completed`.
 
-These proofs are intentionally narrow. They prove governed behavior for `missing_pr_after_execution`; they do not prove universal auto-recovery across all reconciliation failures.
+These proofs are intentionally narrow. They prove governed behavior for `missing_pr_after_execution`; they do not prove universal auto-recovery across all reconciliation failures. `missing_commit_after_execution` is implemented, but it is not part of the governed proof bundle yet.
 
 Current implementation maps reconciliation-driven manual review to the explicit `in_review` lifecycle state. A task that requires review must not remain `completed`.
 

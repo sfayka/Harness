@@ -57,6 +57,7 @@ from modules.reconciliation_runtime import (
     ReconciliationAttemptStatus,
     build_default_reconciliation_registry,
     ensure_reconciliation_state,
+    task_has_valid_current_run_commit_artifact,
     task_has_valid_current_run_pull_request_artifact,
 )
 from modules.store import (
@@ -1255,7 +1256,16 @@ def _validate_execution_attempt(
         any(isinstance(item, dict) and item.get("type") == "pull_request" for item in existing_artifacts)
         or any(isinstance(item, dict) and item.get("type") == "pull_request" for item in payload_artifacts)
     )
-    commit_resolution_pending = bool(repository_values and branch_values and not commit_values and not has_pull_request_artifact)
+    has_valid_current_run_pr_artifact = task_has_valid_current_run_pull_request_artifact(
+        request.task_envelope,
+        external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
+    )
+    commit_resolution_pending = bool(
+        repository_values
+        and branch_values
+        and not commit_values
+        and (not has_pull_request_artifact or has_valid_current_run_pr_artifact)
+    )
 
     reasons: list[str] = []
     if not repository_values:
@@ -1368,6 +1378,7 @@ def _validate_execution_attempt(
             "allow_missing_pull_request": True,
             "task_artifact_fallback_requires_single_attempt": True,
             "allow_commit_resolution_via_reconciliation": True,
+            "allow_missing_commit_artifact_with_verified_pull_request": True,
             "reject_reserved_shared_branch": True,
             "reject_non_numeric_pull_request_url": True,
             "reject_closed_or_historical_pull_request": True,
@@ -1376,6 +1387,7 @@ def _validate_execution_attempt(
             **_observations_snapshot(observations),
             "used_task_artifact_fallback": used_task_artifact_fallback,
             "commit_resolution_pending": commit_resolution_pending,
+            "has_valid_current_run_pull_request_artifact": has_valid_current_run_pr_artifact,
         },
         "pull_request_observations": deepcopy(pull_request_observations),
         "rule_failures": deepcopy(rule_failures),
@@ -1516,6 +1528,35 @@ def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bo
     ):
         return False
     return _is_successful_execution_attempt(_execution_attempt_for_completion_claim(request.task_envelope))
+
+
+def _requires_missing_commit_reconciliation(request: HarnessEvaluationRequest) -> bool:
+    if not request.claimed_completion:
+        return False
+    if not _is_successful_execution_attempt(_execution_attempt_for_completion_claim(request.task_envelope)):
+        return False
+    external_facts = _to_jsonable(request.external_facts) if request.external_facts is not None else None
+    if not task_has_valid_current_run_pull_request_artifact(
+        request.task_envelope,
+        external_facts=external_facts,
+    ):
+        return False
+    if task_has_valid_current_run_commit_artifact(
+        request.task_envelope,
+        external_facts=external_facts,
+    ):
+        return False
+    return True
+
+
+def _completion_claim_reconciliation_failure_type(
+    request: HarnessEvaluationRequest,
+) -> ReconciliationFailureType | None:
+    if _requires_missing_pr_reconciliation(request):
+        return ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION
+    if _requires_missing_commit_reconciliation(request):
+        return ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION
+    return None
 
 
 def _reconciliation_failure_response_shape(
@@ -1675,10 +1716,14 @@ class HarnessApiService:
         self,
         request: HarnessEvaluationRequest,
     ) -> tuple[HarnessEvaluationRequest | None, dict[str, Any] | None]:
-        if not _requires_missing_pr_reconciliation(request):
+        failure_type = _completion_claim_reconciliation_failure_type(request)
+        if failure_type is None:
             return request, None
 
-        reason = "Execution completed without a pull request artifact; invoking reconciliation handler."
+        if failure_type == ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION:
+            reason = "Execution completed without a verified commit artifact; invoking reconciliation handler."
+        else:
+            reason = "Execution completed without a pull request artifact; invoking reconciliation handler."
         reconciling_task = ensure_reconciliation_state(request.task_envelope)
         reconciling_task = self._task_with_transition(
             reconciling_task,
@@ -1689,7 +1734,7 @@ class HarnessApiService:
 
         try:
             handler_result = self.reconciliation_registry.handle(
-                ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+                failure_type,
                 task_envelope=reconciling_task,
                 external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
                 started_at=_iso_now(),
@@ -1714,7 +1759,7 @@ class HarnessApiService:
             )
             failed_task = ensure_reconciliation_state(failed_task)
             failed_task["reconciliation"]["status"] = ReconciliationAttemptStatus.FAILED.value
-            failed_task["reconciliation"]["active_failure_type"] = ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION.value
+            failed_task["reconciliation"]["active_failure_type"] = failure_type.value
             failed_task["reconciliation"]["last_error"] = str(error)
             failed_task["timestamps"]["updated_at"] = _iso_now()
             self.store.update_task(failed_task)

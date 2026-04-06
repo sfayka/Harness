@@ -100,10 +100,15 @@ class _NoCreatePullRequestGateway:
 
 def _registry_with_no_create_pull_request_gateway():
     registry = build_default_reconciliation_registry()
-    handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    missing_pr_handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    missing_commit_handler = registry.get(ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION)
     registry.register(
         ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
-        handler.__class__(github=_NoCreatePullRequestGateway()),
+        missing_pr_handler.__class__(github=_NoCreatePullRequestGateway()),
+    )
+    registry.register(
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+        missing_commit_handler.__class__(github=_NoCreatePullRequestGateway()),
     )
     return registry
 
@@ -903,6 +908,52 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(latest_request["claimed_completion"])
         claims = latest_request["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
         self.assertEqual(claims[-1]["claim_id"], "claim-complete-1")
+
+    def test_service_completion_claim_reconciles_missing_commit_artifact_when_verified_pr_exists(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        pr_artifact = deepcopy(payload["request"]["linked_artifacts"][0])
+        completion_evidence = deepcopy(payload["request"]["completion_evidence"])
+        completion_evidence["validated_artifact_ids"] = [pr_artifact["id"]]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-missing-commit-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-1"),
+                    "new_artifacts": [pr_artifact],
+                    "completion_evidence": completion_evidence,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertTrue(claim_response["accepted_completion"])
+        self.assertEqual(claim_response["task_envelope"]["status"], "completed")
+        attempt = claim_response["task_envelope"]["reconciliation"]["attempts"][-1]
+        self.assertEqual(attempt["failure_type"], "missing_commit_after_execution")
+        commit_artifacts = [
+            artifact
+            for artifact in claim_response["task_envelope"]["artifacts"]["items"]
+            if isinstance(artifact, dict) and artifact.get("type") == "commit"
+        ]
+        self.assertEqual(len(commit_artifacts), 1)
+        self.assertIn(
+            commit_artifacts[0]["id"],
+            claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
+        )
 
     def test_service_completion_claim_can_attach_execution_attempt_and_link_reevaluation(self) -> None:
         payload = _manual_happy_path_overlay_payload()

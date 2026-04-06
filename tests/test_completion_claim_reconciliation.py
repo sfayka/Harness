@@ -171,9 +171,15 @@ class _FakeGitHubGateway:
 
 def _registry_with_gateway(gateway: _FakeGitHubGateway) -> ReconciliationHandlerRegistry:
     registry = build_default_reconciliation_registry()
+    missing_pr_handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    missing_commit_handler = registry.get(ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION)
     registry.register(
         ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
-        registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION).__class__(github=gateway),
+        missing_pr_handler.__class__(github=gateway),
+    )
+    registry.register(
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+        missing_commit_handler.__class__(github=gateway),
     )
     return registry
 
@@ -352,6 +358,22 @@ def _with_pull_request_artifact(
             },
         }
     )
+    return task
+
+
+def _without_commit_artifact(task: dict) -> dict:
+    task["artifacts"]["items"] = [
+        artifact
+        for artifact in task["artifacts"]["items"]
+        if not (isinstance(artifact, dict) and artifact.get("type") == "commit")
+    ]
+    completion_evidence = task["artifacts"]["completion_evidence"]
+    completion_evidence["required_artifact_types"] = ["pull_request", "commit"]
+    completion_evidence["validated_artifact_ids"] = [
+        artifact["id"]
+        for artifact in task["artifacts"]["items"]
+        if isinstance(artifact, dict) and artifact.get("type") == "pull_request"
+    ]
     return task
 
 
@@ -1092,6 +1114,35 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(response["task_envelope"]["status_history"][-1]["to_status"], "in_review")
         self.assertEqual(stored_status, 200)
         self.assertEqual(stored_payload["task"]["status"], "in_review")
+
+    def test_submit_completion_claim_attaches_missing_commit_artifact_when_verified_pr_proof_exists(self) -> None:
+        gateway = _FakeGitHubGateway()
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _without_commit_artifact(_with_pull_request_artifact(_task_envelope(task_id="task-missing-commit-reconcile"), number=77))
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-missing-commit"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        attempt = _latest_reconciliation_attempt(payload["task_envelope"])
+        self.assertEqual(attempt["failure_type"], "missing_commit_after_execution")
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "attached_commit_artifact")
+        self.assertTrue(attempt["details"]["created_commit_artifact"])
+        commit_artifacts = [
+            artifact
+            for artifact in payload["task_envelope"]["artifacts"]["items"]
+            if isinstance(artifact, dict) and artifact.get("type") == "commit"
+        ]
+        self.assertEqual(len(commit_artifacts), 1)
+        self.assertEqual(
+            commit_artifacts[0]["location"],
+            "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        )
+        self.assertIn(commit_artifacts[0]["id"], payload["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"])
 
 
     def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:
