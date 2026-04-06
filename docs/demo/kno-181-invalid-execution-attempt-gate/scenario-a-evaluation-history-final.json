@@ -1,0 +1,2426 @@
+{
+  "task_id": "task-kno-181-scenario-a",
+  "evaluations": [
+    {
+      "evaluation_id": "c460c507-1dc8-4525-8355-4126a428b996",
+      "task_id": "task-kno-181-scenario-a",
+      "recorded_at": "2026-04-05T17:30:31.525822Z",
+      "request": {
+        "acceptance_criteria_satisfied": false,
+        "claimed_completion": false,
+        "external_facts": null,
+        "retry_context": null,
+        "review_decision": null,
+        "review_is_active": false,
+        "review_reasons": [],
+        "review_request": null,
+        "runtime_facts": {
+          "attempt_count": 0,
+          "executor_reported_failure": false,
+          "executor_reported_success": false,
+          "latest_attempt_outcome": null,
+          "terminal_failure": false
+        },
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-03-31T14:30:00Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        },
+        "unresolved_conditions": []
+      },
+      "result": {
+        "accepted_completion": false,
+        "action": "no_op",
+        "enforcement_result": {
+          "action": "no_op",
+          "error": null,
+          "evidence_result": {
+            "artifact_results": [],
+            "is_sufficient": false,
+            "is_valid": true,
+            "issues": [],
+            "missing_required_artifact_types": [],
+            "unknown_validated_artifact_ids": [],
+            "validated_artifact_ids": []
+          },
+          "failure_classification": {
+            "category": "none",
+            "failure_type": "none",
+            "reason": "No completion claim is currently being evaluated",
+            "recoverable": false,
+            "retryable": false,
+            "source": "none",
+            "terminal": false
+          },
+          "reasons": [
+            "Verification evaluated task 'task-kno-181-scenario-a' against canonical completion policy",
+            "No completion claim is currently being evaluated"
+          ],
+          "reconciliation_result": null,
+          "review_decision": null,
+          "review_request": null,
+          "target_status": null,
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "deferred",
+                "required_artifact_types": [],
+                "status": "deferred",
+                "validated_artifact_ids": [],
+                "validated_at": null,
+                "validation_method": "deferred",
+                "validator": null
+              },
+              "items": []
+            },
+            "assigned_executor": {
+              "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+              "executor_id": "executor-kno-181-a",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": null
+            },
+            "dependencies": [],
+            "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "id": "task-kno-181-scenario-a",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Exercise /evaluate with top-level evidence overlays."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": null,
+              "requested_by": null,
+              "source_id": "req-happy-overlay-1",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "active_failure_type": null,
+              "attempts": [],
+              "failed_at": null,
+              "last_attempt_id": null,
+              "last_error": null,
+              "last_pr_url": null,
+              "resolved_at": null,
+              "status": "not_required"
+            },
+            "required_capabilities": [],
+            "status": "intake_ready",
+            "status_history": [],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-31T14:30:00Z",
+              "updated_at": "2026-03-31T14:30:00Z"
+            },
+            "title": "KNO-181 task-kno-181-scenario-a"
+          },
+          "transition_result": null,
+          "verification_result": {
+            "accepted_completion": false,
+            "claimed_completion": false,
+            "evidence_is_sufficient": false,
+            "evidence_is_valid": true,
+            "failure_classification": {
+              "category": "none",
+              "failure_type": "none",
+              "reason": "No completion claim is currently being evaluated",
+              "recoverable": false,
+              "retryable": false,
+              "source": "none",
+              "terminal": false
+            },
+            "is_terminal": false,
+            "outcome": "verification_deferred",
+            "reasons": [
+              "Verification evaluated task 'task-kno-181-scenario-a' against canonical completion policy",
+              "No completion claim is currently being evaluated"
+            ],
+            "reconciliation_status": "pending",
+            "requires_review": false,
+            "target_status": null,
+            "task_id": "task-kno-181-scenario-a",
+            "verification_passed": false
+          }
+        },
+        "error": null,
+        "failure_classification": {
+          "category": "none",
+          "failure_type": "none",
+          "reason": "No completion claim is currently being evaluated",
+          "recoverable": false,
+          "retryable": false,
+          "source": "none",
+          "terminal": false
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Verification evaluated task 'task-kno-181-scenario-a' against canonical completion policy",
+          "No completion claim is currently being evaluated"
+        ],
+        "requires_review": false,
+        "target_status": null,
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-03-31T14:30:00Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        }
+      }
+    },
+    {
+      "evaluation_id": "11b0ea6d-d911-4564-aaca-26d6b90d5a8a",
+      "task_id": "task-kno-181-scenario-a",
+      "recorded_at": "2026-04-05T17:30:31.543550Z",
+      "request": {
+        "acceptance_criteria_satisfied": false,
+        "claimed_completion": true,
+        "external_facts": null,
+        "retry_context": {
+          "attempt_number": 1,
+          "is_final_attempt": true,
+          "max_retries": 1,
+          "scheduled_at": "2026-04-05T17:30:31.543299Z",
+          "triggered_by_category": "invalid_execution_attempt",
+          "triggered_by_reason": "Successful execution attempt is missing repository identity for the current run."
+        },
+        "review_decision": null,
+        "review_is_active": false,
+        "review_reasons": [],
+        "review_request": null,
+        "runtime_facts": {
+          "attempt_count": 1,
+          "executor_reported_failure": false,
+          "executor_reported_success": true,
+          "latest_attempt_outcome": null,
+          "terminal_failure": false
+        },
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_id": "attempt-1"
+                  },
+                  "reason": "executor reported completion",
+                  "reported_at": "2026-04-01T08:00:00Z",
+                  "reported_by": "stub-executor"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log",
+                      "reference_id": "attempt-kno-181-a-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-kno-181-a-1",
+                  "completion_claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.541310Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                  },
+                  "recorded_at": "2026-04-01T08:00:05Z",
+                  "reevaluation": {},
+                  "reported_by": "stub-executor",
+                  "status": "succeeded"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-04-05T17:30:31.541658Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        },
+        "unresolved_conditions": []
+      },
+      "result": {
+        "accepted_completion": false,
+        "action": "no_op",
+        "enforcement_result": {
+          "action": "no_op",
+          "error": "Successful execution attempt is missing repository identity for the current run.",
+          "evidence_result": null,
+          "failure_classification": {
+            "category": "invalid_execution_attempt",
+            "failure_type": "invalid_execution_attempt",
+            "reason": "Successful execution attempt is missing repository identity for the current run.",
+            "recoverable": true,
+            "retryable": true,
+            "source": "executor",
+            "terminal": false
+          },
+          "reasons": [
+            "Successful execution attempt is missing repository identity for the current run."
+          ],
+          "reconciliation_result": null,
+          "review_decision": null,
+          "review_request": null,
+          "target_status": null,
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "deferred",
+                "required_artifact_types": [],
+                "status": "deferred",
+                "validated_artifact_ids": [],
+                "validated_at": null,
+                "validation_method": "deferred",
+                "validator": null
+              },
+              "items": []
+            },
+            "assigned_executor": {
+              "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+              "executor_id": "executor-kno-181-a",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": null
+            },
+            "dependencies": [],
+            "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "id": "task-kno-181-scenario-a",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Exercise /evaluate with top-level evidence overlays."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "claim-kno-181-a-1",
+                    "metadata": {
+                      "attempt_id": "attempt-1"
+                    },
+                    "reason": "executor reported completion",
+                    "reported_at": "2026-04-01T08:00:00Z",
+                    "reported_by": "stub-executor"
+                  }
+                ],
+                "execution_attempts": [
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "location": "stub://attempts/log",
+                        "reference_id": "attempt-kno-181-a-1:log"
+                      }
+                    ],
+                    "attempt_id": "attempt-kno-181-a-1",
+                    "completion_claim_id": "claim-kno-181-a-1",
+                    "metadata": {
+                      "attempt_validation": {
+                        "context_observations": {
+                          "used_task_artifact_fallback": false
+                        },
+                        "failure_type": "invalid_execution_attempt",
+                        "policy": {
+                          "allow_missing_pull_request": true,
+                          "require_commit": true,
+                          "require_exact_branch": true,
+                          "require_repository": true,
+                          "task_artifact_fallback_requires_single_attempt": true
+                        },
+                        "reasons": [
+                          "Successful execution attempt is missing repository identity for the current run.",
+                          "Successful execution attempt is missing branch identity for the current run.",
+                          "Successful execution attempt is missing commit SHA for the current run."
+                        ],
+                        "retryable": true,
+                        "status": "invalid",
+                        "validated_at": "2026-04-05T17:30:31.541310Z",
+                        "validated_by": "execution_validation"
+                      },
+                      "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                    },
+                    "recorded_at": "2026-04-01T08:00:05Z",
+                    "reevaluation": {},
+                    "reported_by": "stub-executor",
+                    "status": "succeeded"
+                  }
+                ],
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": null,
+              "requested_by": null,
+              "source_id": "req-happy-overlay-1",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "active_failure_type": null,
+              "attempts": [],
+              "failed_at": null,
+              "last_attempt_id": null,
+              "last_error": null,
+              "last_pr_url": null,
+              "resolved_at": null,
+              "status": "not_required"
+            },
+            "required_capabilities": [],
+            "status": "intake_ready",
+            "status_history": [],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-31T14:30:00Z",
+              "updated_at": "2026-04-05T17:30:31.541658Z"
+            },
+            "title": "KNO-181 task-kno-181-scenario-a"
+          },
+          "transition_result": null,
+          "verification_result": null
+        },
+        "error": "Successful execution attempt is missing repository identity for the current run.",
+        "failure_classification": {
+          "category": "invalid_execution_attempt",
+          "failure_type": "invalid_execution_attempt",
+          "reason": "Successful execution attempt is missing repository identity for the current run.",
+          "recoverable": true,
+          "retryable": true,
+          "source": "executor",
+          "terminal": false
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Successful execution attempt is missing repository identity for the current run."
+        ],
+        "requires_review": false,
+        "target_status": null,
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_id": "attempt-1"
+                  },
+                  "reason": "executor reported completion",
+                  "reported_at": "2026-04-01T08:00:00Z",
+                  "reported_by": "stub-executor"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log",
+                      "reference_id": "attempt-kno-181-a-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-kno-181-a-1",
+                  "completion_claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.541310Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                  },
+                  "recorded_at": "2026-04-01T08:00:05Z",
+                  "reevaluation": {},
+                  "reported_by": "stub-executor",
+                  "status": "succeeded"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-04-05T17:30:31.541658Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        }
+      }
+    },
+    {
+      "evaluation_id": "3ad47b27-9ddb-4de4-917a-f976dcbaf625",
+      "task_id": "task-kno-181-scenario-a",
+      "recorded_at": "2026-04-05T17:30:31.556874Z",
+      "request": {
+        "acceptance_criteria_satisfied": false,
+        "claimed_completion": true,
+        "external_facts": null,
+        "retry_context": null,
+        "review_decision": null,
+        "review_is_active": false,
+        "review_reasons": [],
+        "review_request": null,
+        "runtime_facts": {
+          "attempt_count": 2,
+          "executor_reported_failure": false,
+          "executor_reported_success": true,
+          "latest_attempt_outcome": "completed",
+          "terminal_failure": false
+        },
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_id": "attempt-1"
+                  },
+                  "reason": "executor reported completion",
+                  "reported_at": "2026-04-01T08:00:00Z",
+                  "reported_by": "stub-executor"
+                },
+                {
+                  "claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "advisory_only": true,
+                    "attempt_id": "attempt-2",
+                    "dispatch_mode": "automatic",
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    }
+                  },
+                  "reason": "Successful execution attempt is missing repository identity for the current run.",
+                  "reported_at": "2026-04-05T17:30:31.551102Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log",
+                      "reference_id": "attempt-kno-181-a-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-kno-181-a-1",
+                  "completion_claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.541310Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                  },
+                  "recorded_at": "2026-04-01T08:00:05Z",
+                  "reevaluation": {},
+                  "reported_by": "stub-executor",
+                  "status": "succeeded"
+                },
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "commit_sha": null,
+                      "external_id": null,
+                      "location": "stub://executions/task-kno-181-scenario-a/attempt-2/log",
+                      "metadata": {
+                        "advisory": true
+                      },
+                      "reference_id": "attempt-2:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-2",
+                  "completion_claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.553815Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "dispatch_at": "2026-04-05T17:30:31.551127Z",
+                    "dispatch_id": "dispatch:task-kno-181-scenario-a:2",
+                    "dispatch_mode": "automatic",
+                    "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
+                    "dispatch_trigger": "invalid_execution_attempt_retry",
+                    "execution_events": [
+                      {
+                        "event_id": "attempt-2:started",
+                        "event_type": "execution_started",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "mode": "stub"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550824Z",
+                        "source_system": "stub-executor"
+                      },
+                      {
+                        "event_id": "attempt-2:completed",
+                        "event_type": "execution_succeeded",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "executor_run_id": "stub-run-attempt-2"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550848Z",
+                        "source_system": "stub-executor"
+                      }
+                    ],
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    },
+                    "executor": "codex"
+                  },
+                  "recorded_at": "2026-04-05T17:30:31.551118Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "completed"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-04-05T17:30:31.554545Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        },
+        "unresolved_conditions": []
+      },
+      "result": {
+        "accepted_completion": false,
+        "action": "no_op",
+        "enforcement_result": {
+          "action": "no_op",
+          "error": "Successful execution attempt is missing repository identity for the current run.",
+          "evidence_result": null,
+          "failure_classification": {
+            "category": "invalid_execution_attempt",
+            "failure_type": "invalid_execution_attempt",
+            "reason": "Successful execution attempt is missing repository identity for the current run.",
+            "recoverable": false,
+            "retryable": false,
+            "source": "executor",
+            "terminal": true
+          },
+          "reasons": [
+            "Successful execution attempt is missing repository identity for the current run."
+          ],
+          "reconciliation_result": null,
+          "review_decision": null,
+          "review_request": null,
+          "target_status": null,
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "deferred",
+                "required_artifact_types": [],
+                "status": "deferred",
+                "validated_artifact_ids": [],
+                "validated_at": null,
+                "validation_method": "deferred",
+                "validator": null
+              },
+              "items": []
+            },
+            "assigned_executor": {
+              "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+              "executor_id": "executor-kno-181-a",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": null
+            },
+            "dependencies": [],
+            "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "id": "task-kno-181-scenario-a",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Exercise /evaluate with top-level evidence overlays."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "claim-kno-181-a-1",
+                    "metadata": {
+                      "attempt_id": "attempt-1"
+                    },
+                    "reason": "executor reported completion",
+                    "reported_at": "2026-04-01T08:00:00Z",
+                    "reported_by": "stub-executor"
+                  },
+                  {
+                    "claim_id": "attempt-2:claim",
+                    "metadata": {
+                      "advisory_only": true,
+                      "attempt_id": "attempt-2",
+                      "dispatch_mode": "automatic",
+                      "execution_parameters": {
+                        "prior_invalid_attempt_id": "attempt-1"
+                      }
+                    },
+                    "reason": "Successful execution attempt is missing repository identity for the current run.",
+                    "reported_at": "2026-04-05T17:30:31.551102Z",
+                    "reported_by": "codex"
+                  }
+                ],
+                "execution_attempts": [
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "location": "stub://attempts/log",
+                        "reference_id": "attempt-kno-181-a-1:log"
+                      }
+                    ],
+                    "attempt_id": "attempt-kno-181-a-1",
+                    "completion_claim_id": "claim-kno-181-a-1",
+                    "metadata": {
+                      "attempt_validation": {
+                        "context_observations": {
+                          "used_task_artifact_fallback": false
+                        },
+                        "failure_type": "invalid_execution_attempt",
+                        "policy": {
+                          "allow_missing_pull_request": true,
+                          "require_commit": true,
+                          "require_exact_branch": true,
+                          "require_repository": true,
+                          "task_artifact_fallback_requires_single_attempt": true
+                        },
+                        "reasons": [
+                          "Successful execution attempt is missing repository identity for the current run.",
+                          "Successful execution attempt is missing branch identity for the current run.",
+                          "Successful execution attempt is missing commit SHA for the current run."
+                        ],
+                        "retryable": true,
+                        "status": "invalid",
+                        "validated_at": "2026-04-05T17:30:31.541310Z",
+                        "validated_by": "execution_validation"
+                      },
+                      "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                    },
+                    "recorded_at": "2026-04-01T08:00:05Z",
+                    "reevaluation": {},
+                    "reported_by": "stub-executor",
+                    "status": "succeeded"
+                  },
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "commit_sha": null,
+                        "external_id": null,
+                        "location": "stub://executions/task-kno-181-scenario-a/attempt-2/log",
+                        "metadata": {
+                          "advisory": true
+                        },
+                        "reference_id": "attempt-2:log"
+                      }
+                    ],
+                    "attempt_id": "attempt-2",
+                    "completion_claim_id": "attempt-2:claim",
+                    "metadata": {
+                      "attempt_validation": {
+                        "context_observations": {
+                          "used_task_artifact_fallback": false
+                        },
+                        "failure_type": "invalid_execution_attempt",
+                        "policy": {
+                          "allow_missing_pull_request": true,
+                          "require_commit": true,
+                          "require_exact_branch": true,
+                          "require_repository": true,
+                          "task_artifact_fallback_requires_single_attempt": true
+                        },
+                        "reasons": [
+                          "Successful execution attempt is missing repository identity for the current run.",
+                          "Successful execution attempt is missing branch identity for the current run.",
+                          "Successful execution attempt is missing commit SHA for the current run."
+                        ],
+                        "retryable": true,
+                        "status": "invalid",
+                        "validated_at": "2026-04-05T17:30:31.553815Z",
+                        "validated_by": "execution_validation"
+                      },
+                      "dispatch_at": "2026-04-05T17:30:31.551127Z",
+                      "dispatch_id": "dispatch:task-kno-181-scenario-a:2",
+                      "dispatch_mode": "automatic",
+                      "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
+                      "dispatch_trigger": "invalid_execution_attempt_retry",
+                      "execution_events": [
+                        {
+                          "event_id": "attempt-2:started",
+                          "event_type": "execution_started",
+                          "metadata": {
+                            "adapter": "stub-executor",
+                            "mode": "stub"
+                          },
+                          "occurred_at": "2026-04-05T17:30:31.550824Z",
+                          "source_system": "stub-executor"
+                        },
+                        {
+                          "event_id": "attempt-2:completed",
+                          "event_type": "execution_succeeded",
+                          "metadata": {
+                            "adapter": "stub-executor",
+                            "executor_run_id": "stub-run-attempt-2"
+                          },
+                          "occurred_at": "2026-04-05T17:30:31.550848Z",
+                          "source_system": "stub-executor"
+                        }
+                      ],
+                      "execution_parameters": {
+                        "prior_invalid_attempt_id": "attempt-1"
+                      },
+                      "executor": "codex"
+                    },
+                    "recorded_at": "2026-04-05T17:30:31.551118Z",
+                    "reevaluation": {},
+                    "reported_by": "codex",
+                    "status": "completed"
+                  }
+                ],
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": null,
+              "requested_by": null,
+              "source_id": "req-happy-overlay-1",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "active_failure_type": null,
+              "attempts": [],
+              "failed_at": null,
+              "last_attempt_id": null,
+              "last_error": null,
+              "last_pr_url": null,
+              "resolved_at": null,
+              "status": "not_required"
+            },
+            "required_capabilities": [],
+            "status": "intake_ready",
+            "status_history": [],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-31T14:30:00Z",
+              "updated_at": "2026-04-05T17:30:31.554545Z"
+            },
+            "title": "KNO-181 task-kno-181-scenario-a"
+          },
+          "transition_result": null,
+          "verification_result": null
+        },
+        "error": "Successful execution attempt is missing repository identity for the current run.",
+        "failure_classification": {
+          "category": "invalid_execution_attempt",
+          "failure_type": "invalid_execution_attempt",
+          "reason": "Successful execution attempt is missing repository identity for the current run.",
+          "recoverable": false,
+          "retryable": false,
+          "source": "executor",
+          "terminal": true
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Successful execution attempt is missing repository identity for the current run."
+        ],
+        "requires_review": false,
+        "target_status": null,
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_id": "attempt-1"
+                  },
+                  "reason": "executor reported completion",
+                  "reported_at": "2026-04-01T08:00:00Z",
+                  "reported_by": "stub-executor"
+                },
+                {
+                  "claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "advisory_only": true,
+                    "attempt_id": "attempt-2",
+                    "dispatch_mode": "automatic",
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    }
+                  },
+                  "reason": "Successful execution attempt is missing repository identity for the current run.",
+                  "reported_at": "2026-04-05T17:30:31.551102Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log",
+                      "reference_id": "attempt-kno-181-a-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-kno-181-a-1",
+                  "completion_claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.541310Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                  },
+                  "recorded_at": "2026-04-01T08:00:05Z",
+                  "reevaluation": {},
+                  "reported_by": "stub-executor",
+                  "status": "succeeded"
+                },
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "commit_sha": null,
+                      "external_id": null,
+                      "location": "stub://executions/task-kno-181-scenario-a/attempt-2/log",
+                      "metadata": {
+                        "advisory": true
+                      },
+                      "reference_id": "attempt-2:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-2",
+                  "completion_claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.553815Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "dispatch_at": "2026-04-05T17:30:31.551127Z",
+                    "dispatch_id": "dispatch:task-kno-181-scenario-a:2",
+                    "dispatch_mode": "automatic",
+                    "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
+                    "dispatch_trigger": "invalid_execution_attempt_retry",
+                    "execution_events": [
+                      {
+                        "event_id": "attempt-2:started",
+                        "event_type": "execution_started",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "mode": "stub"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550824Z",
+                        "source_system": "stub-executor"
+                      },
+                      {
+                        "event_id": "attempt-2:completed",
+                        "event_type": "execution_succeeded",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "executor_run_id": "stub-run-attempt-2"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550848Z",
+                        "source_system": "stub-executor"
+                      }
+                    ],
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    },
+                    "executor": "codex"
+                  },
+                  "recorded_at": "2026-04-05T17:30:31.551118Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "completed"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "intake_ready",
+          "status_history": [],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-04-05T17:30:31.554545Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        }
+      }
+    },
+    {
+      "evaluation_id": "1c8ffff5-48cb-4136-a832-8f60ecfacd30",
+      "task_id": "task-kno-181-scenario-a",
+      "recorded_at": "2026-04-05T17:30:31.666755Z",
+      "request": {
+        "acceptance_criteria_satisfied": false,
+        "claimed_completion": true,
+        "external_facts": null,
+        "retry_context": null,
+        "review_decision": null,
+        "review_is_active": false,
+        "review_reasons": [],
+        "review_request": null,
+        "runtime_facts": {
+          "attempt_count": 2,
+          "executor_reported_failure": false,
+          "executor_reported_success": true,
+          "latest_attempt_outcome": "completed",
+          "terminal_failure": false
+        },
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_id": "attempt-1"
+                  },
+                  "reason": "executor reported completion",
+                  "reported_at": "2026-04-01T08:00:00Z",
+                  "reported_by": "stub-executor"
+                },
+                {
+                  "claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "advisory_only": true,
+                    "attempt_id": "attempt-2",
+                    "dispatch_mode": "automatic",
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    }
+                  },
+                  "reason": "Successful execution attempt is missing repository identity for the current run.",
+                  "reported_at": "2026-04-05T17:30:31.551102Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log",
+                      "reference_id": "attempt-kno-181-a-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-kno-181-a-1",
+                  "completion_claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.541310Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                  },
+                  "recorded_at": "2026-04-01T08:00:05Z",
+                  "reevaluation": {},
+                  "reported_by": "stub-executor",
+                  "status": "succeeded"
+                },
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "commit_sha": null,
+                      "external_id": null,
+                      "location": "stub://executions/task-kno-181-scenario-a/attempt-2/log",
+                      "metadata": {
+                        "advisory": true
+                      },
+                      "reference_id": "attempt-2:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-2",
+                  "completion_claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.553815Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "dispatch_at": "2026-04-05T17:30:31.551127Z",
+                    "dispatch_id": "dispatch:task-kno-181-scenario-a:2",
+                    "dispatch_mode": "automatic",
+                    "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
+                    "dispatch_trigger": "invalid_execution_attempt_retry",
+                    "execution_events": [
+                      {
+                        "event_id": "attempt-2:started",
+                        "event_type": "execution_started",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "mode": "stub"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550824Z",
+                        "source_system": "stub-executor"
+                      },
+                      {
+                        "event_id": "attempt-2:completed",
+                        "event_type": "execution_succeeded",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "executor_run_id": "stub-run-attempt-2"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550848Z",
+                        "source_system": "stub-executor"
+                      }
+                    ],
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    },
+                    "executor": "codex"
+                  },
+                  "recorded_at": "2026-04-05T17:30:31.551118Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "completed"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "failed",
+          "status_history": [
+            {
+              "changed_at": "2026-04-05T17:30:31.617375Z",
+              "changed_by": "verification",
+              "from_status": "intake_ready",
+              "reason": "Successful execution attempt is missing repository identity for the current run.",
+              "to_status": "failed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-04-05T17:30:31.617375Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        },
+        "unresolved_conditions": []
+      },
+      "result": {
+        "accepted_completion": false,
+        "action": "transition_applied",
+        "enforcement_result": {
+          "action": "transition_applied",
+          "error": "Successful execution attempt is missing repository identity for the current run.",
+          "evidence_result": null,
+          "failure_classification": {
+            "category": "invalid_execution_attempt",
+            "failure_type": "invalid_execution_attempt",
+            "reason": "Successful execution attempt is missing repository identity for the current run.",
+            "recoverable": false,
+            "retryable": false,
+            "source": "executor",
+            "terminal": true
+          },
+          "reasons": [
+            "Successful execution attempt is missing repository identity for the current run."
+          ],
+          "reconciliation_result": null,
+          "review_decision": null,
+          "review_request": null,
+          "target_status": "failed",
+          "task_envelope": {
+            "acceptance_criteria": [
+              {
+                "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+                "id": "ac-1",
+                "required": true
+              }
+            ],
+            "artifacts": {
+              "completion_evidence": {
+                "notes": null,
+                "policy": "deferred",
+                "required_artifact_types": [],
+                "status": "deferred",
+                "validated_artifact_ids": [],
+                "validated_at": null,
+                "validation_method": "deferred",
+                "validator": null
+              },
+              "items": []
+            },
+            "assigned_executor": {
+              "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+              "executor_id": "executor-kno-181-a",
+              "executor_type": "codex"
+            },
+            "child_task_ids": [],
+            "constraints": [],
+            "coordination": {
+              "linear": null
+            },
+            "dependencies": [],
+            "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "id": "task-kno-181-scenario-a",
+            "objective": {
+              "deliverable_type": "unspecified",
+              "success_signal": "Task satisfies declared acceptance criteria.",
+              "summary": "Exercise /evaluate with top-level evidence overlays."
+            },
+            "observability": {
+              "errors": [],
+              "execution_metadata": {
+                "advisory_completion_claims": [
+                  {
+                    "claim_id": "claim-kno-181-a-1",
+                    "metadata": {
+                      "attempt_id": "attempt-1"
+                    },
+                    "reason": "executor reported completion",
+                    "reported_at": "2026-04-01T08:00:00Z",
+                    "reported_by": "stub-executor"
+                  },
+                  {
+                    "claim_id": "attempt-2:claim",
+                    "metadata": {
+                      "advisory_only": true,
+                      "attempt_id": "attempt-2",
+                      "dispatch_mode": "automatic",
+                      "execution_parameters": {
+                        "prior_invalid_attempt_id": "attempt-1"
+                      }
+                    },
+                    "reason": "Successful execution attempt is missing repository identity for the current run.",
+                    "reported_at": "2026-04-05T17:30:31.551102Z",
+                    "reported_by": "codex"
+                  }
+                ],
+                "execution_attempts": [
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "location": "stub://attempts/log",
+                        "reference_id": "attempt-kno-181-a-1:log"
+                      }
+                    ],
+                    "attempt_id": "attempt-kno-181-a-1",
+                    "completion_claim_id": "claim-kno-181-a-1",
+                    "metadata": {
+                      "attempt_validation": {
+                        "context_observations": {
+                          "used_task_artifact_fallback": false
+                        },
+                        "failure_type": "invalid_execution_attempt",
+                        "policy": {
+                          "allow_missing_pull_request": true,
+                          "require_commit": true,
+                          "require_exact_branch": true,
+                          "require_repository": true,
+                          "task_artifact_fallback_requires_single_attempt": true
+                        },
+                        "reasons": [
+                          "Successful execution attempt is missing repository identity for the current run.",
+                          "Successful execution attempt is missing branch identity for the current run.",
+                          "Successful execution attempt is missing commit SHA for the current run."
+                        ],
+                        "retryable": true,
+                        "status": "invalid",
+                        "validated_at": "2026-04-05T17:30:31.541310Z",
+                        "validated_by": "execution_validation"
+                      },
+                      "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                    },
+                    "recorded_at": "2026-04-01T08:00:05Z",
+                    "reevaluation": {},
+                    "reported_by": "stub-executor",
+                    "status": "succeeded"
+                  },
+                  {
+                    "artifact_references": [
+                      {
+                        "artifact_type": "execution_log",
+                        "commit_sha": null,
+                        "external_id": null,
+                        "location": "stub://executions/task-kno-181-scenario-a/attempt-2/log",
+                        "metadata": {
+                          "advisory": true
+                        },
+                        "reference_id": "attempt-2:log"
+                      }
+                    ],
+                    "attempt_id": "attempt-2",
+                    "completion_claim_id": "attempt-2:claim",
+                    "metadata": {
+                      "attempt_validation": {
+                        "context_observations": {
+                          "used_task_artifact_fallback": false
+                        },
+                        "failure_type": "invalid_execution_attempt",
+                        "policy": {
+                          "allow_missing_pull_request": true,
+                          "require_commit": true,
+                          "require_exact_branch": true,
+                          "require_repository": true,
+                          "task_artifact_fallback_requires_single_attempt": true
+                        },
+                        "reasons": [
+                          "Successful execution attempt is missing repository identity for the current run.",
+                          "Successful execution attempt is missing branch identity for the current run.",
+                          "Successful execution attempt is missing commit SHA for the current run."
+                        ],
+                        "retryable": true,
+                        "status": "invalid",
+                        "validated_at": "2026-04-05T17:30:31.553815Z",
+                        "validated_by": "execution_validation"
+                      },
+                      "dispatch_at": "2026-04-05T17:30:31.551127Z",
+                      "dispatch_id": "dispatch:task-kno-181-scenario-a:2",
+                      "dispatch_mode": "automatic",
+                      "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
+                      "dispatch_trigger": "invalid_execution_attempt_retry",
+                      "execution_events": [
+                        {
+                          "event_id": "attempt-2:started",
+                          "event_type": "execution_started",
+                          "metadata": {
+                            "adapter": "stub-executor",
+                            "mode": "stub"
+                          },
+                          "occurred_at": "2026-04-05T17:30:31.550824Z",
+                          "source_system": "stub-executor"
+                        },
+                        {
+                          "event_id": "attempt-2:completed",
+                          "event_type": "execution_succeeded",
+                          "metadata": {
+                            "adapter": "stub-executor",
+                            "executor_run_id": "stub-run-attempt-2"
+                          },
+                          "occurred_at": "2026-04-05T17:30:31.550848Z",
+                          "source_system": "stub-executor"
+                        }
+                      ],
+                      "execution_parameters": {
+                        "prior_invalid_attempt_id": "attempt-1"
+                      },
+                      "executor": "codex"
+                    },
+                    "recorded_at": "2026-04-05T17:30:31.551118Z",
+                    "reevaluation": {},
+                    "reported_by": "codex",
+                    "status": "completed"
+                  }
+                ],
+                "schema_required_deferred_fields": [
+                  "parent_task_id",
+                  "child_task_ids",
+                  "dependencies",
+                  "assigned_executor",
+                  "required_capabilities",
+                  "priority",
+                  "artifacts.items",
+                  "artifacts.completion_evidence",
+                  "observability"
+                ]
+              },
+              "retries": {
+                "attempt_count": 0,
+                "last_retry_at": null,
+                "max_attempts": 0
+              }
+            },
+            "origin": {
+              "ingress_id": null,
+              "ingress_name": null,
+              "requested_by": null,
+              "source_id": "req-happy-overlay-1",
+              "source_system": "openclaw",
+              "source_type": "ingress_request"
+            },
+            "parent_task_id": null,
+            "priority": "normal",
+            "reconciliation": {
+              "active_failure_type": null,
+              "attempts": [],
+              "failed_at": null,
+              "last_attempt_id": null,
+              "last_error": null,
+              "last_pr_url": null,
+              "resolved_at": null,
+              "status": "not_required"
+            },
+            "required_capabilities": [],
+            "status": "failed",
+            "status_history": [
+              {
+                "changed_at": "2026-04-05T17:30:31.617375Z",
+                "changed_by": "verification",
+                "from_status": "intake_ready",
+                "reason": "Successful execution attempt is missing repository identity for the current run.",
+                "to_status": "failed"
+              }
+            ],
+            "timestamps": {
+              "completed_at": null,
+              "created_at": "2026-03-31T14:30:00Z",
+              "updated_at": "2026-04-05T17:30:31.617375Z"
+            },
+            "title": "KNO-181 task-kno-181-scenario-a"
+          },
+          "transition_result": null,
+          "verification_result": null
+        },
+        "error": "Successful execution attempt is missing repository identity for the current run.",
+        "failure_classification": {
+          "category": "invalid_execution_attempt",
+          "failure_type": "invalid_execution_attempt",
+          "reason": "Successful execution attempt is missing repository identity for the current run.",
+          "recoverable": false,
+          "retryable": false,
+          "source": "executor",
+          "terminal": true
+        },
+        "invalid_input": false,
+        "reasons": [
+          "Successful execution attempt is missing repository identity for the current run."
+        ],
+        "requires_review": false,
+        "target_status": "failed",
+        "task_envelope": {
+          "acceptance_criteria": [
+            {
+              "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+              "id": "ac-1",
+              "required": true
+            }
+          ],
+          "artifacts": {
+            "completion_evidence": {
+              "notes": null,
+              "policy": "deferred",
+              "required_artifact_types": [],
+              "status": "deferred",
+              "validated_artifact_ids": [],
+              "validated_at": null,
+              "validation_method": "deferred",
+              "validator": null
+            },
+            "items": []
+          },
+          "assigned_executor": {
+            "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+            "executor_id": "executor-kno-181-a",
+            "executor_type": "codex"
+          },
+          "child_task_ids": [],
+          "constraints": [],
+          "coordination": {
+            "linear": null
+          },
+          "dependencies": [],
+          "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+          "id": "task-kno-181-scenario-a",
+          "objective": {
+            "deliverable_type": "unspecified",
+            "success_signal": "Task satisfies declared acceptance criteria.",
+            "summary": "Exercise /evaluate with top-level evidence overlays."
+          },
+          "observability": {
+            "errors": [],
+            "execution_metadata": {
+              "advisory_completion_claims": [
+                {
+                  "claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_id": "attempt-1"
+                  },
+                  "reason": "executor reported completion",
+                  "reported_at": "2026-04-01T08:00:00Z",
+                  "reported_by": "stub-executor"
+                },
+                {
+                  "claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "advisory_only": true,
+                    "attempt_id": "attempt-2",
+                    "dispatch_mode": "automatic",
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    }
+                  },
+                  "reason": "Successful execution attempt is missing repository identity for the current run.",
+                  "reported_at": "2026-04-05T17:30:31.551102Z",
+                  "reported_by": "codex"
+                }
+              ],
+              "execution_attempts": [
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "location": "stub://attempts/log",
+                      "reference_id": "attempt-kno-181-a-1:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-kno-181-a-1",
+                  "completion_claim_id": "claim-kno-181-a-1",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.541310Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "executor_run_id": "stub-run-attempt-kno-181-a-1"
+                  },
+                  "recorded_at": "2026-04-01T08:00:05Z",
+                  "reevaluation": {},
+                  "reported_by": "stub-executor",
+                  "status": "succeeded"
+                },
+                {
+                  "artifact_references": [
+                    {
+                      "artifact_type": "execution_log",
+                      "commit_sha": null,
+                      "external_id": null,
+                      "location": "stub://executions/task-kno-181-scenario-a/attempt-2/log",
+                      "metadata": {
+                        "advisory": true
+                      },
+                      "reference_id": "attempt-2:log"
+                    }
+                  ],
+                  "attempt_id": "attempt-2",
+                  "completion_claim_id": "attempt-2:claim",
+                  "metadata": {
+                    "attempt_validation": {
+                      "context_observations": {
+                        "used_task_artifact_fallback": false
+                      },
+                      "failure_type": "invalid_execution_attempt",
+                      "policy": {
+                        "allow_missing_pull_request": true,
+                        "require_commit": true,
+                        "require_exact_branch": true,
+                        "require_repository": true,
+                        "task_artifact_fallback_requires_single_attempt": true
+                      },
+                      "reasons": [
+                        "Successful execution attempt is missing repository identity for the current run.",
+                        "Successful execution attempt is missing branch identity for the current run.",
+                        "Successful execution attempt is missing commit SHA for the current run."
+                      ],
+                      "retryable": true,
+                      "status": "invalid",
+                      "validated_at": "2026-04-05T17:30:31.553815Z",
+                      "validated_by": "execution_validation"
+                    },
+                    "dispatch_at": "2026-04-05T17:30:31.551127Z",
+                    "dispatch_id": "dispatch:task-kno-181-scenario-a:2",
+                    "dispatch_mode": "automatic",
+                    "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
+                    "dispatch_trigger": "invalid_execution_attempt_retry",
+                    "execution_events": [
+                      {
+                        "event_id": "attempt-2:started",
+                        "event_type": "execution_started",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "mode": "stub"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550824Z",
+                        "source_system": "stub-executor"
+                      },
+                      {
+                        "event_id": "attempt-2:completed",
+                        "event_type": "execution_succeeded",
+                        "metadata": {
+                          "adapter": "stub-executor",
+                          "executor_run_id": "stub-run-attempt-2"
+                        },
+                        "occurred_at": "2026-04-05T17:30:31.550848Z",
+                        "source_system": "stub-executor"
+                      }
+                    ],
+                    "execution_parameters": {
+                      "prior_invalid_attempt_id": "attempt-1"
+                    },
+                    "executor": "codex"
+                  },
+                  "recorded_at": "2026-04-05T17:30:31.551118Z",
+                  "reevaluation": {},
+                  "reported_by": "codex",
+                  "status": "completed"
+                }
+              ],
+              "schema_required_deferred_fields": [
+                "parent_task_id",
+                "child_task_ids",
+                "dependencies",
+                "assigned_executor",
+                "required_capabilities",
+                "priority",
+                "artifacts.items",
+                "artifacts.completion_evidence",
+                "observability"
+              ]
+            },
+            "retries": {
+              "attempt_count": 0,
+              "last_retry_at": null,
+              "max_attempts": 0
+            }
+          },
+          "origin": {
+            "ingress_id": null,
+            "ingress_name": null,
+            "requested_by": null,
+            "source_id": "req-happy-overlay-1",
+            "source_system": "openclaw",
+            "source_type": "ingress_request"
+          },
+          "parent_task_id": null,
+          "priority": "normal",
+          "reconciliation": {
+            "active_failure_type": null,
+            "attempts": [],
+            "failed_at": null,
+            "last_attempt_id": null,
+            "last_error": null,
+            "last_pr_url": null,
+            "resolved_at": null,
+            "status": "not_required"
+          },
+          "required_capabilities": [],
+          "status": "failed",
+          "status_history": [
+            {
+              "changed_at": "2026-04-05T17:30:31.617375Z",
+              "changed_by": "verification",
+              "from_status": "intake_ready",
+              "reason": "Successful execution attempt is missing repository identity for the current run.",
+              "to_status": "failed"
+            }
+          ],
+          "timestamps": {
+            "completed_at": null,
+            "created_at": "2026-03-31T14:30:00Z",
+            "updated_at": "2026-04-05T17:30:31.617375Z"
+          },
+          "title": "KNO-181 task-kno-181-scenario-a"
+        }
+      }
+    }
+  ]
+}

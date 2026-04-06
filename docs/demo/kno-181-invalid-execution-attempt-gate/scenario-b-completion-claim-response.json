@@ -1,0 +1,324 @@
+{
+  "status": 200,
+  "response": {
+    "action": "reconciliation_failed",
+    "accepted_completion": false,
+    "requires_review": true,
+    "invalid_input": false,
+    "target_status": "in_review",
+    "error": "PR creation intentionally disabled for deterministic local demo proof",
+    "reasons": [
+      "PR creation intentionally disabled for deterministic local demo proof"
+    ],
+    "reconciliation_attempt": {
+      "attempt_id": "reconciliation-attempt-1",
+      "failure_type": "missing_pr_after_execution",
+      "handler_key": "missing_pr_after_execution",
+      "status": "failed",
+      "started_at": "2026-04-05T17:30:31.845905Z",
+      "completed_at": "2026-04-05T17:30:31.846841Z",
+      "details": {
+        "repository": {
+          "host": "github.com",
+          "owner": "KnoxAnalytics",
+          "name": "HARNESS-DRYRUN"
+        },
+        "context_resolution": {
+          "selected_source": "execution_attempt",
+          "sources": {
+            "execution_attempt": {
+              "repository_host": "github.com",
+              "repository_owner": "KnoxAnalytics",
+              "repository_name": "HARNESS-DRYRUN",
+              "branch_name": "codex/e2e-test",
+              "base_branch": null,
+              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+            }
+          },
+          "conflicts": []
+        },
+        "branch_name": "codex/e2e-test",
+        "base_branch": null,
+        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        "policy": {
+          "allow_open_pr_match": true,
+          "allow_closed_pr_match": false,
+          "require_head_sha_match": true,
+          "require_exact_branch_match": true,
+          "allow_commit_association_match": true,
+          "escalate_on_ambiguous_match": true,
+          "require_task_linkage": false
+        },
+        "branch_exists": true,
+        "commit_exists": true,
+        "pull_request_lookup": {
+          "searched_by_branch": true,
+          "searched_by_commit": true,
+          "found": false,
+          "source": null,
+          "number": null,
+          "url": null,
+          "candidate_count": 0,
+          "valid_candidate_count": 0,
+          "ambiguous": false
+        },
+        "pull_request_candidates": [],
+        "created_pull_request": false,
+        "error_disposition": "review_required",
+        "final_decision": {
+          "result": "no_valid_existing_candidate",
+          "reason": "all_candidates_rejected_or_absent"
+        },
+        "error": "PR creation intentionally disabled for deterministic local demo proof"
+      }
+    },
+    "task_envelope": {
+      "acceptance_criteria": [
+        {
+          "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+          "id": "ac-1",
+          "required": true
+        }
+      ],
+      "artifacts": {
+        "completion_evidence": {
+          "notes": null,
+          "policy": "deferred",
+          "required_artifact_types": [],
+          "status": "deferred",
+          "validated_artifact_ids": [],
+          "validated_at": null,
+          "validation_method": "deferred",
+          "validator": null
+        },
+        "items": []
+      },
+      "assigned_executor": {
+        "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof.",
+        "executor_id": "executor-kno-181-b",
+        "executor_type": "codex"
+      },
+      "child_task_ids": [],
+      "constraints": [],
+      "coordination": {
+        "linear": null
+      },
+      "dependencies": [],
+      "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+      "id": "task-kno-181-scenario-b",
+      "objective": {
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria.",
+        "summary": "Exercise /evaluate with top-level evidence overlays."
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ],
+          "advisory_completion_claims": [
+            {
+              "claim_id": "claim-kno-181-b-1",
+              "reported_at": "2026-04-01T08:00:00Z",
+              "reported_by": "stub-executor",
+              "reason": "executor reported completion",
+              "metadata": {
+                "attempt_id": "attempt-1"
+              }
+            }
+          ],
+          "execution_attempts": [
+            {
+              "attempt_id": "attempt-kno-181-b-1",
+              "recorded_at": "2026-04-01T08:00:05Z",
+              "status": "succeeded",
+              "reported_by": "stub-executor",
+              "completion_claim_id": "claim-kno-181-b-1",
+              "artifact_references": [
+                {
+                  "reference_id": "attempt-kno-181-b-1:commit",
+                  "artifact_type": "commit",
+                  "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                  "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                  }
+                }
+              ],
+              "metadata": {
+                "executor_run_id": "stub-run-attempt-kno-181-b-1",
+                "attempt_validation": {
+                  "validated_at": "2026-04-05T17:30:31.786474Z",
+                  "validated_by": "execution_validation",
+                  "policy": {
+                    "require_repository": true,
+                    "require_exact_branch": true,
+                    "require_commit": true,
+                    "allow_missing_pull_request": true,
+                    "task_artifact_fallback_requires_single_attempt": true
+                  },
+                  "context_observations": {
+                    "repository": [
+                      {
+                        "value": "github.com/KnoxAnalytics/HARNESS-DRYRUN",
+                        "sources": [
+                          "execution_attempt.artifact_references[0]"
+                        ]
+                      }
+                    ],
+                    "branch": [
+                      {
+                        "value": "codex/e2e-test",
+                        "sources": [
+                          "execution_attempt.artifact_references[0]"
+                        ]
+                      }
+                    ],
+                    "commit": [
+                      {
+                        "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "sources": [
+                          "execution_attempt.artifact_references[0]"
+                        ]
+                      }
+                    ],
+                    "used_task_artifact_fallback": false
+                  },
+                  "status": "valid",
+                  "retryable": false,
+                  "reasons": []
+                }
+              },
+              "reevaluation": {}
+            }
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "origin": {
+        "ingress_id": null,
+        "ingress_name": null,
+        "requested_by": null,
+        "source_id": "req-happy-overlay-1",
+        "source_system": "openclaw",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "reconciliation": {
+        "status": "failed",
+        "active_failure_type": "missing_pr_after_execution",
+        "attempts": [
+          {
+            "attempt_id": "reconciliation-attempt-1",
+            "failure_type": "missing_pr_after_execution",
+            "handler_key": "missing_pr_after_execution",
+            "status": "failed",
+            "started_at": "2026-04-05T17:30:31.845905Z",
+            "completed_at": "2026-04-05T17:30:31.846841Z",
+            "details": {
+              "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN"
+              },
+              "context_resolution": {
+                "selected_source": "execution_attempt",
+                "sources": {
+                  "execution_attempt": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "base_branch": null,
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                  }
+                },
+                "conflicts": []
+              },
+              "branch_name": "codex/e2e-test",
+              "base_branch": null,
+              "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+              "policy": {
+                "allow_open_pr_match": true,
+                "allow_closed_pr_match": false,
+                "require_head_sha_match": true,
+                "require_exact_branch_match": true,
+                "allow_commit_association_match": true,
+                "escalate_on_ambiguous_match": true,
+                "require_task_linkage": false
+              },
+              "branch_exists": true,
+              "commit_exists": true,
+              "pull_request_lookup": {
+                "searched_by_branch": true,
+                "searched_by_commit": true,
+                "found": false,
+                "source": null,
+                "number": null,
+                "url": null,
+                "candidate_count": 0,
+                "valid_candidate_count": 0,
+                "ambiguous": false
+              },
+              "pull_request_candidates": [],
+              "created_pull_request": false,
+              "error_disposition": "review_required",
+              "final_decision": {
+                "result": "no_valid_existing_candidate",
+                "reason": "all_candidates_rejected_or_absent"
+              },
+              "error": "PR creation intentionally disabled for deterministic local demo proof"
+            }
+          }
+        ],
+        "last_attempt_id": "reconciliation-attempt-1",
+        "last_pr_url": null,
+        "last_error": "PR creation intentionally disabled for deterministic local demo proof",
+        "resolved_at": null,
+        "failed_at": "2026-04-05T17:30:31.846841Z"
+      },
+      "required_capabilities": [],
+      "status": "in_review",
+      "status_history": [
+        {
+          "from_status": "intake_ready",
+          "to_status": "reconciling",
+          "changed_at": "2026-04-05T17:30:31.815978Z",
+          "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
+          "changed_by": "reconciliation"
+        },
+        {
+          "from_status": "reconciling",
+          "to_status": "in_review",
+          "changed_at": "2026-04-05T17:30:31.878104Z",
+          "reason": "Post-execution reconciliation failed: PR creation intentionally disabled for deterministic local demo proof",
+          "changed_by": "reconciliation"
+        }
+      ],
+      "timestamps": {
+        "completed_at": null,
+        "created_at": "2026-03-31T14:30:00Z",
+        "updated_at": "2026-04-05T17:30:31.878104Z"
+      },
+      "title": "KNO-181 task-kno-181-scenario-b"
+    }
+  }
+}

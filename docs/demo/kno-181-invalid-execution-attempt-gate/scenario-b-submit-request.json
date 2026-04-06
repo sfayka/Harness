@@ -1,0 +1,95 @@
+{
+  "request": {
+    "task_envelope": {
+      "id": "task-kno-181-scenario-b",
+      "title": "KNO-181 task-kno-181-scenario-b",
+      "description": "Scenario B: valid attributable execution attempt with missing PR proof.",
+      "origin": {
+        "source_system": "openclaw",
+        "source_type": "ingress_request",
+        "source_id": "req-happy-overlay-1",
+        "ingress_id": null,
+        "ingress_name": null,
+        "requested_by": null
+      },
+      "status": "intake_ready",
+      "timestamps": {
+        "created_at": "2026-03-31T14:30:00Z",
+        "updated_at": "2026-03-31T14:30:00Z",
+        "completed_at": null
+      },
+      "status_history": [],
+      "objective": {
+        "summary": "Exercise /evaluate with top-level evidence overlays.",
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria."
+      },
+      "constraints": [],
+      "acceptance_criteria": [
+        {
+          "id": "ac-1",
+          "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+          "required": true
+        }
+      ],
+      "parent_task_id": null,
+      "child_task_ids": [],
+      "dependencies": [],
+      "assigned_executor": null,
+      "required_capabilities": [],
+      "priority": "normal",
+      "artifacts": {
+        "items": [],
+        "completion_evidence": {
+          "policy": "deferred",
+          "status": "deferred",
+          "required_artifact_types": [],
+          "validated_artifact_ids": [],
+          "validation_method": "deferred",
+          "validated_at": null,
+          "validator": null,
+          "notes": null
+        }
+      },
+      "coordination": {
+        "linear": null
+      },
+      "reconciliation": {
+        "status": "not_required",
+        "active_failure_type": null,
+        "attempts": [],
+        "last_attempt_id": null,
+        "last_pr_url": null,
+        "last_error": null,
+        "resolved_at": null,
+        "failed_at": null
+      },
+      "observability": {
+        "errors": [],
+        "retries": {
+          "attempt_count": 0,
+          "max_attempts": 0,
+          "last_retry_at": null
+        },
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        }
+      }
+    },
+    "assigned_executor": {
+      "executor_type": "codex",
+      "executor_id": "executor-kno-181-b",
+      "assignment_reason": "Scenario B: valid attributable execution attempt with missing PR proof."
+    }
+  }
+}
