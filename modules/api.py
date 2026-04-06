@@ -96,7 +96,8 @@ _RESERVED_SHARED_BRANCH_NAMES = frozenset({"work", "main", "master", "develop", 
 _TASK_SCOPED_CODE_BRANCH_PREFIXES = ("codex/", "kno-")
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
-_AUTO_DISPATCHABLE_STATUSES = frozenset({"planned", "dispatch_ready", "assigned"})
+_AUTO_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready"})
+_MANUAL_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready", "assigned", "blocked"})
 
 
 def _iso_now() -> str:
@@ -674,6 +675,36 @@ def _dispatch_policy_decision(task_envelope: dict[str, Any]) -> tuple[bool, str]
         return False, "execution attempt already recorded for current task state"
 
     return True, "eligible: non_terminal_non_blocked_no_existing_attempt"
+
+
+def _has_unresolved_clarification_for_dispatch(task_envelope: dict[str, Any]) -> bool:
+    clarification = task_envelope.get("clarification")
+    if not isinstance(clarification, dict):
+        return False
+
+    if clarification.get("status") in {"required", "requested", "answered"}:
+        return True
+
+    required_inputs = clarification.get("required_inputs")
+    if not isinstance(required_inputs, list):
+        return False
+    for item in required_inputs:
+        if isinstance(item, dict) and item.get("required") and item.get("status") == "open":
+            return True
+    return False
+
+
+def _manual_dispatch_allowed(task_envelope: dict[str, Any]) -> tuple[bool, str]:
+    task_status = str(task_envelope.get("status") or "")
+    if task_status in _TERMINAL_TASK_STATUSES:
+        return False, f"Task {task_envelope.get('id')!r} is terminal and cannot be dispatched"
+    if task_status in _DISPATCH_BLOCKED_STATUSES:
+        return False, f"Task {task_envelope.get('id')!r} is currently blocked for dispatch"
+    if task_status not in _MANUAL_DISPATCHABLE_STATUSES:
+        return False, f"Task {task_envelope.get('id')!r} is not dispatch-ready; current status is {task_status!r}"
+    if task_status == "blocked" and _has_unresolved_clarification_for_dispatch(task_envelope):
+        return False, f"Task {task_envelope.get('id')!r} is blocked on clarification and cannot be dispatched"
+    return True, ""
 
 
 def _executor_hint_from_task(task_envelope: dict[str, Any]) -> str | None:
@@ -2285,11 +2316,9 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
 
-        task_status = str(stored_task.get("status") or "")
-        if task_status in _TERMINAL_TASK_STATUSES:
-            return HTTPStatus.CONFLICT, {"error": f"Task {task_id!r} is terminal and cannot be dispatched"}
-        if task_status in _DISPATCH_BLOCKED_STATUSES:
-            return HTTPStatus.CONFLICT, {"error": f"Task {task_id!r} is currently blocked for dispatch"}
+        dispatch_allowed, dispatch_reason = _manual_dispatch_allowed(stored_task)
+        if not dispatch_allowed:
+            return HTTPStatus.CONFLICT, {"error": dispatch_reason}
 
         request_payload = _optional_mapping(payload.get("request"), field_name="request") or {}
         executor = _executor_hint(_optional_non_empty_string(request_payload.get("executor"), field_name="request.executor"))

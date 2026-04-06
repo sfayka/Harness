@@ -84,6 +84,8 @@ The dispatcher must not begin normal dispatch from:
 - `failed`
 - `canceled`
 
+Automatic post-ingestion dispatch follows the same rule. A task that is merely `planned` is not dispatchable just because it looks non-terminal; planning and clarification gates must be cleared and the task must enter `dispatch_ready` first.
+
 ### Clarification Preconditions
 
 Dispatch must not proceed if required clarification remains unresolved.

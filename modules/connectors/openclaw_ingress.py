@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from typing import Any
+
+from modules.contracts.task_envelope_lifecycle import apply_task_transition
+from modules.contracts.task_envelope_validation import assert_valid_task_envelope
 
 from .ingress_request_builder import (
     IngressRequestBuilderError,
@@ -71,6 +75,7 @@ def _to_jsonable(value: Any) -> Any:
 
 def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
     task = _require_mapping(payload.get("task"), field_name="task")
+    metadata = _optional_mapping(payload.get("metadata"), field_name="metadata") or {}
     task_status = _optional_string(task.get("status"), field_name="task.status") or "intake_ready"
     if task_status not in _ALLOWED_OPENCLAW_HANDOFF_STATUSES:
         allowed_statuses = ", ".join(sorted(_ALLOWED_OPENCLAW_HANDOFF_STATUSES))
@@ -107,6 +112,10 @@ def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
             raise OpenClawIngressInputError(
                 "OpenClaw ingress planned handoff requires task.objective_success_signal"
             )
+        if _optional_string(metadata.get("plan_summary"), field_name="metadata.plan_summary") is None:
+            raise OpenClawIngressInputError(
+                "OpenClaw ingress planned handoff requires metadata.plan_summary"
+            )
         unresolved_conditions = _optional_non_empty_string_list(
             payload.get("unresolved_conditions"),
             field_name="unresolved_conditions",
@@ -115,6 +124,62 @@ def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
             raise OpenClawIngressInputError(
                 "OpenClaw ingress planned handoff cannot include unresolved_conditions; unresolved ambiguity must stay intake_ready or blocked"
             )
+
+
+def _infer_need_type(condition: str) -> str:
+    normalized = condition.strip().lower()
+    if "ambig" in normalized or "unclear" in normalized or "multiple" in normalized:
+        return "ambiguous"
+    if "missing" in normalized or "not provided" in normalized or "unknown" in normalized:
+        return "missing"
+    return "incomplete"
+
+
+def _with_openclaw_clarification_handoff(
+    *,
+    canonical_payload: dict[str, Any],
+    unresolved_conditions: tuple[str, ...],
+) -> dict[str, Any]:
+    if not unresolved_conditions:
+        return canonical_payload
+
+    request_payload = dict(canonical_payload["request"])
+    task_envelope = deepcopy(request_payload["task_envelope"])
+    transition = apply_task_transition(
+        task_envelope,
+        to_status="blocked",
+        actor="clarification",
+        reason=f"OpenClaw handoff contains unresolved conditions: {unresolved_conditions[0]}",
+        facts={"reason_provided": True},
+    )
+    blocked_task = transition.task_envelope
+    requested_at = blocked_task["timestamps"]["updated_at"]
+    blocked_task["clarification"] = {
+        "status": "required",
+        "blocking_reason": "missing_information",
+        "resume_target_status": "intake_ready",
+        "required_inputs": [
+            {
+                "id": f"openclaw-input-{index + 1}",
+                "label": f"Required clarification {index + 1}",
+                "description": condition,
+                "required": True,
+                "need_type": _infer_need_type(condition),
+                "status": "open",
+                "value_summary": None,
+            }
+            for index, condition in enumerate(unresolved_conditions)
+        ],
+        "questions": [],
+        "responses": [],
+        "requested_at": requested_at,
+        "resolved_at": None,
+        "requested_by": "openclaw-ingress",
+        "resolution_summary": None,
+    }
+    request_payload["task_envelope"] = assert_valid_task_envelope(blocked_task)
+    request_payload.pop("unresolved_conditions", None)
+    return {"request": request_payload}
 
 
 def _build_openclaw_context(payload: Mapping[str, Any]) -> IngressSourceContext:
@@ -182,6 +247,10 @@ def translate_openclaw_submission_payload(payload: Mapping[str, Any]) -> dict[st
 
     payload = _require_mapping(payload, field_name="openclaw_ingress_payload")
     _validate_openclaw_handoff_contract(payload)
+    unresolved_conditions = _optional_non_empty_string_list(
+        payload.get("unresolved_conditions"),
+        field_name="unresolved_conditions",
+    )
     try:
         canonical_payload = build_task_submission_payload(
             intent=_build_task_intent(payload),
@@ -190,13 +259,15 @@ def translate_openclaw_submission_payload(payload: Mapping[str, Any]) -> dict[st
             claimed_completion=bool(payload.get("claimed_completion", False)),
             acceptance_criteria_satisfied=bool(payload.get("acceptance_criteria_satisfied", False)),
             runtime_facts=_to_jsonable(_optional_mapping(payload.get("runtime_facts"), field_name="runtime_facts")),
-            unresolved_conditions=_optional_non_empty_string_list(
-                payload.get("unresolved_conditions"),
-                field_name="unresolved_conditions",
-            ),
+            unresolved_conditions=(),
         )
     except IngressRequestBuilderError as error:
         raise OpenClawIngressInputError(str(error)) from error
+
+    canonical_payload = _with_openclaw_clarification_handoff(
+        canonical_payload=canonical_payload,
+        unresolved_conditions=unresolved_conditions,
+    )
 
     metadata = _to_jsonable(_optional_mapping(payload.get("metadata"), field_name="metadata") or {})
     if metadata:

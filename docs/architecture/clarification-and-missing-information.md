@@ -12,6 +12,8 @@ If required information is unresolved, Harness must represent that explicitly an
 
 Clarification is therefore part of the control-plane contract, not a conversational convenience.
 
+Ingress adapters must not leave known ambiguity as an informal note while still presenting the task as ready. If an upstream system such as OpenClaw already knows required information is missing or ambiguous, Harness should convert that signal into canonical clarification state and block the task rather than letting the ambiguity drift downstream.
+
 ## What Counts As Clarification
 
 Clarification applies when the task lacks enough trustworthy information to proceed.
