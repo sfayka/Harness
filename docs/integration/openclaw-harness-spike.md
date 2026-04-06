@@ -80,6 +80,8 @@ Other observations:
 
 Since the spike was written, Harness added a dedicated OpenClaw ingress adapter endpoint (`POST /ingress/openclaw`) that still delegates into canonical submission semantics (`POST /tasks`) rather than introducing a separate control-plane contract.
 
+That ingress endpoint is now explicitly constrained to intake/planning handoff. It accepts task intent, provenance, and other ingress-owned context, but it rejects executor runtime facts, completion claims, and execution/terminal lifecycle states. OpenClaw can describe the work; it cannot declare the work executed or complete through ingress.
+
 ## Scope Limits
 
 This spike does not implement:
