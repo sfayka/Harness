@@ -4,12 +4,74 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+import re
 
 from modules.contracts.failure_classification import FailureClassification, classify_verification_outcome
 from modules.contracts.task_envelope_evidence import CompletionEvidenceValidationResult
 from modules.contracts.task_envelope_validation import assert_valid_task_envelope
 
 TaskEnvelope = dict[str, object]
+_OBSERVABLE_ACCEPTANCE_HINTS = (
+    "api",
+    "artifact",
+    "branch",
+    "build",
+    "command",
+    "commit",
+    "dashboard",
+    "document",
+    "endpoint",
+    "evidence",
+    "external facts",
+    "file",
+    "github",
+    "issue",
+    "linear",
+    "log",
+    "output",
+    "page",
+    "pull request",
+    "read-model",
+    "read model",
+    "reconcile",
+    "reconciled",
+    "reevaluate",
+    "reevaluation",
+    "response",
+    "route",
+    "schema",
+    "screenshot",
+    "status code",
+    "test",
+    "timeline",
+    "url",
+    "verification",
+)
+_GENERIC_VAGUE_PHRASES = (
+    "works",
+    "working",
+    "done",
+    "complete",
+    "completed",
+    "correct",
+    "correctly",
+    "proper",
+    "properly",
+    "looks good",
+    "good quality",
+    "high quality",
+    "without bugs",
+    "bug free",
+    "production ready",
+    "ready for production",
+    "clean code",
+    "well written",
+)
+_TAUTOLOGICAL_SUCCESS_PHRASES = (
+    "task satisfies declared acceptance criteria",
+    "successful completion means the task is complete",
+    "the task is done",
+)
 
 
 class VerificationOutcome(StrEnum):
@@ -85,6 +147,17 @@ class VerificationDecisionInput:
 
 
 @dataclass(frozen=True)
+class AcceptanceCriteriaAssessment:
+    """Conservative automatic-completion safety check for acceptance criteria quality."""
+
+    automatic_completion_safe: bool
+    required_criteria_count: int
+    concrete_required_criteria_count: int
+    flagged_criteria: tuple[str, ...] = ()
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class VerificationDecisionResult:
     """Structured verification decision outcome."""
 
@@ -99,6 +172,7 @@ class VerificationDecisionResult:
     evidence_is_valid: bool
     evidence_is_sufficient: bool
     reconciliation_status: ReconciliationStatus
+    acceptance_criteria_assessment: AcceptanceCriteriaAssessment
     reasons: tuple[str, ...]
     failure_classification: FailureClassification
 
@@ -139,6 +213,82 @@ def _evidence_insufficiency_reasons(
     return ("Validated evidence is not sufficient for the declared evidence policy",)
 
 
+def _normalize_text(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+    return " ".join(value.strip().lower().split())
+
+
+def _looks_concrete_enough(description: str) -> bool:
+    normalized = _normalize_text(description)
+    if not normalized:
+        return False
+    if any(phrase in normalized for phrase in _TAUTOLOGICAL_SUCCESS_PHRASES):
+        return False
+
+    words = re.findall(r"[a-z0-9_/.\-]+", normalized)
+    if len(words) < 5:
+        return False
+
+    has_anchor = any(hint in normalized for hint in _OBSERVABLE_ACCEPTANCE_HINTS)
+    has_structural_signal = (
+        any(char.isdigit() for char in normalized)
+        or "`" in description
+        or "/" in description
+        or "_" in normalized
+        or "-" in normalized
+    )
+    if has_anchor or has_structural_signal:
+        return True
+
+    return not any(phrase in normalized for phrase in _GENERIC_VAGUE_PHRASES)
+
+
+def assess_acceptance_criteria(task_envelope: TaskEnvelope) -> AcceptanceCriteriaAssessment:
+    """Assess whether required acceptance criteria are concrete enough for automatic completion."""
+
+    acceptance_criteria = task_envelope.get("acceptance_criteria")
+    required_items = (
+        [
+            criterion
+            for criterion in acceptance_criteria
+            if isinstance(criterion, dict) and criterion.get("required", True) is not False
+        ]
+        if isinstance(acceptance_criteria, list)
+        else []
+    )
+
+    concrete_count = 0
+    flagged: list[str] = []
+    for criterion in required_items:
+        criterion_id = str(criterion.get("id") or "acceptance-criterion")
+        description = str(criterion.get("description") or "")
+        if _looks_concrete_enough(description):
+            concrete_count += 1
+            continue
+        flagged.append(f"{criterion_id}: {description}")
+
+    reasons: list[str] = []
+    if required_items and concrete_count == 0:
+        reasons.append(
+            "Required acceptance criteria are too vague for automatic completion and need more observable success conditions."
+        )
+        if flagged:
+            reasons.append("Flagged criteria: " + "; ".join(flagged))
+
+    success_signal = _normalize_text(((task_envelope.get("objective") or {}).get("success_signal")))
+    if reasons and success_signal and any(phrase in success_signal for phrase in _TAUTOLOGICAL_SUCCESS_PHRASES):
+        reasons.append("Objective success signal is tautological and does not add measurable completion evidence.")
+
+    return AcceptanceCriteriaAssessment(
+        automatic_completion_safe=not reasons,
+        required_criteria_count=len(required_items),
+        concrete_required_criteria_count=concrete_count,
+        flagged_criteria=tuple(flagged),
+        reasons=tuple(reasons),
+    )
+
+
 def evaluate_verification_decision(
     task_envelope: TaskEnvelope,
     *,
@@ -151,6 +301,7 @@ def evaluate_verification_decision(
     task_id = str(task_envelope["id"])
     evidence_result = decision_input.evidence_result
     reasons = _base_reasons(task_id, decision_input)
+    acceptance_criteria_assessment = assess_acceptance_criteria(task_envelope)
 
     if not evidence_result.is_valid:
         raise VerificationInputError(
@@ -182,6 +333,7 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
@@ -205,6 +357,7 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
@@ -230,6 +383,7 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
@@ -255,6 +409,7 @@ def evaluate_verification_decision(
                 evidence_is_valid=evidence_result.is_valid,
                 evidence_is_sufficient=evidence_result.is_sufficient,
                 reconciliation_status=decision_input.reconciliation_facts.status,
+                acceptance_criteria_assessment=acceptance_criteria_assessment,
                 reasons=tuple(reasons),
                 failure_classification=classify_verification_outcome(
                     outcome=outcome,
@@ -277,6 +432,7 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
@@ -308,6 +464,7 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
@@ -354,6 +511,32 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=False,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
+            reasons=tuple(reasons),
+            failure_classification=classify_verification_outcome(
+                outcome=outcome,
+                runtime_failure_observed=decision_input.runtime_facts.executor_reported_failure,
+                reason=reasons[-1],
+            ),
+        )
+
+    if not acceptance_criteria_assessment.automatic_completion_safe:
+        reasons.extend(acceptance_criteria_assessment.reasons)
+        reasons.append("Automatic verification cannot safely accept completion on vague acceptance criteria.")
+        outcome = VerificationOutcome.REVIEW_REQUIRED
+        return VerificationDecisionResult(
+            task_id=task_id,
+            outcome=outcome,
+            target_status="in_review",
+            claimed_completion=True,
+            accepted_completion=False,
+            requires_review=True,
+            is_terminal=False,
+            verification_passed=False,
+            evidence_is_valid=evidence_result.is_valid,
+            evidence_is_sufficient=evidence_result.is_sufficient,
+            reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
@@ -376,6 +559,7 @@ def evaluate_verification_decision(
         evidence_is_valid=evidence_result.is_valid,
         evidence_is_sufficient=evidence_result.is_sufficient,
         reconciliation_status=decision_input.reconciliation_facts.status,
+        acceptance_criteria_assessment=acceptance_criteria_assessment,
         reasons=tuple(reasons),
         failure_classification=classify_verification_outcome(
             outcome=outcome,
@@ -386,6 +570,7 @@ def evaluate_verification_decision(
 
 
 __all__ = [
+    "AcceptanceCriteriaAssessment",
     "ReconciliationFacts",
     "ReconciliationStatus",
     "RuntimeVerificationFacts",
@@ -394,5 +579,6 @@ __all__ = [
     "VerificationDecisionResult",
     "VerificationInputError",
     "VerificationOutcome",
+    "assess_acceptance_criteria",
     "evaluate_verification_decision",
 ]

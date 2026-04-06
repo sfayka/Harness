@@ -1316,6 +1316,81 @@ class HarnessApiServiceTests(unittest.TestCase):
         latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
         self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
 
+    def test_service_completion_claim_flags_vague_acceptance_criteria_for_review(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        vague_task = deepcopy(payload["request"]["task_envelope"])
+        vague_task["acceptance_criteria"] = [
+            {
+                "id": "ac-vague",
+                "description": "Task works properly.",
+                "required": True,
+            }
+        ]
+        vague_task["objective"]["success_signal"] = "Task satisfies declared acceptance criteria."
+        submit_payload = {
+            "request": {
+                "task_envelope": vague_task,
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-vague-criteria-1",
+                    "assignment_reason": "Exercise acceptance criteria guardrails.",
+                },
+            }
+        }
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-vague-criteria-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-vague-criteria-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-vague-criteria-1"),
+                    **valid_attempt_payload,
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "review_required")
+        self.assertFalse(claim_response["accepted_completion"])
+        self.assertTrue(claim_response["requires_review"])
+        self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
+        verification = claim_response["enforcement_result"]["verification_result"]
+        self.assertEqual(verification["outcome"], "review_required")
+        self.assertFalse(verification["acceptance_criteria_assessment"]["automatic_completion_safe"])
+        self.assertIn(
+            "too vague for automatic completion",
+            " ".join(verification["reasons"]).lower(),
+        )
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "in_review")
+        self.assertFalse(
+            read_payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
+
     def test_service_completion_claim_routes_valid_attempt_without_pr_to_missing_pr_boundary(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),

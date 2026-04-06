@@ -96,6 +96,8 @@ These criteria define what the task must satisfy in system terms.
 
 Artifacts and reconciliation support completion, but they do not replace task-specific acceptance criteria.
 
+Required acceptance criteria must also be concrete enough for automatic completion. Criteria such as "it works", "done", or other generic quality claims are not strong enough on their own to justify a terminal success decision. Harness may allow such tasks to exist, but verification should escalate them to explicit human review rather than auto-completing on vague criteria.
+
 ## Core Principle
 
 Executor-reported success is advisory only.
@@ -218,6 +220,8 @@ A task may remain or become `completed` only when:
 - validated evidence supports the claimed outcome
 - reconciliation reveals no blocking mismatch
 - no manual review requirement remains outstanding
+
+If the required acceptance criteria are too vague to provide observable completion truth, automatic verification must not treat `acceptance_criteria_satisfied=true` as sufficient proof. The correct automatic outcome is `in_review`, because human judgment is required to decide what "done" actually meant for that task.
 
 ### When Completion Must Not Be Accepted
 
