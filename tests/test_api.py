@@ -73,6 +73,10 @@ class _NoCreatePullRequestGateway:
         del owner, repo, branch_name
         return True
 
+    def branch_head_commit_sha(self, *, owner: str, repo: str, branch_name: str) -> str | None:
+        del owner, repo, branch_name
+        return "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+
     def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
         del owner, repo, commit_sha
         return True
@@ -1110,6 +1114,64 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["current_status"], "in_review")
         self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 0)
+
+    def test_service_completion_claim_allows_missing_commit_when_branch_can_be_reconciled(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "assigned_executor": {
+                    "executor_type": "codex",
+                    "executor_id": "executor-valid-missing-commit-1",
+                    "assignment_reason": "Exercise missing commit fallback before reconciliation.",
+                },
+            }
+        }
+        submit_status, submit_response = service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        pending_commit_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-missing-commit-1")
+        pending_commit_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-valid-missing-commit-1:branch",
+                "artifact_type": "branch",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                },
+            }
+        ]
+        external_facts = deepcopy(payload["request"]["external_facts"])
+        external_facts.pop("github_facts", None)
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-valid-missing-commit-1"),
+                    **pending_commit_attempt_payload,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    "external_facts": external_facts,
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "reconciliation_failed")
+        latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
+        self.assertTrue(
+            latest_attempt["metadata"]["attempt_validation"]["context_observations"]["commit_resolution_pending"]
+        )
+        self.assertNotIn("invalid_execution_attempt", claim_response)
 
     def test_service_dispatch_task_records_attempt_and_runs_reevaluation(self) -> None:
         payload = _manual_happy_path_overlay_payload()

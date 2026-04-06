@@ -23,6 +23,7 @@ class _FakeGitHubGateway:
         self,
         *,
         branch_exists: bool = True,
+        branch_head_commit_sha: str | None = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
         commit_exists: bool = True,
         existing_branch_prs: tuple[GitHubPullRequestRecord, ...] = (),
         existing_commit_prs: tuple[GitHubPullRequestRecord, ...] = (),
@@ -34,6 +35,7 @@ class _FakeGitHubGateway:
         create_pull_request_error: Exception | None = None,
     ) -> None:
         self._branch_exists = branch_exists
+        self._branch_head_commit_sha = branch_head_commit_sha
         self._commit_exists = commit_exists
         self._existing_branch_prs = existing_branch_prs
         self._existing_commit_prs = existing_commit_prs
@@ -61,6 +63,12 @@ class _FakeGitHubGateway:
         if self._branch_exists_error is not None:
             raise self._branch_exists_error
         return self._branch_exists
+
+    def branch_head_commit_sha(self, *, owner: str, repo: str, branch_name: str) -> str | None:
+        del owner, repo, branch_name
+        if self._branch_exists_error is not None:
+            raise self._branch_exists_error
+        return self._branch_head_commit_sha
 
     def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
         del owner, repo, commit_sha
@@ -456,6 +464,27 @@ def _record_execution_attempt(
     return task
 
 
+def _remove_commit_context(payload: dict) -> dict:
+    request = payload["request"]
+    request["external_facts"].pop("github_facts", None)
+    return payload
+
+
+def _prepare_branch_only_reconciliation_task(task: dict) -> dict:
+    task["artifacts"]["items"] = []
+    task["artifacts"]["completion_evidence"] = {
+        "policy": "not_applicable",
+        "status": "not_applicable",
+        "required_artifact_types": [],
+        "validated_artifact_ids": [],
+        "validation_method": "none",
+        "validated_at": None,
+        "validator": None,
+        "notes": None,
+    }
+    return task
+
+
 class CompletionClaimReconciliationTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -631,6 +660,61 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         stale_candidate = attempt["details"]["pull_request_candidates"][0]
         self.assertIn("missing_head_sha", stale_candidate["validation"]["reasons"])
         self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
+
+    def test_submit_completion_claim_resolves_missing_commit_from_branch_head_before_reconciliation(self) -> None:
+        resolved_sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        created_pr = _pull_request(number=409, head_sha=resolved_sha)
+        gateway = _FakeGitHubGateway(
+            branch_head_commit_sha=resolved_sha,
+            created_pr=created_pr,
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _prepare_branch_only_reconciliation_task(
+            _task_envelope(task_id="task-pr-reconcile-missing-commit-fallback")
+        )
+        service.store.create_task(task)
+
+        payload = _remove_commit_context(_completion_claim_payload("claim-missing-commit-fallback"))
+        status, response = service.submit_completion_claim(task["id"], payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "transition_applied")
+        self.assertEqual(response["task_envelope"]["reconciliation"]["status"], "resolved")
+        attempt = _latest_reconciliation_attempt(response["task_envelope"])
+        self.assertEqual(attempt["status"], "resolved")
+        self.assertEqual(attempt["details"]["branch_head_commit_sha"], resolved_sha)
+        self.assertEqual(attempt["details"]["commit_sha"], resolved_sha)
+        self.assertTrue(attempt["details"]["created_pull_request_revalidated"])
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
+
+    def test_submit_completion_claim_escalates_when_missing_commit_cannot_be_resolved_from_branch_head(self) -> None:
+        gateway = _FakeGitHubGateway(
+            branch_head_commit_sha=None,
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _prepare_branch_only_reconciliation_task(
+            _task_envelope(task_id="task-pr-reconcile-missing-commit-unresolved")
+        )
+        service.store.create_task(task)
+
+        payload = _remove_commit_context(_completion_claim_payload("claim-missing-commit-unresolved"))
+        status, response = service.submit_completion_claim(task["id"], payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "reconciliation_failed")
+        self.assertEqual(response["task_envelope"]["status"], "in_review")
+        attempt = response["reconciliation_attempt"]
+        self.assertEqual(attempt["details"]["branch_head_commit_sha"], None)
+        self.assertEqual(
+            attempt["details"]["error"],
+            "Commit SHA is required for missing_pr_after_execution reconciliation and could not be resolved from the branch head",
+        )
 
     def test_submit_completion_claim_creates_pr_once_and_is_idempotent_on_repeat(self) -> None:
         created_pr = _pull_request(number=401)

@@ -51,8 +51,78 @@ class GitHubRestPullRequestGatewayTests(unittest.TestCase):
 
         self.assertIn("timed out", str(captured.exception))
 
+    def test_branch_head_commit_sha_reads_branch_head_from_github(self) -> None:
+        gateway = GitHubRestPullRequestGateway(token="test-token")
+        with patch.object(
+            gateway,
+            "_request_json",
+            return_value={"commit": {"sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"}},
+        ):
+            sha = gateway.branch_head_commit_sha(
+                owner="KnoxAnalytics",
+                repo="HARNESS-DRYRUN",
+                branch_name="codex/e2e-test",
+            )
+
+        self.assertEqual(sha, "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+
 
 class ResolveCodeContextTests(unittest.TestCase):
+    def test_resolves_branch_context_even_when_commit_sha_is_missing(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-context-missing-commit-1",
+                "title": "Resolve branch context without commit",
+                "description": "Exercise missing commit fallback readiness.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-context-missing-commit-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness resolves branch context before commit fallback.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-06T09:00:00Z",
+        )
+        external_facts = {
+            "expected_code_context": {
+                "repository_host": "github.com",
+                "repository_owner": "KnoxAnalytics",
+                "repository_name": "HARNESS-DRYRUN",
+                "branch_name": "codex/e2e-test",
+                "base_branch": "main",
+            },
+            "github_facts": {
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                },
+                "branch": {
+                    "name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "head_commit_sha": None,
+                },
+                "commit": {
+                    "sha": None,
+                },
+            },
+        }
+
+        context, sources, selected = _resolved_code_context(task, external_facts=external_facts)
+
+        self.assertEqual(context.repository_owner, "KnoxAnalytics")
+        self.assertEqual(context.repository_name, "HARNESS-DRYRUN")
+        self.assertEqual(context.branch_name, "codex/e2e-test")
+        self.assertEqual(context.commit_sha, "")
+        self.assertEqual(selected, "external_facts")
+        self.assertIn("external_facts", sources)
+
     def test_rejects_conflicting_sources_instead_of_picking_first_available(self) -> None:
         task = create_task_envelope(
             {

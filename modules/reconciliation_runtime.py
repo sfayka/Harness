@@ -131,6 +131,8 @@ class GitHubPullRequestGateway(Protocol):
 
     def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool: ...
 
+    def branch_head_commit_sha(self, *, owner: str, repo: str, branch_name: str) -> str | None: ...
+
     def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool: ...
 
     def default_branch(self, *, owner: str, repo: str) -> str | None: ...
@@ -330,7 +332,7 @@ def _context_from_artifacts(task_envelope: TaskEnvelope) -> ReconciliationCodeCo
             if location[2] == "tree":
                 branch_name = branch_name or _normalize_sha(location[3])
 
-    if not repository_owner or not repository_name or not branch_name or not commit_sha:
+    if not repository_owner or not repository_name or not branch_name:
         return None
 
     return ReconciliationCodeContext(
@@ -339,7 +341,7 @@ def _context_from_artifacts(task_envelope: TaskEnvelope) -> ReconciliationCodeCo
         repository_name=repository_name,
         branch_name=branch_name,
         base_branch=base_branch,
-        commit_sha=commit_sha,
+        commit_sha=commit_sha or "",
     )
 
 
@@ -379,7 +381,7 @@ def _context_from_external_facts(external_facts: Any) -> ReconciliationCodeConte
         if isinstance(commit, dict):
             commit_sha = commit_sha or _normalize_sha(commit.get("sha"))
 
-    if not repository_owner or not repository_name or not branch_name or not commit_sha:
+    if not repository_owner or not repository_name or not branch_name:
         return None
 
     return ReconciliationCodeContext(
@@ -388,7 +390,7 @@ def _context_from_external_facts(external_facts: Any) -> ReconciliationCodeConte
         repository_name=repository_name,
         branch_name=branch_name,
         base_branch=base_branch,
-        commit_sha=commit_sha,
+        commit_sha=commit_sha or "",
     )
 
 
@@ -434,7 +436,7 @@ def _context_from_execution_attempt(task_envelope: TaskEnvelope) -> Reconciliati
                 metadata = metadata if isinstance(metadata, dict) else {}
                 branch_name = branch_name or _normalize_sha(metadata.get("branch_name"))
 
-    if not repository_owner or not repository_name or not branch_name or not commit_sha:
+    if not repository_owner or not repository_name or not branch_name:
         return None
 
     return ReconciliationCodeContext(
@@ -443,7 +445,7 @@ def _context_from_execution_attempt(task_envelope: TaskEnvelope) -> Reconciliati
         repository_name=repository_name,
         branch_name=branch_name,
         base_branch=base_branch,
-        commit_sha=commit_sha,
+        commit_sha=commit_sha or "",
     )
 
 
@@ -475,6 +477,10 @@ def _code_context_conflicts(
             for field_name in compared_fields:
                 left_value = getattr(left_context, field_name)
                 right_value = getattr(right_context, field_name)
+                if isinstance(left_value, str) and not left_value.strip():
+                    continue
+                if isinstance(right_value, str) and not right_value.strip():
+                    continue
                 if left_value == right_value:
                     continue
                 conflicts.append(
@@ -527,9 +533,33 @@ def _resolved_code_context(
             f"Conflicting reconciliation code context across sources: {conflict_fields}"
         )
 
-    selected_source = next(iter(source_contexts))
+    merged_source = next(iter(source_contexts.values()))
+    repository_host = merged_source.repository_host
+    repository_owner = merged_source.repository_owner
+    repository_name = merged_source.repository_name
+    branch_name = merged_source.branch_name
+    base_branch = merged_source.base_branch
+    commit_sha = merged_source.commit_sha
+    contributing_sources: list[str] = []
+    for source_name, source_context in source_contexts.items():
+        contributing_sources.append(source_name)
+        repository_host = repository_host or source_context.repository_host
+        repository_owner = repository_owner or source_context.repository_owner
+        repository_name = repository_name or source_context.repository_name
+        branch_name = branch_name or source_context.branch_name
+        base_branch = base_branch or source_context.base_branch
+        commit_sha = commit_sha or source_context.commit_sha
+
+    selected_source = contributing_sources[0] if len(contributing_sources) == 1 else "merged"
     return (
-        source_contexts[selected_source],
+        ReconciliationCodeContext(
+            repository_host=repository_host or "github.com",
+            repository_owner=repository_owner,
+            repository_name=repository_name,
+            branch_name=branch_name,
+            base_branch=base_branch,
+            commit_sha=commit_sha or "",
+        ),
         {name: _code_context_details(context) for name, context in source_contexts.items()},
         selected_source,
     )
@@ -1122,6 +1152,7 @@ class MissingPrAfterExecutionHandler:
                 "commit_sha": code_context.commit_sha,
                 "policy": _policy_details(self.policy),
                 "branch_exists": None,
+                "branch_head_commit_sha": None,
                 "commit_exists": None,
                 "pull_request_lookup": {
                     "searched_by_branch": False,
@@ -1147,9 +1178,6 @@ class MissingPrAfterExecutionHandler:
         }
 
         try:
-            if not code_context.commit_sha.strip():
-                raise ReconciliationRuntimeError("Commit SHA is required for missing_pr_after_execution reconciliation")
-
             branch_exists = self.github.branch_exists(
                 owner=code_context.repository_owner,
                 repo=code_context.repository_name,
@@ -1161,6 +1189,28 @@ class MissingPrAfterExecutionHandler:
                     f"GitHub branch {code_context.branch_name!r} was not found in "
                     f"{code_context.repository_owner}/{code_context.repository_name}"
                 )
+
+            if not code_context.commit_sha.strip():
+                branch_head_commit_sha = self.github.branch_head_commit_sha(
+                    owner=code_context.repository_owner,
+                    repo=code_context.repository_name,
+                    branch_name=code_context.branch_name,
+                )
+                attempt["details"]["branch_head_commit_sha"] = branch_head_commit_sha
+                if not branch_head_commit_sha:
+                    raise ReconciliationRuntimeError(
+                        "Commit SHA is required for missing_pr_after_execution reconciliation and "
+                        "could not be resolved from the branch head"
+                    )
+                code_context = ReconciliationCodeContext(
+                    repository_host=code_context.repository_host,
+                    repository_owner=code_context.repository_owner,
+                    repository_name=code_context.repository_name,
+                    branch_name=code_context.branch_name,
+                    base_branch=code_context.base_branch,
+                    commit_sha=branch_head_commit_sha,
+                )
+                attempt["details"]["commit_sha"] = branch_head_commit_sha
 
             commit_exists = self.github.commit_exists(
                 owner=code_context.repository_owner,
@@ -1528,6 +1578,17 @@ class GitHubRestPullRequestGateway:
     def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
         safe_branch = parse.quote(branch_name, safe="")
         return self._request_json(f"/repos/{owner}/{repo}/branches/{safe_branch}") is not None
+
+    def branch_head_commit_sha(self, *, owner: str, repo: str, branch_name: str) -> str | None:
+        safe_branch = parse.quote(branch_name, safe="")
+        response = self._request_json(f"/repos/{owner}/{repo}/branches/{safe_branch}")
+        if not isinstance(response, dict):
+            return None
+        commit = response.get("commit")
+        if not isinstance(commit, dict):
+            return None
+        sha = commit.get("sha")
+        return sha.strip() if isinstance(sha, str) and sha.strip() else None
 
     def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
         return self._request_json(f"/repos/{owner}/{repo}/commits/{commit_sha}") is not None
