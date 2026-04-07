@@ -312,7 +312,6 @@ def _apply_submission_task_overlays(
 
     return merged_task
 
-
 def _validate_submission_task_status_overlay(request_payload: dict[str, Any]) -> None:
     task_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
     if task_status is None:
@@ -659,6 +658,28 @@ def _with_submission_clarification(
     clarification["resolution_summary"] = None
     updated_task["clarification"] = clarification
     return updated_task
+
+_EXISTING_TASK_EVALUATE_OVERLAY_FIELDS: tuple[tuple[str, str], ...] = (
+    ("task_status", "request.task_status"),
+    ("assigned_executor", "request.assigned_executor"),
+    ("linked_artifacts", "request.linked_artifacts"),
+    ("completion_evidence", "request.completion_evidence"),
+)
+
+
+def _existing_task_evaluate_overlay_violations(request_payload: dict[str, Any]) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    for field_name, source in _EXISTING_TASK_EVALUATE_OVERLAY_FIELDS:
+        if request_payload.get(field_name) is None:
+            continue
+        violations.append(
+            {
+                "rule": "existing_task_overlay_not_allowed",
+                "source": source,
+                "message": "Existing-task /evaluate requests must not mutate stored task truth via submission overlays.",
+            }
+        )
+    return violations
 
 
 def _with_linear_coordination(
@@ -2605,6 +2626,17 @@ class HarnessApiService:
             existing_records = self.store.list_evaluation_records(task_id)
             request_payload = _require_mapping(payload.get("request"), field_name="request")
             _validate_submission_task_status_overlay(request_payload)
+            overlay_violations = _existing_task_evaluate_overlay_violations(request_payload)
+            if overlay_violations:
+                return HTTPStatus.BAD_REQUEST, {
+                    "error": (
+                        f"Existing task {task_id!r} cannot be mutated through POST /evaluate submission overlays; "
+                        f"use POST /tasks/{task_id}/reevaluate instead."
+                    ),
+                    "invalid_input": True,
+                    "violations": overlay_violations,
+                    "reevaluate_path": f"/tasks/{task_id}/reevaluate",
+                }
             request = replace(
                 request,
                 task_envelope=_with_submission_clarification(

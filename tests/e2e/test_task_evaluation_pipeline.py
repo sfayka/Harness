@@ -14,6 +14,7 @@ from tests.e2e.scenario_builders import (
     build_mismatch_overlays,
     build_reevaluate_payload,
     build_review_decision,
+    build_review_required_overlays,
     build_review_required_payload,
     build_top_level_overlay_happy_path_payload,
     build_expected_code_context,
@@ -80,22 +81,34 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
         self.assertEqual(verification["outcome"], "review_required")
         self.assertEqual(flow.final_fetch_response["task"]["status"], "in_review")
 
-    def test_existing_stored_task_evaluate_applies_top_level_overlays(self) -> None:
+    def test_existing_stored_task_evaluate_rejects_top_level_overlays(self) -> None:
         create_payload = build_create_task_payload("e2e-existing-overlays")
-        flow = self.run_create_fetch_evaluate_fetch(
-            create_payload=create_payload,
-            evaluate_payload_builder=build_top_level_overlay_happy_path_payload,
+        create_status, create_response = self.post_json("/tasks", create_payload)
+        task_id = create_response["task_envelope"]["id"]
+        initial_fetch_status, initial_fetch_response = self.get_json(f"/tasks/{task_id}")
+
+        evaluate_status, evaluate_response = self.post_json(
+            "/evaluate",
+            build_top_level_overlay_happy_path_payload(initial_fetch_response["task"]),
         )
+        final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
 
-        verification = flow.evaluate_response["enforcement_result"]["verification_result"]
-        evidence = flow.evaluate_response["enforcement_result"]["evidence_result"]
-
-        self.assertEqual(flow.initial_fetch_response["task"]["status"], "intake_ready")
-        self.assertEqual(flow.evaluate_status, 200)
-        self.assertTrue(flow.evaluate_response["accepted_completion"])
-        self.assertTrue(verification["evidence_is_sufficient"])
-        self.assertEqual(evidence["issues"], [])
-        self.assertEqual(flow.final_fetch_response["task"]["status"], "completed")
+        self.assertEqual(create_status, 200)
+        self.assertEqual(initial_fetch_status, 200)
+        self.assertEqual(initial_fetch_response["task"]["status"], "intake_ready")
+        self.assertEqual(evaluate_status, 400)
+        self.assertTrue(evaluate_response["invalid_input"])
+        self.assertEqual(evaluate_response["reevaluate_path"], f"/tasks/{task_id}/reevaluate")
+        violation_sources = {violation["source"] for violation in evaluate_response["violations"]}
+        self.assertEqual(
+            violation_sources,
+            {
+                "request.linked_artifacts",
+                "request.completion_evidence",
+            },
+        )
+        self.assertEqual(final_fetch_status, 200)
+        self.assertEqual(final_fetch_response["task"]["status"], "intake_ready")
 
     def test_reevaluate_fresh_stored_task_later_accumulates_sufficient_evidence(self) -> None:
         create_payload = build_create_task_payload("e2e-reevaluate-happy")
@@ -312,10 +325,16 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
             create_payload=create_payload,
             evaluate_payload_builder=build_top_level_overlay_happy_path_payload,
         )
-        completed_task = happy.final_fetch_response["task"]
-        review_payload = build_review_required_payload(completed_task)
+        review_overlays = build_review_required_overlays(happy.task_id)
 
-        status, response = self.post_json("/evaluate", review_payload)
+        status, response = self.post_json(
+            f"/tasks/{happy.task_id}/reevaluate",
+            build_reevaluate_payload(
+                external_facts=review_overlays["external_facts"],
+                runtime_facts=review_overlays["runtime_facts"],
+                review_request=review_overlays["review_request"],
+            ),
+        )
         final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{happy.task_id}")
 
         self.assertEqual(status, 200)
@@ -334,8 +353,10 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
                 task_id = initial_response["task_envelope"]["id"]
 
                 evaluate_status, evaluate_response = self.post_json(
-                    "/evaluate",
-                    build_top_level_overlay_happy_path_payload(initial_response["task_envelope"]),
+                    f"/tasks/{task_id}/reevaluate",
+                    self._canonicalize_existing_task_update_payload(
+                        build_top_level_overlay_happy_path_payload(initial_response["task_envelope"])
+                    ),
                 )
                 final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
 
@@ -435,7 +456,12 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
         create_status, create_response = self.post_json("/evaluate", create_payload)
         task_id = create_response["task_envelope"]["id"]
 
-        evaluate_status, evaluate_response = self.post_json("/evaluate", build_review_required_payload(create_response["task_envelope"]))
+        evaluate_status, evaluate_response = self.post_json(
+            f"/tasks/{task_id}/reevaluate",
+            self._canonicalize_existing_task_update_payload(
+                build_review_required_payload(create_response["task_envelope"])
+            ),
+        )
         final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
 
         self.assertEqual(create_status, 200)
@@ -454,7 +480,10 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
         payload = build_top_level_overlay_happy_path_payload(fetch_response["task"])
         payload["request"]["external_facts"]["linear_facts"]["workflow"] = {"workflow_id": "workflow-incomplete"}
 
-        evaluate_status, evaluate_response = self.post_json("/evaluate", payload)
+        evaluate_status, evaluate_response = self.post_json(
+            f"/tasks/{task_id}/reevaluate",
+            self._canonicalize_existing_task_update_payload(payload),
+        )
 
         self.assertEqual(create_status, 200)
         self.assertEqual(fetch_status, 200)
