@@ -43,6 +43,7 @@ Each module below has one owner. Ownership here means responsibility for the mod
 - Harness core may request persistence from the workflow substrate, but should not couple business rules to a specific substrate API.
 - Harness core may update structured work through the Linear integration layer, but should not treat executor events as the source of truth.
 - Harness core may reconcile artifact evidence through the GitHub integration layer before treating work as complete.
+- Existing tasks must use canonical reevaluation paths for persisted mutation; evaluation surfaces must not smuggle stored lifecycle, assignment, or artifact truth through convenience overlays.
 - Executors may report status and outputs, but they do not decide final work state without Harness applying policy and verification rules.
 
 ## Required Contracts

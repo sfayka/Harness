@@ -39,8 +39,8 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
 - Dispatch remains advisory-only and must not bypass verification, reconciliation, lifecycle enforcement, or review gates.
 
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
-- `POST /evaluate` may still be used as an evaluation surface for an existing task id, but Harness evaluates against the stored task snapshot and only reapplies the supported top-level overlays listed below.
-- Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state by supplying a different nested `request.task_envelope`.
+- `POST /evaluate` may still be used as an evaluation surface for an existing task id, but it no longer accepts submission-style mutation overlays for that stored task.
+- Automatic callers must not rely on `POST /evaluate` to overwrite an existing task lifecycle state, assignment, artifact set, or completion evidence by supplying top-level overlays or a different nested `request.task_envelope`.
 
 For new-task submission and one-shot evaluation, the canonical contract remains `request.task_envelope`. Harness also accepts ingress-style top-level overlays for convenience on initial requests:
 
@@ -50,7 +50,7 @@ For new-task submission and one-shot evaluation, the canonical contract remains 
 - `request.completion_evidence`
 - `request.unresolved_conditions`
 
-Those overlays are merged into `request.task_envelope` before evaluation. For existing tasks evaluated through `POST /evaluate`, the same overlay fields are reapplied onto the stored task snapshot before policy evaluation. For canonical persisted updates, prefer `POST /tasks/<task_id>/reevaluate`.
+Those overlays are merged into `request.task_envelope` before evaluation for new-task submission and one-shot evaluation only. If the task already exists, `POST /evaluate` rejects those overlay fields and returns a contract error that points the caller to `POST /tasks/<task_id>/reevaluate`.
 
 For `POST /tasks`, top-level completion-shaped overlays are rejected on new task creation. Do not send:
 

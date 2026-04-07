@@ -1365,7 +1365,7 @@ class HarnessApiServiceTests(unittest.TestCase):
             "verification_deferred",
         )
 
-    def test_service_evaluate_existing_task_reapplies_top_level_overlays(self) -> None:
+    def test_service_evaluate_existing_task_rejects_top_level_overlays(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         evaluate_payload = deepcopy(payload)
         del evaluate_payload["request"]["task_status"]
@@ -1376,13 +1376,19 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
-        self.assertEqual(evaluate_status, 200)
-        self.assertEqual(evaluate_response["action"], "transition_applied")
-        self.assertTrue(evaluate_response["accepted_completion"])
-        self.assertEqual(evaluate_response["task_envelope"]["status"], "completed")
+        self.assertEqual(evaluate_status, 400)
+        self.assertTrue(evaluate_response["invalid_input"])
+        self.assertIn("/tasks/task-http-happy-overlay-1/reevaluate", evaluate_response["error"])
+        violation_rules = {violation["rule"] for violation in evaluate_response["violations"]}
+        self.assertEqual(violation_rules, {"existing_task_overlay_not_allowed"})
+        violation_sources = {violation["source"] for violation in evaluate_response["violations"]}
         self.assertEqual(
-            evaluate_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
-            True,
+            violation_sources,
+            {
+                "request.assigned_executor",
+                "request.linked_artifacts",
+                "request.completion_evidence",
+            },
         )
 
     def test_service_can_reevaluate_intake_ready_task_to_completed_when_evidence_arrives(self) -> None:
@@ -1585,19 +1591,16 @@ class HarnessApiServiceTests(unittest.TestCase):
         }
         submit_status, submit_response = self.service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
-        assign_status, assign_response = self.service.evaluate(
-            {
-                "request": {
-                    "task_envelope": deepcopy(submit_response["task_envelope"]),
-                    "task_status": "assigned",
-                    "assigned_executor": {
-                        "executor_type": "codex",
-                        "executor_id": "executor-invalid-attempt-1",
-                        "assignment_reason": "Exercise invalid execution attempt retries.",
-                    },
-                }
-            }
-        )
+        assigned_task = deepcopy(self.service.store.get_task(task_id))
+        assigned_task["status"] = "assigned"
+        assigned_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-invalid-attempt-1",
+            "assignment_reason": "Exercise invalid execution attempt retries.",
+        }
+        assigned_task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+        self.service.store.update_task(assigned_task)
+        assign_status, assign_response = self.service.get_task(task_id)
         invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-invalid-1")
         invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
             {
@@ -1626,7 +1629,7 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(assign_status, 200)
-        self.assertEqual(assign_response["task_envelope"]["status"], "assigned")
+        self.assertEqual(assign_response["task"]["status"], "assigned")
         self.assertEqual(claim_status, 200)
         self.assertEqual(claim_response["action"], "contract_violation_failed")
         self.assertEqual(claim_response["task_envelope"]["status"], "failed")
@@ -2963,7 +2966,7 @@ class HarnessHttpApiTests(unittest.TestCase):
             "accepted_completion",
         )
 
-    def test_api_evaluate_existing_task_reapplies_top_level_overlays(self) -> None:
+    def test_api_evaluate_existing_task_rejects_top_level_overlays(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         del payload["request"]["task_status"]
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
@@ -2973,13 +2976,17 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
-        self.assertEqual(evaluate_status, 200)
-        self.assertEqual(evaluate_response["action"], "transition_applied")
-        self.assertTrue(evaluate_response["accepted_completion"])
-        self.assertEqual(evaluate_response["task_envelope"]["status"], "completed")
+        self.assertEqual(evaluate_status, 400)
+        self.assertTrue(evaluate_response["invalid_input"])
+        self.assertIn("/tasks/task-http-happy-overlay-1/reevaluate", evaluate_response["error"])
+        violation_sources = {violation["source"] for violation in evaluate_response["violations"]}
         self.assertEqual(
-            evaluate_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
-            True,
+            violation_sources,
+            {
+                "request.assigned_executor",
+                "request.linked_artifacts",
+                "request.completion_evidence",
+            },
         )
 
     def test_api_persists_blocked_result(self) -> None:

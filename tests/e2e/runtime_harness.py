@@ -4,6 +4,7 @@ import json
 import tempfile
 import threading
 import unittest
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Callable
 from urllib.error import HTTPError
@@ -82,6 +83,16 @@ class RuntimeApiTestCase(unittest.TestCase):
             finally:
                 error.close()
 
+    def _canonicalize_existing_task_update_payload(self, payload: dict) -> dict:
+        request = deepcopy(payload["request"])
+        request.pop("task_envelope", None)
+        request.pop("task_status", None)
+        request.pop("assigned_executor", None)
+        linked_artifacts = request.pop("linked_artifacts", None)
+        if linked_artifacts is not None:
+            request["new_artifacts"] = linked_artifacts
+        return {"request": request}
+
     def run_create_fetch_evaluate_fetch(
         self,
         *,
@@ -92,7 +103,10 @@ class RuntimeApiTestCase(unittest.TestCase):
         task_id = create_response["task_envelope"]["id"]
         initial_fetch_status, initial_fetch_response = self.get_json(f"/tasks/{task_id}")
         evaluate_payload = evaluate_payload_builder(initial_fetch_response["task"])
-        evaluate_status, evaluate_response = self.post_json("/evaluate", evaluate_payload)
+        evaluate_status, evaluate_response = self.post_json(
+            f"/tasks/{task_id}/reevaluate",
+            self._canonicalize_existing_task_update_payload(evaluate_payload),
+        )
         final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
         return RuntimeFlowResult(
             task_id=task_id,
