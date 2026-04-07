@@ -55,6 +55,8 @@ Those overlays are merged into `request.task_envelope` before evaluation for new
 
 For `POST /tasks/<task_id>/reevaluate`, only canonical reevaluation fields are allowed for persisted mutation. Use `request.new_artifacts` instead of `request.linked_artifacts`, and do not send `request.task_envelope`, `request.task_status`, or `request.assigned_executor`. Those submission-style fields are rejected so callers cannot pretend a stored task was updated when Harness ignored the payload.
 
+`POST /tasks/<task_id>/reevaluate` is not an executor proof-ingestion shortcut. It may attach support artifacts such as review notes, progress artifacts, or handoff artifacts, and it may carry fact-only repository artifacts from external sync, but it must not combine repository execution artifacts with `runtime_facts`. If a caller needs to report executor-side runtime telemetry plus new PR/commit/branch/changed-file proof for an existing task, use `POST /tasks/<task_id>/completion-claims` so Harness can bind the artifacts to an execution attempt and enforce executor contract validation.
+
 For `POST /tasks`, top-level completion-shaped overlays are rejected on new task creation. Do not send:
 
 - `request.claimed_completion=true`

@@ -1428,6 +1428,39 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertEqual(reevaluation_response["action"], "transition_applied")
 
+    def test_service_reevaluate_rejects_code_execution_artifacts(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = self.service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertEqual(
+            reevaluation_response["completion_claim_path"],
+            f"/tasks/{task_id}/completion-claims",
+        )
+        self.assertTrue(
+            any(
+                violation["rule"] == "reevaluation_execution_artifact_not_allowed"
+                for violation in reevaluation_response["violations"]
+            )
+        )
+
     def test_service_reevaluate_rejects_pre_satisfied_completion_evidence_without_completion_claim(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_status, submit_response = self.service.submit(
@@ -1526,7 +1559,7 @@ class HarnessApiServiceTests(unittest.TestCase):
             },
         )
 
-    def test_service_can_reevaluate_intake_ready_task_to_completed_when_evidence_arrives(self) -> None:
+    def test_service_reevaluate_rejects_code_execution_artifacts_for_intake_ready_task(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
 
@@ -1547,13 +1580,17 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
-        self.assertEqual(reevaluation_status, 200)
-        self.assertEqual(reevaluation_response["action"], "transition_applied")
-        self.assertTrue(reevaluation_response["accepted_completion"])
-        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
         self.assertEqual(
-            reevaluation_response["enforcement_result"]["verification_result"]["evidence_is_sufficient"],
-            True,
+            reevaluation_response["completion_claim_path"],
+            f"/tasks/{task_id}/completion-claims",
+        )
+        self.assertTrue(
+            any(
+                violation["rule"] == "reevaluation_execution_artifact_not_allowed"
+                for violation in reevaluation_response["violations"]
+            )
         )
 
     def test_service_reevaluate_rejects_submission_style_mutation_fields(self) -> None:
@@ -3596,7 +3633,7 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 2)
 
-    def test_api_can_reevaluate_intake_ready_task_to_completed_when_evidence_arrives(self) -> None:
+    def test_api_reevaluate_rejects_code_execution_artifacts_and_points_to_completion_claims(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
 
@@ -3620,10 +3657,18 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(submit_response["task_envelope"]["status"], "intake_ready")
-        self.assertEqual(reevaluation_status, 200)
-        self.assertEqual(reevaluation_response["action"], "transition_applied")
-        self.assertTrue(reevaluation_response["accepted_completion"])
-        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertEqual(
+            reevaluation_response["completion_claim_path"],
+            f"/tasks/{task_id}/completion-claims",
+        )
+        self.assertTrue(
+            any(
+                violation["rule"] == "reevaluation_execution_artifact_not_allowed"
+                for violation in reevaluation_response["violations"]
+            )
+        )
 
     def test_api_completion_claim_endpoint_intercepts_claim_and_routes_to_evaluation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
