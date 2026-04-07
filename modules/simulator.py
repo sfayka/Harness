@@ -420,15 +420,18 @@ def _review_request_payload(task_id: str) -> dict[str, Any]:
 
 
 def _review_decision_payload(task_id: str) -> dict[str, Any]:
+    request_payload = _review_request_payload(task_id)
     request = ReviewRequest(
-        review_request_id="review-request-sim-1",
-        task_id=task_id,
-        requested_at="2026-03-25T12:15:00Z",
-        requested_by="verification",
-        trigger=ReviewTrigger.RECONCILIATION,
-        summary="Manual review is required before completion can be accepted.",
-        presented_sections=("task_state", "evidence", "reconciliation"),
-        allowed_outcomes=(ReviewOutcome.ACCEPT_COMPLETION,),
+        review_request_id=request_payload["review_request_id"],
+        task_id=request_payload["task_id"],
+        requested_at=request_payload["requested_at"],
+        requested_by=request_payload["requested_by"],
+        trigger=ReviewTrigger(request_payload["trigger"]),
+        summary=request_payload["summary"],
+        presented_sections=tuple(request_payload.get("presented_sections", [])),
+        allowed_outcomes=tuple(ReviewOutcome(item) for item in request_payload.get("allowed_outcomes", [])),
+        prior_review_ids=tuple(request_payload.get("prior_review_ids", [])),
+        metadata=dict(request_payload.get("metadata", {})),
     )
     decision = resolve_review_request(
         request,

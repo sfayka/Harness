@@ -1260,6 +1260,43 @@ def _review_gate_is_active(task_envelope: dict[str, Any], records: tuple[Evaluat
     return _review_status_from_activity(requests=requests, decisions=decisions) == "requested"
 
 
+def _active_review_request(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
+    requests, decisions = _collect_review_activity(records)
+    if not requests:
+        return None
+    if _review_status_from_activity(requests=requests, decisions=decisions) != "requested":
+        return None
+    return max(
+        requests,
+        key=lambda item: (
+            _parse_iso_timestamp(item.get("requested_at")),
+            str(item.get("review_request_id") or ""),
+        ),
+    )
+
+
+def _validate_review_decision_against_active_gate(
+    *,
+    task_envelope: dict[str, Any],
+    records: tuple[EvaluationRecord, ...],
+    review_decision: ReviewDecisionResult | None,
+) -> None:
+    if review_decision is None:
+        return
+
+    active_request = _active_review_request(records)
+    if active_request is None and task_envelope.get("status") == "in_review":
+        raise ApiRequestError("review_decision requires a persisted active review request before manual resolution")
+    if active_request is None:
+        raise ApiRequestError("review_decision requires an active review gate")
+
+    serialized_request = _to_jsonable(review_decision.request)
+    if str(serialized_request.get("review_request_id") or "") != str(active_request.get("review_request_id") or ""):
+        raise ApiRequestError("review_decision must resolve the active review request for this task")
+    if serialized_request != active_request:
+        raise ApiRequestError("review_decision.request must match the active review request exactly")
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -2553,6 +2590,18 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             pass
 
+        try:
+            _validate_review_decision_against_active_gate(
+                task_envelope=request.task_envelope,
+                records=(),
+                review_decision=request.review_decision,
+            )
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
         status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
             return status, response_payload
@@ -2660,6 +2709,7 @@ class HarnessApiService:
             }
 
         task_id = str(request.task_envelope["id"])
+        existing_records: tuple[EvaluationRecord, ...] = ()
         try:
             stored_task = self.store.get_task(task_id)
         except TaskEnvelopeNotFoundError:
@@ -2692,6 +2742,18 @@ class HarnessApiService:
                 ),
                 review_is_active=_review_gate_is_active(stored_task, existing_records),
             )
+
+        try:
+            _validate_review_decision_against_active_gate(
+                task_envelope=request.task_envelope,
+                records=existing_records,
+                review_decision=request.review_decision,
+            )
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
 
         status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
@@ -2739,13 +2801,26 @@ class HarnessApiService:
                 "invalid_input": True,
             }
 
+        existing_records = self.store.list_evaluation_records(task_id)
         request = replace(
             request,
             review_is_active=_review_gate_is_active(
                 stored_task,
-                self.store.list_evaluation_records(task_id),
+                existing_records,
             ),
         )
+
+        try:
+            _validate_review_decision_against_active_gate(
+                task_envelope=stored_task,
+                records=existing_records,
+                review_decision=request.review_decision,
+            )
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
 
         status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:
@@ -2793,13 +2868,26 @@ class HarnessApiService:
                 "invalid_input": True,
             }
 
+        existing_records = self.store.list_evaluation_records(task_id)
         request = replace(
             request,
             review_is_active=_review_gate_is_active(
                 stored_task,
-                self.store.list_evaluation_records(task_id),
+                existing_records,
             ),
         )
+
+        try:
+            _validate_review_decision_against_active_gate(
+                task_envelope=stored_task,
+                records=existing_records,
+                review_decision=request.review_decision,
+            )
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
 
         attempt_valid, attempt_validation = _validate_execution_attempt(request, request_payload=request_payload)
         if not attempt_valid and attempt_validation is not None:
