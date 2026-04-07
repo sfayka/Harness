@@ -75,15 +75,19 @@ def _goal_request() -> GoalToWorkRequest:
 
 
 def _review_decision_payload(task_id: str) -> dict:
+    review_request_payload = deepcopy(_request_payload("review_required")["request"]["review_request"])
+    review_request_payload["task_id"] = task_id
     review_request = ReviewRequest(
-        review_request_id="review-request-read-model-1",
-        task_id=task_id,
-        requested_at="2026-03-24T17:30:00Z",
-        requested_by="verification",
-        trigger=ReviewTrigger.VERIFICATION,
-        summary="Manual confirmation is required before completion can be accepted.",
-        presented_sections=("task_state", "evidence", "reconciliation"),
-        allowed_outcomes=(ReviewOutcome.ACCEPT_COMPLETION,),
+        review_request_id=review_request_payload["review_request_id"],
+        task_id=review_request_payload["task_id"],
+        requested_at=review_request_payload["requested_at"],
+        requested_by=review_request_payload["requested_by"],
+        trigger=ReviewTrigger(review_request_payload["trigger"]),
+        summary=review_request_payload["summary"],
+        presented_sections=tuple(review_request_payload.get("presented_sections", [])),
+        allowed_outcomes=tuple(ReviewOutcome(item) for item in review_request_payload.get("allowed_outcomes", [])),
+        prior_review_ids=tuple(review_request_payload.get("prior_review_ids", [])),
+        metadata=dict(review_request_payload.get("metadata", {})),
     )
     review_decision = resolve_review_request(
         review_request,
