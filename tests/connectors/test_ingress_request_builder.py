@@ -175,6 +175,19 @@ class IngressRequestBuilderTests(unittest.TestCase):
                 claimed_completion=False,
             )
 
+    def test_rejects_execution_artifacts_on_generic_reevaluation(self) -> None:
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_reevaluation_payload(
+                new_artifacts=(
+                    {
+                        "id": "artifact-pr-1",
+                        "type": "pull_request",
+                    },
+                ),
+                claimed_completion=True,
+                runtime_facts={"executor_reported_success": True},
+            )
+
     def test_rejects_missing_required_upstream_inputs(self) -> None:
         with self.assertRaises(IngressRequestBuilderError):
             build_task_submission_payload(

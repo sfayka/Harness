@@ -759,6 +759,31 @@ def _forbidden_existing_task_field_violations(
     return violations
 
 
+def _reevaluation_execution_artifact_violations(request_payload: dict[str, Any]) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    if request_payload.get("runtime_facts") is None:
+        return violations
+    new_artifacts = _optional_object_list(
+        request_payload.get("new_artifacts"),
+        field_name="request.new_artifacts",
+    )
+    for index, artifact in enumerate(new_artifacts):
+        artifact_type = _normalized_string(artifact.get("type"))
+        if artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES:
+            continue
+        violations.append(
+            {
+                "rule": "reevaluation_execution_artifact_not_allowed",
+                "source": f"request.new_artifacts[{index}]",
+                "message": (
+                    f"Existing-task reevaluation cannot combine runtime_facts with execution artifact type {artifact_type!r}. "
+                    "Use POST /tasks/<task_id>/completion-claims for executor-reported repository proof."
+                ),
+            }
+        )
+    return violations
+
+
 def _with_linear_coordination(
     task_envelope: dict[str, Any],
     *,
@@ -2923,6 +2948,17 @@ class HarnessApiService:
                     ),
                     "invalid_input": True,
                     "violations": violations,
+                }
+            execution_artifact_violations = _reevaluation_execution_artifact_violations(request_payload)
+            if execution_artifact_violations:
+                return HTTPStatus.BAD_REQUEST, {
+                    "error": (
+                        f"Existing task {task_id!r} cannot combine runtime_facts with execution artifacts through reevaluation; "
+                        f"use POST /tasks/{task_id}/completion-claims for executor-reported repository proof."
+                    ),
+                    "invalid_input": True,
+                    "violations": execution_artifact_violations,
+                    "completion_claim_path": f"/tasks/{task_id}/completion-claims",
                 }
             request = parse_reevaluation_request(stored_task, payload)
         except Exception as error:

@@ -126,6 +126,22 @@ def _reevaluation_completion_evidence_would_prematurely_satisfy(
     return False
 
 
+def _reject_execution_artifacts_on_reevaluation(
+    new_artifacts: tuple[dict[str, Any], ...],
+    *,
+    runtime_facts: dict[str, Any] | None,
+) -> None:
+    if runtime_facts is None:
+        return
+    for index, artifact in enumerate(new_artifacts):
+        artifact_type = str((artifact or {}).get("type") or "").strip()
+        if artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES:
+            raise IngressRequestBuilderError(
+                f"new_artifacts[{index}] type {artifact_type!r} cannot be combined with runtime_facts on generic reevaluation; "
+                "use the completion-claim path for executor-reported execution artifacts"
+            )
+
+
 def build_task_submission_payload(
     *,
     intent: IngressTaskIntent,
@@ -239,6 +255,8 @@ def build_task_reevaluation_payload(
     review_decision: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a canonical POST /tasks/<id>/reevaluate payload."""
+
+    _reject_execution_artifacts_on_reevaluation(new_artifacts, runtime_facts=runtime_facts)
 
     request_payload: dict[str, Any] = {
         "external_facts": deepcopy(external_facts or {}),

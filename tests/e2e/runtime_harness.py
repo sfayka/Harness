@@ -13,6 +13,9 @@ from urllib.request import Request, urlopen
 from modules.api import run_server
 
 
+_CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
+
+
 @dataclass(frozen=True)
 class RuntimeFlowResult:
     task_id: str
@@ -91,7 +94,24 @@ class RuntimeApiTestCase(unittest.TestCase):
         linked_artifacts = request.pop("linked_artifacts", None)
         if linked_artifacts is not None:
             request["new_artifacts"] = linked_artifacts
+        if self._request_uses_execution_artifacts({"request": request}):
+            request.pop("runtime_facts", None)
         return {"request": request}
+
+    def _request_uses_execution_artifacts(self, payload: dict) -> bool:
+        request = payload.get("request") if isinstance(payload, dict) else None
+        if not isinstance(request, dict):
+            return False
+        new_artifacts = request.get("new_artifacts")
+        if not isinstance(new_artifacts, list):
+            return False
+        for artifact in new_artifacts:
+            if not isinstance(artifact, dict):
+                continue
+            artifact_type = str(artifact.get("type") or "").strip()
+            if artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES:
+                return True
+        return False
 
     def run_create_fetch_evaluate_fetch(
         self,
@@ -103,9 +123,10 @@ class RuntimeApiTestCase(unittest.TestCase):
         task_id = create_response["task_envelope"]["id"]
         initial_fetch_status, initial_fetch_response = self.get_json(f"/tasks/{task_id}")
         evaluate_payload = evaluate_payload_builder(initial_fetch_response["task"])
+        reevaluation_payload = self._canonicalize_existing_task_update_payload(evaluate_payload)
         evaluate_status, evaluate_response = self.post_json(
             f"/tasks/{task_id}/reevaluate",
-            self._canonicalize_existing_task_update_payload(evaluate_payload),
+            reevaluation_payload,
         )
         final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
         return RuntimeFlowResult(
@@ -131,6 +152,11 @@ class RuntimeApiTestCase(unittest.TestCase):
         task_id = create_response["task_envelope"]["id"]
         initial_fetch_status, initial_fetch_response = self.get_json(f"/tasks/{task_id}")
         reevaluate_payload = reevaluate_payload_builder(initial_fetch_response["task"])
+        if self._request_uses_execution_artifacts(reevaluate_payload):
+            reevaluate_payload = deepcopy(reevaluate_payload)
+            request = reevaluate_payload.get("request")
+            if isinstance(request, dict):
+                request.pop("runtime_facts", None)
         reevaluate_status, reevaluate_response = self.post_json(
             f"/tasks/{task_id}/reevaluate",
             reevaluate_payload,

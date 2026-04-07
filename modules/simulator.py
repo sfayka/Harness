@@ -22,6 +22,9 @@ from modules.demo_cases import build_demo_request
 from modules.intake import create_task_envelope
 
 
+_CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -384,6 +387,15 @@ def _reevaluate_step(
 ) -> dict[str, Any]:
     if context.task_id is None:
         raise ValueError("task_id is required before reevaluation")
+    request = payload.get("request") if isinstance(payload, dict) else None
+    if isinstance(request, dict):
+        new_artifacts = request.get("new_artifacts")
+        if isinstance(new_artifacts, list) and any(
+            isinstance(artifact, dict)
+            and str(artifact.get("type") or "").strip() in _CODE_EXECUTION_ARTIFACT_TYPES
+            for artifact in new_artifacts
+        ):
+            request.pop("runtime_facts", None)
     path = f"/tasks/{context.task_id}/reevaluate"
     status, response_payload = client.reevaluate_task(context.task_id, payload)
     return context.record(
