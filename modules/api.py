@@ -107,6 +107,7 @@ _DISPATCH_DEPENDENCY_STATUS_ORDER = {
     "completed": 4,
 }
 _ALLOWED_SUBMISSION_STATUS_OVERLAYS = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "blocked"})
+_ALLOWED_NEW_TASK_SUBMISSION_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "blocked"})
 
 
 def _iso_now() -> str:
@@ -360,6 +361,24 @@ def _new_task_submission_contract_violations(request_payload: dict[str, Any]) ->
             source="request.completion_evidence",
             message="New task submission cannot include completion_evidence overlays; validated evidence must be produced after execution.",
         )
+    overlay_task_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
+    if overlay_task_status is not None and overlay_task_status not in _ALLOWED_NEW_TASK_SUBMISSION_STATUSES:
+        allowed = ", ".join(sorted(_ALLOWED_NEW_TASK_SUBMISSION_STATUSES))
+        add_violation(
+            rule="initial_task_status_invalid",
+            source="request.task_status",
+            message=(
+                f"New task submission may only start in pre-assignment lifecycle states ({allowed}); "
+                f"got {overlay_task_status!r}."
+            ),
+        )
+    assigned_executor = _optional_mapping(request_payload.get("assigned_executor"), field_name="assigned_executor")
+    if assigned_executor is not None:
+        add_violation(
+            rule="initial_assigned_executor_not_allowed",
+            source="request.assigned_executor",
+            message="New task submission cannot pre-assign an executor; assignment truth must come from dispatcher-owned flows.",
+        )
 
     linked_artifacts = request_payload.get("linked_artifacts")
     if isinstance(linked_artifacts, list):
@@ -378,15 +397,23 @@ def _new_task_submission_contract_violations(request_payload: dict[str, Any]) ->
                 )
 
     task_status = _normalized_string(task_envelope.get("status"))
-    if task_status is not None and task_status not in _ALLOWED_SUBMISSION_STATUS_OVERLAYS:
-        allowed = ", ".join(sorted(_ALLOWED_SUBMISSION_STATUS_OVERLAYS))
+    if task_status is not None and task_status not in _ALLOWED_NEW_TASK_SUBMISSION_STATUSES:
+        allowed = ", ".join(sorted(_ALLOWED_NEW_TASK_SUBMISSION_STATUSES))
         add_violation(
             rule="initial_task_status_invalid",
             source="request.task_envelope.status",
             message=(
-                f"New task submission may only start in intake/planning lifecycle states ({allowed}); "
+                f"New task submission may only start in pre-assignment lifecycle states ({allowed}); "
                 f"got {task_status!r}."
             ),
+        )
+
+    nested_assigned_executor = task_envelope.get("assigned_executor")
+    if isinstance(nested_assigned_executor, dict):
+        add_violation(
+            rule="initial_nested_assigned_executor_not_allowed",
+            source="request.task_envelope.assigned_executor",
+            message="New task submission cannot persist assigned_executor before dispatcher-owned assignment has happened.",
         )
 
     timestamps = task_envelope.get("timestamps")

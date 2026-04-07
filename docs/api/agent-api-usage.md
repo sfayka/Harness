@@ -14,6 +14,8 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 
 `POST /tasks` is an intake/planning creation path, not a completion-reporting path. A brand-new task may include objective, planning, support artifacts, coordination metadata, and clarification blockers, but it must not arrive with claimed completion, acceptance assertions, runtime facts, validated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle state already attached.
 
+Fresh task creation also cannot inject assignment truth. Do not send `request.assigned_executor`, and do not try to create a new task directly in `assigned`. Executor assignment belongs to dispatcher-owned flows after Harness has accepted and persisted the task.
+
 Ingress adapters are intake/planning surfaces, not execution-reporting surfaces. `POST /ingress/manual`, `POST /ingress/linear`, and `POST /ingress/openclaw` must not be used to claim completion, assert acceptance, submit executor runtime facts, or attach repository execution artifacts as proof. Those inputs belong to dispatch, completion-claim, and reevaluation paths where Harness can verify them mechanically.
 
 ### Completion Claim Interception Helper

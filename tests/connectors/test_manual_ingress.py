@@ -71,6 +71,21 @@ class ManualIngressConnectorTests(unittest.TestCase):
         with self.assertRaisesRegex(ManualIngressInputError, "task_status must be one of"):
             translate_manual_submission_payload(payload)
 
+        payload = self._payload()
+        payload["task_status"] = "assigned"
+        with self.assertRaisesRegex(ManualIngressInputError, "task_status must be one of"):
+            translate_manual_submission_payload(payload)
+
+    def test_translate_manual_submission_payload_rejects_assigned_executor(self) -> None:
+        payload = self._payload()
+        payload["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-1",
+            "assignment_reason": "Manual ingress should not assign executors.",
+        }
+        with self.assertRaisesRegex(ManualIngressInputError, "cannot pre-assign an executor"):
+            translate_manual_submission_payload(payload)
+
 
 if __name__ == "__main__":
     unittest.main()

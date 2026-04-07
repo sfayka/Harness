@@ -49,7 +49,6 @@ def _linear_ingress_payload() -> dict:
         "labels": ["feature", "ai-workflow"],
         "priority": "high",
         "task_status": "intake_ready",
-        "assigned_executor": deepcopy(task["assigned_executor"]),
         "acceptance_criteria": deepcopy(task["acceptance_criteria"]),
         "external_facts": {
             "expected_code_context": deepcopy(external_facts.expected_code_context),
@@ -118,6 +117,21 @@ class LinearIngressTranslationTests(unittest.TestCase):
         payload = _linear_ingress_payload()
         payload["task_status"] = "completed"
         with self.assertRaisesRegex(LinearIngressInputError, "task_status must be one of"):
+            translate_linear_submission_payload(payload)
+
+        payload = _linear_ingress_payload()
+        payload["task_status"] = "assigned"
+        with self.assertRaisesRegex(LinearIngressInputError, "task_status must be one of"):
+            translate_linear_submission_payload(payload)
+
+    def test_rejects_assigned_executor(self) -> None:
+        payload = _linear_ingress_payload()
+        payload["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-1",
+            "assignment_reason": "Linear ingress should not assign executors.",
+        }
+        with self.assertRaisesRegex(LinearIngressInputError, "cannot pre-assign an executor"):
             translate_linear_submission_payload(payload)
 
 

@@ -10,7 +10,7 @@ from typing import Any
 
 from modules.intake.task_envelope import create_task_envelope
 
-_ALLOWED_MANUAL_INGRESS_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "blocked"})
+_ALLOWED_MANUAL_INGRESS_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "blocked"})
 _EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
 
 
@@ -98,6 +98,11 @@ def _validate_manual_ingress_contract(payload: Mapping[str, Any]) -> None:
         raise ManualIngressInputError(
             "Manual ingress cannot submit completion_evidence; evidence validation belongs to reevaluation and verification"
         )
+    assigned_executor = _optional_mapping(payload.get("assigned_executor"), field_name="assigned_executor")
+    if assigned_executor:
+        raise ManualIngressInputError(
+            "Manual ingress cannot pre-assign an executor; assignment truth belongs to dispatcher-owned flows"
+        )
 
 
 def _build_task_envelope(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -130,10 +135,6 @@ def _build_task_envelope(payload: Mapping[str, Any]) -> dict[str, Any]:
         task_envelope["status"] = task_status
         if task_status == "completed":
             task_envelope["timestamps"]["completed_at"] = task_envelope["timestamps"]["updated_at"]
-
-    assigned_executor = _optional_mapping(payload.get("assigned_executor"), field_name="assigned_executor")
-    if assigned_executor is not None:
-        task_envelope["assigned_executor"] = dict(assigned_executor)
 
     priority = _optional_string(payload.get("priority"), field_name="priority")
     if priority is not None:
