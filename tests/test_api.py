@@ -586,6 +586,48 @@ def _handoff_artifact(artifact_id: str = "artifact-handoff-1") -> dict:
     }
 
 
+def _changed_file_artifact(artifact_id: str = "artifact-changed-file-1") -> dict:
+    return {
+        "id": artifact_id,
+        "type": "changed_file",
+        "title": "Changed file evidence",
+        "description": "Executor-reported changed-file proof.",
+        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test",
+        "content_type": None,
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": f"changed-file/{artifact_id}",
+            "captured_by": "harness-api",
+        },
+        "verification_status": "verified",
+        "repository": {
+            "host": "github.com",
+            "owner": "KnoxAnalytics",
+            "name": "HARNESS-DRYRUN",
+            "external_id": "repo-dryrun-1",
+        },
+        "branch": {
+            "name": "codex/e2e-test",
+            "base_branch": "main",
+            "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        },
+        "changed_files": [
+            {
+                "path": "modules/api.py",
+                "change_type": "modified",
+            }
+        ],
+        "external_refs": [],
+        "captured_at": "2026-04-07T18:05:00Z",
+        "metadata": {},
+    }
+
+
 def _review_decision_payload(task_id: str) -> dict:
     review_request_payload = deepcopy(_request_payload("review_required")["request"]["review_request"])
     review_request_payload["task_id"] = task_id
@@ -2623,6 +2665,66 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(review_note_artifact["verification_status"], "unverified")
         self.assertEqual(
             review_note_artifact["metadata"]["submitted_verification_status"],
+            "verified",
+        )
+        self.assertEqual(
+            claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
+            [],
+        )
+
+    def test_service_completion_claim_strips_executor_verified_status_from_changed_file_artifacts(self) -> None:
+        service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
+        payload = _manual_happy_path_overlay_payload()
+        task_envelope = deepcopy(payload["request"]["task_envelope"])
+        task_envelope["id"] = "task-changed-file-claim-1"
+        task_envelope["title"] = "Changed file completion claim"
+        task_envelope["description"] = "Completion claims should not self-certify changed-file artifacts."
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["changed_file"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["artifacts"]["items"] = deepcopy(payload["request"]["linked_artifacts"])
+        service.store.update_task(stored_task)
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-changed-file-verified-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-changed-file-verified-1"),
+                    "new_artifacts": [_changed_file_artifact("artifact-changed-file-claim-1")],
+                    "completion_evidence": {
+                        "validated_artifact_ids": ["artifact-changed-file-claim-1"],
+                        "validation_method": "manual_review",
+                    },
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertFalse(claim_response["accepted_completion"])
+        self.assertNotEqual(claim_response["task_envelope"]["status"], "completed")
+        changed_file_artifact = next(
+            artifact
+            for artifact in claim_response["task_envelope"]["artifacts"]["items"]
+            if artifact["id"] == "artifact-changed-file-claim-1"
+        )
+        self.assertEqual(changed_file_artifact["verification_status"], "unverified")
+        self.assertEqual(
+            changed_file_artifact["metadata"]["submitted_verification_status"],
             "verified",
         )
         self.assertEqual(

@@ -878,6 +878,7 @@ def _merge_artifacts(
             and (
                 artifact_type == "pull_request"
                 or artifact_type == "commit"
+                or artifact_type == "changed_file"
                 or artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES
             )
         ):
