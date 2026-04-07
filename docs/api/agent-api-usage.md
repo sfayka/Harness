@@ -24,6 +24,7 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
 - This helper persists the claim under `task_envelope.observability.execution_metadata.advisory_completion_claims` and then runs canonical reevaluation.
 - A completion claim is treated as `claimed_completion=true` advisory input; it does not directly authorize a lifecycle transition.
 - The canonical lifecycle outcome still comes from verification/reconciliation/review enforcement.
+- Caller-supplied support artifacts and pull-request artifacts on completion claims are never trusted as already verified. If a payload submits those artifact types with `verification_status=verified`, Harness downgrades them to `unverified` and strips them from validated evidence until canonical verification or reconciliation re-attests them.
 - This endpoint must not be used to mutate stored task truth with submission-style fields such as `request.task_envelope`, `request.task_status`, `request.assigned_executor`, or `request.linked_artifacts`. Those payload shapes are rejected as invalid input.
 
 ### Manual Dispatch Bridge
