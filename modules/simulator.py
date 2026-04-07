@@ -19,6 +19,7 @@ from modules.contracts.task_envelope_review import (
     resolve_review_request,
 )
 from modules.demo_cases import build_demo_request
+from modules.intake import create_task_envelope
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -64,6 +65,76 @@ def _customize_canonical_payload(
         review_request["task_id"] = task_id_override
 
     return customized
+
+
+def _initial_submission_payload(
+    context: _ScenarioContext,
+    case_name: str,
+) -> dict[str, Any]:
+    canonical = context.canonical_payload(case_name)
+    request = canonical.get("request")
+    if not isinstance(request, dict):
+        return canonical
+    task_envelope = request.get("task_envelope")
+    if not isinstance(task_envelope, dict):
+        return canonical
+    timestamps = task_envelope.get("timestamps") if isinstance(task_envelope.get("timestamps"), dict) else {}
+    return {
+        "request": {
+            "task_envelope": create_task_envelope(
+                {
+                    "id": task_envelope.get("id"),
+                    "title": task_envelope.get("title"),
+                    "description": task_envelope.get("description"),
+                    "origin": deepcopy(task_envelope.get("origin")),
+                    "objective": deepcopy(task_envelope.get("objective")),
+                    "constraints": deepcopy(task_envelope.get("constraints")),
+                    "acceptance_criteria": deepcopy(task_envelope.get("acceptance_criteria")),
+                },
+                now=timestamps.get("created_at"),
+            ),
+        }
+    }
+
+
+def _reevaluation_payload_from_canonical(canonical_payload: dict[str, Any]) -> dict[str, Any]:
+    request = canonical_payload.get("request")
+    if not isinstance(request, dict):
+        return canonical_payload
+
+    reevaluation_request: dict[str, Any] = {}
+    if isinstance(request.get("linked_artifacts"), list):
+        reevaluation_request["new_artifacts"] = deepcopy(request["linked_artifacts"])
+    else:
+        task_envelope = request.get("task_envelope")
+        if isinstance(task_envelope, dict):
+            artifacts = task_envelope.get("artifacts")
+            if isinstance(artifacts, dict) and isinstance(artifacts.get("items"), list):
+                reevaluation_request["new_artifacts"] = deepcopy(artifacts["items"])
+
+    if isinstance(request.get("completion_evidence"), dict):
+        reevaluation_request["completion_evidence"] = deepcopy(request["completion_evidence"])
+    else:
+        task_envelope = request.get("task_envelope")
+        if isinstance(task_envelope, dict):
+            artifacts = task_envelope.get("artifacts")
+            if isinstance(artifacts, dict) and isinstance(artifacts.get("completion_evidence"), dict):
+                reevaluation_request["completion_evidence"] = deepcopy(artifacts["completion_evidence"])
+    if request.get("external_facts") is not None:
+        reevaluation_request["external_facts"] = deepcopy(request["external_facts"])
+    if isinstance(request.get("review_request"), dict):
+        reevaluation_request["review_request"] = deepcopy(request["review_request"])
+    if isinstance(request.get("review_decision"), dict):
+        reevaluation_request["review_decision"] = deepcopy(request["review_decision"])
+    if isinstance(request.get("runtime_facts"), dict):
+        reevaluation_request["runtime_facts"] = deepcopy(request["runtime_facts"])
+    if isinstance(request.get("unresolved_conditions"), (list, tuple)):
+        reevaluation_request["unresolved_conditions"] = list(request["unresolved_conditions"])
+    reevaluation_request["claimed_completion"] = bool(request.get("claimed_completion", False))
+    reevaluation_request["acceptance_criteria_satisfied"] = bool(
+        request.get("acceptance_criteria_satisfied", False)
+    )
+    return {"request": reevaluation_request}
 
 
 def _review_note_artifact(artifact_id: str = "artifact-review-note-sim-1") -> dict[str, Any]:
@@ -291,6 +362,20 @@ def _submit_step(client: HarnessSimulatorClient, context: _ScenarioContext, name
     )
 
 
+def _seed_task(client: HarnessSimulatorClient, context: _ScenarioContext, case_name: str) -> dict[str, Any]:
+    payload = _initial_submission_payload(context, case_name)
+    status, response_payload = client.submit_task(payload)
+    if status >= 400:
+        raise RuntimeError(f"Scenario seed submission failed: {response_payload}")
+    task_envelope = response_payload.get("task_envelope")
+    if isinstance(task_envelope, dict) and task_envelope.get("id") is not None:
+        context.task_id = str(task_envelope["id"])
+    return {
+        "http_status": status,
+        "payload": response_payload,
+    }
+
+
 def _reevaluate_step(
     client: HarnessSimulatorClient,
     context: _ScenarioContext,
@@ -371,7 +456,13 @@ def _scenario_successful_completion(
         task_title_override=task_title_override,
         origin_source_id_override=origin_source_id_override,
     )
-    _submit_step(client, context, "submit", context.canonical_payload("accepted_completion"))
+    _seed_task(client, context, "accepted_completion")
+    _reevaluate_step(
+        client,
+        context,
+        "complete",
+        _reevaluation_payload_from_canonical(context.canonical_payload("accepted_completion")),
+    )
     task_snapshot, history = _fetch_final_state(client, context)
     return SimulationResult("successful_completion", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
 
@@ -389,7 +480,13 @@ def _scenario_missing_evidence_then_completed(
         origin_source_id_override=origin_source_id_override,
     )
     initial_payload = context.canonical_payload("blocked_insufficient_evidence")
-    _submit_step(client, context, "submit", initial_payload)
+    _seed_task(client, context, "blocked_insufficient_evidence")
+    _reevaluate_step(
+        client,
+        context,
+        "detect_missing_evidence",
+        _reevaluation_payload_from_canonical(initial_payload),
+    )
     _reevaluate_step(
         client,
         context,
@@ -428,17 +525,16 @@ def _scenario_wrong_target_corrected(
         origin_source_id_override=origin_source_id_override,
     )
     initial_payload = context.canonical_payload("accepted_completion")
-    wrong_target_payload = deepcopy(initial_payload)
-    wrong_target_payload["request"]["task_envelope"]["status"] = "blocked"
-    wrong_target_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
+    wrong_target_payload = _reevaluation_payload_from_canonical(initial_payload)
     wrong_target_payload["request"]["external_facts"] = None
     wrong_target_payload["request"]["claimed_completion"] = False
     wrong_target_payload["request"]["acceptance_criteria_satisfied"] = False
-    wrong_target_payload["request"]["unresolved_conditions"] = (
+    wrong_target_payload["request"]["unresolved_conditions"] = [
         "Execution target is still being corrected before completion can be evaluated",
-    )
+    ]
 
-    _submit_step(client, context, "submit", wrong_target_payload)
+    _seed_task(client, context, "accepted_completion")
+    _reevaluate_step(client, context, "wrong_target_detected", wrong_target_payload)
     _reevaluate_step(
         client,
         context,
@@ -470,14 +566,13 @@ def _scenario_review_required_then_completed(
     )
     accepted_payload = context.canonical_payload("accepted_completion")
     review_payload = {
-        "request": deepcopy(accepted_payload["request"]),
+        "request": deepcopy(_reevaluation_payload_from_canonical(accepted_payload)["request"]),
     }
-    review_payload["request"]["task_envelope"]["status"] = "blocked"
-    review_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
-    review_payload["request"]["review_request"] = _review_request_payload(review_payload["request"]["task_envelope"]["id"])
+    review_payload["request"]["review_request"] = _review_request_payload(context.task_id or accepted_payload["request"]["task_envelope"]["id"])
     review_payload["request"]["external_facts"] = deepcopy(context.canonical_payload("review_required")["request"]["external_facts"])
 
-    _submit_step(client, context, "submit", review_payload)
+    _seed_task(client, context, "accepted_completion")
+    _reevaluate_step(client, context, "request_review", review_payload)
     _reevaluate_step(
         client,
         context,
@@ -505,7 +600,13 @@ def _scenario_contradictory_facts_rollback(
         origin_source_id_override=origin_source_id_override,
     )
     accepted_payload = context.canonical_payload("accepted_completion")
-    _submit_step(client, context, "submit", accepted_payload)
+    _seed_task(client, context, "accepted_completion")
+    _reevaluate_step(
+        client,
+        context,
+        "complete",
+        _reevaluation_payload_from_canonical(accepted_payload),
+    )
     _reevaluate_step(
         client,
         context,
@@ -549,7 +650,13 @@ def _scenario_contradictory_facts_blocked(
         origin_source_id_override=origin_source_id_override,
     )
     accepted_payload = context.canonical_payload("accepted_completion")
-    _submit_step(client, context, "submit", accepted_payload)
+    _seed_task(client, context, "accepted_completion")
+    _reevaluate_step(
+        client,
+        context,
+        "complete",
+        _reevaluation_payload_from_canonical(accepted_payload),
+    )
     _reevaluate_step(
         client,
         context,
@@ -587,7 +694,13 @@ def _scenario_long_running_handoff(
         origin_source_id_override=origin_source_id_override,
     )
     initial_payload = context.canonical_payload("blocked_insufficient_evidence")
-    _submit_step(client, context, "submit", initial_payload)
+    _seed_task(client, context, "blocked_insufficient_evidence")
+    _reevaluate_step(
+        client,
+        context,
+        "detect_missing_evidence",
+        _reevaluation_payload_from_canonical(initial_payload),
+    )
     _reevaluate_step(
         client,
         context,

@@ -109,7 +109,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_builds_read_model_for_accepted_completion_task(self) -> None:
-        submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))
+        submit_status, submit_payload = self.service.evaluate(_request_payload("accepted_completion"))
 
         status, payload = self.service.get_task_read_model(submit_payload["task_envelope"]["id"])
 
@@ -123,7 +123,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["evaluation_summary"]["count"], 1)
 
     def test_builds_read_model_for_blocked_insufficient_evidence(self) -> None:
-        submit_status, submit_payload = self.service.submit(_request_payload("blocked_insufficient_evidence"))
+        submit_status, submit_payload = self.service.evaluate(_request_payload("blocked_insufficient_evidence"))
 
         status, payload = self.service.get_task_read_model(submit_payload["task_envelope"]["id"])
 
@@ -135,10 +135,26 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["failure_source"], "evaluation")
 
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
-        task_envelope = deepcopy(_request_payload("review_required")["request"]["task_envelope"])
-        task_envelope["id"] = "task-read-model-clarification-1"
-        task_envelope["status"] = "intake_ready"
-        task_envelope["timestamps"]["completed_at"] = None
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-read-model-clarification-1",
+                "title": "Clarification state",
+                "description": "Expose clarification through read-model and timeline surfaces.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-read-model-clarification-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Clarification is captured canonically.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T00:00:00Z",
+        )
 
         submit_status, submit_payload = self.service.submit(
             {
@@ -170,7 +186,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         )
 
     def test_timeline_shows_completed_to_blocked_rollback(self) -> None:
-        initial_status, initial_payload = self.service.submit(_request_payload("accepted_completion"))
+        initial_status, initial_payload = self.service.evaluate(_request_payload("accepted_completion"))
         task_id = initial_payload["task_envelope"]["id"]
 
         reevaluation_payload = {
@@ -265,7 +281,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertGreaterEqual(payload["task"]["evaluation_summary"]["count"], 1)
 
     def test_read_model_includes_execution_summary_after_dispatch(self) -> None:
-        submit_status, submit_payload = self.service.submit(_request_payload("blocked_insufficient_evidence"))
+        submit_status, submit_payload = self.service.evaluate(_request_payload("blocked_insufficient_evidence"))
         task_id = submit_payload["task_envelope"]["id"]
         dispatch_status, _ = self.service.dispatch_task(task_id, {"request": {"executor": "codex"}})
 
@@ -331,7 +347,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
             "attempt_count": 1,
             "latest_attempt_outcome": "failed",
         }
-        submit_status, submit_payload = self.service.submit(payload)
+        submit_status, submit_payload = self.service.evaluate(payload)
         task_id = submit_payload["task_envelope"]["id"]
         read_status, read_payload = self.service.get_task_read_model(task_id)
 
@@ -385,7 +401,7 @@ class HarnessReadModelHttpApiTests(unittest.TestCase):
                 error.close()
 
     def test_api_exposes_task_read_model_endpoint(self) -> None:
-        submit_status, submit_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
+        submit_status, submit_payload = self._post_json("/evaluate", _request_payload("accepted_completion"))
         task_id = submit_payload["task_envelope"]["id"]
 
         status, payload = self._get_json(f"/tasks/{task_id}/read-model")
@@ -403,7 +419,7 @@ class HarnessReadModelHttpApiTests(unittest.TestCase):
             "attempt_count": 1,
             "latest_attempt_outcome": "failed",
         }
-        submit_status, submit_payload = self._post_json("/tasks", payload)
+        submit_status, submit_payload = self._post_json("/evaluate", payload)
         task_id = submit_payload["task_envelope"]["id"]
 
         status, payload = self._get_json(f"/tasks/{task_id}/timeline")
@@ -439,7 +455,7 @@ class PostgresBackedReadModelTests(unittest.TestCase):
                 cursor.execute("DELETE FROM tasks")
 
     def test_postgres_store_preserves_read_model_and_timeline_surfaces(self) -> None:
-        submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))
+        submit_status, submit_payload = self.service.evaluate(_request_payload("accepted_completion"))
         task_id = submit_payload["task_envelope"]["id"]
 
         read_status, read_payload = self.service.get_task_read_model(task_id)

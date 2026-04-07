@@ -335,7 +335,7 @@ def _execution_attempt_payload(*, attempt_id: str = "attempt-1") -> dict:
     }
 
 def _schema_invalid_submission_payload() -> dict:
-    payload = _request_payload("accepted_completion")
+    payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
     completion_evidence = payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]
     del completion_evidence["validated_at"]
     del completion_evidence["validation_method"]
@@ -665,8 +665,30 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertIn("not found", history_payload["error"].lower())
 
     def test_service_lists_dashboard_tasks_from_read_model_surface(self) -> None:
-        self.service.submit(_request_payload("accepted_completion"))
-        self.service.submit(_request_payload("blocked_insufficient_evidence"))
+        self.service.submit({"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}})
+        blocked_task = create_task_envelope(
+            {
+                "id": "task-submit-list-blocked-1",
+                "title": "Blocked by clarification",
+                "description": "Task should remain blocked until clarification arrives.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-submit-list-blocked-1",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Clarification is resolved.", "required": True}],
+            },
+            now="2026-04-07T00:00:00Z",
+        )
+        self.service.submit(
+            {
+                "request": {
+                    "task_envelope": blocked_task,
+                    "task_status": "dispatch_ready",
+                    "unresolved_conditions": ["Need repository clarification before execution can begin."],
+                }
+            }
+        )
 
         status, payload = self.service.list_tasks()
 
@@ -676,21 +698,28 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertIn("timeline", payload["tasks"][0])
 
     def test_service_submit_persists_new_task_and_initial_evaluation(self) -> None:
-        status, payload = self.service.submit(_request_payload("accepted_completion"))
+        status, payload = self.service.submit(
+            {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        )
 
         task_status, task_payload = self.service.get_task(payload["task_envelope"]["id"])
         history_status, history_payload = self.service.get_evaluation_history(payload["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(payload["task_envelope"]["status"], "intake_ready")
         self.assertEqual(task_status, 200)
-        self.assertEqual(task_payload["task"]["status"], "completed")
+        self.assertEqual(task_payload["task"]["status"], "intake_ready")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
     def test_service_submit_rejects_duplicate_task_id(self) -> None:
-        initial_status, initial_payload = self.service.submit(_request_payload("accepted_completion"))
-        duplicate_status, duplicate_payload = self.service.submit(_request_payload("accepted_completion"))
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"]),
+            }
+        }
+        initial_status, initial_payload = self.service.submit(submit_payload)
+        duplicate_status, duplicate_payload = self.service.submit(submit_payload)
         history_status, history_payload = self.service.get_evaluation_history(initial_payload["task_envelope"]["id"])
 
         self.assertEqual(initial_status, 200)
@@ -712,6 +741,54 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(payload["invalid_input"])
         self.assertIn("Invalid TaskEnvelope:", payload["error"])
+
+    def test_service_submit_rejects_completion_shaped_new_task_without_persisting_state(self) -> None:
+        payload = _request_payload("accepted_completion")
+        task_id = payload["request"]["task_envelope"]["id"]
+
+        status, response = self.service.submit(payload)
+        task_status, task_payload = self.service.get_task(task_id)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertIn("cannot claim completion", response["error"].lower())
+        self.assertTrue(response["submission_contract_violations"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_service_submit_rejects_nested_execution_history_on_new_task(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        payload["request"]["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"] = [
+            {"attempt_id": "attempt-1", "status": "completed"}
+        ]
+
+        status, response = self.service.submit(payload)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertEqual(
+            response["submission_contract_violations"][0]["rule"],
+            "initial_execution_attempt_history_not_allowed",
+        )
+
+    def test_service_submit_rejects_validated_completion_evidence_on_new_task(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]["status"] = "satisfied"
+        payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"] = [
+            "artifact-pr-1"
+        ]
+        payload["request"]["task_envelope"]["artifacts"]["completion_evidence"]["validated_at"] = "2026-04-07T00:00:00Z"
+
+        status, response = self.service.submit(payload)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertTrue(
+            any(
+                violation["rule"] == "initial_validated_completion_evidence_not_allowed"
+                for violation in response["submission_contract_violations"]
+            )
+        )
 
     def test_service_can_submit_linear_ingress_payload_via_canonical_submission_path(self) -> None:
         status, payload = self.service.submit_linear_ingress(_linear_ingress_payload("accepted_completion"))
@@ -2160,7 +2237,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertIn("not dispatch-ready", dispatch_response["error"])
 
     def test_service_dispatch_rejects_terminal_tasks(self) -> None:
-        submit_status, submit_payload = self.service.submit(_request_payload("accepted_completion"))
+        submit_status, submit_payload = self.service.evaluate(_request_payload("accepted_completion"))
         task_id = submit_payload["task_envelope"]["id"]
 
         dispatch_status, dispatch_response = self.service.dispatch_task(task_id, {"request": {"executor": "codex"}})
@@ -2281,7 +2358,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         }
 
         with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
-            status, response = self.service.submit(payload)
+            status, response = self.service.evaluate(payload)
         history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
@@ -2300,7 +2377,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         payload["request"]["unresolved_conditions"] = ["Execution checkpoint is missing."]
 
         with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
-            status, response = self.service.submit(payload)
+            status, response = self.service.evaluate(payload)
         history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
@@ -2317,7 +2394,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         }
 
         with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
-            status, response = self.service.submit(payload)
+            status, response = self.service.evaluate(payload)
         history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
@@ -2333,7 +2410,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         payload = _request_payload("blocked_reconciliation_mismatch")
 
         with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
-            status, response = self.service.submit(payload)
+            status, response = self.service.evaluate(payload)
         history_status, history = self.service.get_evaluation_history(response["task_envelope"]["id"])
 
         self.assertEqual(status, 200)
@@ -2393,23 +2470,52 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertIsNone(payload["database_schema_ready"])
 
     def test_api_submit_accepts_new_task_and_persists_initial_result(self) -> None:
-        status, payload = self._post_json("/tasks", _request_payload("accepted_completion"))
+        status, payload = self._post_json(
+            "/tasks",
+            {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}},
+        )
         task_id = payload["task_envelope"]["id"]
 
         task_status, task_payload = self._get_json(f"/tasks/{task_id}")
         history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(payload["task_envelope"]["status"], "intake_ready")
         self.assertIn("evaluation_record", payload)
         self.assertEqual(task_status, 200)
-        self.assertEqual(task_payload["task"]["status"], "completed")
+        self.assertEqual(task_payload["task"]["status"], "intake_ready")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
 
     def test_api_lists_dashboard_tasks(self) -> None:
-        self._post_json("/tasks", _request_payload("accepted_completion"))
-        self._post_json("/tasks", _request_payload("blocked_insufficient_evidence"))
+        self._post_json(
+            "/tasks",
+            {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}},
+        )
+        blocked_task = create_task_envelope(
+            {
+                "id": "task-api-list-blocked-1",
+                "title": "Blocked by clarification",
+                "description": "Task should remain blocked until clarification arrives.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-api-list-blocked-1",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Clarification resolves.", "required": True}],
+            },
+            now="2026-04-07T00:00:00Z",
+        )
+        self._post_json(
+            "/tasks",
+            {
+                "request": {
+                    "task_envelope": blocked_task,
+                    "task_status": "dispatch_ready",
+                    "unresolved_conditions": ["Need repository clarification before execution can begin."],
+                }
+            },
+        )
 
         status, payload = self._get_json("/tasks")
 
@@ -2419,32 +2525,52 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertIn("review_summary", payload["tasks"][0])
 
     def test_api_submit_can_persist_initial_blocked_result(self) -> None:
-        status, payload = self._post_json("/tasks", _request_payload("blocked_insufficient_evidence"))
+        blocked_task = create_task_envelope(
+            {
+                "id": "task-api-blocked-1",
+                "title": "Blocked by clarification",
+                "description": "Task should block on clarification.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-api-blocked-1",
+                },
+                "acceptance_criteria": [{"id": "ac-1", "description": "Clarification resolves.", "required": True}],
+            },
+            now="2026-04-07T00:00:00Z",
+        )
+        status, payload = self._post_json(
+            "/tasks",
+            {
+                "request": {
+                    "task_envelope": blocked_task,
+                    "task_status": "dispatch_ready",
+                    "unresolved_conditions": ["Need repository clarification before execution can begin."],
+                }
+            },
+        )
         task_id = payload["task_envelope"]["id"]
 
         task_status, task_payload = self._get_json(f"/tasks/{task_id}")
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["target_status"], "blocked")
+        self.assertEqual(payload["task_envelope"]["status"], "blocked")
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["status"], "blocked")
 
-    def test_api_submit_can_persist_initial_review_required_result(self) -> None:
-        status, payload = self._post_json("/tasks", _request_payload("review_required"))
-        task_id = payload["task_envelope"]["id"]
+    def test_api_submit_rejects_completion_shaped_new_task(self) -> None:
+        payload = _request_payload("accepted_completion")
+        task_id = payload["request"]["task_envelope"]["id"]
 
+        status, response = self._post_json("/tasks", payload)
         task_status, task_payload = self._get_json(f"/tasks/{task_id}")
-        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
 
-        self.assertEqual(status, 200)
-        self.assertEqual(payload["action"], "review_required")
-        self.assertEqual(payload["target_status"], "in_review")
-        self.assertTrue(payload["requires_review"])
-        self.assertEqual(task_status, 200)
-        self.assertEqual(task_payload["task"]["id"], task_id)
-        self.assertEqual(task_payload["task"]["status"], "in_review")
-        self.assertEqual(history_status, 200)
-        self.assertEqual(history_payload["evaluations"][0]["result"]["action"], "review_required")
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertIn("cannot claim completion", response["error"].lower())
+        self.assertTrue(response["submission_contract_violations"])
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
 
     def test_api_submit_rejects_invalid_input_without_persisting_state(self) -> None:
         invalid_payload = _request_payload("invalid_input")
@@ -2455,6 +2581,24 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 400)
         self.assertTrue(payload["invalid_input"])
+        self.assertEqual(task_status, 404)
+
+    def test_api_submit_rejects_new_task_with_execution_history(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        task_id = payload["request"]["task_envelope"]["id"]
+        payload["request"]["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"] = [
+            {"attempt_id": "attempt-1", "status": "completed"}
+        ]
+
+        status, response = self._post_json("/tasks", payload)
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertEqual(
+            response["submission_contract_violations"][0]["rule"],
+            "initial_execution_attempt_history_not_allowed",
+        )
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
@@ -2473,8 +2617,13 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertIn("Invalid TaskEnvelope:", payload["error"])
 
     def test_api_submit_rejects_duplicate_task_id_with_conflict(self) -> None:
-        initial_status, initial_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
-        duplicate_status, duplicate_payload = self._post_json("/tasks", _request_payload("accepted_completion"))
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"]),
+            }
+        }
+        initial_status, initial_payload = self._post_json("/tasks", submit_payload)
+        duplicate_status, duplicate_payload = self._post_json("/tasks", submit_payload)
         history_status, history_payload = self._get_json(
             f"/tasks/{initial_payload['task_envelope']['id']}/evaluations"
         )

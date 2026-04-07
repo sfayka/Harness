@@ -261,7 +261,6 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         objective_summary="Prove that OpenClaw can submit and reevaluate tasks through the Harness API boundary.",
         deliverable_type="integration_spike",
         success_signal="The task moves from blocked to completed through public API calls only.",
-        status="completed",
         linked_artifacts=(),
         completion_evidence={
             "policy": "required",
@@ -280,9 +279,7 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         intent=intent,
         context=context,
         external_facts={},
-        claimed_completion=True,
-        acceptance_criteria_satisfied=True,
-        runtime_facts={"executor_reported_success": True, "attempt_count": 1},
+        unresolved_conditions=("Need the operator confirmation artifact before completion can be evaluated.",),
     )
     if submission_status >= 400:
         raise RuntimeError(f"OpenClaw spike submission failed: {submission_payload}")

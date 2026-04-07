@@ -12,6 +12,8 @@ This document is the source-of-truth API usage guide for execution agents and do
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
 
+`POST /tasks` is an intake/planning creation path, not a completion-reporting path. A brand-new task may include objective, planning, support artifacts, coordination metadata, and clarification blockers, but it must not arrive with claimed completion, acceptance assertions, runtime facts, validated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle state already attached.
+
 Ingress adapters are intake/planning surfaces, not execution-reporting surfaces. `POST /ingress/manual`, `POST /ingress/linear`, and `POST /ingress/openclaw` must not be used to claim completion, assert acceptance, submit executor runtime facts, or attach repository execution artifacts as proof. Those inputs belong to dispatch, completion-claim, and reevaluation paths where Harness can verify them mechanically.
 
 ### Completion Claim Interception Helper
@@ -47,6 +49,22 @@ For new-task submission and one-shot evaluation, the canonical contract remains 
 - `request.unresolved_conditions`
 
 Those overlays are merged into `request.task_envelope` before evaluation. For existing tasks evaluated through `POST /evaluate`, the same overlay fields are reapplied onto the stored task snapshot before policy evaluation. For canonical persisted updates, prefer `POST /tasks/<task_id>/reevaluate`.
+
+For `POST /tasks`, top-level completion-shaped overlays are rejected on new task creation. Do not send:
+
+- `request.claimed_completion=true`
+- `request.acceptance_criteria_satisfied=true`
+- `request.runtime_facts`
+- `request.completion_evidence`
+- execution artifact overlays such as PR/commit/branch/changed-file proof
+
+Nested `request.task_envelope` content is also checked. A fresh task must not already contain:
+
+- runtime or terminal lifecycle status
+- `timestamps.completed_at`
+- validated completion evidence
+- execution attempts or advisory completion claims
+- reconciliation attempts or resolved reconciliation state
 
 `request.task_status` is intentionally narrow. It may seed only intake/planning lifecycle states:
 
