@@ -1846,6 +1846,103 @@ class HarnessApiServiceTests(unittest.TestCase):
             claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
         )
 
+    def test_service_completion_claim_reconciles_self_certified_commit_artifact_when_verified_pr_exists(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+
+        pr_artifact = deepcopy(payload["request"]["linked_artifacts"][0])
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["artifacts"]["items"] = [pr_artifact]
+        service.store.update_task(stored_task)
+
+        commit_artifact = deepcopy(payload["request"]["linked_artifacts"][1])
+        completion_evidence = deepcopy(payload["request"]["completion_evidence"])
+        completion_evidence["validated_artifact_ids"] = [pr_artifact["id"], commit_artifact["id"]]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-self-certified-commit-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-self-certified-commit-1"),
+                    "new_artifacts": [commit_artifact],
+                    "completion_evidence": completion_evidence,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertTrue(claim_response["accepted_completion"])
+        attempts = claim_response["task_envelope"]["reconciliation"]["attempts"]
+        self.assertEqual(attempts[-1]["failure_type"], "missing_commit_after_execution")
+        commit_artifact = next(
+            artifact
+            for artifact in claim_response["task_envelope"]["artifacts"]["items"]
+            if isinstance(artifact, dict) and artifact.get("type") == "commit"
+        )
+        self.assertEqual(commit_artifact["id"], "artifact-commit-dryrun-1")
+        self.assertEqual(commit_artifact["verification_status"], "verified")
+        self.assertEqual(commit_artifact["metadata"]["attached_by"], "missing_commit_after_execution")
+        self.assertIn(
+            "artifact-commit-dryrun-1",
+            claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
+        )
+
+    def test_service_completion_claim_reconciles_self_certified_pr_and_commit_artifacts_sequentially(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-self-certified-pr-commit-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-self-certified-pr-commit-1"),
+                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertTrue(claim_response["accepted_completion"])
+        attempts = claim_response["task_envelope"]["reconciliation"]["attempts"]
+        self.assertEqual(
+            [attempt["failure_type"] for attempt in attempts[-2:]],
+            ["missing_pr_after_execution", "missing_commit_after_execution"],
+        )
+        evidence_ids = claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"]
+        self.assertIn("artifact-pr-dryrun-1", evidence_ids)
+        self.assertIn("artifact-commit-dryrun-1", evidence_ids)
+        commit_artifact = next(
+            artifact
+            for artifact in claim_response["task_envelope"]["artifacts"]["items"]
+            if isinstance(artifact, dict) and artifact.get("type") == "commit"
+        )
+        self.assertEqual(commit_artifact["metadata"]["attached_by"], "missing_commit_after_execution")
+
     def test_service_completion_claim_can_attach_execution_attempt_and_link_reevaluation(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),

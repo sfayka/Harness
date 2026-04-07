@@ -166,7 +166,7 @@ class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
         self.assertEqual(final_status, 200)
         self.assertNotEqual(final_response["task"]["status"], "completed")
 
-    def test_missing_required_artifact_blocks_completion_claim(self) -> None:
+    def test_missing_required_artifact_can_be_reconciled_before_completion(self) -> None:
         create_payload = build_create_task_payload("e2e-execution-slice-missing-artifact")
         create_status, create_response = self.post_json("/tasks", create_payload)
         task_id = create_response["task_envelope"]["id"]
@@ -194,15 +194,10 @@ class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
             )
         final_status, final_response = self.get_json(f"/tasks/{task_id}")
 
-        verification = claim_response["enforcement_result"]["verification_result"]
-
         self.assertEqual(create_status, 200)
         self.assertEqual(claim_status, 200)
-        self.assertFalse(claim_response["accepted_completion"])
-        self.assertEqual(verification["outcome"], "insufficient_evidence")
-        self.assertIn(
-            "Completion evidence is missing required artifact types: commit",
-            verification["reasons"],
-        )
+        self.assertTrue(claim_response["accepted_completion"])
+        attempt = claim_response["task_envelope"]["reconciliation"]["attempts"][-1]
+        self.assertEqual(attempt["failure_type"], "missing_commit_after_execution")
         self.assertEqual(final_status, 200)
-        self.assertEqual(final_response["task"]["status"], "blocked")
+        self.assertEqual(final_response["task"]["status"], "completed")

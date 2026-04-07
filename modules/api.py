@@ -877,6 +877,7 @@ def _merge_artifacts(
             and submitted_verification_status == "verified"
             and (
                 artifact_type == "pull_request"
+                or artifact_type == "commit"
                 or artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES
             )
         ):
@@ -2280,6 +2281,69 @@ def _reconciliation_failure_response_shape(
     return "reconciliation_failed", True
 
 
+def _with_reconciliation_resolved_code_context(
+    request: HarnessEvaluationRequest,
+    *,
+    attempt: dict[str, Any] | None,
+) -> HarnessEvaluationRequest:
+    if not isinstance(attempt, dict):
+        return request
+    details = attempt.get("details")
+    if not isinstance(details, dict):
+        return request
+
+    repository = details.get("repository")
+    if not isinstance(repository, dict):
+        return request
+
+    repository_host = _normalized_string(repository.get("host")) or "github.com"
+    repository_owner = _normalized_string(repository.get("owner"))
+    repository_name = _normalized_string(repository.get("name"))
+    branch_name = _normalized_string(details.get("branch_name"))
+    base_branch = _normalized_string(details.get("base_branch"))
+    commit_sha = _normalized_string(details.get("commit_sha"))
+    if not repository_owner or not repository_name or not branch_name or not commit_sha:
+        return request
+
+    external_facts = _to_jsonable(request.external_facts) if request.external_facts is not None else {}
+    if not isinstance(external_facts, dict):
+        external_facts = {}
+    expected_code_context = external_facts.get("expected_code_context")
+    if not isinstance(expected_code_context, dict):
+        expected_code_context = {}
+    expected_code_context.update(
+        {
+            "repository_host": repository_host,
+            "repository_owner": repository_owner,
+            "repository_name": repository_name,
+            "branch_name": branch_name,
+            "base_branch": base_branch,
+        }
+    )
+    external_facts["expected_code_context"] = expected_code_context
+
+    github_facts = external_facts.get("github_facts")
+    if not isinstance(github_facts, dict):
+        github_facts = {}
+    github_facts["repository"] = {
+        "host": repository_host,
+        "owner": repository_owner,
+        "name": repository_name,
+    }
+    github_facts["branch"] = {
+        "name": branch_name,
+        "base_branch": base_branch,
+        "head_commit_sha": commit_sha,
+    }
+    github_facts["commit"] = {"sha": commit_sha}
+    external_facts["github_facts"] = github_facts
+
+    return replace(
+        request,
+        external_facts=_parse_external_facts(external_facts),
+    )
+
+
 def evaluate_http_payload(payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     """Evaluate one HTTP request payload and return an HTTP status code plus JSON body."""
 
@@ -2428,104 +2492,140 @@ class HarnessApiService:
         self,
         request: HarnessEvaluationRequest,
     ) -> tuple[HarnessEvaluationRequest | None, dict[str, Any] | None]:
-        failure_type = _completion_claim_reconciliation_failure_type(request)
-        if failure_type is None:
-            return request, None
+        active_request = request
+        handled_failure_types: list[ReconciliationFailureType] = []
 
-        if failure_type == ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION:
-            reason = "Execution completed without a verified commit artifact; invoking reconciliation handler."
-        else:
-            reason = "Execution completed without a pull request artifact; invoking reconciliation handler."
-        reconciling_task = ensure_reconciliation_state(request.task_envelope)
-        reconciling_task = self._task_with_transition(
-            reconciling_task,
-            to_status="reconciling",
-            reason=reason,
-            actor="reconciliation",
-        )
+        for _ in range(len(ReconciliationFailureType) + 1):
+            failure_type = _completion_claim_reconciliation_failure_type(active_request)
+            if failure_type is None:
+                return active_request, None
 
-        try:
-            handler_result = self.reconciliation_registry.handle(
-                failure_type,
-                task_envelope=reconciling_task,
-                external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
-                started_at=_iso_now(),
-            )
-        except ReconciliationRuntimeError as error:
-            target_status = (
-                "blocked"
-                if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
-                else "failed"
-                if error.disposition == ReconciliationFailureDisposition.TERMINAL_FAILED
-                else "in_review"
-            )
-            action, requires_review = _reconciliation_failure_response_shape(target_status=target_status)
-            reason_prefix = (
-                "Post-execution reconciliation blocked by retryable provider failure"
-                if target_status == "blocked"
-                else "Post-execution reconciliation established a terminal execution failure"
-                if target_status == "failed"
-                else "Post-execution reconciliation failed"
-            )
-            failed_task = self._task_with_transition(
+            if failure_type in handled_failure_types:
+                return None, {
+                    "action": "reconciliation_failed",
+                    "accepted_completion": False,
+                    "requires_review": True,
+                    "invalid_input": False,
+                    "target_status": "in_review",
+                    "error": f"Reconciliation failure type {failure_type.value!r} remained unresolved after handler execution.",
+                    "reasons": [
+                        f"Reconciliation failure type {failure_type.value!r} remained unresolved after handler execution."
+                    ],
+                    "reconciliation_attempt": None,
+                    "task_envelope": _to_jsonable(active_request.task_envelope),
+                }
+
+            handled_failure_types.append(failure_type)
+
+            if failure_type == ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION:
+                reason = "Execution completed without a verified commit artifact; invoking reconciliation handler."
+            else:
+                reason = "Execution completed without a pull request artifact; invoking reconciliation handler."
+            reconciling_task = ensure_reconciliation_state(active_request.task_envelope)
+            reconciling_task = self._task_with_transition(
                 reconciling_task,
-                to_status=target_status,
-                reason=f"{reason_prefix}: {error}",
+                to_status="reconciling",
+                reason=reason,
                 actor="reconciliation",
-                facts={"terminal_failure": True} if target_status == "failed" else None,
             )
-            failed_task = ensure_reconciliation_state(failed_task)
-            failed_task["reconciliation"]["status"] = ReconciliationAttemptStatus.FAILED.value
-            failed_task["reconciliation"]["active_failure_type"] = failure_type.value
-            failed_task["reconciliation"]["last_error"] = str(error)
-            failed_task["timestamps"]["updated_at"] = _iso_now()
-            self.store.update_task(failed_task)
-            return None, {
-                "action": action,
-                "accepted_completion": False,
-                "requires_review": requires_review,
-                "invalid_input": False,
-                "target_status": target_status,
-                "error": str(error),
-                "reasons": [str(error)],
-                "reconciliation_attempt": None,
-                "task_envelope": _to_jsonable(failed_task),
-            }
 
-        if handler_result.status == ReconciliationAttemptStatus.FAILED:
-            action, requires_review = _reconciliation_failure_response_shape(target_status=handler_result.target_status)
-            reason_prefix = (
-                "Post-execution reconciliation blocked by retryable provider failure"
-                if handler_result.target_status == "blocked"
-                else "Post-execution reconciliation established a terminal execution failure"
-                if handler_result.target_status == "failed"
-                else "Post-execution reconciliation failed"
-            )
-            failed_task = self._task_with_transition(
-                handler_result.task_envelope,
-                to_status=handler_result.target_status,
-                reason=f"{reason_prefix}: {handler_result.error}",
-                actor="reconciliation",
-                facts={"terminal_failure": True} if handler_result.target_status == "failed" else None,
-            )
-            self.store.update_task(failed_task)
-            return None, {
-                "action": action,
-                "accepted_completion": False,
-                "requires_review": requires_review,
-                "invalid_input": False,
-                "target_status": handler_result.target_status,
-                "error": handler_result.error,
-                "reasons": [handler_result.error or "Reconciliation failed."],
-                "reconciliation_attempt": deepcopy(handler_result.attempt),
-                "task_envelope": _to_jsonable(failed_task),
-            }
+            try:
+                handler_result = self.reconciliation_registry.handle(
+                    failure_type,
+                    task_envelope=reconciling_task,
+                    external_facts=_to_jsonable(active_request.external_facts) if active_request.external_facts is not None else None,
+                    started_at=_iso_now(),
+                )
+            except ReconciliationRuntimeError as error:
+                target_status = (
+                    "blocked"
+                    if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
+                    else "failed"
+                    if error.disposition == ReconciliationFailureDisposition.TERMINAL_FAILED
+                    else "in_review"
+                )
+                action, requires_review = _reconciliation_failure_response_shape(target_status=target_status)
+                reason_prefix = (
+                    "Post-execution reconciliation blocked by retryable provider failure"
+                    if target_status == "blocked"
+                    else "Post-execution reconciliation established a terminal execution failure"
+                    if target_status == "failed"
+                    else "Post-execution reconciliation failed"
+                )
+                failed_task = self._task_with_transition(
+                    reconciling_task,
+                    to_status=target_status,
+                    reason=f"{reason_prefix}: {error}",
+                    actor="reconciliation",
+                    facts={"terminal_failure": True} if target_status == "failed" else None,
+                )
+                failed_task = ensure_reconciliation_state(failed_task)
+                failed_task["reconciliation"]["status"] = ReconciliationAttemptStatus.FAILED.value
+                failed_task["reconciliation"]["active_failure_type"] = failure_type.value
+                failed_task["reconciliation"]["last_error"] = str(error)
+                failed_task["timestamps"]["updated_at"] = _iso_now()
+                self.store.update_task(failed_task)
+                return None, {
+                    "action": action,
+                    "accepted_completion": False,
+                    "requires_review": requires_review,
+                    "invalid_input": False,
+                    "target_status": target_status,
+                    "error": str(error),
+                    "reasons": [str(error)],
+                    "reconciliation_attempt": None,
+                    "task_envelope": _to_jsonable(failed_task),
+                }
 
-        updated_request = replace(
-            request,
-            task_envelope=handler_result.task_envelope,
-        )
-        return updated_request, None
+            if handler_result.status == ReconciliationAttemptStatus.FAILED:
+                action, requires_review = _reconciliation_failure_response_shape(target_status=handler_result.target_status)
+                reason_prefix = (
+                    "Post-execution reconciliation blocked by retryable provider failure"
+                    if handler_result.target_status == "blocked"
+                    else "Post-execution reconciliation established a terminal execution failure"
+                    if handler_result.target_status == "failed"
+                    else "Post-execution reconciliation failed"
+                )
+                failed_task = self._task_with_transition(
+                    handler_result.task_envelope,
+                    to_status=handler_result.target_status,
+                    reason=f"{reason_prefix}: {handler_result.error}",
+                    actor="reconciliation",
+                    facts={"terminal_failure": True} if handler_result.target_status == "failed" else None,
+                )
+                self.store.update_task(failed_task)
+                return None, {
+                    "action": action,
+                    "accepted_completion": False,
+                    "requires_review": requires_review,
+                    "invalid_input": False,
+                    "target_status": handler_result.target_status,
+                    "error": handler_result.error,
+                    "reasons": [handler_result.error or "Reconciliation failed."],
+                    "reconciliation_attempt": deepcopy(handler_result.attempt),
+                    "task_envelope": _to_jsonable(failed_task),
+                }
+
+            active_request = replace(
+                active_request,
+                task_envelope=handler_result.task_envelope,
+            )
+            active_request = _with_reconciliation_resolved_code_context(
+                active_request,
+                attempt=handler_result.attempt,
+            )
+
+        return None, {
+            "action": "reconciliation_failed",
+            "accepted_completion": False,
+            "requires_review": True,
+            "invalid_input": False,
+            "target_status": "in_review",
+            "error": "Reconciliation exceeded the maximum chained handler depth.",
+            "reasons": ["Reconciliation exceeded the maximum chained handler depth."],
+            "reconciliation_attempt": None,
+            "task_envelope": _to_jsonable(active_request.task_envelope),
+        }
 
     def _with_retry_provenance(
         self,
