@@ -14,6 +14,9 @@ class IngressRequestBuilderError(ValueError):
     """Raised when higher-level ingress inputs cannot produce canonical payloads."""
 
 
+_CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
+
+
 def _require_non_empty(value: Any, *, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise IngressRequestBuilderError(f"{field_name} is required")
@@ -93,6 +96,36 @@ def _default_completion_evidence() -> dict[str, Any]:
     }
 
 
+def _reject_execution_artifacts_on_initial_submission(linked_artifacts: tuple[dict[str, Any], ...]) -> None:
+    for index, artifact in enumerate(linked_artifacts):
+        artifact_type = str((artifact or {}).get("type") or "").strip()
+        if artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES:
+            raise IngressRequestBuilderError(
+                f"intent.linked_artifacts[{index}] type {artifact_type!r} is not allowed on initial submission"
+            )
+
+
+def _reevaluation_completion_evidence_would_prematurely_satisfy(
+    completion_evidence: dict[str, Any],
+) -> bool:
+    status = str(completion_evidence.get("status") or "").strip().lower()
+    if status == "satisfied":
+        return True
+    validated_artifact_ids = completion_evidence.get("validated_artifact_ids")
+    if isinstance(validated_artifact_ids, (list, tuple)) and any(
+        isinstance(item, str) and item.strip() for item in validated_artifact_ids
+    ):
+        return True
+    if str(completion_evidence.get("validated_at") or "").strip():
+        return True
+    validator = completion_evidence.get("validator")
+    if isinstance(validator, dict) and validator:
+        return True
+    if str(completion_evidence.get("validation_method") or "").strip():
+        return True
+    return False
+
+
 def build_task_submission_payload(
     *,
     intent: IngressTaskIntent,
@@ -104,6 +137,20 @@ def build_task_submission_payload(
     unresolved_conditions: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Build a canonical POST /tasks payload from ingress-side inputs."""
+
+    if claimed_completion:
+        raise IngressRequestBuilderError("Submission builders cannot mark a new task as claimed_completion")
+    if acceptance_criteria_satisfied:
+        raise IngressRequestBuilderError(
+            "Submission builders cannot assert acceptance_criteria_satisfied for a new task"
+        )
+    if runtime_facts is not None:
+        raise IngressRequestBuilderError("Submission builders cannot attach runtime_facts to a new task")
+    if intent.completion_evidence is not None:
+        raise IngressRequestBuilderError(
+            "Submission builders cannot attach completion_evidence to a new task; Harness owns completion proof state"
+        )
+    _reject_execution_artifacts_on_initial_submission(intent.linked_artifacts)
 
     normalized_acceptance_criteria = _normalize_string_tuple(
         intent.acceptance_criteria,
@@ -200,6 +247,10 @@ def build_task_reevaluation_payload(
         "acceptance_criteria_satisfied": acceptance_criteria_satisfied,
     }
     if completion_evidence is not None:
+        if not claimed_completion and _reevaluation_completion_evidence_would_prematurely_satisfy(completion_evidence):
+            raise IngressRequestBuilderError(
+                "completion_evidence that satisfies artifact proof requires claimed_completion=True in reevaluation payloads"
+            )
         request_payload["completion_evidence"] = deepcopy(completion_evidence)
     if runtime_facts is not None:
         request_payload["runtime_facts"] = deepcopy(runtime_facts)

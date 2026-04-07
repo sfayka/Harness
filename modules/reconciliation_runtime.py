@@ -628,6 +628,17 @@ def _resolved_code_context(
     base_branch = merged_source.base_branch
     commit_sha = merged_source.commit_sha
     contributing_sources: list[str] = []
+    non_artifact_sources_present = any(source_name != "artifacts" for source_name in source_contexts)
+    artifact_only_commit_backfill = (
+        non_artifact_sources_present
+        and "artifacts" in source_contexts
+        and bool(source_contexts["artifacts"].commit_sha)
+        and not any(
+            bool(source_contexts[source_name].commit_sha)
+            for source_name in source_contexts
+            if source_name != "artifacts"
+        )
+    )
     for source_name, source_context in source_contexts.items():
         contributing_sources.append(source_name)
         repository_host = repository_host or source_context.repository_host
@@ -635,6 +646,8 @@ def _resolved_code_context(
         repository_name = repository_name or source_context.repository_name
         branch_name = branch_name or source_context.branch_name
         base_branch = base_branch or source_context.base_branch
+        if artifact_only_commit_backfill and source_name == "artifacts":
+            continue
         commit_sha = commit_sha or source_context.commit_sha
 
     selected_source = contributing_sources[0] if len(contributing_sources) == 1 else "merged"
