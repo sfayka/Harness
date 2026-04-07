@@ -557,6 +557,26 @@ def _review_decision_payload(task_id: str) -> dict:
     return _to_jsonable(review_decision)
 
 
+def _tampered_review_decision_payload(
+    task_id: str,
+    *,
+    recommended_target_status: str | None = None,
+    authorized_target_status: str | None = None,
+    outcome: str | None = None,
+    allowed_outcomes: tuple[str, ...] | None = None,
+) -> dict:
+    payload = _review_decision_payload(task_id)
+    if allowed_outcomes is not None:
+        payload["request"]["allowed_outcomes"] = list(allowed_outcomes)
+    if outcome is not None:
+        payload["record"]["outcome"] = outcome
+    if authorized_target_status is not None:
+        payload["record"]["authorized_target_status"] = authorized_target_status
+    if recommended_target_status is not None:
+        payload["recommended_target_status"] = recommended_target_status
+    return payload
+
+
 class HarnessApiPayloadTests(unittest.TestCase):
     def test_accepts_completion_payload(self) -> None:
         status, payload = evaluate_http_payload(_request_payload("accepted_completion"))
@@ -2375,6 +2395,52 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 2)
 
+    def test_service_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
+        initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _tampered_review_decision_payload(
+                        task_id,
+                        recommended_target_status="failed",
+                        authorized_target_status="failed",
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 400)
+        self.assertTrue(resolution_response["invalid_input"])
+        self.assertIn("review_decision", resolution_response["error"])
+
+    def test_service_reevaluate_rejects_review_decision_with_disallowed_outcome(self) -> None:
+        initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _tampered_review_decision_payload(
+                        task_id,
+                        outcome="mark_failed",
+                        authorized_target_status="failed",
+                        recommended_target_status="failed",
+                        allowed_outcomes=("accept_completion",),
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 400)
+        self.assertTrue(resolution_response["invalid_input"])
+        self.assertIn("not allowed", resolution_response["error"])
+
     def test_health_reports_file_store_without_database_configuration(self) -> None:
         status, payload = self.service.health()
 
@@ -3424,6 +3490,28 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_status, 200)
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertIn(reevaluation_response["action"], {"transition_applied", "follow_up_authorized"})
+
+    def test_api_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
+        initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "review_decision": _tampered_review_decision_payload(
+                        task_id,
+                        recommended_target_status="failed",
+                        authorized_target_status="failed",
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertIn("review_decision", reevaluation_response["error"])
 
     def test_api_cannot_reevaluate_in_review_task_to_completed_without_manual_decision(self) -> None:
         initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
