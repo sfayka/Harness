@@ -954,7 +954,13 @@ def _prune_unverified_validated_artifact_ids(task_envelope: dict[str, Any]) -> d
         return task_envelope
 
     updated = deepcopy(task_envelope)
-    updated["artifacts"]["completion_evidence"]["validated_artifact_ids"] = filtered_ids
+    updated_evidence = updated["artifacts"]["completion_evidence"]
+    updated_evidence["validated_artifact_ids"] = filtered_ids
+    if not filtered_ids:
+        updated_evidence["status"] = "deferred"
+        updated_evidence["validated_at"] = None
+        updated_evidence["validator"] = None
+        updated_evidence["validation_method"] = "deferred"
     return updated
 
 

@@ -1914,6 +1914,11 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(claim_response["task_envelope"]["status"], "completed")
         attempt = claim_response["task_envelope"]["reconciliation"]["attempts"][-1]
         self.assertEqual(attempt["failure_type"], "missing_commit_after_execution")
+        evidence = claim_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validation_method"], "external_reconciliation")
+        self.assertEqual(evidence["status"], "satisfied")
+        self.assertIsNotNone(evidence["validated_at"])
+        self.assertEqual(evidence["validator"]["source_system"], "harness")
         commit_artifacts = [
             artifact
             for artifact in claim_response["task_envelope"]["artifacts"]["items"]
@@ -2012,9 +2017,13 @@ class HarnessApiServiceTests(unittest.TestCase):
             [attempt["failure_type"] for attempt in attempts[-2:]],
             ["missing_pr_after_execution", "missing_commit_after_execution"],
         )
-        evidence_ids = claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"]
+        evidence = claim_response["task_envelope"]["artifacts"]["completion_evidence"]
+        evidence_ids = evidence["validated_artifact_ids"]
         self.assertIn("artifact-pr-dryrun-1", evidence_ids)
         self.assertIn("artifact-commit-dryrun-1", evidence_ids)
+        self.assertEqual(evidence["validation_method"], "external_reconciliation")
+        self.assertEqual(evidence["status"], "satisfied")
+        self.assertEqual(evidence["validator"]["captured_by"], "reconciliation")
         commit_artifact = next(
             artifact
             for artifact in claim_response["task_envelope"]["artifacts"]["items"]
@@ -2708,6 +2717,76 @@ class HarnessApiServiceTests(unittest.TestCase):
             claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
             [],
         )
+
+    def test_service_completion_claim_clears_satisfied_evidence_metadata_when_pruned(self) -> None:
+        service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-pruned-evidence-metadata-1",
+                "title": "Pruned evidence metadata",
+                "description": "Completion evidence metadata should reset when all validated ids are stripped.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-pruned-evidence-metadata-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Completion requires a reviewed support note.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T18:00:00Z",
+        )
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["review_note"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-pruned-evidence-metadata-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-pruned-evidence-metadata-1"),
+                    "new_artifacts": [_review_note_artifact("artifact-review-note-pruned-1")],
+                    "completion_evidence": {
+                        "status": "satisfied",
+                        "validated_artifact_ids": ["artifact-review-note-pruned-1"],
+                        "validation_method": "manual_review",
+                        "validated_at": "2026-04-07T18:05:00Z",
+                        "validator": {
+                            "source_system": "harness",
+                            "source_type": "verification",
+                            "source_id": "verification-pruned-1",
+                            "captured_by": "executor",
+                        },
+                    },
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertFalse(claim_response["accepted_completion"])
+        evidence = claim_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
 
     def test_service_completion_claim_strips_executor_verified_status_from_changed_file_artifacts(self) -> None:
         service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
