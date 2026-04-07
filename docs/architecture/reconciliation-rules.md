@@ -295,6 +295,8 @@ Harness distinguishes execution from completion. A completion claim without a PR
 
 Even if a PR artifact is already attached to the task, Harness should only treat that artifact as sufficient when it proves the current run. A stale attached PR must not suppress reconciliation by itself.
 
+Executor-submitted PR artifacts do not become trusted just because a payload marks them `verified`. Completion-claim PR artifacts are candidate facts only until Harness-owned reconciliation upgrades them into canonical verified proof.
+
 This handler only applies once the execution attempt itself is trustworthy enough to reconcile. If the executor reports a reserved/shared branch such as `work`, omits branch identity, supplies a malformed PR URL, or presents stale historical PR evidence as if it were current-run proof, Harness treats that as an execution contract violation before reconciliation starts. `missing_pr_after_execution` is for missing recoverable PR proof on an otherwise valid run, not for malformed or misleading PR proof.
 
 ### Bounded Recovery Steps
@@ -311,10 +313,11 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 8. Validate each candidate against the current run context rather than treating branch lookup as success.
 9. Treat commit-association lookup as discovery evidence, not current-run proof, unless the PR head still matches the current expected commit or policy explicitly allows weaker matching.
 10. When the task has multiple execution attempts, require explicit run linkage to the current attempt rather than relying on task linkage alone.
-11. If exactly one valid current-run PR remains, attach it and mark reconciliation `resolved`.
-12. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-13. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
-14. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
+11. Reject candidates whose PR state is unknown. Missing state metadata is not treated as implicitly open.
+12. If exactly one valid current-run PR remains, attach it as a canonical verified artifact and mark reconciliation `resolved`.
+13. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+14. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
+15. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 

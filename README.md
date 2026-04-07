@@ -31,11 +31,15 @@ Before completion claims reach reconciliation, Harness now validates whether a s
 
 Harness also rejects executor-side contract violations mechanically. Delegated code-bearing completion evidence cannot use reserved shared branches such as `work`, cannot omit branch identity, and cannot rely on malformed or stale PR URLs as proof. A real GitHub pull request URL must be numeric and current-run-valid; compare URLs, PR creation pages, closed historical PRs, and unrelated branch/commit/PR chains do not satisfy completion evidence.
 
+Executor-submitted completion claims also cannot self-certify repository-backed proof. If a completion claim carries a pull request artifact already marked `verified`, Harness downgrades that artifact back to unverified, removes it from validated evidence, and requires canonical reconciliation to prove the PR through GitHub-facing policy. `verification_status=verified` on a caller payload is advisory input, not trust.
+
 Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
 
 Harness also canonicalizes missing-information blockers instead of leaving them as loose evaluator notes. When callers submit `unresolved_conditions` through `POST /tasks`, `POST /tasks/<task_id>/reevaluate`, or `POST /tasks/<task_id>/completion-claims`, Harness records a real `task.clarification` contract, moves the task into `blocked`, and exposes that blocker through the canonical read-model and timeline surfaces.
 
-Harness also validates manual-review decisions mechanically. A serialized `review_decision` only counts if its outcome, target status, and follow-up action still match the original review request and canonical review policy, and if it resolves the currently active review gate for that task. Upstream callers cannot resolve `in_review` by forging a contradictory or stale manual decision payload.
+Harness also validates manual-review decisions mechanically. A serialized `review_decision` only counts if its outcome, target status, and follow-up action still match the original review request and canonical review policy, and if it resolves the currently active review gate for that task. Review gates are now derived from enforcement-recorded review requests only; caller-supplied `review_request` payloads do not create active review state by themselves, and future-dated review timestamps are rejected.
+
+Reevaluation also cannot pre-satisfy completion evidence as a side channel. If a reevaluation is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise preload final evidence state before a canonical completion decision.
 
 Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution` and `missing_commit_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
 

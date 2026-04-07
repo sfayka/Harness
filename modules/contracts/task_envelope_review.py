@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Any
 
@@ -137,6 +137,8 @@ _OUTCOME_TO_FOLLOW_UP: dict[ReviewOutcome, ReviewFollowUpAction] = {
     ReviewOutcome.CANCEL_TASK: ReviewFollowUpAction.NONE,
 }
 
+_MAX_FUTURE_TIMESTAMP_SKEW = timedelta(hours=6)
+
 
 def _iso_timestamp(value: datetime | str | None = None) -> str:
     if value is None:
@@ -151,6 +153,15 @@ def _iso_timestamp(value: datetime | str | None = None) -> str:
     raise ReviewValidationError("Expected an ISO-8601 string, datetime, or None")
 
 
+def _require_not_too_far_in_future(value: datetime | str, *, field_name: str) -> str:
+    normalized = _iso_timestamp(value)
+    parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    now = datetime.now(timezone.utc)
+    if parsed > now + _MAX_FUTURE_TIMESTAMP_SKEW:
+        raise ReviewValidationError(f"{field_name} must not be more than 6 hours in the future")
+    return normalized
+
+
 def _require_non_empty(value: str, *, field_name: str) -> None:
     if not value or not value.strip():
         raise ReviewValidationError(f"{field_name} is required")
@@ -163,7 +174,7 @@ def validate_review_request(review_request: ReviewRequest) -> ReviewRequest:
     _require_non_empty(review_request.task_id, field_name="task_id")
     _require_non_empty(review_request.requested_by, field_name="requested_by")
     _require_non_empty(review_request.summary, field_name="summary")
-    _iso_timestamp(review_request.requested_at)
+    _require_not_too_far_in_future(review_request.requested_at, field_name="requested_at")
 
     if not review_request.presented_sections:
         raise ReviewValidationError("presented_sections must include at least one reviewed information surface")
@@ -211,6 +222,7 @@ def resolve_review_request(
         raise ReviewValidationError("supersedes_review_id must not equal review_id")
 
     reviewed_at_iso = _iso_timestamp(reviewed_at)
+    _require_not_too_far_in_future(reviewed_at_iso, field_name="reviewed_at")
     target_status = _OUTCOME_TO_TARGET_STATUS[outcome]
     follow_up_action = _OUTCOME_TO_FOLLOW_UP[outcome]
     if target_status not in _ALLOWED_STATUSES:
@@ -245,6 +257,7 @@ def validate_review_decision_result(review_decision: ReviewDecisionResult) -> Re
 
     validate_review_request(review_decision.request)
     validate_reviewer_identity(review_decision.record.reviewer)
+    _require_not_too_far_in_future(review_decision.record.reviewed_at, field_name="reviewed_at")
 
     if review_decision.record.task_id != review_decision.request.task_id:
         raise ReviewValidationError("review_decision.record.task_id must match review_decision.request.task_id")

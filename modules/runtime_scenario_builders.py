@@ -127,7 +127,10 @@ def build_linked_artifacts(
             "changed_files": pr_changed_files,
             "external_refs": [],
             "captured_at": "2026-04-01T10:01:00Z",
-            "metadata": {},
+            "metadata": {
+                "pull_request_state": "open",
+                "pull_request_merged": False,
+            },
         },
         {
             "id": commit_artifact_id,
@@ -223,6 +226,8 @@ def build_github_facts(
             "commit": {"sha": commit_sha},
             "pull_request": {
                 "number": pull_request_number,
+                "url": f"https://github.com/{repository_owner}/{repository_name}/pull/{pull_request_number}",
+                "state": "open",
                 "review_state": review_state,
             },
             "changed_files": {

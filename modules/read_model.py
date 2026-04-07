@@ -139,11 +139,11 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
         request_payload = record.request if isinstance(record.request, dict) else {}
         result_enforcement = dict(result_payload.get("enforcement_result") or {})
 
-        review_request = result_enforcement.get("review_request") or request_payload.get("review_request")
+        review_request = result_enforcement.get("review_request")
         if isinstance(review_request, dict):
             requests.append(review_request)
 
-        review_decision = result_enforcement.get("review_decision") or request_payload.get("review_decision")
+        review_decision = result_enforcement.get("review_decision")
         if isinstance(review_decision, dict):
             record_payload = review_decision.get("record")
             if isinstance(record_payload, dict):
@@ -516,7 +516,7 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                     }
                 )
 
-        review_request = enforcement_result.get("review_request") or request_payload.get("review_request")
+        review_request = enforcement_result.get("review_request")
         if isinstance(review_request, dict):
             events.append(
                 {
@@ -532,7 +532,7 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 }
             )
 
-        review_decision = enforcement_result.get("review_decision") or request_payload.get("review_decision")
+        review_decision = enforcement_result.get("review_decision")
         if isinstance(review_decision, dict) and isinstance(review_decision.get("record"), dict):
             review_record = review_decision["record"]
             events.append(

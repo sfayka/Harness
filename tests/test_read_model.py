@@ -189,6 +189,60 @@ class HarnessReadModelServiceTests(unittest.TestCase):
             "Need target repository clarification before proceeding.",
         )
 
+    def test_read_model_and_timeline_expose_resolved_clarification_state(self) -> None:
+        submit_payload = {
+            "request": {
+                "task_envelope": create_task_envelope(
+                    {
+                        "id": "task-read-model-clarification-resolved-1",
+                        "title": "Clarification resolved",
+                        "description": "Expose clarification resolution through read-model and timeline.",
+                        "origin": {
+                            "source_system": "openclaw",
+                            "source_type": "ingress_request",
+                            "source_id": "task-read-model-clarification-resolved-1",
+                        },
+                        "acceptance_criteria": [
+                            {
+                                "id": "ac-1",
+                                "description": "Task becomes routable after clarification is cleared.",
+                                "required": True,
+                            }
+                        ],
+                    },
+                    now="2026-04-01T10:00:00Z",
+                )
+            }
+        }
+
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+        self.service.reevaluate(
+            task_id,
+            {"request": {"unresolved_conditions": ["Need repository clarification before planning can proceed."]}},
+        )
+        self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(timeline_status, 200)
+        self.assertEqual(read_payload["task"]["clarification_summary"]["status"], "resolved")
+        self.assertIsNotNone(read_payload["task"]["clarification_summary"]["resolved_at"])
+        clarification_events = [
+            event for event in timeline_payload["timeline"] if event["event_type"] == "clarification_resolved"
+        ]
+        self.assertEqual(len(clarification_events), 1)
+        self.assertEqual(
+            clarification_events[0]["details"]["status"],
+            "resolved",
+        )
+
     def test_timeline_shows_completed_to_blocked_rollback(self) -> None:
         initial_status, initial_payload = self.service.evaluate(_request_payload("accepted_completion"))
         task_id = initial_payload["task_envelope"]["id"]
@@ -270,6 +324,57 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["review_summary"]["status"], "requested")
         self.assertEqual(read_payload["task"]["review_summary"]["request_count"], 1)
         self.assertEqual(read_payload["task"]["review_summary"]["decision_count"], 0)
+
+    def test_read_model_ignores_caller_supplied_review_request_without_review_required_outcome(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-read-model-ghost-review-1",
+                "title": "Ignore caller review request",
+                "description": "Caller-supplied review_request should not create a canonical review gate.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-read-model-ghost-review-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Task remains routable unless enforcement explicitly requests review.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T10:00:00Z",
+        )
+        submit_status, submit_response = self.service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        reevaluate_status, reevaluate_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_request": {
+                        **deepcopy(_request_payload("review_required")["request"]["review_request"]),
+                        "task_id": task_id,
+                    },
+                    "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                    "runtime_facts": deepcopy(_request_payload("accepted_completion")["request"]["runtime_facts"]),
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertNotEqual(reevaluate_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "none")
+        self.assertEqual(read_payload["task"]["review_summary"]["request_count"], 0)
+        self.assertEqual(timeline_status, 200)
+        self.assertFalse(
+            any(event["event_type"] == "review_requested" for event in timeline_payload["timeline"])
+        )
 
     def test_read_model_handles_goal_to_work_ingested_task(self) -> None:
         flow_result = run_goal_to_work_flow(_goal_request(), auto_approve=True, service=self.service)
