@@ -97,6 +97,39 @@ def _build_evidence_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
     }
 
 
+def _build_clarification_summary(task_envelope: TaskEnvelope) -> dict[str, Any] | None:
+    clarification = task_envelope.get("clarification")
+    if not isinstance(clarification, dict):
+        return None
+
+    required_inputs = [
+        item
+        for item in clarification.get("required_inputs") or []
+        if isinstance(item, dict)
+    ]
+    questions = [item for item in clarification.get("questions") or [] if isinstance(item, dict)]
+    responses = [item for item in clarification.get("responses") or [] if isinstance(item, dict)]
+    open_required_inputs = [
+        item for item in required_inputs if item.get("required") and item.get("status") == "open"
+    ]
+    open_questions = [item for item in questions if item.get("status") == "open"]
+
+    return {
+        "status": clarification.get("status"),
+        "blocking_reason": clarification.get("blocking_reason"),
+        "resume_target_status": clarification.get("resume_target_status"),
+        "requested_at": clarification.get("requested_at"),
+        "resolved_at": clarification.get("resolved_at"),
+        "requested_by": clarification.get("requested_by"),
+        "resolution_summary": clarification.get("resolution_summary"),
+        "required_input_count": len(required_inputs),
+        "open_required_input_count": len(open_required_inputs),
+        "question_count": len(questions),
+        "open_question_count": len(open_questions),
+        "response_count": len(responses),
+    }
+
+
 def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
     requests: list[dict[str, Any]] = []
     decisions: list[dict[str, Any]] = []
@@ -244,6 +277,31 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                     "commit_sha": artifact.get("commit_sha"),
                     "repository": artifact.get("repository"),
                     "branch": artifact.get("branch"),
+                },
+            }
+        )
+
+    clarification = task_envelope.get("clarification")
+    if isinstance(clarification, dict):
+        clarification_status = str(clarification.get("status") or "")
+        clarification_event_type = "clarification_resolved" if clarification_status == "resolved" else "clarification_required"
+        clarification_summary = "Clarification resolved" if clarification_status == "resolved" else "Clarification required"
+        events.append(
+            {
+                "event_id": f"{task_envelope['id']}:clarification",
+                "event_type": clarification_event_type,
+                "occurred_at": clarification.get("resolved_at")
+                or clarification.get("requested_at")
+                or timestamps.get("updated_at"),
+                "summary": clarification_summary,
+                "source": clarification.get("requested_by") or "clarification",
+                "details": {
+                    "status": clarification.get("status"),
+                    "blocking_reason": clarification.get("blocking_reason"),
+                    "resume_target_status": clarification.get("resume_target_status"),
+                    "required_inputs": list(clarification.get("required_inputs") or []),
+                    "questions": list(clarification.get("questions") or []),
+                    "responses": list(clarification.get("responses") or []),
                 },
             }
         )
@@ -501,6 +559,7 @@ class TaskReadModel:
     relationships: dict[str, Any]
     assigned_executor: dict[str, Any] | None
     evidence_summary: dict[str, Any]
+    clarification_summary: dict[str, Any] | None
     coordination_summary: dict[str, Any]
     verification_summary: dict[str, Any] | None
     reconciliation_summary: dict[str, Any] | None
@@ -563,6 +622,7 @@ class HarnessReadModelService:
             },
             assigned_executor=dict(task.get("assigned_executor") or {}) if task.get("assigned_executor") is not None else None,
             evidence_summary=_build_evidence_summary(task),
+            clarification_summary=_build_clarification_summary(task),
             coordination_summary={
                 "linear": dict(((task.get("coordination") or {}).get("linear") or {}))
                 if ((task.get("coordination") or {}).get("linear")) is not None

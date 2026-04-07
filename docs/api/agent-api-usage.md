@@ -44,6 +44,18 @@ For new-task submission and one-shot evaluation, the canonical contract remains 
 
 Those overlays are merged into `request.task_envelope` before evaluation. For existing tasks evaluated through `POST /evaluate`, the same overlay fields are reapplied onto the stored task snapshot before policy evaluation. For canonical persisted updates, prefer `POST /tasks/<task_id>/reevaluate`.
 
+`request.task_status` is intentionally narrow. It may seed only intake/planning lifecycle states:
+
+- `intake_ready`
+- `planned`
+- `dispatch_ready`
+- `assigned`
+- `blocked`
+
+It must not be used to inject runtime or terminal states such as `executing`, `reconciling`, `completed`, `failed`, or `canceled`. Runtime progress and completion truth must instead enter through dispatch, completion claims, reevaluation, evidence, and policy enforcement.
+
+`request.unresolved_conditions` is also canonicalized. When present on submission, reevaluation, or completion-claim requests, Harness attaches or updates `task_envelope.clarification`, moves the task into `blocked`, and exposes that clarification state through the canonical read-model and timeline surfaces.
+
 ## Review-Required Lifecycle Rule
 
 - If verification returns `requires_review=true`, Harness moves an active non-terminal task into `in_review`.

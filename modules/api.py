@@ -97,6 +97,8 @@ _TASK_SCOPED_CODE_BRANCH_PREFIXES = ("codex/", "kno-")
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 _AUTO_DISPATCHABLE_STATUSES = frozenset({"planned", "dispatch_ready", "assigned"})
+_ALLOWED_SUBMISSION_STATUS_OVERLAYS = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "blocked"})
+_ALLOWED_CLARIFICATION_RESUME_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "executing"})
 
 
 def _iso_now() -> str:
@@ -302,6 +304,127 @@ def _apply_submission_task_overlays(
     return merged_task
 
 
+def _validate_submission_task_status_overlay(request_payload: dict[str, Any]) -> None:
+    task_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
+    if task_status is None:
+        return
+    if task_status not in _ALLOWED_SUBMISSION_STATUS_OVERLAYS:
+        allowed = ", ".join(sorted(_ALLOWED_SUBMISSION_STATUS_OVERLAYS))
+        raise ApiRequestError(
+            f"task_status may only seed intake/planning lifecycle states ({allowed}); got {task_status!r}"
+        )
+
+
+def _parse_unresolved_conditions(request_payload: dict[str, Any]) -> tuple[str, ...]:
+    return _optional_string_tuple(
+        request_payload.get("unresolved_conditions"),
+        field_name="unresolved_conditions",
+    )
+
+
+def _clarification_resume_target_status(task_envelope: dict[str, Any], clarification: dict[str, Any]) -> str:
+    existing_resume_target = clarification.get("resume_target_status")
+    if existing_resume_target in _ALLOWED_CLARIFICATION_RESUME_STATUSES:
+        return str(existing_resume_target)
+
+    task_status = str(task_envelope.get("status") or "")
+    if task_status in _ALLOWED_CLARIFICATION_RESUME_STATUSES:
+        return task_status
+    return "intake_ready"
+
+
+def _with_submission_clarification(
+    task_envelope: dict[str, Any],
+    *,
+    unresolved_conditions: tuple[str, ...],
+    requested_by: str,
+) -> dict[str, Any]:
+    if not unresolved_conditions:
+        return task_envelope
+
+    now = _iso_now()
+    merged_task = deepcopy(task_envelope)
+    clarification = _optional_mapping(merged_task.get("clarification"), field_name="task_envelope.clarification") or {}
+    clarification = deepcopy(clarification)
+
+    required_inputs = [
+        deepcopy(item)
+        for item in clarification.get("required_inputs") or []
+        if isinstance(item, dict)
+    ]
+    questions = [
+        deepcopy(item)
+        for item in clarification.get("questions") or []
+        if isinstance(item, dict)
+    ]
+    responses = [
+        deepcopy(item)
+        for item in clarification.get("responses") or []
+        if isinstance(item, dict)
+    ]
+    existing_descriptions = {
+        str(item.get("description")).strip()
+        for item in required_inputs
+        if isinstance(item.get("description"), str) and item.get("description").strip()
+    }
+
+    for condition in unresolved_conditions:
+        if condition in existing_descriptions:
+            continue
+        input_id = f"clarification-input-{len(required_inputs) + 1}"
+        required_inputs.append(
+            {
+                "id": input_id,
+                "label": f"Clarification {len(required_inputs) + 1}",
+                "description": condition,
+                "required": True,
+                "need_type": "missing",
+                "status": "open",
+                "value_summary": None,
+            }
+        )
+        existing_descriptions.add(condition)
+
+    clarification_status = str(clarification.get("status") or "")
+    if clarification_status not in {"required", "requested", "answered"}:
+        clarification_status = "required"
+
+    clarification.update(
+        {
+            "status": clarification_status,
+            "blocking_reason": clarification.get("blocking_reason") or "missing_information",
+            "resume_target_status": _clarification_resume_target_status(merged_task, clarification),
+            "required_inputs": required_inputs,
+            "questions": questions,
+            "responses": responses,
+            "requested_at": clarification.get("requested_at"),
+            "resolved_at": None,
+            "requested_by": clarification.get("requested_by") or requested_by,
+            "resolution_summary": None,
+        }
+    )
+
+    current_status = str(merged_task.get("status") or "")
+    if current_status != "blocked":
+        status_history = list(merged_task.get("status_history") or [])
+        status_history.append(
+            {
+                "from_status": current_status or None,
+                "to_status": "blocked",
+                "changed_at": now,
+                "reason": "Task blocked pending clarification.",
+                "changed_by": "clarification",
+            }
+        )
+        merged_task["status_history"] = status_history
+
+    merged_task["clarification"] = clarification
+    merged_task["status"] = "blocked"
+    merged_task["timestamps"]["updated_at"] = now
+    merged_task["timestamps"]["completed_at"] = None
+    return merged_task
+
+
 def _with_linear_coordination(
     task_envelope: dict[str, Any],
     *,
@@ -337,9 +460,11 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     """Parse a canonical HTTP evaluation request into the public evaluator input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
+    _validate_submission_task_status_overlay(request_payload)
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
 
     external_facts = _parse_external_facts(
         _optional_mapping(request_payload.get("external_facts"), field_name="external_facts")
@@ -350,6 +475,11 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
         linked_by=(task_envelope.get("origin") or {}).get("source_system") or "harness",
         source="evaluation_request.external_facts",
     )
+    task_envelope = _with_submission_clarification(
+        task_envelope,
+        unresolved_conditions=unresolved_conditions,
+        requested_by="harness-intake",
+    )
 
     return HarnessEvaluationRequest(
         task_envelope=task_envelope,
@@ -357,10 +487,7 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
         claimed_completion=bool(request_payload.get("claimed_completion", False)),
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
-        unresolved_conditions=_optional_string_tuple(
-            request_payload.get("unresolved_conditions"),
-            field_name="unresolved_conditions",
-        ),
+        unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
         review_request=_parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request")),
         review_decision=_parse_review_decision(_optional_mapping(request_payload.get("review_decision"), field_name="review_decision")),
@@ -526,6 +653,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
     """Parse an executor completion claim into canonical reevaluation input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
     completion_claim = _parse_completion_claim(request_payload)
     merged_task = _with_advisory_completion_claim(task_envelope, claim=completion_claim)
     execution_attempt = _parse_execution_attempt(request_payload, completion_claim=completion_claim)
@@ -565,6 +693,11 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         linked_by="reevaluation",
         source="completion_claim.external_facts",
     )
+    merged_task = _with_submission_clarification(
+        merged_task,
+        unresolved_conditions=unresolved_conditions,
+        requested_by="harness-runtime",
+    )
 
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
@@ -572,10 +705,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         claimed_completion=True,
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
-        unresolved_conditions=_optional_string_tuple(
-            request_payload.get("unresolved_conditions"),
-            field_name="unresolved_conditions",
-        ),
+        unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
         review_request=review_request,
         review_decision=review_decision,
@@ -586,6 +716,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
     """Parse a reevaluation payload against an existing stored TaskEnvelope."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
     merged_task = deepcopy(task_envelope)
 
     new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
@@ -623,6 +754,11 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         linked_by="reevaluation",
         source="reevaluation_request.external_facts",
     )
+    merged_task = _with_submission_clarification(
+        merged_task,
+        unresolved_conditions=unresolved_conditions,
+        requested_by="harness-reevaluation",
+    )
 
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
@@ -630,10 +766,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         claimed_completion=bool(request_payload.get("claimed_completion", False)),
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
-        unresolved_conditions=_optional_string_tuple(
-            request_payload.get("unresolved_conditions"),
-            field_name="unresolved_conditions",
-        ),
+        unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
         review_request=review_request,
         review_decision=review_decision,
@@ -2138,9 +2271,14 @@ class HarnessApiService:
         else:
             existing_records = self.store.list_evaluation_records(task_id)
             request_payload = _require_mapping(payload.get("request"), field_name="request")
+            _validate_submission_task_status_overlay(request_payload)
             request = replace(
                 request,
-                task_envelope=_apply_submission_task_overlays(stored_task, request_payload=request_payload),
+                task_envelope=_with_submission_clarification(
+                    _apply_submission_task_overlays(stored_task, request_payload=request_payload),
+                    unresolved_conditions=request.unresolved_conditions,
+                    requested_by="harness-reevaluation",
+                ),
                 review_is_active=_review_gate_is_active(stored_task, existing_records),
             )
 

@@ -24,6 +24,8 @@ Harness also rejects executor-side contract violations mechanically. Delegated c
 
 Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
 
+Harness also canonicalizes missing-information blockers instead of leaving them as loose evaluator notes. When callers submit `unresolved_conditions` through `POST /tasks`, `POST /tasks/<task_id>/reevaluate`, or `POST /tasks/<task_id>/completion-claims`, Harness records a real `task.clarification` contract, moves the task into `blocked`, and exposes that blocker through the canonical read-model and timeline surfaces.
+
 Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution` and `missing_commit_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
 
 If recovery succeeds, the task can proceed to canonical reevaluation. If recovery fails or is blocked, Harness escalates explicitly instead of silently accepting the task as done. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context, reruns or branch reuse require explicit task/run linkage rather than branch or task-name matching alone, a newly created PR is only trusted after Harness reads back the persisted GitHub record and revalidates it, and a missing commit SHA may be recovered from the current branch head before the handler gives up.
@@ -93,10 +95,11 @@ See:
   - `GET /tasks/<task_id>/read-model`
   - `GET /tasks/<task_id>/timeline`
 - Canonical mutation surfaces:
-  - `POST /tasks`
-  - `POST /tasks/<task_id>/reevaluate`
+- `POST /tasks`
+- `POST /tasks/<task_id>/reevaluate`
 - Completion-claim interception helper (delegates into canonical reevaluation semantics):
   - `POST /tasks/<task_id>/completion-claims`
+- Input-shape status overlays on `POST /tasks` and `POST /evaluate` are limited to intake/planning states such as `intake_ready`, `planned`, `dispatch_ready`, `assigned`, and `blocked`. Runtime and terminal states such as `executing`, `reconciling`, `completed`, `failed`, and `canceled` are not accepted through the top-level overlay shortcut.
 - Integration helper surface:
   - `POST /ingress/linear`
   - `POST /ingress/manual`
