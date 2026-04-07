@@ -240,6 +240,51 @@ def resolve_review_request(
     )
 
 
+def validate_review_decision_result(review_decision: ReviewDecisionResult) -> ReviewDecisionResult:
+    """Validate that a serialized review decision still matches canonical review policy."""
+
+    validate_review_request(review_decision.request)
+    validate_reviewer_identity(review_decision.record.reviewer)
+
+    if review_decision.record.task_id != review_decision.request.task_id:
+        raise ReviewValidationError("review_decision.record.task_id must match review_decision.request.task_id")
+    if review_decision.record.review_request_id != review_decision.request.review_request_id:
+        raise ReviewValidationError(
+            "review_decision.record.review_request_id must match review_decision.request.review_request_id"
+        )
+
+    canonical_decision = resolve_review_request(
+        review_decision.request,
+        review_id=review_decision.record.review_id,
+        reviewer=review_decision.record.reviewer,
+        outcome=review_decision.record.outcome,
+        reasoning=review_decision.record.reasoning,
+        reviewed_at=review_decision.record.reviewed_at,
+        supersedes_review_id=review_decision.record.supersedes_review_id,
+        basis_refs=review_decision.record.basis_refs,
+        metadata=review_decision.record.metadata,
+    )
+
+    if review_decision.record.authorized_target_status != canonical_decision.record.authorized_target_status:
+        raise ReviewValidationError(
+            "review_decision.record.authorized_target_status does not match the canonical outcome mapping"
+        )
+    if review_decision.record.follow_up_action != canonical_decision.record.follow_up_action:
+        raise ReviewValidationError(
+            "review_decision.record.follow_up_action does not match the canonical outcome mapping"
+        )
+    if review_decision.recommended_target_status != canonical_decision.recommended_target_status:
+        raise ReviewValidationError(
+            "review_decision.recommended_target_status does not match the canonical outcome mapping"
+        )
+    if review_decision.follow_up_action != canonical_decision.follow_up_action:
+        raise ReviewValidationError(
+            "review_decision.follow_up_action does not match the canonical outcome mapping"
+        )
+
+    return review_decision
+
+
 def append_review_record(
     history: tuple[ReviewRecord, ...] | list[ReviewRecord],
     review_record: ReviewRecord,

@@ -90,6 +90,7 @@ It must not be used to inject runtime or terminal states such as `executing`, `r
 - Automatic review escalation is allowed from active lifecycle states such as `intake_ready`, `planned`, `dispatch_ready`, `assigned`, `executing`, and `blocked`.
 - Automatic paths do not reopen `completed`, `failed`, or `canceled` tasks into review.
 - Manual review is what resolves `in_review` back to `completed`, `blocked`, `failed`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
+- A submitted `review_decision` is only accepted if it still matches the original review request's `allowed_outcomes` and canonical outcome-to-status mapping. Callers cannot forge a different target status or follow-up action by editing the serialized payload.
 - Once review is active, automatic reevaluation, artifact sync, or external reconciliation must keep the task in `in_review` until an explicit manual decision resolves it.
 
 ## Reconciliation Classification Rule

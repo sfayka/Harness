@@ -44,7 +44,9 @@ from modules.contracts.task_envelope_review import (
     ReviewRecord,
     ReviewRequest,
     ReviewTrigger,
+    ReviewValidationError,
     ReviewerIdentity,
+    validate_review_decision_result,
 )
 from modules.contracts.task_envelope_verification import RuntimeVerificationFacts
 from modules.evaluation import HarnessEvaluationRequest, HarnessEvaluationResult, evaluate_task_case
@@ -272,12 +274,17 @@ def _parse_review_decision(payload: dict[str, Any] | None) -> ReviewDecisionResu
         preserves_history=record_payload.get("preserves_history", True),
         metadata=dict(record_payload.get("metadata", {})),
     )
-    return ReviewDecisionResult(
-        request=request,
-        record=record,
-        recommended_target_status=decision_payload["recommended_target_status"],
-        follow_up_action=ReviewFollowUpAction(decision_payload.get("follow_up_action", "none")),
-    )
+    try:
+        return validate_review_decision_result(
+            ReviewDecisionResult(
+                request=request,
+                record=record,
+                recommended_target_status=decision_payload["recommended_target_status"],
+                follow_up_action=ReviewFollowUpAction(decision_payload.get("follow_up_action", "none")),
+            )
+        )
+    except ReviewValidationError as error:
+        raise ApiRequestError(str(error)) from error
 
 
 def _apply_submission_task_overlays(
