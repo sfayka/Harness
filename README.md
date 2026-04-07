@@ -36,6 +36,8 @@ Executor-submitted completion claims also cannot self-certify support-artifact p
 
 Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
 
+When reconciliation resolves repository and branch context across multiple sources, Harness also avoids synthesizing a current-run commit identity from a weaker source just because it happens to match the branch name. If execution metadata established the branch but not the commit, Harness now prefers a missing commit over caller-supplied commit backfill unless the execution attempt itself proved that commit.
+
 Harness also canonicalizes missing-information blockers instead of leaving them as loose evaluator notes. When callers submit `unresolved_conditions` through `POST /tasks`, `POST /tasks/<task_id>/reevaluate`, or `POST /tasks/<task_id>/completion-claims`, Harness records a real `task.clarification` contract, moves the task into `blocked`, and exposes that blocker through the canonical read-model and timeline surfaces.
 
 Harness also validates manual-review decisions mechanically. A serialized `review_decision` only counts if its outcome, target status, and follow-up action still match the original review request and canonical review policy, and if it resolves the currently active review gate for that task. Review gates are now derived from enforcement-recorded review requests only; caller-supplied `review_request` payloads do not create active review state by themselves, and future-dated review timestamps are rejected.

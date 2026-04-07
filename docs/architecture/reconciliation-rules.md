@@ -154,6 +154,7 @@ Meaning:
 - every attempt must be captured under `task.reconciliation`
 - if recovery succeeds, Harness must return to canonical reevaluation rather than directly declaring completion
 - if recovery fails, Harness must escalate the task into explicit `in_review`
+- when repository and branch context come from multiple sources, commit identity must come from the same authoritative source or from the execution attempt itself; Harness must prefer a truthful missing commit over a stitched cross-source commit
 
 This is where Harness spends automation before operator attention. Recoverable defects should not require immediate human babysitting, but recovery remains bounded and auditable.
 

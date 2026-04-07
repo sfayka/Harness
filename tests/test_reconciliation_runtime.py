@@ -11,6 +11,7 @@ from modules.reconciliation_runtime import (
     ReconciliationRuntimeError,
     RetryableReconciliationRuntimeError,
     _context_from_artifacts,
+    _context_from_execution_attempt,
     _resolved_code_context,
 )
 
@@ -300,3 +301,150 @@ class ResolveCodeContextTests(unittest.TestCase):
             _resolved_code_context(task, external_facts=external_facts)
 
         self.assertIn("Conflicting reconciliation code context across sources", str(captured.exception))
+
+    def test_does_not_fill_execution_attempt_commit_from_external_facts(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-context-execution-attempt-commit-fill-1",
+                "title": "Do not fill execution-attempt commit from external facts",
+                "description": "Execution-attempt branch context should not inherit commit identity from another source.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-context-execution-attempt-commit-fill-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness keeps commit identity empty when execution metadata did not prove it.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T09:00:00Z",
+        )
+        task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-1",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-1-ref-1",
+                        "artifact_type": "branch",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "base_branch": "main",
+                            "commit_sha": None,
+                        },
+                    }
+                ],
+            }
+        ]
+        external_facts = {
+            "expected_code_context": {
+                "repository_host": "github.com",
+                "repository_owner": "KnoxAnalytics",
+                "repository_name": "HARNESS-DRYRUN",
+                "branch_name": "codex/e2e-test",
+                "base_branch": "main",
+            },
+            "github_facts": {
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                },
+                "branch": {
+                    "name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "head_commit_sha": "1111111111111111111111111111111111111111",
+                },
+                "commit": {
+                    "sha": "1111111111111111111111111111111111111111",
+                },
+            },
+        }
+
+        execution_context = _context_from_execution_attempt(task)
+        context, _, selected = _resolved_code_context(task, external_facts=external_facts)
+
+        self.assertIsNotNone(execution_context)
+        self.assertEqual(execution_context.commit_sha, "")
+        self.assertEqual(selected, "merged")
+        self.assertEqual(context.branch_name, "codex/e2e-test")
+        self.assertEqual(context.commit_sha, "")
+
+    def test_allows_execution_attempt_commit_to_complete_external_facts_branch_context(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-context-execution-attempt-commit-authority-1",
+                "title": "Allow execution-attempt commit authority",
+                "description": "Execution-attempt commit identity can complete matching branch context from external facts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-context-execution-attempt-commit-authority-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness can use execution-attempt commit proof for the current branch.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T09:00:00Z",
+        )
+        task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-1",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-1-ref-1",
+                        "artifact_type": "commit",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "base_branch": "main",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    }
+                ],
+            }
+        ]
+        external_facts = {
+            "expected_code_context": {
+                "repository_host": "github.com",
+                "repository_owner": "KnoxAnalytics",
+                "repository_name": "HARNESS-DRYRUN",
+                "branch_name": "codex/e2e-test",
+                "base_branch": "main",
+            },
+            "github_facts": {
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                },
+                "branch": {
+                    "name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "head_commit_sha": None,
+                },
+                "commit": {
+                    "sha": None,
+                },
+            },
+        }
+
+        context, _, selected = _resolved_code_context(task, external_facts=external_facts)
+
+        self.assertEqual(selected, "merged")
+        self.assertEqual(context.branch_name, "codex/e2e-test")
+        self.assertEqual(context.commit_sha, "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
