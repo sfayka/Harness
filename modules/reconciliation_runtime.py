@@ -36,6 +36,7 @@ class ReconciliationFailureDisposition(StrEnum):
 
     REVIEW_REQUIRED = "review_required"
     BLOCKED_RETRYABLE = "blocked_retryable"
+    TERMINAL_FAILED = "terminal_failed"
 
 
 class ReconciliationRuntimeError(ValueError):
@@ -56,6 +57,13 @@ class RetryableReconciliationRuntimeError(ReconciliationRuntimeError):
 
     def __init__(self, message: str) -> None:
         super().__init__(message, disposition=ReconciliationFailureDisposition.BLOCKED_RETRYABLE)
+
+
+class TerminalReconciliationRuntimeError(ReconciliationRuntimeError):
+    """Raised when reconciliation proves the execution outcome is terminally unusable."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, disposition=ReconciliationFailureDisposition.TERMINAL_FAILED)
 
 
 @dataclass(frozen=True)
@@ -108,6 +116,7 @@ class MissingPrMatchPolicy:
     require_head_sha_match: bool = True
     require_exact_branch_match: bool = True
     allow_commit_association_match: bool = True
+    allow_non_head_commit_association_match: bool = False
     escalate_on_ambiguous_match: bool = True
     require_task_linkage: bool = False
     require_run_linkage_for_multiple_attempts: bool = True
@@ -1169,12 +1178,17 @@ class MissingPrAfterExecutionHandler:
 
         head_sha_match = bool(pull_request.head_sha) and pull_request.head_sha == code_context.commit_sha
         commit_association_match = self.policy.allow_commit_association_match and "commit" in sources
+        non_head_commit_association_match = commit_association_match and not head_sha_match
 
         if self.policy.require_head_sha_match:
             if head_sha_match:
                 matched_by.append("head_sha_match")
+                if commit_association_match:
+                    matched_by.append("commit_association_match")
             elif commit_association_match:
                 matched_by.append("commit_association_match")
+                if not self.policy.allow_non_head_commit_association_match:
+                    reasons.append("commit_association_without_current_head_evidence")
             else:
                 reasons.append("head_sha_mismatch" if pull_request.head_sha else "missing_head_sha")
         elif commit_association_match:
@@ -1191,7 +1205,11 @@ class MissingPrAfterExecutionHandler:
         if self.policy.require_run_linkage_for_multiple_attempts and run_linkage["current_run"]["multiple_attempts"]:
             require_run_linkage = True
             linkage_reasons.append("multiple_execution_attempts")
-        if self.policy.require_run_linkage_for_commit_association and commit_association_match and not head_sha_match:
+        if (
+            self.policy.allow_non_head_commit_association_match
+            and self.policy.require_run_linkage_for_commit_association
+            and non_head_commit_association_match
+        ):
             require_run_linkage = True
             linkage_reasons.append("commit_association_without_head_sha_match")
 
@@ -1373,7 +1391,7 @@ class MissingPrAfterExecutionHandler:
             )
             attempt["details"]["branch_exists"] = branch_exists
             if not branch_exists:
-                raise ReconciliationRuntimeError(
+                raise TerminalReconciliationRuntimeError(
                     f"GitHub branch {code_context.branch_name!r} was not found in "
                     f"{code_context.repository_owner}/{code_context.repository_name}"
                 )
@@ -1386,7 +1404,7 @@ class MissingPrAfterExecutionHandler:
                 )
                 attempt["details"]["branch_head_commit_sha"] = branch_head_commit_sha
                 if not branch_head_commit_sha:
-                    raise ReconciliationRuntimeError(
+                    raise TerminalReconciliationRuntimeError(
                         "Commit SHA is required for missing_pr_after_execution reconciliation and "
                         "could not be resolved from the branch head"
                     )
@@ -1407,7 +1425,7 @@ class MissingPrAfterExecutionHandler:
             )
             attempt["details"]["commit_exists"] = commit_exists
             if not commit_exists:
-                raise ReconciliationRuntimeError(
+                raise TerminalReconciliationRuntimeError(
                     f"GitHub commit {code_context.commit_sha!r} was not found in "
                     f"{code_context.repository_owner}/{code_context.repository_name}"
                 )
@@ -1569,7 +1587,12 @@ class MissingPrAfterExecutionHandler:
                 failure_disposition = error_message.disposition
             else:
                 failure_disposition = ReconciliationFailureDisposition.REVIEW_REQUIRED
-            target_status = "blocked" if failure_disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE else "in_review"
+            if failure_disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE:
+                target_status = "blocked"
+            elif failure_disposition == ReconciliationFailureDisposition.TERMINAL_FAILED:
+                target_status = "failed"
+            else:
+                target_status = "in_review"
             requires_review = target_status == "in_review"
             completed_at = _iso_now()
             attempt["status"] = ReconciliationAttemptStatus.FAILED.value
@@ -1578,8 +1601,20 @@ class MissingPrAfterExecutionHandler:
             attempt["details"]["error_disposition"] = failure_disposition.value
             if attempt["details"]["final_decision"]["result"] is None:
                 attempt["details"]["final_decision"] = {
-                    "result": "blocked_retryable_failure" if not requires_review else "review_required_failure",
-                    "reason": "provider_platform_failure" if not requires_review else "reconciliation_runtime_error",
+                    "result": (
+                        "blocked_retryable_failure"
+                        if target_status == "blocked"
+                        else "terminal_failed"
+                        if target_status == "failed"
+                        else "review_required_failure"
+                    ),
+                    "reason": (
+                        "provider_platform_failure"
+                        if target_status == "blocked"
+                        else "objective_execution_contradiction"
+                        if target_status == "failed"
+                        else "reconciliation_runtime_error"
+                    ),
                 }
             updated_task = _record_reconciliation_attempt(
                 context.task_envelope,
@@ -1665,7 +1700,7 @@ class MissingCommitAfterExecutionHandler:
             )
             attempt["details"]["branch_exists"] = branch_exists
             if not branch_exists:
-                raise ReconciliationRuntimeError(
+                raise TerminalReconciliationRuntimeError(
                     f"GitHub branch {code_context.branch_name!r} was not found in "
                     f"{code_context.repository_owner}/{code_context.repository_name}"
                 )
@@ -1678,7 +1713,7 @@ class MissingCommitAfterExecutionHandler:
                 )
                 attempt["details"]["branch_head_commit_sha"] = branch_head_commit_sha
                 if not branch_head_commit_sha:
-                    raise ReconciliationRuntimeError(
+                    raise TerminalReconciliationRuntimeError(
                         "Commit SHA is required for missing_commit_after_execution reconciliation and "
                         "could not be resolved from the branch head"
                     )
@@ -1699,7 +1734,7 @@ class MissingCommitAfterExecutionHandler:
             )
             attempt["details"]["commit_exists"] = commit_exists
             if not commit_exists:
-                raise ReconciliationRuntimeError(
+                raise TerminalReconciliationRuntimeError(
                     f"GitHub commit {code_context.commit_sha!r} was not found in "
                     f"{code_context.repository_owner}/{code_context.repository_name}"
                 )
@@ -1710,7 +1745,7 @@ class MissingCommitAfterExecutionHandler:
                     "result": "missing_current_run_pull_request_proof",
                     "reason": "verified_pull_request_artifact_required",
                 }
-                raise ReconciliationRuntimeError(
+                raise TerminalReconciliationRuntimeError(
                     "A verified current-run pull request artifact is required for missing_commit_after_execution reconciliation"
                 )
 
@@ -1762,7 +1797,12 @@ class MissingCommitAfterExecutionHandler:
                 failure_disposition = error_message.disposition
             else:
                 failure_disposition = ReconciliationFailureDisposition.REVIEW_REQUIRED
-            target_status = "blocked" if failure_disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE else "in_review"
+            if failure_disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE:
+                target_status = "blocked"
+            elif failure_disposition == ReconciliationFailureDisposition.TERMINAL_FAILED:
+                target_status = "failed"
+            else:
+                target_status = "in_review"
             requires_review = target_status == "in_review"
             completed_at = _iso_now()
             attempt["status"] = ReconciliationAttemptStatus.FAILED.value
@@ -1771,8 +1811,20 @@ class MissingCommitAfterExecutionHandler:
             attempt["details"]["error_disposition"] = failure_disposition.value
             if attempt["details"]["final_decision"]["result"] is None:
                 attempt["details"]["final_decision"] = {
-                    "result": "blocked_retryable_failure" if not requires_review else "review_required_failure",
-                    "reason": "provider_platform_failure" if not requires_review else "reconciliation_runtime_error",
+                    "result": (
+                        "blocked_retryable_failure"
+                        if target_status == "blocked"
+                        else "terminal_failed"
+                        if target_status == "failed"
+                        else "review_required_failure"
+                    ),
+                    "reason": (
+                        "provider_platform_failure"
+                        if target_status == "blocked"
+                        else "objective_execution_contradiction"
+                        if target_status == "failed"
+                        else "reconciliation_runtime_error"
+                    ),
                 }
             updated_task = _record_reconciliation_attempt(
                 context.task_envelope,
@@ -1866,6 +1918,8 @@ class ReconciliationHandlerRegistry:
             target_status = (
                 "blocked"
                 if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
+                else "failed"
+                if error.disposition == ReconciliationFailureDisposition.TERMINAL_FAILED
                 else "in_review"
             )
             requires_review = target_status == "in_review"
@@ -2085,6 +2139,7 @@ __all__ = [
     "ReconciliationRuntimeContext",
     "ReconciliationRuntimeError",
     "RetryableReconciliationRuntimeError",
+    "TerminalReconciliationRuntimeError",
     "build_default_reconciliation_registry",
     "default_reconciliation_state",
     "ensure_reconciliation_state",

@@ -108,7 +108,7 @@ _AUTHORIZED_ACTORS: dict[tuple[str, str], set[str]] = {
     ("reconciling", "blocked"): {"verification", "reconciliation", "manual_review"},
     ("reconciling", "in_review"): {"verification", "reconciliation", "manual_review"},
     ("reconciling", "completed"): {"verification"},
-    ("reconciling", "failed"): {"verification", "manual_review"},
+    ("reconciling", "failed"): {"verification", "reconciliation", "manual_review"},
     ("reconciling", "canceled"): {"operator", "manual_review"},
     ("completed", "blocked"): {"verification", "manual_review"},
     ("blocked", "intake_ready"): {"clarification", "operator", "manual_review"},

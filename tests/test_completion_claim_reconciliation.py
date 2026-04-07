@@ -729,10 +729,12 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         status, response = service.submit_completion_claim(task["id"], payload)
 
         self.assertEqual(status, 200)
-        self.assertEqual(response["action"], "reconciliation_failed")
-        self.assertEqual(response["task_envelope"]["status"], "in_review")
+        self.assertEqual(response["action"], "reconciliation_terminal_failed")
+        self.assertEqual(response["task_envelope"]["status"], "failed")
+        self.assertFalse(response["requires_review"])
         attempt = response["reconciliation_attempt"]
         self.assertEqual(attempt["details"]["branch_head_commit_sha"], None)
+        self.assertEqual(attempt["details"]["error_disposition"], "terminal_failed")
         self.assertEqual(
             attempt["details"]["error"],
             "Commit SHA is required for missing_pr_after_execution reconciliation and could not be resolved from the branch head",
@@ -792,7 +794,7 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             "ambiguous_existing_candidates",
         )
 
-    def test_submit_completion_claim_attaches_valid_pr_found_by_commit_association(self) -> None:
+    def test_submit_completion_claim_attaches_valid_pr_found_by_commit_association_when_head_sha_matches(self) -> None:
         task_id = "task-pr-reconcile-commit"
         claim_id = "claim-commit"
         attempt_id = f"{claim_id}:attempt"
@@ -800,7 +802,7 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             existing_commit_prs=(
                 _pull_request(
                     number=83,
-                    head_sha="3333333333333333333333333333333333333333",
+                    head_sha="8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                     body=_run_linkage_markers(task_id=task_id, attempt_id=attempt_id, claim_id=claim_id),
                 ),
             ),
@@ -820,8 +822,9 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         attempt = _latest_reconciliation_attempt(payload["task_envelope"])
         candidate = attempt["details"]["pull_request_candidates"][0]
         self.assertTrue(candidate["validation"]["accepted"])
+        self.assertIn("head_sha_match", candidate["validation"]["matched_by"])
         self.assertIn("commit_association_match", candidate["validation"]["matched_by"])
-        self.assertNotEqual(candidate["head"]["sha"], "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+        self.assertEqual(candidate["head"]["sha"], "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
 
     def test_submit_completion_claim_rejects_commit_association_candidate_without_run_linkage(self) -> None:
         gateway = _FakeGitHubGateway(
@@ -850,13 +853,17 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         rejected_candidate = attempt["details"]["pull_request_candidates"][0]
         self.assertEqual(rejected_candidate["number"], 85)
         self.assertIn("commit_association_match", rejected_candidate["validation"]["matched_by"])
-        self.assertIn("run_linkage_missing", rejected_candidate["validation"]["reasons"])
+        self.assertIn(
+            "commit_association_without_current_head_evidence",
+            rejected_candidate["validation"]["reasons"],
+        )
+        self.assertNotIn("run_linkage_missing", rejected_candidate["validation"]["reasons"])
         self.assertEqual(
             rejected_candidate["validation"]["signals"]["linkage_policy"]["reasons"],
-            ["commit_association_without_head_sha_match"],
+            [],
         )
 
-    def test_submit_completion_claim_accepts_commit_association_candidate_with_run_linkage(self) -> None:
+    def test_submit_completion_claim_rejects_non_head_commit_association_candidate_even_with_run_linkage(self) -> None:
         task_id = "task-pr-reconcile-commit-run-linkage-valid"
         claim_id = "claim-commit-run-linkage-valid"
         attempt_id = f"{claim_id}:attempt"
@@ -880,10 +887,14 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["status"], "completed")
-        self.assertEqual(gateway.create_calls, 0)
+        self.assertEqual(gateway.create_calls, 1)
         candidate = _latest_reconciliation_attempt(payload["task_envelope"])["details"]["pull_request_candidates"][0]
-        self.assertTrue(candidate["validation"]["accepted"])
+        self.assertFalse(candidate["validation"]["accepted"])
         self.assertIn("commit_association_match", candidate["validation"]["matched_by"])
+        self.assertIn(
+            "commit_association_without_current_head_evidence",
+            candidate["validation"]["reasons"],
+        )
         self.assertIn("attempt_linkage", candidate["validation"]["matched_by"])
         self.assertIn("completion_claim_linkage", candidate["validation"]["matched_by"])
 
@@ -1036,15 +1047,15 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         stored_status, stored_payload = service.get_task(task["id"])
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["action"], "reconciliation_failed")
-        self.assertEqual(payload["task_envelope"]["status"], "in_review")
-        self.assertTrue(payload["requires_review"])
+        self.assertEqual(payload["action"], "reconciliation_terminal_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "failed")
+        self.assertFalse(payload["requires_review"])
         self.assertEqual(payload["task_envelope"]["reconciliation"]["status"], "failed")
         self.assertEqual(payload["task_envelope"]["reconciliation"]["active_failure_type"], "missing_pr_after_execution")
         self.assertEqual(payload["task_envelope"]["status_history"][-2]["to_status"], "reconciling")
-        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "in_review")
+        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "failed")
         self.assertEqual(stored_status, 200)
-        self.assertEqual(stored_payload["task"]["status"], "in_review")
+        self.assertEqual(stored_payload["task"]["status"], "failed")
 
     def test_submit_completion_claim_moves_task_to_blocked_for_retryable_provider_failure(self) -> None:
         gateway = _FakeGitHubGateway(
@@ -1143,6 +1154,28 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
             "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
         )
         self.assertIn(commit_artifacts[0]["id"], payload["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"])
+
+    def test_submit_completion_claim_terminally_fails_missing_commit_reconciliation_when_branch_is_missing(self) -> None:
+        gateway = _FakeGitHubGateway(branch_exists=False)
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _without_commit_artifact(
+            _with_pull_request_artifact(_task_envelope(task_id="task-missing-commit-branch-missing"), number=79)
+        )
+        service.store.create_task(task)
+
+        status, payload = service.submit_completion_claim(task["id"], _completion_claim_payload("claim-missing-commit-branch"))
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["action"], "reconciliation_terminal_failed")
+        self.assertEqual(payload["task_envelope"]["status"], "failed")
+        self.assertFalse(payload["requires_review"])
+        attempt = _latest_reconciliation_attempt(payload["task_envelope"])
+        self.assertEqual(attempt["failure_type"], "missing_commit_after_execution")
+        self.assertEqual(attempt["details"]["error_disposition"], "terminal_failed")
+        self.assertEqual(attempt["details"]["final_decision"]["result"], "terminal_failed")
 
 
     def test_submit_completion_claim_reconciles_against_explicitly_claimed_attempt_not_latest_attempt(self) -> None:

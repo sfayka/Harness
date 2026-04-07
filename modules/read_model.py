@@ -280,6 +280,25 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
                 },
             }
         )
+    clarification = task_envelope.get("clarification")
+    if isinstance(clarification, dict):
+        events.append(
+            {
+                "event_id": f"{task_envelope['id']}:clarification",
+                "event_type": "clarification_updated",
+                "occurred_at": clarification.get("requested_at")
+                or clarification.get("resolved_at")
+                or timestamps.get("updated_at"),
+                "summary": f"Clarification status: {clarification.get('status')}",
+                "source": clarification.get("requested_by") or "harness",
+                "details": {
+                    "status": clarification.get("status"),
+                    "blocking_reason": clarification.get("blocking_reason"),
+                    "resume_target_status": clarification.get("resume_target_status"),
+                    "required_inputs": list(clarification.get("required_inputs") or []),
+                },
+            }
+        )
 
     clarification = task_envelope.get("clarification")
     if isinstance(clarification, dict):
@@ -558,8 +577,8 @@ class TaskReadModel:
     origin: dict[str, Any]
     relationships: dict[str, Any]
     assigned_executor: dict[str, Any] | None
-    evidence_summary: dict[str, Any]
     clarification_summary: dict[str, Any] | None
+    evidence_summary: dict[str, Any]
     coordination_summary: dict[str, Any]
     verification_summary: dict[str, Any] | None
     reconciliation_summary: dict[str, Any] | None
@@ -603,6 +622,7 @@ class HarnessReadModelService:
         )
         verification_summary = _latest_mapping(records, ("enforcement_result", "verification_result"))
         reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
+        clarification_summary = _build_clarification_summary(task)
         review_summary = _build_review_summary(records)
         execution_summary = _build_execution_summary(task, records)
         failure_summary = _latest_failure_summary(records)
@@ -621,8 +641,8 @@ class HarnessReadModelService:
                 "dependencies": list(task.get("dependencies") or []),
             },
             assigned_executor=dict(task.get("assigned_executor") or {}) if task.get("assigned_executor") is not None else None,
+            clarification_summary=clarification_summary,
             evidence_summary=_build_evidence_summary(task),
-            clarification_summary=_build_clarification_summary(task),
             coordination_summary={
                 "linear": dict(((task.get("coordination") or {}).get("linear") or {}))
                 if ((task.get("coordination") or {}).get("linear")) is not None

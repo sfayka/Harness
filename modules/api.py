@@ -96,9 +96,17 @@ _RESERVED_SHARED_BRANCH_NAMES = frozenset({"work", "main", "master", "develop", 
 _TASK_SCOPED_CODE_BRANCH_PREFIXES = ("codex/", "kno-")
 _TERMINAL_TASK_STATUSES = frozenset({"completed", "failed", "canceled"})
 _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
-_AUTO_DISPATCHABLE_STATUSES = frozenset({"planned", "dispatch_ready", "assigned"})
+_AUTO_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready"})
+_MANUAL_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready", "assigned", "blocked"})
+_CLARIFICATION_RESUME_TARGET_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "executing"})
+_DISPATCH_DEPENDENCY_STATUS_ORDER = {
+    "planned": 0,
+    "dispatch_ready": 1,
+    "assigned": 2,
+    "executing": 3,
+    "completed": 4,
+}
 _ALLOWED_SUBMISSION_STATUS_OVERLAYS = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "blocked"})
-_ALLOWED_CLARIFICATION_RESUME_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "executing"})
 
 
 def _iso_now() -> str:
@@ -322,14 +330,46 @@ def _parse_unresolved_conditions(request_payload: dict[str, Any]) -> tuple[str, 
     )
 
 
-def _clarification_resume_target_status(task_envelope: dict[str, Any], clarification: dict[str, Any]) -> str:
-    existing_resume_target = clarification.get("resume_target_status")
-    if existing_resume_target in _ALLOWED_CLARIFICATION_RESUME_STATUSES:
-        return str(existing_resume_target)
+def _infer_clarification_need_type(condition: str) -> str:
+    normalized = condition.strip().lower()
+    if "ambig" in normalized or "unclear" in normalized or "multiple" in normalized or "conflict" in normalized:
+        return "ambiguous"
+    if "missing" in normalized or "unknown" in normalized or "not provided" in normalized:
+        return "missing"
+    return "incomplete"
 
-    task_status = str(task_envelope.get("status") or "")
-    if task_status in _ALLOWED_CLARIFICATION_RESUME_STATUSES:
-        return task_status
+
+def _infer_clarification_blocking_reason(unresolved_conditions: tuple[str, ...]) -> str:
+    if any(_infer_clarification_need_type(condition) == "ambiguous" for condition in unresolved_conditions):
+        return "ambiguous_information"
+    return "missing_information"
+
+
+def _clarification_transition_actor(from_status: str) -> str:
+    if from_status in {"intake_ready", "executing", "blocked"}:
+        return "clarification"
+    if from_status == "assigned":
+        return "dispatcher"
+    if from_status == "reconciling":
+        return "reconciliation"
+    return "verification"
+
+
+def _clarification_resume_target(
+    task_envelope: dict[str, Any],
+    *,
+    preferred_status: str | None,
+) -> str | None:
+    if preferred_status in _CLARIFICATION_RESUME_TARGET_STATUSES:
+        return preferred_status
+    existing = task_envelope.get("clarification")
+    if isinstance(existing, dict):
+        existing_resume_target = existing.get("resume_target_status")
+        if isinstance(existing_resume_target, str) and existing_resume_target in _CLARIFICATION_RESUME_TARGET_STATUSES:
+            return existing_resume_target
+    current_status = str(task_envelope.get("status") or "")
+    if current_status in _CLARIFICATION_RESUME_TARGET_STATUSES:
+        return current_status
     return "intake_ready"
 
 
@@ -337,92 +377,83 @@ def _with_submission_clarification(
     task_envelope: dict[str, Any],
     *,
     unresolved_conditions: tuple[str, ...],
+    preferred_resume_target_status: str | None,
     requested_by: str,
 ) -> dict[str, Any]:
     if not unresolved_conditions:
         return task_envelope
 
-    now = _iso_now()
-    merged_task = deepcopy(task_envelope)
-    clarification = _optional_mapping(merged_task.get("clarification"), field_name="task_envelope.clarification") or {}
-    clarification = deepcopy(clarification)
+    updated_task = deepcopy(task_envelope)
+    blocking_reason = _infer_clarification_blocking_reason(unresolved_conditions)
+    requested_at = _iso_now()
+    resume_target_status = _clarification_resume_target(
+        updated_task,
+        preferred_status=preferred_resume_target_status,
+    )
+    current_status = str(updated_task.get("status") or "")
+    if current_status != "blocked":
+        transition = apply_task_transition(
+            updated_task,
+            to_status="blocked",
+            actor=_clarification_transition_actor(current_status),
+            reason=f"Clarification is required before work can continue: {unresolved_conditions[0]}",
+            facts={"reason_provided": True},
+        )
+        updated_task = transition.task_envelope
+        requested_at = transition.changed_at
+    else:
+        updated_task["timestamps"]["updated_at"] = requested_at
 
-    required_inputs = [
+    existing_clarification = updated_task.get("clarification")
+    clarification = dict(existing_clarification) if isinstance(existing_clarification, dict) else {}
+    existing_required_inputs = [
         deepcopy(item)
-        for item in clarification.get("required_inputs") or []
-        if isinstance(item, dict)
-    ]
-    questions = [
-        deepcopy(item)
-        for item in clarification.get("questions") or []
-        if isinstance(item, dict)
-    ]
-    responses = [
-        deepcopy(item)
-        for item in clarification.get("responses") or []
+        for item in clarification.get("required_inputs", [])
         if isinstance(item, dict)
     ]
     existing_descriptions = {
-        str(item.get("description")).strip()
-        for item in required_inputs
-        if isinstance(item.get("description"), str) and item.get("description").strip()
+        str(item.get("description") or "").strip()
+        for item in existing_required_inputs
+        if str(item.get("description") or "").strip()
     }
-
+    next_index = len(existing_required_inputs)
     for condition in unresolved_conditions:
         if condition in existing_descriptions:
             continue
-        input_id = f"clarification-input-{len(required_inputs) + 1}"
-        required_inputs.append(
+        next_index += 1
+        existing_required_inputs.append(
             {
-                "id": input_id,
-                "label": f"Clarification {len(required_inputs) + 1}",
+                "id": f"clarification-input-{next_index}",
+                "label": f"Required clarification {next_index}",
                 "description": condition,
                 "required": True,
-                "need_type": "missing",
+                "need_type": _infer_clarification_need_type(condition),
                 "status": "open",
                 "value_summary": None,
             }
         )
         existing_descriptions.add(condition)
 
-    clarification_status = str(clarification.get("status") or "")
-    if clarification_status not in {"required", "requested", "answered"}:
-        clarification_status = "required"
-
-    clarification.update(
-        {
-            "status": clarification_status,
-            "blocking_reason": clarification.get("blocking_reason") or "missing_information",
-            "resume_target_status": _clarification_resume_target_status(merged_task, clarification),
-            "required_inputs": required_inputs,
-            "questions": questions,
-            "responses": responses,
-            "requested_at": clarification.get("requested_at"),
-            "resolved_at": None,
-            "requested_by": clarification.get("requested_by") or requested_by,
-            "resolution_summary": None,
-        }
-    )
-
-    current_status = str(merged_task.get("status") or "")
-    if current_status != "blocked":
-        status_history = list(merged_task.get("status_history") or [])
-        status_history.append(
-            {
-                "from_status": current_status or None,
-                "to_status": "blocked",
-                "changed_at": now,
-                "reason": "Task blocked pending clarification.",
-                "changed_by": "clarification",
-            }
-        )
-        merged_task["status_history"] = status_history
-
-    merged_task["clarification"] = clarification
-    merged_task["status"] = "blocked"
-    merged_task["timestamps"]["updated_at"] = now
-    merged_task["timestamps"]["completed_at"] = None
-    return merged_task
+    clarification["status"] = "required"
+    clarification["blocking_reason"] = blocking_reason
+    clarification["resume_target_status"] = resume_target_status
+    clarification["required_inputs"] = existing_required_inputs
+    clarification["questions"] = [
+        deepcopy(item)
+        for item in clarification.get("questions", [])
+        if isinstance(item, dict)
+    ]
+    clarification["responses"] = [
+        deepcopy(item)
+        for item in clarification.get("responses", [])
+        if isinstance(item, dict)
+    ]
+    clarification["requested_at"] = clarification.get("requested_at") or requested_at
+    clarification["resolved_at"] = None
+    clarification["requested_by"] = clarification.get("requested_by") or requested_by
+    clarification["resolution_summary"] = None
+    updated_task["clarification"] = clarification
+    return updated_task
 
 
 def _with_linear_coordination(
@@ -461,10 +492,17 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
     _validate_submission_task_status_overlay(request_payload)
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
-    unresolved_conditions = _parse_unresolved_conditions(request_payload)
+    requested_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
+    task_envelope = _with_submission_clarification(
+        task_envelope,
+        unresolved_conditions=unresolved_conditions,
+        preferred_resume_target_status=requested_status,
+        requested_by="harness-intake",
+    )
 
     external_facts = _parse_external_facts(
         _optional_mapping(request_payload.get("external_facts"), field_name="external_facts")
@@ -474,11 +512,6 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
         linear_facts=external_facts.linear_facts if external_facts is not None else None,
         linked_by=(task_envelope.get("origin") or {}).get("source_system") or "harness",
         source="evaluation_request.external_facts",
-    )
-    task_envelope = _with_submission_clarification(
-        task_envelope,
-        unresolved_conditions=unresolved_conditions,
-        requested_by="harness-intake",
     )
 
     return HarnessEvaluationRequest(
@@ -696,6 +729,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
     merged_task = _with_submission_clarification(
         merged_task,
         unresolved_conditions=unresolved_conditions,
+        preferred_resume_target_status=None,
         requested_by="harness-runtime",
     )
 
@@ -757,6 +791,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
     merged_task = _with_submission_clarification(
         merged_task,
         unresolved_conditions=unresolved_conditions,
+        preferred_resume_target_status=None,
         requested_by="harness-reevaluation",
     )
 
@@ -793,20 +828,98 @@ def _dispatch_attempt_status(execution_events: tuple[dict[str, Any], ...]) -> st
     return "started"
 
 
-def _dispatch_policy_decision(task_envelope: dict[str, Any]) -> tuple[bool, str]:
+def _dispatch_policy_decision(task_envelope: dict[str, Any], *, store: HarnessStore) -> tuple[bool, str]:
     task_status = str(task_envelope.get("status") or "")
-    if task_status not in _AUTO_DISPATCHABLE_STATUSES:
-        return False, f"status={task_status} is not auto-dispatch eligible"
     if task_status in _TERMINAL_TASK_STATUSES:
         return False, f"status={task_status} is terminal"
-    if task_status in _DISPATCH_BLOCKED_STATUSES or task_status == "blocked":
+    if task_status == "blocked":
+        if _has_unresolved_clarification_for_dispatch(task_envelope):
+            return False, "status=blocked: clarification unresolved"
         return False, f"status={task_status} is blocked for dispatch"
+    if task_status in _DISPATCH_BLOCKED_STATUSES:
+        return False, f"status={task_status} is blocked for dispatch"
+    if task_status not in _AUTO_DISPATCHABLE_STATUSES:
+        return False, f"status={task_status} is not auto-dispatch eligible"
+    dependency_block_reason = _dispatch_dependency_block_reason(task_envelope, store=store)
+    if dependency_block_reason is not None:
+        return False, dependency_block_reason
 
     execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     if isinstance(execution_attempts, list) and any(isinstance(attempt, dict) for attempt in execution_attempts):
         return False, "execution attempt already recorded for current task state"
 
     return True, "eligible: non_terminal_non_blocked_no_existing_attempt"
+
+
+def _has_unresolved_clarification_for_dispatch(task_envelope: dict[str, Any]) -> bool:
+    clarification = task_envelope.get("clarification")
+    if not isinstance(clarification, dict):
+        return False
+
+    if clarification.get("status") in {"required", "requested", "answered"}:
+        return True
+
+    required_inputs = clarification.get("required_inputs")
+    if not isinstance(required_inputs, list):
+        return False
+    for item in required_inputs:
+        if isinstance(item, dict) and item.get("required") and item.get("status") == "open":
+            return True
+    return False
+
+
+def _dispatch_dependency_status_satisfies(current_status: str, required_status: str) -> bool:
+    current_rank = _DISPATCH_DEPENDENCY_STATUS_ORDER.get(current_status)
+    required_rank = _DISPATCH_DEPENDENCY_STATUS_ORDER.get(required_status)
+    if current_rank is None or required_rank is None:
+        return False
+    return current_rank >= required_rank
+
+
+def _dispatch_dependency_block_reason(task_envelope: dict[str, Any], *, store: HarnessStore) -> str | None:
+    dependencies = task_envelope.get("dependencies")
+    if not isinstance(dependencies, list):
+        return None
+
+    task_id = str(task_envelope.get("id") or "")
+    for dependency in dependencies:
+        if not isinstance(dependency, dict):
+            continue
+        if dependency.get("dependency_type") != "blocks":
+            continue
+        dependency_task_id = str(dependency.get("task_id") or "").strip()
+        required_status = str(dependency.get("required_status") or "").strip()
+        if not dependency_task_id or not required_status:
+            continue
+        if dependency_task_id == task_id:
+            return f"Task {task_id!r} has an invalid self-dependency and cannot be dispatched"
+        try:
+            dependency_task = store.get_task(dependency_task_id)
+        except TaskEnvelopeNotFoundError:
+            return f"Task {task_id!r} is blocked on missing dependency {dependency_task_id!r}"
+        dependency_status = str(dependency_task.get("status") or "")
+        if not _dispatch_dependency_status_satisfies(dependency_status, required_status):
+            return (
+                f"Task {task_id!r} is blocked on dependency {dependency_task_id!r}; "
+                f"requires status {required_status!r} but current status is {dependency_status!r}"
+            )
+    return None
+
+
+def _manual_dispatch_allowed(task_envelope: dict[str, Any], *, store: HarnessStore) -> tuple[bool, str]:
+    task_status = str(task_envelope.get("status") or "")
+    if task_status in _TERMINAL_TASK_STATUSES:
+        return False, f"Task {task_envelope.get('id')!r} is terminal and cannot be dispatched"
+    if task_status in _DISPATCH_BLOCKED_STATUSES:
+        return False, f"Task {task_envelope.get('id')!r} is currently blocked for dispatch"
+    if task_status not in _MANUAL_DISPATCHABLE_STATUSES:
+        return False, f"Task {task_envelope.get('id')!r} is not dispatch-ready; current status is {task_status!r}"
+    if task_status == "blocked" and _has_unresolved_clarification_for_dispatch(task_envelope):
+        return False, f"Task {task_envelope.get('id')!r} is blocked on clarification and cannot be dispatched"
+    dependency_block_reason = _dispatch_dependency_block_reason(task_envelope, store=store)
+    if dependency_block_reason is not None:
+        return False, dependency_block_reason
+    return True, ""
 
 
 def _executor_hint_from_task(task_envelope: dict[str, Any]) -> str | None:
@@ -1698,6 +1811,8 @@ def _reconciliation_failure_response_shape(
 ) -> tuple[str, bool]:
     if target_status == "blocked":
         return "reconciliation_blocked", False
+    if target_status == "failed":
+        return "reconciliation_terminal_failed", False
     return "reconciliation_failed", True
 
 
@@ -1876,12 +1991,16 @@ class HarnessApiService:
             target_status = (
                 "blocked"
                 if error.disposition == ReconciliationFailureDisposition.BLOCKED_RETRYABLE
+                else "failed"
+                if error.disposition == ReconciliationFailureDisposition.TERMINAL_FAILED
                 else "in_review"
             )
             action, requires_review = _reconciliation_failure_response_shape(target_status=target_status)
             reason_prefix = (
                 "Post-execution reconciliation blocked by retryable provider failure"
                 if target_status == "blocked"
+                else "Post-execution reconciliation established a terminal execution failure"
+                if target_status == "failed"
                 else "Post-execution reconciliation failed"
             )
             failed_task = self._task_with_transition(
@@ -1889,6 +2008,7 @@ class HarnessApiService:
                 to_status=target_status,
                 reason=f"{reason_prefix}: {error}",
                 actor="reconciliation",
+                facts={"terminal_failure": True} if target_status == "failed" else None,
             )
             failed_task = ensure_reconciliation_state(failed_task)
             failed_task["reconciliation"]["status"] = ReconciliationAttemptStatus.FAILED.value
@@ -1913,6 +2033,8 @@ class HarnessApiService:
             reason_prefix = (
                 "Post-execution reconciliation blocked by retryable provider failure"
                 if handler_result.target_status == "blocked"
+                else "Post-execution reconciliation established a terminal execution failure"
+                if handler_result.target_status == "failed"
                 else "Post-execution reconciliation failed"
             )
             failed_task = self._task_with_transition(
@@ -1920,6 +2042,7 @@ class HarnessApiService:
                 to_status=handler_result.target_status,
                 reason=f"{reason_prefix}: {handler_result.error}",
                 actor="reconciliation",
+                facts={"terminal_failure": True} if handler_result.target_status == "failed" else None,
             )
             self.store.update_task(failed_task)
             return None, {
@@ -2179,7 +2302,7 @@ class HarnessApiService:
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
 
-        should_dispatch, reason = _dispatch_policy_decision(stored_task)
+        should_dispatch, reason = _dispatch_policy_decision(stored_task, store=self.store)
         if should_dispatch:
             dispatch_status, dispatch_payload = self.dispatch_task(
                 task_id,
@@ -2277,6 +2400,10 @@ class HarnessApiService:
                 task_envelope=_with_submission_clarification(
                     _apply_submission_task_overlays(stored_task, request_payload=request_payload),
                     unresolved_conditions=request.unresolved_conditions,
+                    preferred_resume_target_status=_optional_non_empty_string(
+                        request_payload.get("task_status"),
+                        field_name="task_status",
+                    ),
                     requested_by="harness-reevaluation",
                 ),
                 review_is_active=_review_gate_is_active(stored_task, existing_records),
@@ -2413,11 +2540,9 @@ class HarnessApiService:
         except TaskEnvelopeNotFoundError:
             return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
 
-        task_status = str(stored_task.get("status") or "")
-        if task_status in _TERMINAL_TASK_STATUSES:
-            return HTTPStatus.CONFLICT, {"error": f"Task {task_id!r} is terminal and cannot be dispatched"}
-        if task_status in _DISPATCH_BLOCKED_STATUSES:
-            return HTTPStatus.CONFLICT, {"error": f"Task {task_id!r} is currently blocked for dispatch"}
+        dispatch_allowed, dispatch_reason = _manual_dispatch_allowed(stored_task, store=self.store)
+        if not dispatch_allowed:
+            return HTTPStatus.CONFLICT, {"error": dispatch_reason}
 
         request_payload = _optional_mapping(payload.get("request"), field_name="request") or {}
         executor = _executor_hint(_optional_non_empty_string(request_payload.get("executor"), field_name="request.executor"))

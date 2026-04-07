@@ -13,6 +13,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from modules.api import HarnessApiService, run_server
+from modules.intake.task_envelope import create_task_envelope
 from modules.demo_cases import build_demo_request
 from modules.goal_to_work import GoalToWorkRequest, run_goal_to_work_flow
 from modules.store import FileBackedHarnessStore, PostgresHarnessStore
@@ -275,6 +276,53 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 1)
         self.assertIsNotNone(read_payload["task"]["execution_summary"]["latest_attempt"])
+
+    def test_read_model_exposes_clarification_summary_and_timeline_event(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-read-model-clarification-1",
+                "title": "Clarification in read model",
+                "description": "Expose clarification in canonical inspection surfaces.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": "task-read-model-clarification-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Task becomes routable after clarification.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-06T00:00:00Z",
+        )
+        submit_status, _ = self.service.submit(
+            {
+                "request": {
+                    "task_envelope": task_envelope,
+                    "task_status": "planned",
+                    "unresolved_conditions": ["Need repository clarification before planning can proceed."],
+                }
+            }
+        )
+
+        read_status, read_payload = self.service.get_task_read_model("task-read-model-clarification-1")
+        timeline_status, timeline_payload = self.service.get_task_timeline("task-read-model-clarification-1")
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "blocked")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["status"], "required")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["resume_target_status"], "planned")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["open_required_input_count"], 1)
+        self.assertEqual(timeline_status, 200)
+        clarification_events = [
+            event for event in timeline_payload["timeline"] if event["event_type"] == "clarification_updated"
+        ]
+        self.assertEqual(len(clarification_events), 1)
+        self.assertEqual(clarification_events[0]["details"]["resume_target_status"], "planned")
  
     def test_read_model_exposes_retry_fields_for_retryable_failures(self) -> None:
         payload = _request_payload("blocked_insufficient_evidence")
