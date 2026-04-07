@@ -32,7 +32,7 @@ Before completion claims reach reconciliation, Harness now validates whether a s
 
 Harness also rejects executor-side contract violations mechanically. Delegated code-bearing completion evidence cannot use reserved shared branches such as `work`, cannot omit branch identity, and cannot rely on malformed or stale PR URLs as proof. A real GitHub pull request URL must be numeric and current-run-valid; compare URLs, PR creation pages, closed historical PRs, and unrelated branch/commit/PR chains do not satisfy completion evidence.
 
-Executor-submitted completion claims also cannot self-certify repository-backed proof. If a completion claim carries a pull request artifact already marked `verified`, Harness downgrades that artifact back to unverified, removes it from validated evidence, and requires canonical reconciliation to prove the PR through GitHub-facing policy. `verification_status=verified` on a caller payload is advisory input, not trust.
+Executor-submitted completion claims also cannot self-certify support-artifact proof, and they still cannot self-certify PR proof. If a completion claim carries a support artifact or pull request artifact already marked `verified`, Harness downgrades that artifact back to unverified, removes it from validated evidence, and requires canonical verification or reconciliation to earn trust again. `verification_status=verified` on a caller payload is advisory input, not trust.
 
 Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
 

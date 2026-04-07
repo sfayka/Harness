@@ -859,7 +859,7 @@ def _merge_artifacts(
     existing_task: dict[str, Any],
     *,
     new_artifacts: tuple[dict[str, Any], ...],
-    sanitize_pull_request_verification: bool = False,
+    sanitize_submitted_verification: bool = False,
 ) -> dict[str, Any]:
     merged_task = deepcopy(existing_task)
     artifact_items = list(merged_task["artifacts"]["items"])
@@ -871,10 +871,14 @@ def _merge_artifacts(
             raise ApiRequestError(f"new_artifacts contains duplicate artifact id {artifact_id!r}")
         sanitized_artifact = deepcopy(artifact)
         submitted_verification_status = _normalized_string(sanitized_artifact.get("verification_status"))
+        artifact_type = _normalized_string(sanitized_artifact.get("type"))
         if (
-            sanitize_pull_request_verification
-            and sanitized_artifact.get("type") == "pull_request"
+            sanitize_submitted_verification
             and submitted_verification_status == "verified"
+            and (
+                artifact_type == "pull_request"
+                or artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES
+            )
         ):
             metadata = sanitized_artifact.get("metadata") if isinstance(sanitized_artifact.get("metadata"), dict) else {}
             metadata = dict(metadata)
@@ -1092,7 +1096,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         merged_task = _merge_artifacts(
             merged_task,
             new_artifacts=new_artifacts,
-            sanitize_pull_request_verification=True,
+            sanitize_submitted_verification=True,
         )
 
     completion_evidence_update = _optional_mapping(

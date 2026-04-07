@@ -2462,6 +2462,77 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(pull_request_artifacts)
         self.assertEqual(pull_request_artifacts[-1]["verification_status"], "unverified")
 
+    def test_service_completion_claim_strips_executor_verified_status_from_support_artifacts(self) -> None:
+        service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-support-artifact-claim-1",
+                "title": "Support artifact completion claim",
+                "description": "Completion claim should not self-certify support artifacts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-support-artifact-claim-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Completion requires a reviewed support note.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T18:00:00Z",
+        )
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["review_note"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-support-verified-note-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-support-verified-note-1"),
+                    "new_artifacts": [_review_note_artifact("artifact-review-note-claim-1")],
+                    "completion_evidence": {
+                        "validated_artifact_ids": ["artifact-review-note-claim-1"],
+                        "validation_method": "manual_review",
+                    },
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertFalse(claim_response["accepted_completion"])
+        self.assertNotEqual(claim_response["task_envelope"]["status"], "completed")
+        review_note_artifact = next(
+            artifact
+            for artifact in claim_response["task_envelope"]["artifacts"]["items"]
+            if artifact["id"] == "artifact-review-note-claim-1"
+        )
+        self.assertEqual(review_note_artifact["verification_status"], "unverified")
+        self.assertEqual(
+            review_note_artifact["metadata"]["submitted_verification_status"],
+            "verified",
+        )
+        self.assertEqual(
+            claim_response["task_envelope"]["artifacts"]["completion_evidence"]["validated_artifact_ids"],
+            [],
+        )
+
     def test_service_completion_claim_allows_missing_commit_when_branch_can_be_reconciled(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
