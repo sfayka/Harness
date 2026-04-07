@@ -626,19 +626,7 @@ def _resolved_code_context(
     repository_name = merged_source.repository_name
     branch_name = merged_source.branch_name
     base_branch = merged_source.base_branch
-    commit_sha = merged_source.commit_sha
     contributing_sources: list[str] = []
-    non_artifact_sources_present = any(source_name != "artifacts" for source_name in source_contexts)
-    artifact_only_commit_backfill = (
-        non_artifact_sources_present
-        and "artifacts" in source_contexts
-        and bool(source_contexts["artifacts"].commit_sha)
-        and not any(
-            bool(source_contexts[source_name].commit_sha)
-            for source_name in source_contexts
-            if source_name != "artifacts"
-        )
-    )
     for source_name, source_context in source_contexts.items():
         contributing_sources.append(source_name)
         repository_host = repository_host or source_context.repository_host
@@ -646,9 +634,32 @@ def _resolved_code_context(
         repository_name = repository_name or source_context.repository_name
         branch_name = branch_name or source_context.branch_name
         base_branch = base_branch or source_context.base_branch
-        if artifact_only_commit_backfill and source_name == "artifacts":
-            continue
-        commit_sha = commit_sha or source_context.commit_sha
+
+    branch_source_name = (
+        "execution_attempt"
+        if "execution_attempt" in source_contexts and source_contexts["execution_attempt"].branch_name
+        else next(
+            (
+                source_name
+                for source_name, source_context in source_contexts.items()
+                if source_context.branch_name
+            ),
+            contributing_sources[0],
+        )
+    )
+    branch_source = source_contexts[branch_source_name]
+    commit_sha = branch_source.commit_sha or ""
+    if not commit_sha and branch_source_name != "execution_attempt":
+        execution_context = source_contexts.get("execution_attempt")
+        if (
+            execution_context is not None
+            and execution_context.commit_sha
+            and execution_context.repository_host == (repository_host or "github.com")
+            and execution_context.repository_owner == repository_owner
+            and execution_context.repository_name == repository_name
+            and execution_context.branch_name == branch_name
+        ):
+            commit_sha = execution_context.commit_sha
 
     selected_source = contributing_sources[0] if len(contributing_sources) == 1 else "merged"
     return (
