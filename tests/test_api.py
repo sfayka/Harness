@@ -370,30 +370,21 @@ def _linear_ingress_payload(case_name: str, *, task_id: str | None = None) -> di
         },
         "labels": ["linear", "ingress"],
         "priority": task.get("priority", "normal"),
-        "task_status": task["status"],
+        "task_status": "intake_ready",
         "acceptance_criteria": deepcopy(task["acceptance_criteria"]),
-        "linked_artifacts": deepcopy(task["artifacts"]["items"]),
-        "completion_evidence": deepcopy(task["artifacts"]["completion_evidence"]),
         "external_facts": {},
-        "claimed_completion": canonical_request.get("claimed_completion", False),
-        "acceptance_criteria_satisfied": canonical_request.get("acceptance_criteria_satisfied", False),
-        "runtime_facts": _to_jsonable(canonical_request.get("runtime_facts") or {}),
+        "claimed_completion": False,
+        "acceptance_criteria_satisfied": False,
     }
-
-    if task.get("assigned_executor") is not None:
-        payload["assigned_executor"] = deepcopy(task["assigned_executor"])
 
     if external_facts.get("expected_code_context") is not None:
         payload["external_facts"]["expected_code_context"] = deepcopy(external_facts["expected_code_context"])
     if external_facts.get("github_facts") is not None:
         payload["external_facts"]["github_facts"] = deepcopy(external_facts["github_facts"])
 
-    if case_name == "review_required":
-        payload["state"] = {
-            "id": "workflow_in_progress",
-            "name": "in_progress",
-            "type": "started",
-        }
+    if case_name == "blocked_insufficient_evidence":
+        payload["task_status"] = "dispatch_ready"
+        payload["unresolved_conditions"] = ["Need target repository before dispatch can begin."]
 
     return payload
 
@@ -730,7 +721,7 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "linear")
-        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(payload["task_envelope"]["status"], "intake_ready")
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["extensions"]["linear"]["issue_id"], f"lin-{payload['task_envelope']['id']}")
         self.assertEqual(history_status, 200)
@@ -2503,7 +2494,7 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "linear")
-        self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(payload["task_envelope"]["status"], "intake_ready")
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["extensions"]["linear"]["issue_id"], f"lin-{task_id}")
         self.assertEqual(history_status, 200)
@@ -2516,9 +2507,47 @@ class HarnessHttpApiTests(unittest.TestCase):
         task_status, task_payload = self._get_json(f"/tasks/{task_id}")
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["target_status"], "blocked")
+        self.assertEqual(payload["task_envelope"]["status"], "blocked")
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["status"], "blocked")
+
+    def test_api_linear_ingress_rejects_completion_shaped_handoff(self) -> None:
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-completion-1")
+        payload["claimed_completion"] = True
+
+        status, response_payload = self._post_json("/ingress/linear", payload)
+        task_status, task_payload = self._get_json("/tasks/task-linear-invalid-completion-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot claim completion", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_linear_ingress_rejects_runtime_facts_and_execution_artifacts(self) -> None:
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-runtime-1")
+        payload["runtime_facts"] = {"attempt_count": 1}
+
+        status, response_payload = self._post_json("/ingress/linear", payload)
+        task_status, task_payload = self._get_json("/tasks/task-linear-invalid-runtime-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot submit runtime_facts", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-artifact-1")
+        payload["linked_artifacts"] = [{"id": "artifact-pr-1", "type": "pull_request"}]
+
+        status, response_payload = self._post_json("/ingress/linear", payload)
+        task_status, task_payload = self._get_json("/tasks/task-linear-invalid-artifact-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot attach repository execution artifacts", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
 
     def test_api_linear_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
         payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-1")
@@ -2570,6 +2599,44 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertIn("task_envelope", payload)
         self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "manual")
         self.assertTrue(payload["task_envelope"]["id"])
+
+    def test_api_manual_ingress_rejects_completion_shaped_handoff(self) -> None:
+        payload = _manual_ingress_payload(task_id="task-manual-invalid-completion-1")
+        payload["acceptance_criteria_satisfied"] = True
+
+        status, response_payload = self._post_json("/ingress/manual", payload)
+        task_status, task_payload = self._get_json("/tasks/task-manual-invalid-completion-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot assert acceptance_criteria_satisfied", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_manual_ingress_rejects_runtime_facts_and_execution_artifacts(self) -> None:
+        payload = _manual_ingress_payload(task_id="task-manual-invalid-runtime-1")
+        payload["runtime_facts"] = {"attempt_count": 1}
+
+        status, response_payload = self._post_json("/ingress/manual", payload)
+        task_status, task_payload = self._get_json("/tasks/task-manual-invalid-runtime-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot submit runtime_facts", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+        payload = _manual_ingress_payload(task_id="task-manual-invalid-artifact-1")
+        payload["linked_artifacts"] = [{"id": "artifact-pr-1", "type": "pull_request"}]
+
+        status, response_payload = self._post_json("/ingress/manual", payload)
+        task_status, task_payload = self._get_json("/tasks/task-manual-invalid-artifact-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot attach repository execution artifacts", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
 
     def test_api_accepts_openclaw_ingress_submission_endpoint(self) -> None:
         status, payload = self._post_json("/ingress/openclaw", _openclaw_ingress_payload())

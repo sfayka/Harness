@@ -7,9 +7,12 @@ This document is the source-of-truth API usage guide for execution agents and do
 - `POST /tasks`: submit a new canonical task payload
 - `POST /tasks/<task_id>/reevaluate`: submit new facts, artifacts, or review decisions for an existing task
 - `POST /ingress/manual`: submit a manually initiated task and let Harness intake assign a canonical `task_id` when one is not provided
+- `POST /ingress/linear`: submit a Linear-shaped work item that is normalized into canonical Harness task input
 - `POST /ingress/openclaw`: submit an OpenClaw-shaped ingress payload that is normalized into canonical `TaskEnvelope` submission
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
+
+Ingress adapters are intake/planning surfaces, not execution-reporting surfaces. `POST /ingress/manual`, `POST /ingress/linear`, and `POST /ingress/openclaw` must not be used to claim completion, assert acceptance, submit executor runtime facts, or attach repository execution artifacts as proof. Those inputs belong to dispatch, completion-claim, and reevaluation paths where Harness can verify them mechanically.
 
 ### Completion Claim Interception Helper
 

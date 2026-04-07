@@ -22,7 +22,7 @@ def _to_jsonable(value):
 
 
 def _linear_ingress_payload() -> dict:
-    canonical_request = build_demo_request("accepted_completion")
+    canonical_request = build_demo_request("review_required")
     task = deepcopy(canonical_request.task_envelope)
     external_facts = deepcopy(canonical_request.external_facts)
 
@@ -34,9 +34,9 @@ def _linear_ingress_payload() -> dict:
             "description": task["description"],
         },
         "state": {
-            "id": "workflow_done",
-            "name": "completed",
-            "type": "completed",
+            "id": "workflow_in_progress",
+            "name": "in_progress",
+            "type": "started",
         },
         "project": {
             "id": "project-harness",
@@ -48,18 +48,15 @@ def _linear_ingress_payload() -> dict:
         },
         "labels": ["feature", "ai-workflow"],
         "priority": "high",
-        "task_status": task["status"],
+        "task_status": "intake_ready",
         "assigned_executor": deepcopy(task["assigned_executor"]),
         "acceptance_criteria": deepcopy(task["acceptance_criteria"]),
-        "linked_artifacts": deepcopy(task["artifacts"]["items"]),
-        "completion_evidence": deepcopy(task["artifacts"]["completion_evidence"]),
         "external_facts": {
             "expected_code_context": deepcopy(external_facts.expected_code_context),
             "github_facts": deepcopy(external_facts.github_facts),
         },
-        "claimed_completion": True,
-        "acceptance_criteria_satisfied": True,
-        "runtime_facts": _to_jsonable(canonical_request.runtime_facts),
+        "claimed_completion": False,
+        "acceptance_criteria_satisfied": False,
     }
 
 
@@ -77,10 +74,11 @@ class LinearIngressTranslationTests(unittest.TestCase):
         self.assertTrue(task["coordination"]["linear"]["record_found"])
         self.assertEqual(task["coordination"]["linear"]["provenance"]["source"], "linear_ingress_payload")
         self.assertEqual(task["extensions"]["linear"]["issue_identifier"], "HAR-901")
-        self.assertEqual(len(task["artifacts"]["items"]), 2)
+        self.assertEqual(task["status"], "intake_ready")
+        self.assertEqual(len(task["artifacts"]["items"]), 0)
         self.assertEqual(linear_facts["issue_id"], "lin-ingress-1")
         self.assertEqual(linear_facts["issue_key"], "HAR-901")
-        self.assertEqual(linear_facts["state"], "completed")
+        self.assertEqual(linear_facts["state"], "in_progress")
         self.assertEqual(linear_facts["task_reference"]["harness_task_id"], "task-linear-ingress-1")
 
     def test_rejects_missing_required_issue_fields(self) -> None:
@@ -88,6 +86,38 @@ class LinearIngressTranslationTests(unittest.TestCase):
         del payload["issue"]["title"]
 
         with self.assertRaises(LinearIngressInputError):
+            translate_linear_submission_payload(payload)
+
+    def test_rejects_completion_shaped_fields(self) -> None:
+        payload = _linear_ingress_payload()
+        payload["claimed_completion"] = True
+        with self.assertRaisesRegex(LinearIngressInputError, "cannot claim completion"):
+            translate_linear_submission_payload(payload)
+
+        payload = _linear_ingress_payload()
+        payload["acceptance_criteria_satisfied"] = True
+        with self.assertRaisesRegex(LinearIngressInputError, "cannot assert acceptance_criteria_satisfied"):
+            translate_linear_submission_payload(payload)
+
+        payload = _linear_ingress_payload()
+        payload["runtime_facts"] = {"attempt_count": 1}
+        with self.assertRaisesRegex(LinearIngressInputError, "cannot submit runtime_facts"):
+            translate_linear_submission_payload(payload)
+
+    def test_rejects_execution_artifacts_completion_evidence_and_runtime_status(self) -> None:
+        payload = _linear_ingress_payload()
+        payload["linked_artifacts"] = [{"id": "artifact-pr-1", "type": "pull_request"}]
+        with self.assertRaisesRegex(LinearIngressInputError, "cannot attach repository execution artifacts"):
+            translate_linear_submission_payload(payload)
+
+        payload = _linear_ingress_payload()
+        payload["completion_evidence"] = {"status": "satisfied"}
+        with self.assertRaisesRegex(LinearIngressInputError, "cannot submit completion_evidence"):
+            translate_linear_submission_payload(payload)
+
+        payload = _linear_ingress_payload()
+        payload["task_status"] = "completed"
+        with self.assertRaisesRegex(LinearIngressInputError, "task_status must be one of"):
             translate_linear_submission_payload(payload)
 
 

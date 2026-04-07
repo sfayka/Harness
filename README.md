@@ -16,6 +16,8 @@ Harness is not a PM tool, an agent runtime, or a chatbot UI.
 
 OpenClaw ingress is also intentionally narrow. It can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If OpenClaw wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If OpenClaw also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
+The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
+
 That clarification rule now applies across canonical submission as well, not just the OpenClaw adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`.
 
 ## Governed Reconciliation
