@@ -106,6 +106,7 @@ _DISPATCH_DEPENDENCY_STATUS_ORDER = {
     "executing": 3,
     "completed": 4,
 }
+_ALLOWED_SUBMISSION_STATUS_OVERLAYS = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "blocked"})
 
 
 def _iso_now() -> str:
@@ -311,6 +312,24 @@ def _apply_submission_task_overlays(
     return merged_task
 
 
+def _validate_submission_task_status_overlay(request_payload: dict[str, Any]) -> None:
+    task_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
+    if task_status is None:
+        return
+    if task_status not in _ALLOWED_SUBMISSION_STATUS_OVERLAYS:
+        allowed = ", ".join(sorted(_ALLOWED_SUBMISSION_STATUS_OVERLAYS))
+        raise ApiRequestError(
+            f"task_status may only seed intake/planning lifecycle states ({allowed}); got {task_status!r}"
+        )
+
+
+def _parse_unresolved_conditions(request_payload: dict[str, Any]) -> tuple[str, ...]:
+    return _optional_string_tuple(
+        request_payload.get("unresolved_conditions"),
+        field_name="unresolved_conditions",
+    )
+
+
 def _infer_clarification_need_type(condition: str) -> str:
     normalized = condition.strip().lower()
     if "ambig" in normalized or "unclear" in normalized or "multiple" in normalized or "conflict" in normalized:
@@ -472,10 +491,8 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     """Parse a canonical HTTP evaluation request into the public evaluator input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
-    unresolved_conditions = _optional_string_tuple(
-        request_payload.get("unresolved_conditions"),
-        field_name="unresolved_conditions",
-    )
+    _validate_submission_task_status_overlay(request_payload)
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
@@ -484,7 +501,7 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
         task_envelope,
         unresolved_conditions=unresolved_conditions,
         preferred_resume_target_status=requested_status,
-        requested_by="submission",
+        requested_by="harness-intake",
     )
 
     external_facts = _parse_external_facts(
@@ -669,6 +686,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
     """Parse an executor completion claim into canonical reevaluation input."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
     completion_claim = _parse_completion_claim(request_payload)
     merged_task = _with_advisory_completion_claim(task_envelope, claim=completion_claim)
     execution_attempt = _parse_execution_attempt(request_payload, completion_claim=completion_claim)
@@ -708,6 +726,12 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         linked_by="reevaluation",
         source="completion_claim.external_facts",
     )
+    merged_task = _with_submission_clarification(
+        merged_task,
+        unresolved_conditions=unresolved_conditions,
+        preferred_resume_target_status=None,
+        requested_by="harness-runtime",
+    )
 
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
@@ -715,10 +739,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         claimed_completion=True,
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
-        unresolved_conditions=_optional_string_tuple(
-            request_payload.get("unresolved_conditions"),
-            field_name="unresolved_conditions",
-        ),
+        unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
         review_request=review_request,
         review_decision=review_decision,
@@ -729,6 +750,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
     """Parse a reevaluation payload against an existing stored TaskEnvelope."""
 
     request_payload = _require_mapping(payload.get("request"), field_name="request")
+    unresolved_conditions = _parse_unresolved_conditions(request_payload)
     merged_task = deepcopy(task_envelope)
 
     new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
@@ -766,6 +788,12 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         linked_by="reevaluation",
         source="reevaluation_request.external_facts",
     )
+    merged_task = _with_submission_clarification(
+        merged_task,
+        unresolved_conditions=unresolved_conditions,
+        preferred_resume_target_status=None,
+        requested_by="harness-reevaluation",
+    )
 
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
@@ -773,10 +801,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         claimed_completion=bool(request_payload.get("claimed_completion", False)),
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
-        unresolved_conditions=_optional_string_tuple(
-            request_payload.get("unresolved_conditions"),
-            field_name="unresolved_conditions",
-        ),
+        unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
         review_request=review_request,
         review_decision=review_decision,
@@ -2369,9 +2394,18 @@ class HarnessApiService:
         else:
             existing_records = self.store.list_evaluation_records(task_id)
             request_payload = _require_mapping(payload.get("request"), field_name="request")
+            _validate_submission_task_status_overlay(request_payload)
             request = replace(
                 request,
-                task_envelope=_apply_submission_task_overlays(stored_task, request_payload=request_payload),
+                task_envelope=_with_submission_clarification(
+                    _apply_submission_task_overlays(stored_task, request_payload=request_payload),
+                    unresolved_conditions=request.unresolved_conditions,
+                    preferred_resume_target_status=_optional_non_empty_string(
+                        request_payload.get("task_status"),
+                        field_name="task_status",
+                    ),
+                    requested_by="harness-reevaluation",
+                ),
                 review_is_active=_review_gate_is_active(stored_task, existing_records),
             )
 

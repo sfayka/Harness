@@ -134,6 +134,41 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "evidence_insufficient")
         self.assertEqual(payload["task"]["failure_summary"]["failure_source"], "evaluation")
 
+    def test_read_model_and_timeline_expose_clarification_state(self) -> None:
+        task_envelope = deepcopy(_request_payload("review_required")["request"]["task_envelope"])
+        task_envelope["id"] = "task-read-model-clarification-1"
+        task_envelope["status"] = "intake_ready"
+        task_envelope["timestamps"]["completed_at"] = None
+
+        submit_status, submit_payload = self.service.submit(
+            {
+                "request": {
+                    "task_envelope": task_envelope,
+                    "unresolved_conditions": ["Need target repository clarification before proceeding."],
+                }
+            }
+        )
+        task_id = submit_payload["task_envelope"]["id"]
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "blocked")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["status"], "required")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["open_required_input_count"], 1)
+        self.assertEqual(read_payload["task"]["clarification_summary"]["resume_target_status"], "intake_ready")
+        self.assertEqual(timeline_status, 200)
+        clarification_events = [
+            event for event in timeline_payload["timeline"] if event["event_type"] == "clarification_required"
+        ]
+        self.assertTrue(clarification_events)
+        self.assertEqual(
+            clarification_events[-1]["details"]["required_inputs"][0]["description"],
+            "Need target repository clarification before proceeding.",
+        )
+
     def test_timeline_shows_completed_to_blocked_rollback(self) -> None:
         initial_status, initial_payload = self.service.submit(_request_payload("accepted_completion"))
         task_id = initial_payload["task_envelope"]["id"]

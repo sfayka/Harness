@@ -43,6 +43,8 @@ Clarification is represented through two layers:
 - top-level task lifecycle state
 - the optional `clarification` object on `TaskEnvelope`
 
+This is not limited to initial intake. When callers send `unresolved_conditions` through canonical submission, reevaluation, or executor completion-claim paths, Harness must convert those conditions into the canonical `clarification` contract rather than leaving them as unstructured evaluator-only notes.
+
 ### Lifecycle State
 
 Harness uses `blocked` as the lifecycle state when clarification prevents safe progress.
@@ -57,6 +59,14 @@ Harness does not need a separate top-level `clarification` lifecycle enum if the
 ## Clarification Object
 
 The `clarification` object records the missing-information contract for the task.
+
+When Harness only knows that safe progress is blocked, but no explicit clarification question has been sent yet, it should record:
+
+- `clarification.status: required`
+- one or more open `required_inputs`
+- no invented question/response history
+
+If a real clarification request is later sent upstream, the task may move to `clarification.status: requested` and attach `questions` without erasing the earlier required-input record.
 
 ### Fields
 
@@ -139,6 +149,25 @@ Typical shape:
 - prior question and response records remain attached
 
 These modes should not be flattened into a single generic clarification bucket.
+
+## Canonicalization Rule
+
+`unresolved_conditions` is advisory input. It is not the canonical state.
+
+When Harness receives unresolved conditions, it should:
+
+- preserve the condition strings as evaluation reasons when relevant
+- attach or update `task.clarification`
+- move the task into `blocked` if clarification prevents safe continuation
+- record the intended `resume_target_status` so the task can resume without inventing a new lifecycle family
+
+This rule applies consistently at:
+
+- initial task submission
+- existing-task reevaluation
+- executor completion-claim reevaluation
+
+The control plane must not rely on operators to infer that a task was “really blocked for clarification” from raw evaluator reasons alone.
 
 ### Resume Target
 
