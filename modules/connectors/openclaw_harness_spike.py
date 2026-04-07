@@ -262,16 +262,6 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         deliverable_type="integration_spike",
         success_signal="The task moves from blocked to completed through public API calls only.",
         linked_artifacts=(),
-        completion_evidence={
-            "policy": "required",
-            "status": "insufficient",
-            "required_artifact_types": ["review_note"],
-            "validated_artifact_ids": [],
-            "validation_method": "manual_review",
-            "validated_at": None,
-            "validator": None,
-            "notes": "OpenClaw has not yet provided the operator confirmation artifact.",
-        },
         requested_by="operator@example.com",
     )
 
@@ -292,8 +282,11 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         task_id,
         new_artifacts=(_demo_review_note_artifact(),),
         completion_evidence={
+            "policy": "required",
+            "required_artifact_types": ["review_note"],
             "status": "satisfied",
             "validated_artifact_ids": ["artifact-openclaw-review-note-1"],
+            "validation_method": "manual_review",
             "validated_at": "2026-03-25T16:02:00Z",
             "validator": {
                 "source_system": "harness",

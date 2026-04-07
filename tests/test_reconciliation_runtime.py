@@ -162,6 +162,76 @@ class ResolveCodeContextTests(unittest.TestCase):
         self.assertEqual(selected, "external_facts")
         self.assertIn("external_facts", sources)
 
+    def test_does_not_backfill_commit_from_artifacts_when_non_artifact_context_is_missing_commit(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-context-artifact-commit-backfill-1",
+                "title": "Avoid artifact-only commit backfill",
+                "description": "Artifact commits must not silently backfill execution context from another source.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-context-artifact-commit-backfill-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness prefers missing commit identity over stale artifact backfill.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-06T09:00:00Z",
+        )
+        task["artifacts"]["items"] = [
+            {
+                "id": "artifact-commit-1",
+                "type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                },
+                "branch": {
+                    "name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        external_facts = {
+            "expected_code_context": {
+                "repository_host": "github.com",
+                "repository_owner": "KnoxAnalytics",
+                "repository_name": "HARNESS-DRYRUN",
+                "branch_name": "codex/e2e-test",
+                "base_branch": "main",
+            },
+            "github_facts": {
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                },
+                "branch": {
+                    "name": "codex/e2e-test",
+                    "base_branch": "main",
+                    "head_commit_sha": None,
+                },
+                "commit": {
+                    "sha": None,
+                },
+            },
+        }
+
+        context, _, selected = _resolved_code_context(task, external_facts=external_facts)
+
+        self.assertEqual(selected, "merged")
+        self.assertEqual(context.branch_name, "codex/e2e-test")
+        self.assertEqual(context.commit_sha, "")
+
     def test_rejects_conflicting_sources_instead_of_picking_first_available(self) -> None:
         task = create_task_envelope(
             {

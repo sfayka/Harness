@@ -123,6 +123,58 @@ class IngressRequestBuilderTests(unittest.TestCase):
         self.assertEqual(payload["request"]["new_artifacts"][0]["type"], "review_note")
         self.assertTrue(payload["request"]["claimed_completion"])
 
+    def test_rejects_completion_truth_on_initial_submission(self) -> None:
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_submission_payload(
+                intent=self._intent(),
+                context=self._context(),
+                claimed_completion=True,
+            )
+
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_submission_payload(
+                intent=self._intent(),
+                context=self._context(),
+                runtime_facts={"executor_reported_success": True},
+            )
+
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_submission_payload(
+                intent=IngressTaskIntent(
+                    **{
+                        **self._intent().__dict__,
+                        "linked_artifacts": (
+                            {
+                                "id": "artifact-pr-1",
+                                "type": "pull_request",
+                            },
+                        ),
+                    }
+                ),
+                context=self._context(),
+            )
+
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_submission_payload(
+                intent=IngressTaskIntent(
+                    **{
+                        **self._intent().__dict__,
+                        "completion_evidence": {"status": "deferred"},
+                    }
+                ),
+                context=self._context(),
+            )
+
+    def test_rejects_pre_satisfied_completion_evidence_without_claimed_completion(self) -> None:
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_reevaluation_payload(
+                completion_evidence={
+                    "status": "satisfied",
+                    "validated_artifact_ids": ["artifact-1"],
+                },
+                claimed_completion=False,
+            )
+
     def test_rejects_missing_required_upstream_inputs(self) -> None:
         with self.assertRaises(IngressRequestBuilderError):
             build_task_submission_payload(
