@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from modules.contracts.task_envelope_review import (
     ReviewFollowUpAction,
@@ -184,6 +185,22 @@ class ManualReviewPrimitiveTests(unittest.TestCase):
 
         self.assertEqual(result.recommended_target_status, "blocked")
         self.assertEqual(result.follow_up_action, ReviewFollowUpAction.CLARIFICATION)
+
+    def test_rejects_review_request_timestamp_too_far_in_future(self) -> None:
+        future_requested_at = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat().replace("+00:00", "Z")
+        review_request = ReviewRequest(
+            review_request_id="review-request-future-1",
+            task_id="task-1",
+            requested_at=future_requested_at,
+            requested_by="verification",
+            trigger=ReviewTrigger.VERIFICATION,
+            summary="Future-dated review requests must be rejected.",
+            presented_sections=("task_state",),
+            allowed_outcomes=(ReviewOutcome.KEEP_BLOCKED,),
+        )
+
+        with self.assertRaisesRegex(ReviewValidationError, "requested_at"):
+            validate_review_request(review_request)
 
 
 if __name__ == "__main__":

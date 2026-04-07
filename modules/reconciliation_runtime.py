@@ -13,6 +13,7 @@ from urllib import error, parse, request
 
 TaskEnvelope = dict[str, Any]
 _RESERVED_SHARED_BRANCH_NAMES = frozenset({"work", "main", "master", "develop", "development", "trunk", "default"})
+_CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
 
 
 class ReconciliationFailureType(StrEnum):
@@ -290,7 +291,10 @@ def _current_run_pull_request_artifact(
 
         metadata = artifact.get("metadata") if isinstance(artifact.get("metadata"), dict) else {}
         state = _normalize_sha(metadata.get("pull_request_state"))
-        if state is not None and state.strip().lower() != "open":
+        merged = metadata.get("pull_request_merged")
+        if state is None or state.strip().lower() != "open":
+            continue
+        if merged is True:
             continue
 
         return artifact
@@ -393,6 +397,8 @@ def _context_from_artifacts(task_envelope: TaskEnvelope) -> ReconciliationCodeCo
 
     for artifact in artifacts:
         if not isinstance(artifact, dict):
+            continue
+        if str(artifact.get("type") or "").strip() not in _CODE_EXECUTION_ARTIFACT_TYPES:
             continue
         repository = _repository_from_artifact(artifact)
         if repository is not None:
@@ -958,13 +964,21 @@ def _ensure_pull_request_artifact(
     if not isinstance(artifacts, list):
         raise ReconciliationRuntimeError("task.artifacts.items must be a list")
 
-    for artifact in artifacts:
+    for index, artifact in enumerate(artifacts):
         if not isinstance(artifact, dict):
             continue
         if artifact.get("type") != "pull_request":
             continue
         if artifact.get("pull_request_number") == pull_request.number or artifact.get("location") == pull_request.url:
-            return updated, str(artifact.get("id") or f"artifact-pr-{pull_request.number}")
+            canonical_artifact = _pull_request_artifact(
+                task_envelope=updated,
+                code_context=code_context,
+                pull_request=pull_request,
+                captured_at=captured_at,
+            )
+            canonical_artifact["id"] = artifact.get("id") or canonical_artifact["id"]
+            artifacts[index] = canonical_artifact
+            return updated, str(canonical_artifact["id"])
 
     artifact = _pull_request_artifact(
         task_envelope=updated,
@@ -991,13 +1005,21 @@ def _ensure_commit_artifact(
     expected_location = (
         f"https://github.com/{code_context.repository_owner}/{code_context.repository_name}/commit/{code_context.commit_sha}"
     )
-    for artifact in artifacts:
+    for index, artifact in enumerate(artifacts):
         if not isinstance(artifact, dict):
             continue
         if artifact.get("type") != "commit":
             continue
         if _normalize_sha(artifact.get("commit_sha")) == code_context.commit_sha or artifact.get("location") == expected_location:
-            return updated, str(artifact.get("id") or f"artifact-commit-{code_context.commit_sha[:12]}")
+            canonical_artifact = _commit_artifact(
+                task_envelope=updated,
+                code_context=code_context,
+                captured_at=captured_at,
+                pull_request_artifact=pull_request_artifact,
+            )
+            canonical_artifact["id"] = artifact.get("id") or canonical_artifact["id"]
+            artifacts[index] = canonical_artifact
+            return updated, str(canonical_artifact["id"])
 
     artifact = _commit_artifact(
         task_envelope=updated,

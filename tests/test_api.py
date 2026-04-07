@@ -14,7 +14,11 @@ from urllib.request import Request, urlopen
 
 from modules.adapters.executor_adapter import StubExecutorAdapter
 from modules.api import HarnessApiService, build_parser, evaluate_http_payload, run_server
-from modules.reconciliation_runtime import ReconciliationFailureType, build_default_reconciliation_registry
+from modules.reconciliation_runtime import (
+    GitHubPullRequestRecord,
+    ReconciliationFailureType,
+    build_default_reconciliation_registry,
+)
 from modules.contracts.task_envelope_review import (
     ReviewOutcome,
     ReviewRequest,
@@ -98,6 +102,38 @@ class _NoCreatePullRequestGateway:
         raise RuntimeError("PR creation intentionally disabled for deterministic tests")
 
 
+class _CurrentRunPullRequestGateway(_NoCreatePullRequestGateway):
+    """Deterministic gateway stub that exposes one valid current-run PR."""
+
+    def _record(self) -> GitHubPullRequestRecord:
+        return GitHubPullRequestRecord(
+            number=2,
+            url="https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+            state="open",
+            review_state="approved",
+            merged=False,
+            repository_owner="KnoxAnalytics",
+            repository_name="HARNESS-DRYRUN",
+            head_branch="codex/e2e-test",
+            head_sha="8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            base_branch="main",
+            title="Harness demo case",
+            body="Harness-Task-ID: task-http-happy-overlay-1",
+        )
+
+    def find_pull_requests_by_branch(self, *, owner: str, repo: str, branch_name: str) -> tuple:
+        del owner, repo
+        if branch_name == "codex/e2e-test":
+            return (self._record(),)
+        return ()
+
+    def find_pull_requests_by_commit(self, *, owner: str, repo: str, commit_sha: str) -> tuple:
+        del owner, repo
+        if commit_sha == "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705":
+            return (self._record(),)
+        return ()
+
+
 def _registry_with_no_create_pull_request_gateway():
     registry = build_default_reconciliation_registry()
     missing_pr_handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
@@ -109,6 +145,21 @@ def _registry_with_no_create_pull_request_gateway():
     registry.register(
         ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
         missing_commit_handler.__class__(github=_NoCreatePullRequestGateway()),
+    )
+    return registry
+
+
+def _registry_with_current_run_pull_request_gateway():
+    registry = build_default_reconciliation_registry()
+    missing_pr_handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    missing_commit_handler = registry.get(ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION)
+    registry.register(
+        ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+        missing_pr_handler.__class__(github=_CurrentRunPullRequestGateway()),
+    )
+    registry.register(
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+        missing_commit_handler.__class__(github=_CurrentRunPullRequestGateway()),
     )
     return registry
 
@@ -176,8 +227,8 @@ def _manual_happy_path_overlay_payload() -> dict:
                         "source_system": "github",
                         "source_type": "api",
                         "source_id": "pull/2",
-                        "captured_by": "github-sync",
-                    },
+                    "captured_by": "github-sync",
+                },
                     "verification_status": "verified",
                     "repository": {
                         "host": "github.com",
@@ -193,7 +244,10 @@ def _manual_happy_path_overlay_payload() -> dict:
                     "changed_files": [],
                     "external_refs": [],
                     "captured_at": "2026-03-31T14:31:00Z",
-                    "metadata": {},
+                    "metadata": {
+                        "pull_request_state": "open",
+                        "pull_request_merged": False,
+                    },
                 },
                 {
                     "id": "artifact-commit-dryrun-1",
@@ -1374,6 +1428,30 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertEqual(reevaluation_response["action"], "transition_applied")
 
+    def test_service_reevaluate_rejects_pre_satisfied_completion_evidence_without_completion_claim(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = self.service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+        completion_evidence = deepcopy(payload["request"]["completion_evidence"])
+
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "completion_evidence": completion_evidence,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertIn("claimed_completion", reevaluation_response["error"])
+
     def test_service_reevaluate_canonicalizes_unresolved_conditions_into_clarification(self) -> None:
         submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
         submit_status, submit_response = self.service.submit(submit_payload)
@@ -1395,6 +1473,32 @@ class HarnessApiServiceTests(unittest.TestCase):
             reevaluation_response["enforcement_result"]["verification_result"]["outcome"],
             "verification_deferred",
         )
+
+    def test_service_reevaluate_resolves_clarification_when_conditions_are_cleared(self) -> None:
+        submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        blocked_status, blocked_response = self.service.reevaluate(
+            task_id,
+            {"request": {"unresolved_conditions": ["Need repository clarification before proceeding."]}},
+        )
+        resolved_status, resolved_response = self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(blocked_status, 200)
+        self.assertEqual(resolved_status, 200)
+        clarification = resolved_response["task_envelope"]["clarification"]
+        self.assertEqual(clarification["status"], "resolved")
+        self.assertEqual(
+            clarification["resolution_summary"],
+            "Clarification requirements were cleared by the reevaluation input.",
+        )
+        self.assertIsNotNone(clarification["resolved_at"])
+        self.assertEqual(clarification["required_inputs"][0]["status"], "provided")
 
     def test_service_evaluate_existing_task_rejects_top_level_overlays(self) -> None:
         payload = _manual_happy_path_overlay_payload()
@@ -1549,16 +1653,21 @@ class HarnessApiServiceTests(unittest.TestCase):
         )
 
     def test_service_completion_claim_routes_into_canonical_evaluation_and_can_complete_when_evidence_aligns(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
-        submit_status, submit_response = self.service.submit(submit_payload)
+        submit_status, submit_response = service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
 
-        claim_status, claim_response = self.service.submit_completion_claim(
+        claim_status, claim_response = service.submit_completion_claim(
             task_id,
             {
                 "request": {
                     **_completion_claim_payload(claim_id="claim-complete-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-complete-1"),
                     "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
                     "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
                     "external_facts": deepcopy(payload["request"]["external_facts"]),
@@ -1567,7 +1676,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 }
             },
         )
-        history_status, history_payload = self.service.get_evaluation_history(task_id)
+        history_status, history_payload = service.get_evaluation_history(task_id)
         latest_request = history_payload["evaluations"][-1]["request"]
 
         self.assertEqual(submit_status, 200)
@@ -1604,10 +1713,58 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(clarification["resume_target_status"], "intake_ready")
         self.assertEqual(clarification["required_inputs"][0]["description"], "Need repository clarification before proceeding.")
 
+    def test_service_completion_claim_resolves_clarification_when_conditions_are_cleared(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
+        submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        submit_status, submit_response = service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        blocked_status, blocked_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-clarification-blocked-1"),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    "unresolved_conditions": ["Need repository clarification before proceeding."],
+                }
+            },
+        )
+
+        resolved_status, resolved_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-clarification-resolved-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-clarification-resolved-1"),
+                    "new_artifacts": deepcopy(_manual_happy_path_overlay_payload()["request"]["linked_artifacts"]),
+                    "completion_evidence": deepcopy(_manual_happy_path_overlay_payload()["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(_manual_happy_path_overlay_payload()["request"]["external_facts"]),
+                    "runtime_facts": deepcopy(_manual_happy_path_overlay_payload()["request"]["runtime_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(blocked_status, 200)
+        self.assertFalse(blocked_response["accepted_completion"])
+        self.assertEqual(resolved_status, 200)
+        self.assertTrue(resolved_response["accepted_completion"])
+        clarification = resolved_response["task_envelope"]["clarification"]
+        self.assertEqual(clarification["status"], "resolved")
+        self.assertEqual(
+            clarification["resolution_summary"],
+            "Clarification requirements were cleared by the completion claim input.",
+        )
+        self.assertIsNotNone(clarification["resolved_at"])
+
     def test_service_completion_claim_reconciles_missing_commit_artifact_when_verified_pr_exists(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
-            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
         )
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
@@ -1615,6 +1772,9 @@ class HarnessApiServiceTests(unittest.TestCase):
         task_id = submit_response["task_envelope"]["id"]
 
         pr_artifact = deepcopy(payload["request"]["linked_artifacts"][0])
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["artifacts"]["items"] = [pr_artifact]
+        service.store.update_task(stored_task)
         completion_evidence = deepcopy(payload["request"]["completion_evidence"])
         completion_evidence["validated_artifact_ids"] = [pr_artifact["id"]]
 
@@ -1624,7 +1784,6 @@ class HarnessApiServiceTests(unittest.TestCase):
                 "request": {
                     **_completion_claim_payload(claim_id="claim-missing-commit-1"),
                     **_execution_attempt_payload(attempt_id="attempt-1"),
-                    "new_artifacts": [pr_artifact],
                     "completion_evidence": completion_evidence,
                     "external_facts": deepcopy(payload["request"]["external_facts"]),
                     "acceptance_criteria_satisfied": True,
@@ -1651,12 +1810,16 @@ class HarnessApiServiceTests(unittest.TestCase):
         )
 
     def test_service_completion_claim_can_attach_execution_attempt_and_link_reevaluation(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
-        submit_status, submit_response = self.service.submit(submit_payload)
+        submit_status, submit_response = service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
 
-        claim_status, claim_response = self.service.submit_completion_claim(
+        claim_status, claim_response = service.submit_completion_claim(
             task_id,
             {
                 "request": {
@@ -1670,7 +1833,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 }
             },
         )
-        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+        timeline_status, timeline_payload = service.get_task_timeline(task_id)
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(claim_status, 200)
@@ -2005,14 +2168,52 @@ class HarnessApiServiceTests(unittest.TestCase):
         }
         self.assertIn("stale_pull_request_not_allowed", failed_rules)
 
+    def test_service_completion_claim_rejects_pull_request_with_unknown_state(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        linked_artifacts = deepcopy(payload["request"]["linked_artifacts"])
+        linked_artifacts[0]["metadata"].pop("pull_request_state", None)
+        external_facts = deepcopy(payload["request"]["external_facts"])
+        external_facts["github_facts"]["pull_request"]["state"] = None
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-unknown-pr-state-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-unknown-pr-state-1"),
+                    "new_artifacts": linked_artifacts,
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": external_facts,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        failed_rules = {
+            item["rule"] for item in claim_response["contract_violation"]["validation"]["rule_failures"]
+        }
+        self.assertIn("unknown_pull_request_state", failed_rules)
+
     def test_service_completion_claim_allows_valid_execution_attempt_with_repo_branch_and_commit(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
             }
         }
-        submit_status, submit_response = self.service.submit(submit_payload)
+        submit_status, submit_response = service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
 
         valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-1")
@@ -2031,7 +2232,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 },
             }
         ]
-        claim_status, claim_response = self.service.submit_completion_claim(
+        claim_status, claim_response = service.submit_completion_claim(
             task_id,
             {
                 "request": {
@@ -2053,6 +2254,10 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
 
     def test_service_completion_claim_flags_vague_acceptance_criteria_for_review(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
         payload = _manual_happy_path_overlay_payload()
         vague_task = deepcopy(payload["request"]["task_envelope"])
         vague_task["acceptance_criteria"] = [
@@ -2068,7 +2273,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 "task_envelope": vague_task,
             }
         }
-        submit_status, submit_response = self.service.submit(submit_payload)
+        submit_status, submit_response = service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
 
         valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-vague-criteria-1")
@@ -2087,7 +2292,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 },
             }
         ]
-        claim_status, claim_response = self.service.submit_completion_claim(
+        claim_status, claim_response = service.submit_completion_claim(
             task_id,
             {
                 "request": {
@@ -2101,7 +2306,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 }
             },
         )
-        read_status, read_payload = self.service.get_task_read_model(task_id)
+        read_status, read_payload = service.get_task_read_model(task_id)
 
         self.assertEqual(submit_status, 200)
         self.assertEqual(claim_status, 200)
@@ -2178,6 +2383,47 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["current_status"], "in_review")
         self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 0)
+
+    def test_service_completion_claim_strips_executor_verified_status_and_still_reconciles(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_artifacts = deepcopy(payload["request"]["linked_artifacts"])
+        claim_artifacts[0]["verification_status"] = "verified"
+        claim_artifacts[0]["metadata"]["pull_request_state"] = "open"
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-self-certified-pr-1"),
+                    **_execution_attempt_payload(attempt_id="attempt-self-certified-pr-1"),
+                    "new_artifacts": claim_artifacts,
+                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "reconciliation_failed")
+        pull_request_artifacts = [
+            artifact
+            for artifact in claim_response["task_envelope"]["artifacts"]["items"]
+            if isinstance(artifact, dict) and artifact.get("type") == "pull_request"
+        ]
+        self.assertTrue(pull_request_artifacts)
+        self.assertEqual(pull_request_artifacts[-1]["verification_status"], "unverified")
 
     def test_service_completion_claim_allows_missing_commit_when_branch_can_be_reconciled(self) -> None:
         service = HarnessApiService(

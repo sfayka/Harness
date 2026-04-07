@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from unittest.mock import patch
 
 from modules.adapters import ExecutorDispatchInput, StubExecutorAdapter
+from modules.reconciliation_runtime import GitHubPullRequestRecord
 from tests.e2e.runtime_harness import RuntimeApiTestCase
 from tests.e2e.scenario_builders import (
     build_completion_evidence,
@@ -12,6 +14,40 @@ from tests.e2e.scenario_builders import (
 
 
 class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
+    def _current_run_pull_request_patches(self, *, task_id: str):
+        record = GitHubPullRequestRecord(
+            number=2,
+            url="https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+            state="open",
+            review_state="approved",
+            merged=False,
+            repository_owner="KnoxAnalytics",
+            repository_name="HARNESS-DRYRUN",
+            head_branch="codex/e2e-test",
+            head_sha="8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            base_branch="main",
+            title="HARNESS-DRYRUN PR",
+            body=f"Harness-Task-ID: {task_id}",
+        )
+        return (
+            patch(
+                "modules.reconciliation_runtime.GitHubRestPullRequestGateway.find_pull_requests_by_branch",
+                return_value=(record,),
+            ),
+            patch(
+                "modules.reconciliation_runtime.GitHubRestPullRequestGateway.find_pull_requests_by_commit",
+                return_value=(record,),
+            ),
+            patch(
+                "modules.reconciliation_runtime.GitHubRestPullRequestGateway.branch_exists",
+                return_value=True,
+            ),
+            patch(
+                "modules.reconciliation_runtime.GitHubRestPullRequestGateway.commit_exists",
+                return_value=True,
+            ),
+        )
+
     def _dispatch_stub_completion_claim(self, task: dict, *, attempt_id: str) -> dict:
         dispatch_input = ExecutorDispatchInput.from_task_envelope(
             task,
@@ -30,6 +66,28 @@ class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
                 "reported_by": "stub-executor",
                 "reason": completion_claim.reason,
                 "metadata": deepcopy(completion_claim.metadata),
+            },
+            "execution_attempt": {
+                "attempt_id": attempt_id,
+                "recorded_at": completion_event.occurred_at,
+                "status": "succeeded",
+                "reported_by": "stub-executor",
+                "artifact_references": [
+                    {
+                        "reference_id": f"{attempt_id}:commit",
+                        "artifact_type": "commit",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    }
+                ],
+                "metadata": {"executor_run_id": f"stub-run-{attempt_id}"},
             },
             "runtime_facts": {
                 "executor_reported_success": True,
@@ -50,10 +108,17 @@ class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
         claim_request["completion_evidence"] = overlays["completion_evidence"]
         claim_request["external_facts"] = overlays["external_facts"]
 
-        claim_status, claim_response = self.post_json(
-            f"/tasks/{task_id}/completion-claims",
-            {"request": claim_request},
-        )
+        pull_request_patches = self._current_run_pull_request_patches(task_id=task_id)
+        with (
+            pull_request_patches[0],
+            pull_request_patches[1],
+            pull_request_patches[2],
+            pull_request_patches[3],
+        ):
+            claim_status, claim_response = self.post_json(
+                f"/tasks/{task_id}/completion-claims",
+                {"request": claim_request},
+            )
         read_model_status, read_model_response = self.get_json(f"/tasks/{task_id}/read-model")
         timeline_status, timeline_response = self.get_json(f"/tasks/{task_id}/timeline")
 
@@ -82,10 +147,17 @@ class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
         _, fetch_response = self.get_json(f"/tasks/{task_id}")
 
         claim_request = self._dispatch_stub_completion_claim(fetch_response["task"], attempt_id="attempt-claim-only")
-        claim_status, claim_response = self.post_json(
-            f"/tasks/{task_id}/completion-claims",
-            {"request": claim_request},
-        )
+        pull_request_patches = self._current_run_pull_request_patches(task_id=task_id)
+        with (
+            pull_request_patches[0],
+            pull_request_patches[1],
+            pull_request_patches[2],
+            pull_request_patches[3],
+        ):
+            claim_status, claim_response = self.post_json(
+                f"/tasks/{task_id}/completion-claims",
+                {"request": claim_request},
+            )
         final_status, final_response = self.get_json(f"/tasks/{task_id}")
 
         self.assertEqual(create_status, 200)
@@ -109,10 +181,17 @@ class ExecutionValidationEvaluationSliceTests(RuntimeApiTestCase):
         )
         claim_request["external_facts"] = overlays["external_facts"]
 
-        claim_status, claim_response = self.post_json(
-            f"/tasks/{task_id}/completion-claims",
-            {"request": claim_request},
-        )
+        pull_request_patches = self._current_run_pull_request_patches(task_id=task_id)
+        with (
+            pull_request_patches[0],
+            pull_request_patches[1],
+            pull_request_patches[2],
+            pull_request_patches[3],
+        ):
+            claim_status, claim_response = self.post_json(
+                f"/tasks/{task_id}/completion-claims",
+                {"request": claim_request},
+            )
         final_status, final_response = self.get_json(f"/tasks/{task_id}")
 
         verification = claim_response["enforcement_result"]["verification_result"]

@@ -10,6 +10,7 @@ from modules.reconciliation_runtime import (
     GitHubRestPullRequestGateway,
     ReconciliationRuntimeError,
     RetryableReconciliationRuntimeError,
+    _context_from_artifacts,
     _resolved_code_context,
 )
 
@@ -68,6 +69,44 @@ class GitHubRestPullRequestGatewayTests(unittest.TestCase):
 
 
 class ResolveCodeContextTests(unittest.TestCase):
+    def test_ignores_non_code_artifacts_when_deriving_context_from_locations(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-non-code-artifact-context-1",
+                "title": "Ignore non-code artifact context",
+                "description": "Non-code artifacts must not seed reconciliation code context.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-non-code-artifact-context-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Only code execution artifacts contribute to reconciliation code context.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T09:00:00Z",
+        )
+        task["artifacts"]["items"] = [
+            {
+                "id": "artifact-note-1",
+                "type": "review_note",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/not-real",
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                },
+            }
+        ]
+
+        context = _context_from_artifacts(task)
+
+        self.assertIsNone(context)
+
     def test_resolves_branch_context_even_when_commit_sha_is_missing(self) -> None:
         task = create_task_envelope(
             {

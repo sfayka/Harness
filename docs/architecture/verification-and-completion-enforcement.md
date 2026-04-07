@@ -76,6 +76,8 @@ Verification consumes:
 
 These records determine whether completion has the required evidentiary support.
 
+Caller-submitted evidence is not allowed to self-attest final trust. In particular, a completion claim cannot force a repository-backed PR artifact into `verification_status=verified` and then rely on that same caller-set state to satisfy completion policy. Harness must either verify the artifact through reconciliation or leave it unverified.
+
 ### Reconciliation Results
 
 Verification consumes reconciliation results that compare Harness state to external systems.
@@ -97,6 +99,8 @@ These criteria define what the task must satisfy in system terms.
 Artifacts and reconciliation support completion, but they do not replace task-specific acceptance criteria.
 
 Required acceptance criteria must also be concrete enough for automatic completion. Criteria such as "it works", "done", or other generic quality claims are not strong enough on their own to justify a terminal success decision. Harness may allow such tasks to exist, but verification should escalate them to explicit human review rather than auto-completing on vague criteria.
+
+Reevaluation also must not preload terminal evidence state as a side channel. If a request is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise present completion evidence as already settled.
 
 ## Core Principle
 

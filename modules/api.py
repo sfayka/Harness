@@ -666,6 +666,41 @@ def _with_submission_clarification(
     updated_task["clarification"] = clarification
     return updated_task
 
+
+def _resolve_submission_clarification_if_cleared(
+    task_envelope: dict[str, Any],
+    *,
+    unresolved_conditions: tuple[str, ...],
+    resolution_summary: str,
+) -> dict[str, Any]:
+    if unresolved_conditions:
+        return task_envelope
+    clarification = task_envelope.get("clarification")
+    if not isinstance(clarification, dict):
+        return task_envelope
+    if clarification.get("status") not in {"required", "requested", "answered"}:
+        return task_envelope
+
+    resolved_task = deepcopy(task_envelope)
+    updated_clarification = dict(clarification)
+    updated_required_inputs = []
+    for item in updated_clarification.get("required_inputs", []):
+        if not isinstance(item, dict):
+            continue
+        updated_item = deepcopy(item)
+        if updated_item.get("status") in {None, "", "open", "requested", "answered"}:
+            updated_item["status"] = "provided"
+        updated_required_inputs.append(updated_item)
+
+    resolved_at = _iso_now()
+    updated_clarification["status"] = "resolved"
+    updated_clarification["required_inputs"] = updated_required_inputs
+    updated_clarification["resolved_at"] = resolved_at
+    updated_clarification["resolution_summary"] = resolution_summary
+    resolved_task["clarification"] = updated_clarification
+    resolved_task["timestamps"]["updated_at"] = resolved_at
+    return resolved_task
+
 _EXISTING_TASK_EVALUATE_OVERLAY_FIELDS: tuple[tuple[str, str], ...] = (
     ("task_status", "request.task_status"),
     ("assigned_executor", "request.assigned_executor"),
@@ -795,7 +830,12 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     )
 
 
-def _merge_artifacts(existing_task: dict[str, Any], *, new_artifacts: tuple[dict[str, Any], ...]) -> dict[str, Any]:
+def _merge_artifacts(
+    existing_task: dict[str, Any],
+    *,
+    new_artifacts: tuple[dict[str, Any], ...],
+    sanitize_pull_request_verification: bool = False,
+) -> dict[str, Any]:
     merged_task = deepcopy(existing_task)
     artifact_items = list(merged_task["artifacts"]["items"])
     existing_ids = {str(item.get("id")) for item in artifact_items if item.get("id") is not None}
@@ -804,7 +844,19 @@ def _merge_artifacts(existing_task: dict[str, Any], *, new_artifacts: tuple[dict
         artifact_id = artifact.get("id")
         if artifact_id is not None and str(artifact_id) in existing_ids:
             raise ApiRequestError(f"new_artifacts contains duplicate artifact id {artifact_id!r}")
-        artifact_items.append(deepcopy(artifact))
+        sanitized_artifact = deepcopy(artifact)
+        submitted_verification_status = _normalized_string(sanitized_artifact.get("verification_status"))
+        if (
+            sanitize_pull_request_verification
+            and sanitized_artifact.get("type") == "pull_request"
+            and submitted_verification_status == "verified"
+        ):
+            metadata = sanitized_artifact.get("metadata") if isinstance(sanitized_artifact.get("metadata"), dict) else {}
+            metadata = dict(metadata)
+            metadata["submitted_verification_status"] = submitted_verification_status
+            sanitized_artifact["metadata"] = metadata
+            sanitized_artifact["verification_status"] = "unverified"
+        artifact_items.append(sanitized_artifact)
         if artifact_id is not None:
             existing_ids.add(str(artifact_id))
 
@@ -823,6 +875,55 @@ def _merge_completion_evidence(
     merged_task = deepcopy(existing_task)
     merged_task["artifacts"]["completion_evidence"].update(dict(completion_evidence_update))
     return merged_task
+
+
+def _completion_evidence_would_prematurely_satisfy(
+    completion_evidence_update: dict[str, Any],
+) -> bool:
+    status = _normalized_string(completion_evidence_update.get("status"))
+    if status == "satisfied":
+        return True
+    validated_artifact_ids = completion_evidence_update.get("validated_artifact_ids")
+    if isinstance(validated_artifact_ids, list) and any(_normalized_string(item) for item in validated_artifact_ids):
+        return True
+    if _normalized_string(completion_evidence_update.get("validated_at")) is not None:
+        return True
+    validator = completion_evidence_update.get("validator")
+    if isinstance(validator, dict) and validator:
+        return True
+    if _normalized_string(completion_evidence_update.get("validation_method")) is not None:
+        return True
+    return False
+
+
+def _prune_unverified_validated_artifact_ids(task_envelope: dict[str, Any]) -> dict[str, Any]:
+    completion_evidence = ((task_envelope.get("artifacts") or {}).get("completion_evidence") or {})
+    if not isinstance(completion_evidence, dict):
+        return task_envelope
+    validated_artifact_ids = completion_evidence.get("validated_artifact_ids")
+    if not isinstance(validated_artifact_ids, list):
+        return task_envelope
+
+    artifact_items = ((task_envelope.get("artifacts") or {}).get("items") or [])
+    if not isinstance(artifact_items, list):
+        return task_envelope
+
+    verification_by_id = {
+        str(item.get("id")): _normalized_string(item.get("verification_status"))
+        for item in artifact_items
+        if isinstance(item, dict) and item.get("id") is not None
+    }
+    filtered_ids = [
+        artifact_id
+        for artifact_id in validated_artifact_ids
+        if verification_by_id.get(str(artifact_id)) == "verified"
+    ]
+    if filtered_ids == validated_artifact_ids:
+        return task_envelope
+
+    updated = deepcopy(task_envelope)
+    updated["artifacts"]["completion_evidence"]["validated_artifact_ids"] = filtered_ids
+    return updated
 
 
 def _parse_completion_claim(payload: dict[str, Any]) -> dict[str, Any]:
@@ -963,7 +1064,11 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
 
     new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
     if new_artifacts:
-        merged_task = _merge_artifacts(merged_task, new_artifacts=new_artifacts)
+        merged_task = _merge_artifacts(
+            merged_task,
+            new_artifacts=new_artifacts,
+            sanitize_pull_request_verification=True,
+        )
 
     completion_evidence_update = _optional_mapping(
         request_payload.get("completion_evidence"),
@@ -974,6 +1079,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
             merged_task,
             completion_evidence_update=completion_evidence_update,
         )
+    merged_task = _prune_unverified_validated_artifact_ids(merged_task)
 
     review_request = _parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request"))
     review_decision = _parse_review_decision(
@@ -999,6 +1105,11 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         unresolved_conditions=unresolved_conditions,
         preferred_resume_target_status=None,
         requested_by="harness-runtime",
+    )
+    merged_task = _resolve_submission_clarification_if_cleared(
+        merged_task,
+        unresolved_conditions=unresolved_conditions,
+        resolution_summary="Clarification requirements were cleared by the completion claim input.",
     )
 
     return HarnessEvaluationRequest(
@@ -1029,12 +1140,17 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         request_payload.get("completion_evidence"),
         field_name="completion_evidence",
     )
+    claimed_completion = bool(request_payload.get("claimed_completion", False))
+    if completion_evidence_update is not None and not claimed_completion:
+        if _completion_evidence_would_prematurely_satisfy(completion_evidence_update):
+            raise ApiRequestError(
+                "completion_evidence that satisfies artifact proof requires claimed_completion=true on the same reevaluation request"
+            )
     if completion_evidence_update is not None:
         merged_task = _merge_completion_evidence(
             merged_task,
             completion_evidence_update=completion_evidence_update,
         )
-
     merged_task["timestamps"]["updated_at"] = _iso_now()
 
     review_request = _parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request"))
@@ -1062,11 +1178,16 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         preferred_resume_target_status=None,
         requested_by="harness-reevaluation",
     )
+    merged_task = _resolve_submission_clarification_if_cleared(
+        merged_task,
+        unresolved_conditions=unresolved_conditions,
+        resolution_summary="Clarification requirements were cleared by the reevaluation input.",
+    )
 
     return HarnessEvaluationRequest(
         task_envelope=merged_task,
         external_facts=external_facts,
-        claimed_completion=bool(request_payload.get("claimed_completion", False)),
+        claimed_completion=claimed_completion,
         acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
         unresolved_conditions=unresolved_conditions,
@@ -1223,11 +1344,11 @@ def _collect_review_activity(records: tuple[EvaluationRecord, ...]) -> tuple[lis
         request_payload = record.request if isinstance(record.request, dict) else {}
         enforcement_result = dict(result_payload.get("enforcement_result") or {})
 
-        review_request = enforcement_result.get("review_request") or request_payload.get("review_request")
+        review_request = enforcement_result.get("review_request")
         if isinstance(review_request, dict):
             requests.append(review_request)
 
-        review_decision = enforcement_result.get("review_decision") or request_payload.get("review_decision")
+        review_decision = enforcement_result.get("review_decision")
         if isinstance(review_decision, dict):
             review_record = review_decision.get("record")
             if isinstance(review_record, dict):
@@ -1882,7 +2003,16 @@ def _validate_execution_attempt(
                     "message": f"{source} reports PR number {number} but URL points to PR #{parsed_number}.",
                 }
             )
-        if state == "closed" or merged is True:
+        if state is None:
+            rule_failures.append(
+                {
+                    "rule": "unknown_pull_request_state",
+                    "source": source,
+                    "value": url,
+                    "message": f"{source} does not prove that the pull request is currently open.",
+                }
+            )
+        elif state == "closed" or merged is True:
             rule_failures.append(
                 {
                     "rule": "stale_pull_request_not_allowed",
@@ -2912,6 +3042,10 @@ class HarnessApiService:
             return HTTPStatus.OK, reconciliation_response
         if request is None:
             return HTTPStatus.OK, {"error": "Completion-claim reconciliation did not return a request"}
+        request = replace(
+            request,
+            task_envelope=_prune_unverified_validated_artifact_ids(request.task_envelope),
+        )
 
         status, response_payload, result, attempts = self._evaluate_with_classified_retries(request)
         if result is None:

@@ -532,6 +532,7 @@ def _scenario_wrong_target_corrected(
     wrong_target_payload["request"]["external_facts"] = None
     wrong_target_payload["request"]["claimed_completion"] = False
     wrong_target_payload["request"]["acceptance_criteria_satisfied"] = False
+    wrong_target_payload["request"].pop("completion_evidence", None)
     wrong_target_payload["request"]["unresolved_conditions"] = [
         "Execution target is still being corrected before completion can be evaluated",
     ]
@@ -544,6 +545,9 @@ def _scenario_wrong_target_corrected(
         "correct_artifact_target",
         {
             "request": {
+                "completion_evidence": deepcopy(
+                    _reevaluation_payload_from_canonical(initial_payload)["request"].get("completion_evidence")
+                ),
                 "external_facts": deepcopy(initial_payload["request"]["external_facts"]),
                 "claimed_completion": True,
                 "acceptance_criteria_satisfied": True,
