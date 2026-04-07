@@ -323,6 +323,184 @@ def _validate_submission_task_status_overlay(request_payload: dict[str, Any]) ->
         )
 
 
+def _new_task_submission_contract_violations(request_payload: dict[str, Any]) -> tuple[dict[str, str], ...]:
+    task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
+    violations: list[dict[str, str]] = []
+
+    def add_violation(*, rule: str, message: str, source: str) -> None:
+        violations.append(
+            {
+                "rule": rule,
+                "message": message,
+                "source": source,
+            }
+        )
+
+    if bool(request_payload.get("claimed_completion", False)):
+        add_violation(
+            rule="initial_claimed_completion_not_allowed",
+            source="request.claimed_completion",
+            message="New task submission cannot claim completion; completion truth must enter through reevaluation or completion-claim paths.",
+        )
+    if bool(request_payload.get("acceptance_criteria_satisfied", False)):
+        add_violation(
+            rule="initial_acceptance_assertion_not_allowed",
+            source="request.acceptance_criteria_satisfied",
+            message="New task submission cannot assert acceptance_criteria_satisfied; acceptance is decided by verification after execution evidence exists.",
+        )
+    if request_payload.get("runtime_facts") is not None:
+        add_violation(
+            rule="initial_runtime_facts_not_allowed",
+            source="request.runtime_facts",
+            message="New task submission cannot include runtime_facts; execution telemetry must come from dispatch, reevaluation, or completion claims.",
+        )
+    if request_payload.get("completion_evidence") is not None:
+        add_violation(
+            rule="initial_completion_evidence_overlay_not_allowed",
+            source="request.completion_evidence",
+            message="New task submission cannot include completion_evidence overlays; validated evidence must be produced after execution.",
+        )
+
+    linked_artifacts = request_payload.get("linked_artifacts")
+    if isinstance(linked_artifacts, list):
+        for index, artifact in enumerate(linked_artifacts):
+            if not isinstance(artifact, dict):
+                continue
+            artifact_type = _normalized_string(artifact.get("type"))
+            if artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES:
+                add_violation(
+                    rule="initial_execution_artifact_overlay_not_allowed",
+                    source=f"request.linked_artifacts[{index}]",
+                    message=(
+                        f"New task submission cannot attach execution artifact type {artifact_type!r} as initial proof. "
+                        "Execution artifacts must be attached after real execution."
+                    ),
+                )
+
+    task_status = _normalized_string(task_envelope.get("status"))
+    if task_status is not None and task_status not in _ALLOWED_SUBMISSION_STATUS_OVERLAYS:
+        allowed = ", ".join(sorted(_ALLOWED_SUBMISSION_STATUS_OVERLAYS))
+        add_violation(
+            rule="initial_task_status_invalid",
+            source="request.task_envelope.status",
+            message=(
+                f"New task submission may only start in intake/planning lifecycle states ({allowed}); "
+                f"got {task_status!r}."
+            ),
+        )
+
+    timestamps = task_envelope.get("timestamps")
+    if isinstance(timestamps, dict) and _normalized_string(timestamps.get("completed_at")) is not None:
+        add_violation(
+            rule="initial_completed_timestamp_not_allowed",
+            source="request.task_envelope.timestamps.completed_at",
+            message="New task submission cannot include completed_at; completion timestamps are assigned by lifecycle enforcement.",
+        )
+
+    artifacts = task_envelope.get("artifacts")
+    if isinstance(artifacts, dict):
+        artifact_items = artifacts.get("items")
+        if isinstance(artifact_items, list):
+            for index, artifact in enumerate(artifact_items):
+                if not isinstance(artifact, dict):
+                    continue
+                artifact_type = _normalized_string(artifact.get("type"))
+                if artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES:
+                    add_violation(
+                        rule="initial_execution_artifact_not_allowed",
+                        source=f"request.task_envelope.artifacts.items[{index}]",
+                        message=(
+                            f"New task submission cannot persist execution artifact type {artifact_type!r} as initial task truth."
+                        ),
+                    )
+
+        completion_evidence = artifacts.get("completion_evidence")
+        if isinstance(completion_evidence, dict):
+            validated_artifact_ids = completion_evidence.get("validated_artifact_ids")
+            if isinstance(validated_artifact_ids, list) and any(
+                isinstance(item, str) and item.strip() for item in validated_artifact_ids
+            ):
+                add_violation(
+                    rule="initial_validated_completion_evidence_not_allowed",
+                    source="request.task_envelope.artifacts.completion_evidence.validated_artifact_ids",
+                    message="New task submission cannot include validated completion evidence; validated artifact ids must be produced by later verification.",
+                )
+            if _normalized_string(completion_evidence.get("status")) == "satisfied":
+                add_violation(
+                    rule="initial_satisfied_completion_evidence_not_allowed",
+                    source="request.task_envelope.artifacts.completion_evidence.status",
+                    message="New task submission cannot mark completion evidence as satisfied before execution and verification.",
+                )
+            if _normalized_string(completion_evidence.get("validated_at")) is not None:
+                add_violation(
+                    rule="initial_validated_timestamp_not_allowed",
+                    source="request.task_envelope.artifacts.completion_evidence.validated_at",
+                    message="New task submission cannot include validated_at for completion evidence.",
+                )
+            validator = completion_evidence.get("validator")
+            if validator is not None:
+                add_violation(
+                    rule="initial_validator_not_allowed",
+                    source="request.task_envelope.artifacts.completion_evidence.validator",
+                    message="New task submission cannot include a completion-evidence validator before verification has run.",
+                )
+
+    observability = task_envelope.get("observability")
+    if isinstance(observability, dict):
+        execution_metadata = observability.get("execution_metadata")
+        if isinstance(execution_metadata, dict):
+            advisory_claims = execution_metadata.get("advisory_completion_claims")
+            if isinstance(advisory_claims, list) and any(isinstance(item, dict) for item in advisory_claims):
+                add_violation(
+                    rule="initial_completion_claim_history_not_allowed",
+                    source="request.task_envelope.observability.execution_metadata.advisory_completion_claims",
+                    message="New task submission cannot preload advisory completion claims.",
+                )
+            execution_attempts = execution_metadata.get("execution_attempts")
+            if isinstance(execution_attempts, list) and any(isinstance(item, dict) for item in execution_attempts):
+                add_violation(
+                    rule="initial_execution_attempt_history_not_allowed",
+                    source="request.task_envelope.observability.execution_metadata.execution_attempts",
+                    message="New task submission cannot preload execution attempt history.",
+                )
+
+    reconciliation = task_envelope.get("reconciliation")
+    if isinstance(reconciliation, dict):
+        attempts = reconciliation.get("attempts")
+        has_attempts = isinstance(attempts, list) and any(isinstance(item, dict) for item in attempts)
+        has_reconciliation_state = any(
+            reconciliation.get(field) not in (None, [], "not_required")
+            for field in (
+                "status",
+                "active_failure_type",
+                "last_attempt_id",
+                "last_pr_url",
+                "last_error",
+                "resolved_at",
+                "failed_at",
+            )
+        )
+        if has_attempts or has_reconciliation_state:
+            add_violation(
+                rule="initial_reconciliation_history_not_allowed",
+                source="request.task_envelope.reconciliation",
+                message="New task submission cannot preload reconciliation history or resolved reconciliation state.",
+            )
+
+    return tuple(violations)
+
+
+def _new_task_submission_contract_error_response(
+    violations: tuple[dict[str, str], ...],
+) -> tuple[int, dict[str, Any]]:
+    message = violations[0]["message"] if violations else "New task submission violates the canonical submission contract."
+    return HTTPStatus.BAD_REQUEST, {
+        "error": message,
+        "invalid_input": True,
+        "submission_contract_violations": [deepcopy(item) for item in violations],
+    }
+
+
 def _parse_unresolved_conditions(request_payload: dict[str, Any]) -> tuple[str, ...]:
     return _optional_string_tuple(
         request_payload.get("unresolved_conditions"),
@@ -2264,11 +2442,16 @@ class HarnessApiService:
     def submit(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             request = parse_evaluation_request(payload)
+            request_payload = _require_mapping(payload.get("request"), field_name="request")
         except Exception as error:
             return HTTPStatus.BAD_REQUEST, {
                 "error": str(error),
                 "invalid_input": True,
             }
+
+        contract_violations = _new_task_submission_contract_violations(request_payload)
+        if contract_violations:
+            return _new_task_submission_contract_error_response(contract_violations)
 
         task_id = str(request.task_envelope["id"])
         try:

@@ -18,7 +18,9 @@ OpenClaw ingress is also intentionally narrow. It can submit task intent, proven
 
 The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
 
-That clarification rule now applies across canonical submission as well, not just the OpenClaw adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`.
+That same boundary now applies to the canonical `POST /tasks` path as well. A brand-new task may carry intent, planning state, support artifacts, and clarification blockers, but it may not arrive already carrying execution truth. If a caller tries to create a new task with claimed completion, runtime facts, prevalidated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle truth, Harness rejects the request as invalid input instead of storing a polluted task snapshot.
+
+That clarification rule also now applies across canonical submission, not just the OpenClaw adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`.
 
 ## Governed Reconciliation
 
@@ -107,6 +109,7 @@ See:
 - `POST /tasks/<task_id>/reevaluate`
 - Completion-claim interception helper (delegates into canonical reevaluation semantics):
   - `POST /tasks/<task_id>/completion-claims`
+- `POST /tasks` is an intake/planning submission path. It may create only fresh task truth, not pre-executed completion truth.
 - Input-shape status overlays on `POST /tasks` and `POST /evaluate` are limited to intake/planning states such as `intake_ready`, `planned`, `dispatch_ready`, `assigned`, and `blocked`. Runtime and terminal states such as `executing`, `reconciling`, `completed`, `failed`, and `canceled` are not accepted through the top-level overlay shortcut.
 - Integration helper surface:
   - `POST /ingress/linear`

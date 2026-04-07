@@ -47,7 +47,7 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertEqual(len(result.steps), 1)
         self.assertEqual(result.steps[0].http_status, 200)
         self.assertEqual(result.steps[0].action, "transition_applied")
-        self.assertEqual(len(result.evaluation_history), 1)
+        self.assertEqual(len(result.evaluation_history), 2)
 
     def test_runs_missing_evidence_then_completed_scenario(self) -> None:
         result = run_scenario("missing_evidence_then_completed", base_url=self.base_url)
@@ -56,7 +56,7 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertEqual(len(result.steps), 2)
         self.assertEqual(result.steps[0].task_status, "blocked")
         self.assertEqual(result.steps[1].task_status, "completed")
-        self.assertEqual(len(result.evaluation_history), 2)
+        self.assertEqual(len(result.evaluation_history), 3)
 
     def test_runs_review_required_then_completed_scenario(self) -> None:
         result = run_scenario("review_required_then_completed", base_url=self.base_url)
@@ -65,7 +65,7 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertEqual(result.steps[0].action, "review_required")
         self.assertEqual(result.steps[0].task_status, "in_review")
         self.assertIn(result.steps[1].action, {"transition_applied", "follow_up_authorized"})
-        self.assertEqual(len(result.evaluation_history), 2)
+        self.assertEqual(len(result.evaluation_history), 3)
 
     def test_runs_contradictory_facts_rollback_scenario(self) -> None:
         result = run_scenario("contradictory_facts_rollback", base_url=self.base_url)
@@ -85,7 +85,7 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertEqual(len(result.steps), 4)
         self.assertIn("progress_artifact", artifact_types)
         self.assertIn("handoff_artifact", artifact_types)
-        self.assertEqual(len(result.evaluation_history), 4)
+        self.assertEqual(len(result.evaluation_history), 5)
 
     def test_can_run_scenario_with_deterministic_task_identity(self) -> None:
         result = run_scenario(

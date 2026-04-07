@@ -327,21 +327,27 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
     def test_failed_and_canceled_tasks_do_not_auto_complete(self) -> None:
         for terminal_status in ("failed", "canceled"):
             with self.subTest(terminal_status=terminal_status):
-                create_payload = build_create_task_payload(f"e2e-terminal-{terminal_status}")
-                create_payload["request"]["task_envelope"]["status"] = terminal_status
-                create_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = None
+                initial_payload = build_create_task_payload(f"e2e-terminal-{terminal_status}")
+                initial_payload["request"]["task_envelope"]["status"] = terminal_status
+                initial_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = "2026-04-01T10:05:00Z"
+                initial_status, initial_response = self.post_json("/evaluate", initial_payload)
+                task_id = initial_response["task_envelope"]["id"]
 
-                flow = self.run_create_fetch_evaluate_fetch(
-                    create_payload=create_payload,
-                    evaluate_payload_builder=build_top_level_overlay_happy_path_payload,
+                evaluate_status, evaluate_response = self.post_json(
+                    "/evaluate",
+                    build_top_level_overlay_happy_path_payload(initial_response["task_envelope"]),
                 )
+                final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
 
-                self.assertEqual(flow.evaluate_response["action"], "transition_rejected")
+                self.assertEqual(initial_status, 200)
+                self.assertEqual(evaluate_status, 200)
+                self.assertEqual(evaluate_response["action"], "transition_rejected")
                 self.assertEqual(
-                    flow.evaluate_response["error"],
+                    evaluate_response["error"],
                     f"Forbidden lifecycle transition {terminal_status} -> completed",
                 )
-                self.assertEqual(flow.final_fetch_response["task"]["status"], terminal_status)
+                self.assertEqual(final_fetch_status, 200)
+                self.assertEqual(final_fetch_response["task"]["status"], terminal_status)
 
     def test_github_aligned_linear_missing_is_review_required(self) -> None:
         create_payload = build_create_task_payload("e2e-linear-missing")
@@ -426,14 +432,18 @@ class TaskEvaluationRuntimeScenarioTests(RuntimeApiTestCase):
         create_payload = build_create_task_payload("e2e-lifecycle-rejection")
         create_payload["request"]["task_envelope"]["status"] = "completed"
         create_payload["request"]["task_envelope"]["timestamps"]["completed_at"] = "2026-04-01T10:05:00Z"
+        create_status, create_response = self.post_json("/evaluate", create_payload)
+        task_id = create_response["task_envelope"]["id"]
 
-        flow = self.run_create_fetch_evaluate_fetch(
-            create_payload=create_payload,
-            evaluate_payload_builder=build_review_required_payload,
-        )
+        evaluate_status, evaluate_response = self.post_json("/evaluate", build_review_required_payload(create_response["task_envelope"]))
+        final_fetch_status, final_fetch_response = self.get_json(f"/tasks/{task_id}")
 
-        self.assertEqual(flow.evaluate_response["action"], "transition_rejected")
-        self.assertEqual(flow.evaluate_response["error"], "Forbidden lifecycle transition completed -> in_review")
+        self.assertEqual(create_status, 200)
+        self.assertEqual(evaluate_status, 200)
+        self.assertEqual(evaluate_response["action"], "transition_rejected")
+        self.assertEqual(evaluate_response["error"], "Forbidden lifecycle transition completed -> in_review")
+        self.assertEqual(final_fetch_status, 200)
+        self.assertEqual(final_fetch_response["task"]["status"], "completed")
 
     def test_contract_validation_failures_return_structured_errors(self) -> None:
         create_payload = build_create_task_payload("e2e-contract-error")
