@@ -2476,6 +2476,49 @@ class HarnessApiService:
             return self.store.put_task(task_envelope)
         return self.store.update_task(task_envelope)
 
+    def _run_automatic_dispatch(
+        self,
+        *,
+        task_id: str,
+        task_envelope: dict[str, Any],
+        response_payload: dict[str, Any],
+        reason: str,
+        dispatch_trigger: str,
+        dispatch_policy_stage: str,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        dispatch_status, dispatch_payload = self.dispatch_task(
+            task_id,
+            {
+                "request": {
+                    "executor": _executor_hint_from_task(task_envelope),
+                    "execution_parameters": {
+                        "dispatch_policy_reason": reason,
+                        "dispatch_policy_stage": dispatch_policy_stage,
+                    },
+                    "dispatch_mode": "automatic",
+                    "dispatch_trigger": dispatch_trigger,
+                    "dispatch_reason": reason,
+                }
+            },
+        )
+        response_payload["automatic_dispatch"] = {
+            "attempted": True,
+            "dispatchable": True,
+            "reason": reason,
+            "status": int(dispatch_status),
+        }
+        if dispatch_status == HTTPStatus.OK:
+            if isinstance(dispatch_payload.get("dispatch"), dict):
+                response_payload["automatic_dispatch"]["dispatch"] = deepcopy(dispatch_payload["dispatch"])
+            if isinstance(dispatch_payload.get("task_envelope"), dict):
+                task_envelope = dispatch_payload["task_envelope"]
+                response_payload["task_envelope"] = _to_jsonable(task_envelope)
+            if isinstance(dispatch_payload.get("evaluation_record"), dict):
+                response_payload["evaluation_record"] = deepcopy(dispatch_payload["evaluation_record"])
+        else:
+            response_payload["automatic_dispatch"]["error"] = dispatch_payload.get("error")
+        return task_envelope, response_payload
+
     def _task_with_transition(
         self,
         task_envelope: dict[str, Any],
@@ -2893,37 +2936,14 @@ class HarnessApiService:
 
         should_dispatch, reason = _dispatch_policy_decision(stored_task, store=self.store)
         if should_dispatch:
-            dispatch_status, dispatch_payload = self.dispatch_task(
-                task_id,
-                {
-                    "request": {
-                        "executor": _executor_hint_from_task(stored_task),
-                        "execution_parameters": {
-                            "dispatch_policy_reason": reason,
-                            "dispatch_policy_stage": "post_ingestion",
-                        },
-                        "dispatch_mode": "automatic",
-                        "dispatch_trigger": "automatic_policy_post_ingestion",
-                        "dispatch_reason": reason,
-                    }
-                },
+            stored_task, response_payload = self._run_automatic_dispatch(
+                task_id=task_id,
+                task_envelope=stored_task,
+                response_payload=response_payload,
+                reason=reason,
+                dispatch_trigger="automatic_policy_post_ingestion",
+                dispatch_policy_stage="post_ingestion",
             )
-            response_payload["automatic_dispatch"] = {
-                "attempted": True,
-                "dispatchable": True,
-                "reason": reason,
-                "status": int(dispatch_status),
-            }
-            if dispatch_status == HTTPStatus.OK:
-                if isinstance(dispatch_payload.get("dispatch"), dict):
-                    response_payload["automatic_dispatch"]["dispatch"] = deepcopy(dispatch_payload["dispatch"])
-                if isinstance(dispatch_payload.get("task_envelope"), dict):
-                    stored_task = dispatch_payload["task_envelope"]
-                    response_payload["task_envelope"] = _to_jsonable(stored_task)
-                if isinstance(dispatch_payload.get("evaluation_record"), dict):
-                    response_payload["evaluation_record"] = deepcopy(dispatch_payload["evaluation_record"])
-            else:
-                response_payload["automatic_dispatch"]["error"] = dispatch_payload.get("error")
         else:
             response_payload["automatic_dispatch"] = {
                 "attempted": False,
@@ -3036,6 +3056,19 @@ class HarnessApiService:
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        if (
+            request.review_decision is not None
+            and request.review_decision.follow_up_action == ReviewFollowUpAction.REDISPATCH
+            and str(stored_task.get("status") or "") == "dispatch_ready"
+        ):
+            stored_task, response_payload = self._run_automatic_dispatch(
+                task_id=task_id,
+                task_envelope=stored_task,
+                response_payload=response_payload,
+                reason="Manual review authorized redispatch after the prior execution path was rejected.",
+                dispatch_trigger="manual_review_authorize_redispatch",
+                dispatch_policy_stage="post_review_reevaluation",
+            )
         return status, response_payload
 
     def reevaluate(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -3114,6 +3147,19 @@ class HarnessApiService:
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        if (
+            request.review_decision is not None
+            and request.review_decision.follow_up_action == ReviewFollowUpAction.REDISPATCH
+            and str(stored_task.get("status") or "") == "dispatch_ready"
+        ):
+            stored_task, response_payload = self._run_automatic_dispatch(
+                task_id=task_id,
+                task_envelope=stored_task,
+                response_payload=response_payload,
+                reason="Manual review authorized redispatch after the prior execution path was rejected.",
+                dispatch_trigger="manual_review_authorize_redispatch",
+                dispatch_policy_stage="post_review_reevaluation",
+            )
         return status, response_payload
 
     def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
