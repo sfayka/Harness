@@ -12,6 +12,8 @@ The dispatcher is not the planner, not the runtime, and not the verifier.
 
 The dispatcher converts planned task structure into auditable assignment decisions.
 
+Assignment truth starts here, not at ingress. New task creation and ingress adapters may declare task intent, planning state, dependencies, and clarification blockers, but they must not persist `assigned_executor` or create a task directly in `assigned`. If upstream systems want a task routed quickly, they may hand off a task as `dispatch_ready`, but Harness still owns the actual assignment decision.
+
 It is responsible for:
 
 - selecting an executor type for a dispatchable task

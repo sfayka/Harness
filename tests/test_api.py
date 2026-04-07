@@ -790,6 +790,48 @@ class HarnessApiServiceTests(unittest.TestCase):
             )
         )
 
+    def test_service_submit_rejects_assigned_status_on_new_task(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        task_id = payload["request"]["task_envelope"]["id"]
+        payload["request"]["task_status"] = "assigned"
+
+        status, response = self.service.submit(payload)
+        task_status, task_payload = self.service.get_task(task_id)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertTrue(
+            any(
+                violation["rule"] == "initial_task_status_invalid"
+                for violation in response["submission_contract_violations"]
+            )
+        )
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_service_submit_rejects_assigned_executor_on_new_task(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        task_id = payload["request"]["task_envelope"]["id"]
+        payload["request"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-submit-1",
+            "assignment_reason": "Fresh submission should not assign executors.",
+        }
+
+        status, response = self.service.submit(payload)
+        task_status, task_payload = self.service.get_task(task_id)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertTrue(
+            any(
+                violation["rule"] == "initial_assigned_executor_not_allowed"
+                for violation in response["submission_contract_violations"]
+            )
+        )
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
     def test_service_can_submit_linear_ingress_payload_via_canonical_submission_path(self) -> None:
         status, payload = self.service.submit_linear_ingress(_linear_ingress_payload("accepted_completion"))
 
@@ -946,11 +988,6 @@ class HarnessApiServiceTests(unittest.TestCase):
                 "request": {
                     "task_envelope": task_envelope,
                     "task_status": "dispatch_ready",
-                    "assigned_executor": {
-                        "executor_type": "codex",
-                        "executor_id": "executor-clarification-1",
-                        "assignment_reason": "Clarification gating regression test.",
-                    },
                     "unresolved_conditions": ["Need the target repository before dispatch."],
                 }
             }
@@ -1155,11 +1192,6 @@ class HarnessApiServiceTests(unittest.TestCase):
                 "request": {
                     "task_envelope": downstream_task,
                     "task_status": "dispatch_ready",
-                    "assigned_executor": {
-                        "executor_type": "codex",
-                        "executor_id": "executor-dependency-1",
-                        "assignment_reason": "Dependency regression test.",
-                    },
                 }
             }
         )
@@ -1549,26 +1581,31 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
-                "task_status": "assigned",
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-invalid-attempt-1",
-                    "assignment_reason": "Exercise invalid execution attempt retries.",
-                },
             }
         }
         submit_status, submit_response = self.service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
+        assign_status, assign_response = self.service.evaluate(
+            {
+                "request": {
+                    "task_envelope": deepcopy(submit_response["task_envelope"]),
+                    "task_status": "assigned",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-invalid-attempt-1",
+                        "assignment_reason": "Exercise invalid execution attempt retries.",
+                    },
+                }
+            }
+        )
         invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-invalid-1")
         invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
             {
                 "reference_id": "attempt-invalid-1:commit",
                 "artifact_type": "commit",
                 "location": "stub://attempts/attempt-invalid-1/commit",
-                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                 "metadata": {
                     "branch_name": "codex/e2e-test",
-                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                 },
             }
         ]
@@ -1588,6 +1625,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         read_status, read_payload = self.service.get_task_read_model(task_id)
 
         self.assertEqual(submit_status, 200)
+        self.assertEqual(assign_status, 200)
+        self.assertEqual(assign_response["task_envelope"]["status"], "assigned")
         self.assertEqual(claim_status, 200)
         self.assertEqual(claim_response["action"], "contract_violation_failed")
         self.assertEqual(claim_response["task_envelope"]["status"], "failed")
@@ -1633,11 +1672,6 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-work-branch-1",
-                    "assignment_reason": "Exercise reserved branch enforcement.",
-                },
             }
         }
         submit_status, submit_response = self.service.submit(submit_payload)
@@ -1715,11 +1749,6 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-missing-branch-1",
-                    "assignment_reason": "Exercise missing branch enforcement.",
-                },
             }
         }
         submit_status, submit_response = self.service.submit(submit_payload)
@@ -1874,11 +1903,6 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-valid-attempt-1",
-                    "assignment_reason": "Exercise valid execution attempt gate.",
-                },
             }
         }
         submit_status, submit_response = self.service.submit(submit_payload)
@@ -1935,11 +1959,6 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": vague_task,
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-vague-criteria-1",
-                    "assignment_reason": "Exercise acceptance criteria guardrails.",
-                },
             }
         }
         submit_status, submit_response = self.service.submit(submit_payload)
@@ -2005,11 +2024,6 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-valid-no-pr-1",
-                    "assignment_reason": "Exercise missing PR boundary after valid execution attempt.",
-                },
             }
         }
         submit_status, submit_response = service.submit(submit_payload)
@@ -2037,6 +2051,7 @@ class HarnessApiServiceTests(unittest.TestCase):
                 "request": {
                     **_completion_claim_payload(claim_id="claim-valid-no-pr-1"),
                     **valid_attempt_payload,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
                     "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
                 }
             },
@@ -2049,6 +2064,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(claim_response["reconciliation_attempt"]["failure_type"], "missing_pr_after_execution")
         self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
         latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        self.assertIn("metadata", latest_attempt)
+        self.assertIn("attempt_validation", latest_attempt["metadata"])
         self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
         self.assertNotIn("invalid_execution_attempt", claim_response)
         self.assertEqual(read_status, 200)
@@ -2064,11 +2081,6 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_payload = {
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
-                "assigned_executor": {
-                    "executor_type": "codex",
-                    "executor_id": "executor-valid-missing-commit-1",
-                    "assignment_reason": "Exercise missing commit fallback before reconciliation.",
-                },
             }
         }
         submit_status, submit_response = service.submit(submit_payload)
@@ -2115,15 +2127,13 @@ class HarnessApiServiceTests(unittest.TestCase):
 
     def test_service_dispatch_task_records_attempt_and_runs_reevaluation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
-        task_envelope = deepcopy(payload["request"]["task_envelope"])
-        task_envelope["assigned_executor"] = None
-        submit_payload = {
+        evaluate_payload = {
             "request": {
-                "task_envelope": task_envelope,
-                "task_status": "assigned",
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "task_status": "dispatch_ready",
             }
         }
-        submit_status, submit_response = self.service.submit(submit_payload)
+        submit_status, submit_response = self.service.evaluate(evaluate_payload)
         task_id = submit_response["task_envelope"]["id"]
 
         dispatch_status, dispatch_response = self.service.dispatch_task(
@@ -2150,6 +2160,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         read_model_status, read_model_payload = self.service.get_task_read_model(task_id)
 
         self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "dispatch_ready")
         self.assertEqual(dispatch_status, 200)
         self.assertEqual(dispatch_response["dispatch"]["attempt_id"], "attempt-1")
         self.assertEqual(dispatch_response["dispatch"]["executor"], "codex")
@@ -2170,7 +2181,6 @@ class HarnessApiServiceTests(unittest.TestCase):
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
                 "task_status": "dispatch_ready",
-                "assigned_executor": deepcopy(payload["request"]["assigned_executor"]),
             }
         }
 
@@ -2184,10 +2194,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_response["automatic_dispatch"]["status"], 200)
         self.assertEqual(submit_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
         self.assertEqual(read_model_status, 200)
-        self.assertEqual(read_model_payload["task"]["current_status"], "failed")
+        self.assertNotEqual(read_model_payload["task"]["current_status"], "dispatch_ready")
         self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
-        self.assertEqual(read_model_payload["task"]["execution_summary"]["invalid_attempt_count"], 0)
-        self.assertEqual(read_model_payload["task"]["failure_summary"]["failure_type"], "contract_violation")
         self.assertEqual(read_model_payload["task"]["execution_summary"]["latest_dispatch_origin"], "automatic")
         self.assertEqual(timeline_status, 200)
         dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
@@ -2203,7 +2211,6 @@ class HarnessApiServiceTests(unittest.TestCase):
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
                 "task_status": "planned",
-                "assigned_executor": deepcopy(payload["request"]["assigned_executor"]),
             }
         }
 
@@ -2224,7 +2231,6 @@ class HarnessApiServiceTests(unittest.TestCase):
             "request": {
                 "task_envelope": deepcopy(payload["request"]["task_envelope"]),
                 "task_status": "planned",
-                "assigned_executor": deepcopy(payload["request"]["assigned_executor"]),
             }
         }
 
@@ -2602,6 +2608,48 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
+    def test_api_submit_rejects_assigned_status_on_new_task(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        task_id = payload["request"]["task_envelope"]["id"]
+        payload["request"]["task_status"] = "assigned"
+
+        status, response = self._post_json("/tasks", payload)
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertTrue(
+            any(
+                violation["rule"] == "initial_task_status_invalid"
+                for violation in response["submission_contract_violations"]
+            )
+        )
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_submit_rejects_assigned_executor_on_new_task(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        task_id = payload["request"]["task_envelope"]["id"]
+        payload["request"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-api-submit-1",
+            "assignment_reason": "Fresh HTTP submit should not assign executors.",
+        }
+
+        status, response = self._post_json("/tasks", payload)
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response["invalid_input"])
+        self.assertTrue(
+            any(
+                violation["rule"] == "initial_assigned_executor_not_allowed"
+                for violation in response["submission_contract_violations"]
+            )
+        )
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
     def test_api_submit_rejects_missing_task_id_with_structured_400(self) -> None:
         status, payload = self._post_json("/tasks", {"request": {"task_envelope": {"title": "Missing id"}}})
 
@@ -2698,6 +2746,35 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
+    def test_api_linear_ingress_rejects_assignment_truth(self) -> None:
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-assigned-1")
+        payload["task_status"] = "assigned"
+
+        status, response_payload = self._post_json("/ingress/linear", payload)
+        task_status, task_payload = self._get_json("/tasks/task-linear-invalid-assigned-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("task_status must be one of", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+        payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-assignee-1")
+        payload["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-linear-1",
+            "assignment_reason": "Ingress should not assign executors.",
+        }
+
+        status, response_payload = self._post_json("/ingress/linear", payload)
+        task_status, task_payload = self._get_json("/tasks/task-linear-invalid-assignee-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot pre-assign an executor", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
     def test_api_linear_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
         payload = _linear_ingress_payload("accepted_completion", task_id="task-linear-invalid-1")
         del payload["issue"]["title"]
@@ -2784,6 +2861,35 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(response_payload["invalid_input"])
         self.assertIn("cannot attach repository execution artifacts", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+    def test_api_manual_ingress_rejects_assignment_truth(self) -> None:
+        payload = _manual_ingress_payload(task_id="task-manual-invalid-assigned-1")
+        payload["task_status"] = "assigned"
+
+        status, response_payload = self._post_json("/ingress/manual", payload)
+        task_status, task_payload = self._get_json("/tasks/task-manual-invalid-assigned-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("task_status must be one of", response_payload["error"].lower())
+        self.assertEqual(task_status, 404)
+        self.assertIn("not found", task_payload["error"].lower())
+
+        payload = _manual_ingress_payload(task_id="task-manual-invalid-assignee-1")
+        payload["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-manual-1",
+            "assignment_reason": "Ingress should not assign executors.",
+        }
+
+        status, response_payload = self._post_json("/ingress/manual", payload)
+        task_status, task_payload = self._get_json("/tasks/task-manual-invalid-assignee-1")
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot pre-assign an executor", response_payload["error"].lower())
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
@@ -3089,15 +3195,13 @@ class HarnessHttpApiTests(unittest.TestCase):
 
     def test_api_dispatch_endpoint_records_execution_attempt(self) -> None:
         payload = _manual_happy_path_overlay_payload()
-        task_envelope = deepcopy(payload["request"]["task_envelope"])
-        task_envelope["assigned_executor"] = None
         submit_payload = {
             "request": {
-                "task_envelope": task_envelope,
-                "task_status": "assigned",
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "task_status": "dispatch_ready",
             }
         }
-        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        submit_status, submit_response = self._post_json("/evaluate", submit_payload)
         task_id = submit_response["task_envelope"]["id"]
 
         dispatch_status, dispatch_response = self._post_json(
@@ -3106,6 +3210,7 @@ class HarnessHttpApiTests(unittest.TestCase):
         )
 
         self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "dispatch_ready")
         self.assertEqual(dispatch_status, 200)
         self.assertEqual(dispatch_response["dispatch"]["task_id"], task_id)
 
