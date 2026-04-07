@@ -34,6 +34,8 @@ Harness also rejects executor-side contract violations mechanically. Delegated c
 
 Executor-submitted completion claims also cannot self-certify support-artifact proof, pull-request proof, commit proof, or changed-file proof. If a completion claim carries one of those artifact types already marked `verified`, Harness downgrades that artifact back to unverified, removes it from validated evidence, and requires canonical verification or reconciliation to earn trust again. When both PR and commit proof are missing or self-certified, Harness now chains the governed reconciliation handlers in order instead of trusting the caller-supplied proof. `verification_status=verified` on a caller payload is advisory input, not trust.
 
+When Harness strips caller-submitted artifacts out of `validated_artifact_ids`, it also clears any caller-supplied `completion_evidence.status`, `validated_at`, and `validator` fields that no longer have real backing. A task should not carry “satisfied” evidence metadata after its purported proof has been invalidated.
+
 Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
 
 When reconciliation resolves repository and branch context across multiple sources, Harness also avoids synthesizing a current-run commit identity from a weaker source just because it happens to match the branch name. If execution metadata established the branch but not the commit, Harness now prefers a missing commit over caller-supplied commit backfill unless the execution attempt itself proved that commit.

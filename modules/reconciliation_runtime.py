@@ -1076,8 +1076,41 @@ def _mark_reconciled_artifact_validated(
         completion_evidence["validated_artifact_ids"] = validated_artifact_ids
     if artifact_id not in validated_artifact_ids:
         validated_artifact_ids.append(artifact_id)
-    if not completion_evidence.get("validation_method"):
-        completion_evidence["validation_method"] = "external_reconciliation"
+
+    artifact_items = ((updated.get("artifacts") or {}).get("items") or [])
+    artifact_type_by_id: dict[str, str] = {}
+    if isinstance(artifact_items, list):
+        for item in artifact_items:
+            if not isinstance(item, dict):
+                continue
+            raw_id = item.get("id")
+            raw_type = item.get("type")
+            if raw_id is None or not isinstance(raw_type, str) or not raw_type.strip():
+                continue
+            artifact_type_by_id[str(raw_id)] = raw_type.strip()
+
+    validated_types = {
+        artifact_type_by_id.get(str(validated_id))
+        for validated_id in validated_artifact_ids
+    }
+    validated_types.discard(None)
+
+    completion_evidence["validation_method"] = "external_reconciliation"
+    completion_evidence["validated_at"] = _iso_now()
+    completion_evidence["validator"] = {
+        "source_system": "harness",
+        "source_type": "verification",
+        "source_id": f"reconciliation-{artifact_type}",
+        "captured_by": "reconciliation",
+    }
+    completion_evidence["status"] = (
+        "satisfied"
+        if all(
+            isinstance(required_type, str) and required_type.strip() in validated_types
+            for required_type in required_types
+        )
+        else "deferred"
+    )
     updated["artifacts"]["completion_evidence"] = completion_evidence
     return updated
 
