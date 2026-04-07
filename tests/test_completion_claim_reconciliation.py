@@ -705,12 +705,20 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(response["action"], "transition_applied")
         self.assertEqual(response["task_envelope"]["reconciliation"]["status"], "resolved")
-        attempt = _latest_reconciliation_attempt(response["task_envelope"])
-        self.assertEqual(attempt["status"], "resolved")
-        self.assertEqual(attempt["details"]["branch_head_commit_sha"], resolved_sha)
-        self.assertEqual(attempt["details"]["commit_sha"], resolved_sha)
-        self.assertTrue(attempt["details"]["created_pull_request_revalidated"])
-        self.assertEqual(attempt["details"]["final_decision"]["result"], "created_new")
+        attempts = response["task_envelope"]["reconciliation"]["attempts"]
+        self.assertEqual(
+            [attempt["failure_type"] for attempt in attempts[-2:]],
+            ["missing_pr_after_execution", "missing_commit_after_execution"],
+        )
+        pr_attempt, commit_attempt = attempts[-2:]
+        self.assertEqual(pr_attempt["status"], "resolved")
+        self.assertEqual(pr_attempt["details"]["branch_head_commit_sha"], resolved_sha)
+        self.assertEqual(pr_attempt["details"]["commit_sha"], resolved_sha)
+        self.assertTrue(pr_attempt["details"]["created_pull_request_revalidated"])
+        self.assertEqual(pr_attempt["details"]["final_decision"]["result"], "created_new")
+        self.assertEqual(commit_attempt["status"], "resolved")
+        self.assertEqual(commit_attempt["details"]["commit_sha"], resolved_sha)
+        self.assertEqual(commit_attempt["details"]["final_decision"]["result"], "attached_commit_artifact")
 
     def test_submit_completion_claim_escalates_when_missing_commit_cannot_be_resolved_from_branch_head(self) -> None:
         gateway = _FakeGitHubGateway(
