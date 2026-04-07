@@ -10,6 +10,9 @@ from typing import Any
 
 from modules.intake.task_envelope import create_task_envelope
 
+_ALLOWED_MANUAL_INGRESS_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "blocked"})
+_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
+
 
 class ManualIngressInputError(ValueError):
     """Raised when a manual-ingress payload cannot be translated into canonical submission input."""
@@ -64,6 +67,37 @@ def _to_jsonable(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_to_jsonable(item) for item in value]
     return value
+
+
+def _validate_manual_ingress_contract(payload: Mapping[str, Any]) -> None:
+    task_status = _optional_string(payload.get("task_status"), field_name="task_status")
+    if task_status is not None and task_status not in _ALLOWED_MANUAL_INGRESS_STATUSES:
+        allowed_statuses = ", ".join(sorted(_ALLOWED_MANUAL_INGRESS_STATUSES))
+        raise ManualIngressInputError(f"task_status must be one of {allowed_statuses} for manual ingress")
+    if bool(payload.get("claimed_completion", False)):
+        raise ManualIngressInputError(
+            "Manual ingress cannot claim completion; completion must flow through executor/reporting paths"
+        )
+    if bool(payload.get("acceptance_criteria_satisfied", False)):
+        raise ManualIngressInputError(
+            "Manual ingress cannot assert acceptance_criteria_satisfied on initial handoff"
+        )
+    runtime_facts = _optional_mapping(payload.get("runtime_facts"), field_name="runtime_facts")
+    if runtime_facts:
+        raise ManualIngressInputError(
+            "Manual ingress cannot submit runtime_facts; execution telemetry must come from execution or reevaluation paths"
+        )
+    linked_artifacts = _optional_mapping_list(payload.get("linked_artifacts"), field_name="linked_artifacts")
+    for artifact in linked_artifacts:
+        artifact_type = str(artifact.get("type") or "").strip()
+        if artifact_type in _EXECUTION_ARTIFACT_TYPES:
+            raise ManualIngressInputError(
+                "Manual ingress cannot attach repository execution artifacts; execution proof must come from execution or reevaluation paths"
+            )
+    if payload.get("completion_evidence") is not None:
+        raise ManualIngressInputError(
+            "Manual ingress cannot submit completion_evidence; evidence validation belongs to reevaluation and verification"
+        )
 
 
 def _build_task_envelope(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -128,6 +162,7 @@ def translate_manual_submission_payload(payload: Mapping[str, Any]) -> dict[str,
     """Translate a manual-ingress payload into a canonical ``POST /tasks`` request body."""
 
     payload = _require_mapping(payload, field_name="manual_ingress_payload")
+    _validate_manual_ingress_contract(payload)
     task_envelope = _build_task_envelope(payload)
 
     external_facts_payload = _optional_mapping(payload.get("external_facts"), field_name="external_facts")
