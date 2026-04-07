@@ -21,6 +21,7 @@ That same boundary now applies to the canonical `POST /tasks` path as well. A br
 
 That clarification rule also now applies across canonical submission, not just the OpenClaw adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`.
 Harness also keeps new-task submission separate from persisted-task mutation. `POST /evaluate` may still evaluate a stored task, but it cannot mutate stored lifecycle, assignment, artifact, or completion-evidence truth through submission-style overlays. Existing tasks must use `POST /tasks/<task_id>/reevaluate` for persisted updates.
+That same fail-closed rule now applies to the persisted-task helpers themselves. `POST /tasks/<task_id>/reevaluate` and `POST /tasks/<task_id>/completion-claims` reject submission-style mutation fields such as `task_envelope`, `task_status`, `assigned_executor`, and `linked_artifacts` instead of silently ignoring them.
 
 ## Governed Reconciliation
 

@@ -24,6 +24,7 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
 - This helper persists the claim under `task_envelope.observability.execution_metadata.advisory_completion_claims` and then runs canonical reevaluation.
 - A completion claim is treated as `claimed_completion=true` advisory input; it does not directly authorize a lifecycle transition.
 - The canonical lifecycle outcome still comes from verification/reconciliation/review enforcement.
+- This endpoint must not be used to mutate stored task truth with submission-style fields such as `request.task_envelope`, `request.task_status`, `request.assigned_executor`, or `request.linked_artifacts`. Those payload shapes are rejected as invalid input.
 
 ### Manual Dispatch Bridge
 
@@ -51,6 +52,8 @@ For new-task submission and one-shot evaluation, the canonical contract remains 
 - `request.unresolved_conditions`
 
 Those overlays are merged into `request.task_envelope` before evaluation for new-task submission and one-shot evaluation only. If the task already exists, `POST /evaluate` rejects those overlay fields and returns a contract error that points the caller to `POST /tasks/<task_id>/reevaluate`.
+
+For `POST /tasks/<task_id>/reevaluate`, only canonical reevaluation fields are allowed for persisted mutation. Use `request.new_artifacts` instead of `request.linked_artifacts`, and do not send `request.task_envelope`, `request.task_status`, or `request.assigned_executor`. Those submission-style fields are rejected so callers cannot pretend a stored task was updated when Harness ignored the payload.
 
 For `POST /tasks`, top-level completion-shaped overlays are rejected on new task creation. Do not send:
 

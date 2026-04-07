@@ -1421,6 +1421,42 @@ class HarnessApiServiceTests(unittest.TestCase):
             True,
         )
 
+    def test_service_reevaluate_rejects_submission_style_mutation_fields(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "task_envelope": deepcopy(submit_response["task_envelope"]),
+                    "task_status": "completed",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-bad-reevaluate-1",
+                    },
+                    "linked_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertIn(f"/tasks/{task_id}/reevaluate", reevaluation_response["error"])
+        violation_sources = {violation["source"] for violation in reevaluation_response["violations"]}
+        self.assertEqual(
+            violation_sources,
+            {
+                "request.task_envelope",
+                "request.task_status",
+                "request.assigned_executor",
+                "request.linked_artifacts",
+            },
+        )
+
     def test_service_completion_claim_is_intercepted_and_cannot_directly_complete_task(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
@@ -1443,6 +1479,43 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertNotEqual(claim_response["task_envelope"]["status"], "completed")
         claims = claim_response["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
         self.assertEqual(claims[-1]["claim_id"], "claim-intercepted-1")
+
+    def test_service_completion_claim_rejects_submission_style_mutation_fields(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-bad-shape-1"),
+                    "task_envelope": deepcopy(submit_response["task_envelope"]),
+                    "task_status": "completed",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-bad-claim-1",
+                    },
+                    "linked_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 400)
+        self.assertTrue(claim_response["invalid_input"])
+        self.assertIn(f"/tasks/{task_id}/completion-claims", claim_response["error"])
+        violation_sources = {violation["source"] for violation in claim_response["violations"]}
+        self.assertEqual(
+            violation_sources,
+            {
+                "request.task_envelope",
+                "request.task_status",
+                "request.assigned_executor",
+                "request.linked_artifacts",
+            },
+        )
 
     def test_service_completion_claim_routes_into_canonical_evaluation_and_can_complete_when_evidence_aligns(self) -> None:
         payload = _manual_happy_path_overlay_payload()
@@ -3199,6 +3272,79 @@ class HarnessHttpApiTests(unittest.TestCase):
             "advisory_completion_claims"
         ]
         self.assertEqual(claims[-1]["claim_id"], "claim-api-1")
+
+    def test_api_reevaluate_rejects_submission_style_mutation_fields(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "task_envelope": deepcopy(submit_response["task_envelope"]),
+                    "task_status": "completed",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-http-bad-reevaluate-1",
+                    },
+                    "linked_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertIn(f"/tasks/{task_id}/reevaluate", reevaluation_response["error"])
+        violation_sources = {violation["source"] for violation in reevaluation_response["violations"]}
+        self.assertEqual(
+            violation_sources,
+            {
+                "request.task_envelope",
+                "request.task_status",
+                "request.assigned_executor",
+                "request.linked_artifacts",
+            },
+        )
+
+    def test_api_completion_claim_rejects_submission_style_mutation_fields(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self._post_json(
+            f"/tasks/{task_id}/completion-claims",
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-http-bad-shape-1"),
+                    "task_envelope": deepcopy(submit_response["task_envelope"]),
+                    "task_status": "completed",
+                    "assigned_executor": {
+                        "executor_type": "codex",
+                        "executor_id": "executor-http-bad-claim-1",
+                    },
+                    "linked_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 400)
+        self.assertTrue(claim_response["invalid_input"])
+        self.assertIn(f"/tasks/{task_id}/completion-claims", claim_response["error"])
+        violation_sources = {violation["source"] for violation in claim_response["violations"]}
+        self.assertEqual(
+            violation_sources,
+            {
+                "request.task_envelope",
+                "request.task_status",
+                "request.assigned_executor",
+                "request.linked_artifacts",
+            },
+        )
 
     def test_api_dispatch_endpoint_records_execution_attempt(self) -> None:
         payload = _manual_happy_path_overlay_payload()

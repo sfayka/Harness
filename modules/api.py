@@ -666,6 +666,20 @@ _EXISTING_TASK_EVALUATE_OVERLAY_FIELDS: tuple[tuple[str, str], ...] = (
     ("completion_evidence", "request.completion_evidence"),
 )
 
+_EXISTING_TASK_REEVALUATE_FORBIDDEN_FIELDS: tuple[tuple[str, str], ...] = (
+    ("task_envelope", "request.task_envelope"),
+    ("task_status", "request.task_status"),
+    ("assigned_executor", "request.assigned_executor"),
+    ("linked_artifacts", "request.linked_artifacts"),
+)
+
+_COMPLETION_CLAIM_FORBIDDEN_FIELDS: tuple[tuple[str, str], ...] = (
+    ("task_envelope", "request.task_envelope"),
+    ("task_status", "request.task_status"),
+    ("assigned_executor", "request.assigned_executor"),
+    ("linked_artifacts", "request.linked_artifacts"),
+)
+
 
 def _existing_task_evaluate_overlay_violations(request_payload: dict[str, Any]) -> list[dict[str, str]]:
     violations: list[dict[str, str]] = []
@@ -677,6 +691,27 @@ def _existing_task_evaluate_overlay_violations(request_payload: dict[str, Any]) 
                 "rule": "existing_task_overlay_not_allowed",
                 "source": source,
                 "message": "Existing-task /evaluate requests must not mutate stored task truth via submission overlays.",
+            }
+        )
+    return violations
+
+
+def _forbidden_existing_task_field_violations(
+    request_payload: dict[str, Any],
+    *,
+    forbidden_fields: tuple[tuple[str, str], ...],
+    rule: str,
+    message: str,
+) -> list[dict[str, str]]:
+    violations: list[dict[str, str]] = []
+    for field_name, source in forbidden_fields:
+        if request_payload.get(field_name) is None:
+            continue
+        violations.append(
+            {
+                "rule": rule,
+                "source": source,
+                "message": message,
             }
         )
     return violations
@@ -2674,6 +2709,22 @@ class HarnessApiService:
             return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
 
         try:
+            request_payload = _require_mapping(payload.get("request"), field_name="request")
+            violations = _forbidden_existing_task_field_violations(
+                request_payload,
+                forbidden_fields=_EXISTING_TASK_REEVALUATE_FORBIDDEN_FIELDS,
+                rule="existing_task_mutation_field_not_allowed",
+                message="Existing-task reevaluation must use canonical reevaluation fields instead of submission-style mutation fields.",
+            )
+            if violations:
+                return HTTPStatus.BAD_REQUEST, {
+                    "error": (
+                        f"Existing task {task_id!r} cannot be mutated through invalid reevaluation fields; "
+                        f"use POST /tasks/{task_id}/reevaluate with canonical reevaluation inputs only."
+                    ),
+                    "invalid_input": True,
+                    "violations": violations,
+                }
             request = parse_reevaluation_request(stored_task, payload)
         except Exception as error:
             return HTTPStatus.BAD_REQUEST, {
@@ -2713,6 +2764,21 @@ class HarnessApiService:
 
         try:
             request_payload = _require_mapping(payload.get("request"), field_name="request")
+            violations = _forbidden_existing_task_field_violations(
+                request_payload,
+                forbidden_fields=_COMPLETION_CLAIM_FORBIDDEN_FIELDS,
+                rule="completion_claim_mutation_field_not_allowed",
+                message="Completion-claim requests must not carry submission-style mutation fields for stored tasks.",
+            )
+            if violations:
+                return HTTPStatus.BAD_REQUEST, {
+                    "error": (
+                        f"Existing task {task_id!r} cannot be mutated through invalid completion-claim fields; "
+                        f"use POST /tasks/{task_id}/completion-claims with completion-claim inputs only."
+                    ),
+                    "invalid_input": True,
+                    "violations": violations,
+                }
             request = parse_completion_claim_request(stored_task, payload)
         except Exception as error:
             return HTTPStatus.BAD_REQUEST, {
