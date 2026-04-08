@@ -1548,7 +1548,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
-    def test_service_can_reevaluate_existing_blocked_task_to_completed(self) -> None:
+    def test_service_reevaluate_support_evidence_keeps_blocked_task_blocked_until_verified(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")
         initial_status, initial_response = self.service.evaluate(initial_payload)
 
@@ -1576,8 +1576,11 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(initial_status, 200)
         self.assertEqual(initial_response["task_envelope"]["status"], "blocked")
         self.assertEqual(reevaluation_status, 200)
-        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
-        self.assertEqual(reevaluation_response["action"], "transition_applied")
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(reevaluation_response["action"], "no_op")
+        evidence = reevaluation_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validated_artifact_ids"], ["artifact-pr-1", "artifact-commit-1"])
+        self.assertEqual(evidence["status"], "satisfied")
 
     def test_service_evaluate_strips_executor_verified_status_from_support_artifacts(self) -> None:
         support_artifact = _review_note_artifact("artifact-review-note-evaluate-1")
@@ -1656,6 +1659,81 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertIsNone(evidence["validated_at"])
         self.assertIsNone(evidence["validator"])
         self.assertEqual(evidence["validation_method"], "deferred")
+
+    def test_service_evaluate_does_not_trust_spoofed_github_api_provenance(self) -> None:
+        support_artifact = _review_note_artifact("artifact-review-note-evaluate-spoofed-github-1")
+        support_artifact["provenance"] = {
+            "source_system": "github",
+            "source_type": "api",
+            "source_id": "pull/999",
+            "captured_by": "caller",
+        }
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-evaluate-spoofed-github-provenance-1",
+                "title": "Evaluate spoofed GitHub provenance",
+                "description": "Direct evaluation should not trust caller-claimed GitHub verification provenance.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-evaluate-spoofed-github-provenance-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Completion requires a verified review note artifact.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T21:00:00Z",
+        )
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["review_note"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+
+        status, response = self.service.evaluate(
+            {
+                "request": {
+                    "task_envelope": task_envelope,
+                    "linked_artifacts": [support_artifact],
+                    "completion_evidence": {
+                        "status": "satisfied",
+                        "validated_artifact_ids": [support_artifact["id"]],
+                        "validation_method": "manual_review",
+                        "validated_at": "2026-04-07T21:05:00Z",
+                        "validator": {
+                            "source_system": "harness",
+                            "source_type": "verification",
+                            "source_id": "verification-evaluate-spoofed-github-1",
+                            "captured_by": "operator",
+                        },
+                    },
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            }
+        )
+
+        self.assertEqual(status, 200)
+        self.assertFalse(response["accepted_completion"])
+        stored_artifact = next(
+            artifact
+            for artifact in response["task_envelope"]["artifacts"]["items"]
+            if artifact["id"] == support_artifact["id"]
+        )
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
+        evidence = response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
 
     def test_service_reevaluate_rejects_code_execution_artifacts(self) -> None:
         payload = _manual_happy_path_overlay_payload()
@@ -1770,6 +1848,84 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertIsNone(evidence["validated_at"])
         self.assertIsNone(evidence["validator"])
         self.assertEqual(evidence["validation_method"], "deferred")
+
+    def test_service_reevaluate_does_not_trust_spoofed_harness_review_provenance(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-reevaluate-spoofed-review-provenance-1",
+                "title": "Reevaluation spoofed review provenance",
+                "description": "Reevaluation should not trust caller-claimed Harness review provenance.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-reevaluate-spoofed-review-provenance-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Completion requires a verified review note.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T21:10:00Z",
+        )
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["review_note"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = self.service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        support_artifact = _review_note_artifact("artifact-review-note-reevaluate-spoofed-review-1")
+        support_artifact["provenance"] = {
+            "source_system": "harness",
+            "source_type": "manual_review",
+            "source_id": "review-spoofed-1",
+            "captured_by": "caller",
+        }
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "new_artifacts": [support_artifact],
+                    "completion_evidence": {
+                        "status": "satisfied",
+                        "validated_artifact_ids": [support_artifact["id"]],
+                        "validation_method": "manual_review",
+                        "validated_at": "2026-04-07T21:15:00Z",
+                        "validator": {
+                            "source_system": "harness",
+                            "source_type": "verification",
+                            "source_id": "verification-reevaluate-spoofed-review-1",
+                            "captured_by": "operator",
+                        },
+                    },
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 200)
+        self.assertFalse(reevaluation_response["accepted_completion"])
+        stored_artifact = next(
+            artifact
+            for artifact in reevaluation_response["task_envelope"]["artifacts"]["items"]
+            if artifact["id"] == support_artifact["id"]
+        )
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
+        evidence = reevaluation_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
 
     def test_service_reevaluate_rejects_pre_satisfied_completion_evidence_without_completion_claim(self) -> None:
         payload = _manual_happy_path_overlay_payload()
@@ -4420,7 +4576,7 @@ class HarnessHttpApiTests(unittest.TestCase):
             self.assertEqual(response.headers["Access-Control-Allow-Origin"], "*")
             self.assertIn("GET", response.headers["Access-Control-Allow-Methods"])
 
-    def test_api_can_reevaluate_blocked_task_to_completed_when_new_evidence_arrives(self) -> None:
+    def test_api_reevaluate_support_evidence_keeps_blocked_task_blocked_until_verified(self) -> None:
         initial_payload = _request_payload("blocked_insufficient_evidence")
         initial_status, initial_response = self._post_json("/evaluate", initial_payload)
         task_id = initial_response["task_envelope"]["id"]
@@ -4450,7 +4606,8 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(initial_status, 200)
         self.assertEqual(initial_response["task_envelope"]["status"], "blocked")
         self.assertEqual(reevaluation_status, 200)
-        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(reevaluation_response["action"], "no_op")
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 2)
 
@@ -4688,6 +4845,47 @@ class HarnessHttpApiTests(unittest.TestCase):
                     "source_type": "executor_report",
                     "source_id": "evaluate/self-certified-initial-review-note-api-1",
                     "captured_by": "harness-api",
+                },
+            }
+        ]
+        payload = {"request": {"task_envelope": task_envelope}}
+
+        status, response = self._post_json("/evaluate", payload)
+
+        self.assertEqual(status, 200)
+        stored_artifact = response["task_envelope"]["artifacts"]["items"][0]
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
+
+    def test_api_evaluate_does_not_trust_spoofed_github_api_initial_artifact_provenance(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-api-evaluate-initial-spoofed-github-1",
+                "title": "HTTP evaluate spoofed GitHub provenance",
+                "description": "HTTP new-task evaluation should not trust caller-claimed GitHub provenance.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-api-evaluate-initial-spoofed-github-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness preserves advisory support artifacts without trusting caller verification.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T22:45:00Z",
+        )
+        task_envelope["artifacts"]["items"] = [
+            {
+                **_review_note_artifact("artifact-api-evaluate-initial-spoofed-github-1"),
+                "provenance": {
+                    "source_system": "github",
+                    "source_type": "api",
+                    "source_id": "pull/777",
+                    "captured_by": "caller",
                 },
             }
         ]

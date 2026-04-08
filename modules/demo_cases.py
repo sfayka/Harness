@@ -211,7 +211,7 @@ def build_demo_request(case_name: str) -> HarnessEvaluationRequest:
 
     if case_name == "blocked_insufficient_evidence":
         task = _base_task(status="completed")
-        task["artifacts"]["completion_evidence"]["required_artifact_types"].append("review_note")
+        task["artifacts"]["completion_evidence"]["required_artifact_types"].append("changed_file")
         return HarnessEvaluationRequest(
             task_envelope=task,
             external_facts=_aligned_bundle(linear_state="completed"),

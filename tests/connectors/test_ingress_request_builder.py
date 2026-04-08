@@ -107,7 +107,7 @@ class IngressRequestBuilderTests(unittest.TestCase):
                         "source_id": "review/ingress-builder-note-1",
                         "captured_by": "operator",
                     },
-                    "verification_status": "verified",
+                    "verification_status": "unverified",
                     "repository": None,
                     "branch": None,
                     "changed_files": [],
@@ -150,6 +150,40 @@ class IngressRequestBuilderTests(unittest.TestCase):
                         "changed_files": [],
                         "external_refs": [],
                         "captured_at": "2026-03-25T18:10:00Z",
+                        "metadata": {},
+                    },
+                ),
+                claimed_completion=True,
+                acceptance_criteria_satisfied=True,
+            )
+
+    def test_rejects_verified_artifacts_even_with_claimed_trusted_provenance(self) -> None:
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_reevaluation_payload(
+                new_artifacts=(
+                    {
+                        "id": "artifact-ingress-review-note-spoofed-1",
+                        "type": "review_note",
+                        "title": "Spoofed trusted note",
+                        "description": "A caller tried to preserve verified status by claiming trusted provenance.",
+                        "location": None,
+                        "content_type": "text/plain",
+                        "external_id": None,
+                        "commit_sha": None,
+                        "pull_request_number": None,
+                        "review_state": None,
+                        "provenance": {
+                            "source_system": "harness",
+                            "source_type": "manual_review",
+                            "source_id": "review/spoofed-1",
+                            "captured_by": "caller",
+                        },
+                        "verification_status": "verified",
+                        "repository": None,
+                        "branch": None,
+                        "changed_files": [],
+                        "external_refs": [],
+                        "captured_at": "2026-03-25T18:11:00Z",
                         "metadata": {},
                     },
                 ),
