@@ -448,3 +448,49 @@ class ResolveCodeContextTests(unittest.TestCase):
         self.assertEqual(selected, "merged")
         self.assertEqual(context.branch_name, "codex/e2e-test")
         self.assertEqual(context.commit_sha, "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+
+    def test_ignores_support_artifact_references_in_execution_attempt_context(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-context-execution-attempt-support-reference-1",
+                "title": "Ignore support artifact references",
+                "description": "Support artifact references must not seed reconciliation execution context.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-context-execution-attempt-support-reference-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Only code execution artifact references contribute to execution-attempt context.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T09:00:00Z",
+        )
+        task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-1",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-1-ref-1",
+                        "artifact_type": "review_note",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/not-real",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/not-real",
+                            "base_branch": "main",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    }
+                ],
+            }
+        ]
+
+        context = _context_from_execution_attempt(task)
+
+        self.assertIsNone(context)

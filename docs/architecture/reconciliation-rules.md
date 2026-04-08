@@ -310,16 +310,17 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 4. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest.
 5. Compare repository, branch, and commit context across `external_facts`, attached artifacts, and execution-attempt metadata. If those sources disagree, stop and record the conflict rather than choosing one implicitly.
 6. If repository and branch identity come from execution metadata or normalized external facts, do not let attached artifacts silently backfill a missing commit SHA. Leave commit identity unresolved and continue through the bounded recovery path instead of treating historical artifact state as current-run proof.
-7. Query GitHub for candidate PRs by branch.
-8. Query GitHub for candidate PRs by commit association.
-9. Validate each candidate against the current run context rather than treating branch lookup as success.
-10. Treat commit-association lookup as discovery evidence, not current-run proof, unless the PR head still matches the current expected commit or policy explicitly allows weaker matching.
-11. When the task has multiple execution attempts, require explicit run linkage to the current attempt rather than relying on task linkage alone.
-12. Reject candidates whose PR state is unknown. Missing state metadata is not treated as implicitly open.
-13. If exactly one valid current-run PR remains, attach it as a canonical verified artifact and mark reconciliation `resolved`.
-14. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
-15. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
-16. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
+7. When reading execution-attempt metadata, ignore non-code artifact references. Support references such as review notes may provide audit context, but they must not seed repository, branch, or commit identity for reconciliation.
+8. Query GitHub for candidate PRs by branch.
+9. Query GitHub for candidate PRs by commit association.
+10. Validate each candidate against the current run context rather than treating branch lookup as success.
+11. Treat commit-association lookup as discovery evidence, not current-run proof, unless the PR head still matches the current expected commit or policy explicitly allows weaker matching.
+12. When the task has multiple execution attempts, require explicit run linkage to the current attempt rather than relying on task linkage alone.
+13. Reject candidates whose PR state is unknown. Missing state metadata is not treated as implicitly open.
+14. If exactly one valid current-run PR remains, attach it as a canonical verified artifact and mark reconciliation `resolved`.
+15. If only stale or invalid candidates were found, continue to PR creation if it is still safe.
+16. If no valid PR exists, create one through the GitHub API, stamp it with Harness task/run linkage markers, read the persisted PR record back from GitHub, and validate that persisted record against current-run policy.
+17. If PR creation fails, the created PR cannot be revalidated from persisted state, the branch head SHA cannot be resolved, or ambiguity remains, capture the error and mark reconciliation `failed`.
 
 Every attempt must be recorded under `task.reconciliation`, including the handler name, lookup steps, all candidates found, why each candidate was accepted or rejected, creation result, final status, and any captured error.
 
