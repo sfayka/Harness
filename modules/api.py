@@ -709,7 +709,7 @@ def _resolve_submission_clarification_if_cleared(
 
     resume_target_status = _clarification_resume_target(resolved_task, preferred_status=None)
     current_status = str(resolved_task.get("status") or "")
-    if current_status == "blocked" and resume_target_status in {"intake_ready", "planned", "dispatch_ready"}:
+    if current_status == "blocked" and resume_target_status in {"intake_ready", "planned", "dispatch_ready", "assigned"}:
         transition = apply_task_transition(
             resolved_task,
             to_status=resume_target_status,
