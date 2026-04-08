@@ -481,6 +481,79 @@ def build_manual_ingress_payload(
     return payload
 
 
+def build_linear_ingress_payload(
+    *,
+    task_id: str,
+    case_name: str = "accepted_completion",
+) -> dict:
+    task_payload = build_create_task_payload(task_id)["request"]["task_envelope"]
+    expected_code_context = build_expected_code_context()
+    github_facts = build_github_facts()
+
+    payload: dict[str, Any] = {
+        "issue": {
+            "id": f"lin-{task_id}",
+            "identifier": f"HAR-{task_id}",
+            "title": task_payload["title"],
+            "description": task_payload["description"],
+        },
+        "state": {
+            "id": "workflow_in_progress" if case_name == "accepted_completion" else "workflow_completed",
+            "name": "in_progress" if case_name == "accepted_completion" else "completed",
+            "type": "started" if case_name == "accepted_completion" else "completed",
+        },
+        "project": {
+            "id": "project-harness",
+            "name": "Harness",
+        },
+        "task_reference": {
+            "harness_task_id": task_id,
+            "external_ref": f"HAR-{task_id}",
+        },
+        "labels": ["linear", "ingress"],
+        "priority": task_payload.get("priority", "normal"),
+        "task_status": "intake_ready",
+        "acceptance_criteria": deepcopy(task_payload["acceptance_criteria"]),
+        "external_facts": {
+            "expected_code_context": deepcopy(expected_code_context),
+            "github_facts": deepcopy(github_facts),
+        },
+        "claimed_completion": False,
+        "acceptance_criteria_satisfied": False,
+    }
+    if case_name == "blocked_insufficient_evidence":
+        payload["task_status"] = "dispatch_ready"
+        payload["unresolved_conditions"] = ["Need target repository before dispatch can begin."]
+    return payload
+
+
+def build_openclaw_ingress_payload(*, task_id: str) -> dict:
+    return {
+        "task_id": task_id,
+        "context": {
+            "conversation_id": "conv-kno-164",
+            "message_id": "msg-kno-164-1",
+            "channel": "cli",
+            "workspace_id": "workspace-harness",
+            "user_id": "operator@example.com",
+            "agent_id": "openclaw-assistant",
+        },
+        "task": {
+            "title": "OpenClaw canonical ingress task",
+            "description": "Create a task through OpenClaw ingress that is persisted by canonical submission.",
+            "acceptance_criteria": [
+                "Task is persisted in Harness store.",
+                "OpenClaw provenance is visible in canonical read surfaces.",
+            ],
+            "constraints": ["Keep OpenClaw request shape non-canonical."],
+            "priority": "high",
+        },
+        "metadata": {"request_kind": "openclaw"},
+        "claimed_completion": False,
+        "acceptance_criteria_satisfied": False,
+    }
+
+
 def build_evaluate_payload(
     task_envelope: dict,
     *,
@@ -681,10 +754,12 @@ __all__ = [
     "build_happy_path_evaluate_payload",
     "build_happy_path_overlays",
     "build_linked_artifacts",
+    "build_linear_ingress_payload",
     "build_linear_facts",
     "build_manual_ingress_payload",
     "build_mismatch_evaluate_payload",
     "build_mismatch_overlays",
+    "build_openclaw_ingress_payload",
     "build_reevaluate_payload",
     "build_review_decision",
     "build_review_decision_from_request",
