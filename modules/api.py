@@ -830,6 +830,10 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     unresolved_conditions = _parse_unresolved_conditions(request_payload)
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
+    task_envelope = _sanitize_initial_task_artifact_trust(
+        task_envelope,
+        allow_trusted_verification_provenance=True,
+    )
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
     task_envelope = _prune_downgraded_validated_artifact_ids(task_envelope)
     requested_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
@@ -939,7 +943,11 @@ def _artifact_has_trusted_verification_provenance(artifact: dict[str, Any]) -> b
     return False
 
 
-def _sanitize_initial_task_artifact_trust(task_envelope: dict[str, Any]) -> dict[str, Any]:
+def _sanitize_initial_task_artifact_trust(
+    task_envelope: dict[str, Any],
+    *,
+    allow_trusted_verification_provenance: bool = False,
+) -> dict[str, Any]:
     artifacts = ((task_envelope.get("artifacts") or {}).get("items") or [])
     if not isinstance(artifacts, list) or not artifacts:
         return task_envelope
@@ -949,7 +957,7 @@ def _sanitize_initial_task_artifact_trust(task_envelope: dict[str, Any]) -> dict
         _sanitize_submitted_artifact(
             artifact if isinstance(artifact, dict) else {},
             sanitize_submitted_verification=True,
-            allow_trusted_verification_provenance=False,
+            allow_trusted_verification_provenance=allow_trusted_verification_provenance,
         )
         for artifact in artifacts
         if isinstance(artifact, dict)
@@ -2995,11 +3003,6 @@ class HarnessApiService:
         contract_violations = _new_task_submission_contract_violations(request_payload)
         if contract_violations:
             return _new_task_submission_contract_error_response(contract_violations)
-
-        request = replace(
-            request,
-            task_envelope=_sanitize_initial_task_artifact_trust(request.task_envelope),
-        )
 
         task_id = str(request.task_envelope["id"])
         try:
