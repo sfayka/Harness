@@ -665,7 +665,12 @@ def _branch_artifact(artifact_id: str = "artifact-branch-1") -> dict:
     }
 
 
-def _review_decision_payload(task_id: str) -> dict:
+def _review_decision_payload(
+    task_id: str,
+    *,
+    outcome: ReviewOutcome = ReviewOutcome.ACCEPT_COMPLETION,
+    allowed_outcomes: tuple[ReviewOutcome, ...] | None = None,
+) -> dict:
     review_request_payload = deepcopy(_request_payload("review_required")["request"]["review_request"])
     review_request_payload["task_id"] = task_id
     review_request = ReviewRequest(
@@ -676,7 +681,8 @@ def _review_decision_payload(task_id: str) -> dict:
         trigger=ReviewTrigger(review_request_payload["trigger"]),
         summary=review_request_payload["summary"],
         presented_sections=tuple(review_request_payload.get("presented_sections", [])),
-        allowed_outcomes=tuple(ReviewOutcome(item) for item in review_request_payload.get("allowed_outcomes", [])),
+        allowed_outcomes=allowed_outcomes
+        or tuple(ReviewOutcome(item) for item in review_request_payload.get("allowed_outcomes", [])),
         prior_review_ids=tuple(review_request_payload.get("prior_review_ids", [])),
         metadata=dict(review_request_payload.get("metadata", {})),
     )
@@ -688,8 +694,12 @@ def _review_decision_payload(task_id: str) -> dict:
             reviewer_name="Casey Reviewer",
             authority_role="operator",
         ),
-        outcome=ReviewOutcome.ACCEPT_COMPLETION,
-        reasoning="Additional evidence and manual review resolve the remaining uncertainty.",
+        outcome=outcome,
+        reasoning=(
+            "Additional evidence and manual review resolve the remaining uncertainty."
+            if outcome == ReviewOutcome.ACCEPT_COMPLETION
+            else "Manual review requires another execution attempt."
+        ),
     )
     return _to_jsonable(review_decision)
 
@@ -3135,6 +3145,65 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 2)
 
+    def test_service_reevaluate_authorize_redispatch_auto_dispatches_follow_up(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_redispatch",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(self.service.store.get_task(task_id))
+        stored_task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-1",
+                "recorded_at": "2026-03-24T17:05:00Z",
+                "status": "completed",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-prior-1",
+                "artifact_references": [],
+                "metadata": {"dispatch_trigger": "manual_api"},
+                "reevaluation": {
+                    "evaluation_id": "evaluation-prior-1",
+                    "linked_at": "2026-03-24T17:06:00Z",
+                    "action": "review_required",
+                },
+            }
+        ]
+        self.service.store.update_task(stored_task)
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.AUTHORIZE_REDISPATCH,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.AUTHORIZE_REDISPATCH,
+                        ),
+                    )
+                }
+            },
+        )
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["target_status"], "dispatch_ready")
+        self.assertTrue(resolution_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(resolution_response["automatic_dispatch"]["status"], 200)
+        self.assertEqual(resolution_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
+        self.assertEqual(timeline_status, 200)
+        dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
+        self.assertTrue(dispatch_events)
+        self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "manual_review_authorize_redispatch")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 2)
+
     def test_service_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
         task_id = initial_response["task_envelope"]["id"]
@@ -4294,6 +4363,58 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_status, 200)
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
         self.assertIn(reevaluation_response["action"], {"transition_applied", "follow_up_authorized"})
+
+    def test_api_authorize_redispatch_triggers_automatic_dispatch(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_redispatch",
+        ]
+
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(self.server.RequestHandlerClass.service.store.get_task(task_id))
+        stored_task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-1",
+                "recorded_at": "2026-03-24T17:05:00Z",
+                "status": "completed",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-prior-1",
+                "artifact_references": [],
+                "metadata": {"dispatch_trigger": "manual_api"},
+                "reevaluation": {
+                    "evaluation_id": "evaluation-prior-1",
+                    "linked_at": "2026-03-24T17:06:00Z",
+                    "action": "review_required",
+                },
+            }
+        ]
+        self.server.RequestHandlerClass.service.store.update_task(stored_task)
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.AUTHORIZE_REDISPATCH,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.AUTHORIZE_REDISPATCH,
+                        ),
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["target_status"], "dispatch_ready")
+        self.assertTrue(reevaluation_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(reevaluation_response["automatic_dispatch"]["status"], 200)
+        self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
 
     def test_api_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
         initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
