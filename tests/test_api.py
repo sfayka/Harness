@@ -916,6 +916,47 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(payload["invalid_input"])
         self.assertIn("Invalid TaskEnvelope:", payload["error"])
 
+    def test_service_evaluate_strips_verified_status_from_initial_support_artifacts(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-evaluate-initial-support-artifact-1",
+                "title": "Evaluate initial support artifact trust",
+                "description": "New-task evaluation should not keep caller-certified verified support artifacts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-evaluate-initial-support-artifact-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness preserves advisory support artifacts without trusting caller verification.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T22:40:00Z",
+        )
+        task_envelope["artifacts"]["items"] = [
+            {
+                **_review_note_artifact("artifact-evaluate-initial-review-note-1"),
+                "provenance": {
+                    "source_system": "codex",
+                    "source_type": "executor_report",
+                    "source_id": "evaluate/self-certified-initial-review-note-1",
+                    "captured_by": "harness-api",
+                },
+            }
+        ]
+        payload = {"request": {"task_envelope": task_envelope}}
+
+        status, response = self.service.evaluate(payload)
+
+        self.assertEqual(status, 200)
+        stored_artifact = response["task_envelope"]["artifacts"]["items"][0]
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
+
     def test_service_submit_rejects_completion_shaped_new_task_without_persisting_state(self) -> None:
         payload = _request_payload("accepted_completion")
         task_id = payload["request"]["task_envelope"]["id"]
@@ -4612,6 +4653,47 @@ class HarnessHttpApiTests(unittest.TestCase):
         ]
 
         status, response = self._post_json("/tasks", payload)
+
+        self.assertEqual(status, 200)
+        stored_artifact = response["task_envelope"]["artifacts"]["items"][0]
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
+
+    def test_api_evaluate_strips_verified_status_from_initial_support_artifacts(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-api-evaluate-initial-support-artifact-1",
+                "title": "HTTP evaluate initial support artifact trust",
+                "description": "HTTP new-task evaluation should not keep caller-certified verified support artifacts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-api-evaluate-initial-support-artifact-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Harness preserves advisory support artifacts without trusting caller verification.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T22:40:00Z",
+        )
+        task_envelope["artifacts"]["items"] = [
+            {
+                **_review_note_artifact("artifact-api-evaluate-initial-review-note-1"),
+                "provenance": {
+                    "source_system": "codex",
+                    "source_type": "executor_report",
+                    "source_id": "evaluate/self-certified-initial-review-note-api-1",
+                    "captured_by": "harness-api",
+                },
+            }
+        ]
+        payload = {"request": {"task_envelope": task_envelope}}
+
+        status, response = self._post_json("/evaluate", payload)
 
         self.assertEqual(status, 200)
         stored_artifact = response["task_envelope"]["artifacts"]["items"][0]
