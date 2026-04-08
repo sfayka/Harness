@@ -2688,6 +2688,61 @@ class HarnessApiServiceTests(unittest.TestCase):
             claim_response["contract_violation"]["validation"]["context_observations"].get("repository")
         )
 
+    def test_service_completion_claim_ignores_support_artifact_references_for_execution_validation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = self.service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+        assigned_task = deepcopy(self.service.store.get_task(task_id))
+        assigned_task["status"] = "assigned"
+        assigned_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-invalid-support-reference-1",
+            "assignment_reason": "Exercise support artifact reference rejection.",
+        }
+        assigned_task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+        self.service.store.update_task(assigned_task)
+
+        invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-invalid-support-reference-1")
+        invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-invalid-support-reference-1:review-note",
+                "artifact_type": "review_note",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+
+        with patch.dict(os.environ, {"HARNESS_INVALID_EXECUTION_RETRY_BUDGET": "1"}):
+            claim_status, claim_response = self.service.submit_completion_claim(
+                task_id,
+                {
+                    "request": {
+                        **_completion_claim_payload(claim_id="claim-invalid-support-reference-1"),
+                        **invalid_attempt_payload,
+                        "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    }
+                },
+            )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "missing_branch_identity",
+        )
+        self.assertFalse(
+            claim_response["contract_violation"]["validation"]["context_observations"].get("repository")
+        )
+
     def test_service_completion_claim_rejects_reserved_work_branch_as_contract_violation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {
@@ -4154,6 +4209,60 @@ class HarnessHttpApiTests(unittest.TestCase):
                         **_completion_claim_payload(claim_id="claim-invalid-support-context-api-1"),
                         **_execution_attempt_payload(attempt_id="attempt-invalid-support-context-api-1"),
                         "new_artifacts": [support_artifact],
+                        "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    }
+                },
+            )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "missing_branch_identity",
+        )
+
+    def test_api_completion_claim_ignores_support_artifact_references_for_execution_validation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_payload = self._post_json(
+            "/tasks",
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}},
+        )
+        task_id = submit_payload["task_envelope"]["id"]
+        store = FileBackedHarnessStore(self.temp_dir.name)
+        task = deepcopy(store.get_task(task_id))
+        task["status"] = "assigned"
+        task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-invalid-support-reference-api-1",
+            "assignment_reason": "Exercise support artifact reference rejection.",
+        }
+        task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+        store.update_task(task)
+
+        invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-invalid-support-reference-api-1")
+        invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-invalid-support-reference-api-1:review-note",
+                "artifact_type": "review_note",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+
+        with patch.dict(os.environ, {"HARNESS_INVALID_EXECUTION_RETRY_BUDGET": "1"}):
+            claim_status, claim_response = self._post_json(
+                f"/tasks/{task_id}/completion-claims",
+                {
+                    "request": {
+                        **_completion_claim_payload(claim_id="claim-invalid-support-reference-api-1"),
+                        **invalid_attempt_payload,
                         "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
                     }
                 },

@@ -1876,6 +1876,10 @@ def _collect_artifact_reference_context(
     *,
     source: str,
 ) -> None:
+    artifact_type = _normalized_string(artifact_reference.get("artifact_type"))
+    if artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES:
+        return
+
     metadata = artifact_reference.get("metadata") if isinstance(artifact_reference.get("metadata"), dict) else {}
 
     repository_host = (
