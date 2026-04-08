@@ -126,6 +126,34 @@ def _reevaluation_completion_evidence_would_prematurely_satisfy(
     return False
 
 
+def _artifact_has_trusted_verification_provenance(artifact: dict[str, Any]) -> bool:
+    provenance = artifact.get("provenance")
+    if not isinstance(provenance, dict):
+        return False
+    source_system = str(provenance.get("source_system") or "").strip().lower()
+    source_type = str(provenance.get("source_type") or "").strip().lower()
+    if source_system == "github" and source_type == "api":
+        return True
+    if source_system == "harness" and source_type in {"manual_review", "verification"}:
+        return True
+    return False
+
+
+def _reject_untrusted_verified_artifacts(
+    artifacts: tuple[dict[str, Any], ...],
+    *,
+    field_name: str,
+) -> None:
+    for index, artifact in enumerate(artifacts):
+        if str((artifact or {}).get("verification_status") or "").strip().lower() != "verified":
+            continue
+        if _artifact_has_trusted_verification_provenance(artifact):
+            continue
+        raise IngressRequestBuilderError(
+            f"{field_name}[{index}] cannot set verification_status='verified' without trusted provenance"
+        )
+
+
 def _reject_execution_artifacts_on_reevaluation(
     new_artifacts: tuple[dict[str, Any], ...],
     *,
@@ -167,6 +195,7 @@ def build_task_submission_payload(
             "Submission builders cannot attach completion_evidence to a new task; Harness owns completion proof state"
         )
     _reject_execution_artifacts_on_initial_submission(intent.linked_artifacts)
+    _reject_untrusted_verified_artifacts(intent.linked_artifacts, field_name="intent.linked_artifacts")
 
     normalized_acceptance_criteria = _normalize_string_tuple(
         intent.acceptance_criteria,
@@ -257,6 +286,7 @@ def build_task_reevaluation_payload(
     """Build a canonical POST /tasks/<id>/reevaluate payload."""
 
     _reject_execution_artifacts_on_reevaluation(new_artifacts, runtime_facts=runtime_facts)
+    _reject_untrusted_verified_artifacts(new_artifacts, field_name="new_artifacts")
 
     request_payload: dict[str, Any] = {
         "external_facts": deepcopy(external_facts or {}),

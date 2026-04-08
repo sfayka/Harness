@@ -308,7 +308,14 @@ def _apply_submission_task_overlays(
     linked_artifacts_payload = request_payload.get("linked_artifacts")
     if linked_artifacts_payload is not None:
         linked_artifacts = _optional_object_list(linked_artifacts_payload, field_name="linked_artifacts")
-        merged_task["artifacts"]["items"] = [deepcopy(artifact) for artifact in linked_artifacts]
+        merged_task["artifacts"]["items"] = [
+            _sanitize_submitted_artifact(
+                artifact,
+                sanitize_submitted_verification=True,
+                allow_trusted_verification_provenance=True,
+            )
+            for artifact in linked_artifacts
+        ]
 
     completion_evidence_update = _optional_mapping(
         request_payload.get("completion_evidence"),
@@ -824,6 +831,7 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     task_envelope = _require_mapping(request_payload.get("task_envelope"), field_name="task_envelope")
     _require_non_empty_string(task_envelope.get("id"), field_name="task_envelope.id")
     task_envelope = _apply_submission_task_overlays(task_envelope, request_payload=request_payload)
+    task_envelope = _prune_downgraded_validated_artifact_ids(task_envelope)
     requested_status = _optional_non_empty_string(request_payload.get("task_status"), field_name="task_status")
     task_envelope = _with_submission_clarification(
         task_envelope,
@@ -871,35 +879,51 @@ def _merge_artifacts(
         artifact_id = artifact.get("id")
         if artifact_id is not None and str(artifact_id) in existing_ids:
             raise ApiRequestError(f"new_artifacts contains duplicate artifact id {artifact_id!r}")
-        sanitized_artifact = deepcopy(artifact)
-        submitted_verification_status = _normalized_string(sanitized_artifact.get("verification_status"))
-        artifact_type = _normalized_string(sanitized_artifact.get("type"))
-        trusted_verification_provenance = (
-            allow_trusted_verification_provenance and _artifact_has_trusted_verification_provenance(sanitized_artifact)
+        sanitized_artifact = _sanitize_submitted_artifact(
+            artifact,
+            sanitize_submitted_verification=sanitize_submitted_verification,
+            sanitize_non_execution_artifacts=sanitize_non_execution_artifacts,
+            allow_trusted_verification_provenance=allow_trusted_verification_provenance,
         )
-        if (
-            sanitize_submitted_verification
-            and submitted_verification_status == "verified"
-            and not trusted_verification_provenance
-            and (
-                artifact_type == "pull_request"
-                or artifact_type == "commit"
-                or artifact_type == "branch"
-                or artifact_type == "changed_file"
-                or (sanitize_non_execution_artifacts and artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES)
-            )
-        ):
-            metadata = sanitized_artifact.get("metadata") if isinstance(sanitized_artifact.get("metadata"), dict) else {}
-            metadata = dict(metadata)
-            metadata["submitted_verification_status"] = submitted_verification_status
-            sanitized_artifact["metadata"] = metadata
-            sanitized_artifact["verification_status"] = "unverified"
         artifact_items.append(sanitized_artifact)
         if artifact_id is not None:
             existing_ids.add(str(artifact_id))
 
     merged_task["artifacts"]["items"] = artifact_items
     return merged_task
+
+
+def _sanitize_submitted_artifact(
+    artifact: dict[str, Any],
+    *,
+    sanitize_submitted_verification: bool = False,
+    sanitize_non_execution_artifacts: bool = True,
+    allow_trusted_verification_provenance: bool = False,
+) -> dict[str, Any]:
+    sanitized_artifact = deepcopy(artifact)
+    submitted_verification_status = _normalized_string(sanitized_artifact.get("verification_status"))
+    artifact_type = _normalized_string(sanitized_artifact.get("type"))
+    trusted_verification_provenance = (
+        allow_trusted_verification_provenance and _artifact_has_trusted_verification_provenance(sanitized_artifact)
+    )
+    if (
+        sanitize_submitted_verification
+        and submitted_verification_status == "verified"
+        and not trusted_verification_provenance
+        and (
+            artifact_type == "pull_request"
+            or artifact_type == "commit"
+            or artifact_type == "branch"
+            or artifact_type == "changed_file"
+            or (sanitize_non_execution_artifacts and artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES)
+        )
+    ):
+        metadata = sanitized_artifact.get("metadata") if isinstance(sanitized_artifact.get("metadata"), dict) else {}
+        metadata = dict(metadata)
+        metadata["submitted_verification_status"] = submitted_verification_status
+        sanitized_artifact["metadata"] = metadata
+        sanitized_artifact["verification_status"] = "unverified"
+    return sanitized_artifact
 
 
 def _artifact_has_trusted_verification_provenance(artifact: dict[str, Any]) -> bool:
@@ -1234,7 +1258,6 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
             merged_task,
             new_artifacts=new_artifacts,
             sanitize_submitted_verification=True,
-            sanitize_non_execution_artifacts=False,
             allow_trusted_verification_provenance=True,
         )
 
