@@ -113,7 +113,7 @@ _AUTHORIZED_ACTORS: dict[tuple[str, str], set[str]] = {
     ("completed", "blocked"): {"verification", "manual_review"},
     ("blocked", "intake_ready"): {"clarification", "operator", "manual_review"},
     ("blocked", "planned"): {"planner", "clarification", "operator", "manual_review"},
-    ("blocked", "dispatch_ready"): {"dispatcher", "operator", "manual_review"},
+    ("blocked", "dispatch_ready"): {"clarification", "dispatcher", "operator", "manual_review"},
     ("blocked", "assigned"): {"dispatcher"},
     ("blocked", "executing"): {"runtime"},
     ("blocked", "reconciling"): {"reconciliation"},
