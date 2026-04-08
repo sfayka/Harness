@@ -1574,6 +1574,91 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(reevaluation_response["invalid_input"])
         self.assertIn("claimed_completion", reevaluation_response["error"])
 
+    def test_service_reevaluate_strips_executor_verified_status_from_code_artifacts(self) -> None:
+        service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-reevaluate-code-artifact-1",
+                "title": "Reevaluation code artifact trust",
+                "description": "Reevaluation should not self-certify code-bearing artifacts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-reevaluate-code-artifact-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Completion requires a verified pull request.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T19:00:00Z",
+        )
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        pr_artifact = deepcopy(_manual_happy_path_overlay_payload()["request"]["linked_artifacts"][0])
+        pr_artifact["provenance"] = {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": "reevaluate/self-certified-pr-1",
+            "captured_by": "harness-api",
+        }
+        reevaluation_status, reevaluation_response = service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "new_artifacts": [pr_artifact],
+                    "completion_evidence": {
+                        "status": "satisfied",
+                        "validated_artifact_ids": [pr_artifact["id"]],
+                        "validation_method": "manual_review",
+                        "validated_at": "2026-04-07T19:05:00Z",
+                        "validator": {
+                            "source_system": "harness",
+                            "source_type": "verification",
+                            "source_id": "verification-reevaluate-code-1",
+                            "captured_by": "operator",
+                        },
+                    },
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 200)
+        self.assertFalse(reevaluation_response["accepted_completion"])
+        stored_artifact = next(
+            artifact
+            for artifact in reevaluation_response["task_envelope"]["artifacts"]["items"]
+            if artifact["id"] == pr_artifact["id"]
+        )
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(
+            stored_artifact["metadata"]["submitted_verification_status"],
+            "verified",
+        )
+        evidence = reevaluation_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
+
     def test_service_reevaluate_canonicalizes_unresolved_conditions_into_clarification(self) -> None:
         submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
         submit_status, submit_response = self.service.submit(submit_payload)
@@ -4247,6 +4332,90 @@ class HarnessHttpApiTests(unittest.TestCase):
                 "request.linked_artifacts",
             },
         )
+
+    def test_api_reevaluate_strips_executor_verified_status_from_code_artifacts(self) -> None:
+        task_envelope = create_task_envelope(
+            {
+                "id": "task-api-reevaluate-code-artifact-1",
+                "title": "HTTP reevaluate code artifact trust",
+                "description": "HTTP reevaluation should not self-certify code-bearing artifacts.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-api-reevaluate-code-artifact-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Completion requires a verified pull request.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-07T19:00:00Z",
+        )
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "required",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = self._post_json("/tasks", {"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        pr_artifact = deepcopy(_manual_happy_path_overlay_payload()["request"]["linked_artifacts"][0])
+        pr_artifact["provenance"] = {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": "reevaluate/self-certified-pr-api-1",
+            "captured_by": "harness-api",
+        }
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "new_artifacts": [pr_artifact],
+                    "completion_evidence": {
+                        "status": "satisfied",
+                        "validated_artifact_ids": [pr_artifact["id"]],
+                        "validation_method": "manual_review",
+                        "validated_at": "2026-04-07T19:05:00Z",
+                        "validator": {
+                            "source_system": "harness",
+                            "source_type": "verification",
+                            "source_id": "verification-api-reevaluate-code-1",
+                            "captured_by": "operator",
+                        },
+                    },
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 200)
+        self.assertFalse(reevaluation_response["accepted_completion"])
+        stored_artifact = next(
+            artifact
+            for artifact in reevaluation_response["task_envelope"]["artifacts"]["items"]
+            if artifact["id"] == pr_artifact["id"]
+        )
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(
+            stored_artifact["metadata"]["submitted_verification_status"],
+            "verified",
+        )
+        evidence = reevaluation_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
 
     def test_api_completion_claim_rejects_submission_style_mutation_fields(self) -> None:
         payload = _manual_happy_path_overlay_payload()
