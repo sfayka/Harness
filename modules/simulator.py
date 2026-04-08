@@ -168,6 +168,48 @@ def _review_note_artifact(artifact_id: str = "artifact-review-note-sim-1") -> di
     }
 
 
+def _verified_changed_file_artifact(artifact_id: str = "artifact-changed-file-sim-1") -> dict[str, Any]:
+    return {
+        "id": artifact_id,
+        "type": "changed_file",
+        "title": "Changed file evidence",
+        "description": "GitHub-verified changed-file proof for the simulator walkthrough.",
+        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/blob/codex/demo/modules/api.py",
+        "content_type": None,
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "github",
+            "source_type": "api",
+            "source_id": f"changed-file/{artifact_id}",
+            "captured_by": "openclaw-simulator",
+        },
+        "verification_status": "verified",
+        "repository": {
+            "host": "github.com",
+            "owner": "KnoxAnalytics",
+            "name": "HARNESS-DRYRUN",
+            "external_id": "repo-dryrun-1",
+        },
+        "branch": {
+            "name": "codex/demo",
+            "base_branch": "main",
+            "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        },
+        "changed_files": [
+            {
+                "path": "modules/api.py",
+                "change_type": "modified",
+            }
+        ],
+        "external_refs": [],
+        "captured_at": "2026-03-25T12:00:00Z",
+        "metadata": {},
+    }
+
+
 def _progress_artifact(artifact_id: str = "artifact-progress-sim-1") -> dict[str, Any]:
     return {
         "id": artifact_id,
@@ -508,12 +550,12 @@ def _scenario_missing_evidence_then_completed(
         "provide_missing_evidence",
         {
             "request": {
-                "new_artifacts": [_review_note_artifact()],
+                "new_artifacts": [_verified_changed_file_artifact()],
                 "completion_evidence": {
                     "validated_artifact_ids": [
                         "artifact-pr-1",
                         "artifact-commit-1",
-                        "artifact-review-note-sim-1",
+                        "artifact-changed-file-sim-1",
                     ]
                 },
                 "external_facts": deepcopy(context.canonical_payload("accepted_completion")["request"]["external_facts"]),
@@ -754,12 +796,12 @@ def _scenario_long_running_handoff(
         "complete_after_handoff",
         {
             "request": {
-                "new_artifacts": [_review_note_artifact()],
+                "new_artifacts": [_verified_changed_file_artifact()],
                 "completion_evidence": {
                     "validated_artifact_ids": [
                         "artifact-pr-1",
                         "artifact-commit-1",
-                        "artifact-review-note-sim-1",
+                        "artifact-changed-file-sim-1",
                     ]
                 },
                 "external_facts": deepcopy(context.canonical_payload("accepted_completion")["request"]["external_facts"]),

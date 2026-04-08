@@ -59,7 +59,7 @@ class HarnessDemoRunnerTests(unittest.TestCase):
         self.assertIn("verification:", timeline)
         self.assertIn("reconciliation:", timeline)
         self.assertIn("lifecycle:", timeline)
-        self.assertIn("new_artifacts=review_note", timeline)
+        self.assertIn("new_artifacts=changed_file", timeline)
         self.assertIn("Final Task State: completed", timeline)
 
     def test_mermaid_trace_includes_transitions_and_final_state(self) -> None:

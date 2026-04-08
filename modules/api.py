@@ -908,7 +908,9 @@ def _sanitize_submitted_artifact(
     submitted_verification_status = _normalized_string(sanitized_artifact.get("verification_status"))
     artifact_type = _normalized_string(sanitized_artifact.get("type"))
     trusted_verification_provenance = (
-        allow_trusted_verification_provenance and _artifact_has_trusted_verification_provenance(sanitized_artifact)
+        allow_trusted_verification_provenance
+        and artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES
+        and _artifact_has_trusted_verification_provenance(sanitized_artifact)
     )
     if (
         sanitize_submitted_verification
@@ -1214,6 +1216,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
             merged_task,
             new_artifacts=new_artifacts,
             sanitize_submitted_verification=True,
+            allow_trusted_verification_provenance=False,
         )
 
     completion_evidence_update = _optional_mapping(
