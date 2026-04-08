@@ -2075,6 +2075,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_status, 200)
         self.assertEqual(blocked_status, 200)
         self.assertEqual(resolved_status, 200)
+        self.assertEqual(resolved_response["task_envelope"]["status"], "intake_ready")
         clarification = resolved_response["task_envelope"]["clarification"]
         self.assertEqual(clarification["status"], "resolved")
         self.assertEqual(
@@ -2083,6 +2084,39 @@ class HarnessApiServiceTests(unittest.TestCase):
         )
         self.assertIsNotNone(clarification["resolved_at"])
         self.assertEqual(clarification["required_inputs"][0]["status"], "provided")
+
+    def test_service_reevaluate_resumes_dispatch_ready_clarification_and_auto_dispatches(self) -> None:
+        payload = _manual_ingress_payload(task_id="task-clarification-resume-dispatch-1")
+        payload["task_status"] = "dispatch_ready"
+        payload["unresolved_conditions"] = ["Need repository clarification before dispatch can begin."]
+
+        submit_status, submit_response = self.service.submit_manual_ingress(payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        resolved_status, resolved_response = self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(resolved_status, 200)
+        self.assertNotIn(resolved_response["task_envelope"]["status"], {"blocked", "dispatch_ready"})
+        self.assertTrue(resolved_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(resolved_response["automatic_dispatch"]["status"], 200)
+        self.assertEqual(resolved_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
+        clarification = resolved_response["task_envelope"]["clarification"]
+        self.assertEqual(clarification["status"], "resolved")
+        self.assertEqual(clarification["resume_target_status"], "dispatch_ready")
+        self.assertEqual(read_status, 200)
+        self.assertNotIn(read_payload["task"]["current_status"], {"blocked", "dispatch_ready"})
+        self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 1)
+        self.assertEqual(timeline_status, 200)
+        dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
+        self.assertTrue(dispatch_events)
+        self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "automatic_policy_post_reevaluation")
 
     def test_service_evaluate_existing_task_rejects_top_level_overlays(self) -> None:
         payload = _manual_happy_path_overlay_payload()
@@ -5283,6 +5317,31 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertTrue(reevaluation_response["automatic_dispatch"]["attempted"])
         self.assertEqual(reevaluation_response["automatic_dispatch"]["status"], 200)
         self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
+
+    def test_api_reevaluate_resumes_dispatch_ready_clarification_and_auto_dispatches(self) -> None:
+        payload = _manual_ingress_payload(task_id="task-clarification-resume-dispatch-api-1")
+        payload["task_status"] = "dispatch_ready"
+        payload["unresolved_conditions"] = ["Need repository clarification before dispatch can begin."]
+
+        submit_status, submit_response = self._post_json("/ingress/manual", payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(submit_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertNotIn(reevaluation_response["task_envelope"]["status"], {"blocked", "dispatch_ready"})
+        self.assertTrue(reevaluation_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(reevaluation_response["automatic_dispatch"]["status"], 200)
+        self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
+        self.assertEqual(
+            reevaluation_response["task_envelope"]["clarification"]["resume_target_status"],
+            "dispatch_ready",
+        )
 
     def test_api_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
         initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))

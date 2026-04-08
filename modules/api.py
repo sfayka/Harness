@@ -706,6 +706,21 @@ def _resolve_submission_clarification_if_cleared(
     updated_clarification["resolution_summary"] = resolution_summary
     resolved_task["clarification"] = updated_clarification
     resolved_task["timestamps"]["updated_at"] = resolved_at
+
+    resume_target_status = _clarification_resume_target(resolved_task, preferred_status=None)
+    current_status = str(resolved_task.get("status") or "")
+    if current_status == "blocked" and resume_target_status in {"intake_ready", "planned", "dispatch_ready"}:
+        transition = apply_task_transition(
+            resolved_task,
+            to_status=resume_target_status,
+            actor="clarification",
+            reason="Clarification requirements were cleared and the task can resume.",
+            facts={"clarification_resolved": True},
+        )
+        resolved_task = transition.task_envelope
+        updated_clarification["resolved_at"] = transition.changed_at
+        resolved_task["clarification"] = updated_clarification
+
     return resolved_task
 
 _EXISTING_TASK_EVALUATE_OVERLAY_FIELDS: tuple[tuple[str, str], ...] = (
@@ -3285,6 +3300,23 @@ class HarnessApiService:
                 dispatch_trigger="manual_review_authorize_redispatch",
                 dispatch_policy_stage="post_review_reevaluation",
             )
+        elif str(stored_task.get("status") or "") == "dispatch_ready":
+            should_dispatch, reason = _dispatch_policy_decision(stored_task, store=self.store)
+            if should_dispatch:
+                stored_task, response_payload = self._run_automatic_dispatch(
+                    task_id=task_id,
+                    task_envelope=stored_task,
+                    response_payload=response_payload,
+                    reason=reason,
+                    dispatch_trigger="automatic_policy_post_reevaluation",
+                    dispatch_policy_stage="post_reevaluation",
+                )
+            else:
+                response_payload["automatic_dispatch"] = {
+                    "attempted": False,
+                    "dispatchable": False,
+                    "reason": reason,
+                }
         return status, response_payload
 
     def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:

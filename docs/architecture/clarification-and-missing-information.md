@@ -318,7 +318,8 @@ Then:
 
 - `clarification.status` -> `resolved`
 - `resolved_at` is recorded
-- the task may move from `blocked` back to `resume_target_status`
+- the task resumes from `blocked` back to `resume_target_status` when that target is safe to restore automatically
+- if `resume_target_status` is `dispatch_ready`, Harness immediately re-applies automatic dispatch policy so a real execution attempt is recorded
 
 Clarification may begin at intake time or later during execution. The same contract applies in both cases. What changes is the `resume_target_status`.
 
