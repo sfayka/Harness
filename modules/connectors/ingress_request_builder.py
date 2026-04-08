@@ -154,6 +154,19 @@ def _reject_untrusted_verified_artifacts(
         )
 
 
+def _reject_verified_artifacts(
+    artifacts: tuple[dict[str, Any], ...],
+    *,
+    field_name: str,
+) -> None:
+    for index, artifact in enumerate(artifacts):
+        if str((artifact or {}).get("verification_status") or "").strip().lower() != "verified":
+            continue
+        raise IngressRequestBuilderError(
+            f"{field_name}[{index}] cannot set verification_status='verified' on initial submission"
+        )
+
+
 def _reject_execution_artifacts_on_reevaluation(
     new_artifacts: tuple[dict[str, Any], ...],
     *,
@@ -195,7 +208,7 @@ def build_task_submission_payload(
             "Submission builders cannot attach completion_evidence to a new task; Harness owns completion proof state"
         )
     _reject_execution_artifacts_on_initial_submission(intent.linked_artifacts)
-    _reject_untrusted_verified_artifacts(intent.linked_artifacts, field_name="intent.linked_artifacts")
+    _reject_verified_artifacts(intent.linked_artifacts, field_name="intent.linked_artifacts")
 
     normalized_acceptance_criteria = _normalize_string_tuple(
         intent.acceptance_criteria,

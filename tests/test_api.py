@@ -964,6 +964,27 @@ class HarnessApiServiceTests(unittest.TestCase):
             )
         )
 
+    def test_service_submit_strips_verified_status_from_initial_support_artifacts(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        payload["request"]["task_envelope"]["artifacts"]["items"] = [
+            {
+                **_review_note_artifact("artifact-submit-review-note-1"),
+                "provenance": {
+                    "source_system": "codex",
+                    "source_type": "executor_report",
+                    "source_id": "submit/self-certified-review-note-1",
+                    "captured_by": "harness-api",
+                },
+            }
+        ]
+
+        status, response = self.service.submit(payload)
+
+        self.assertEqual(status, 200)
+        stored_artifact = response["task_envelope"]["artifacts"]["items"][0]
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
+
     def test_service_submit_rejects_assigned_status_on_new_task(self) -> None:
         payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
         task_id = payload["request"]["task_envelope"]["id"]
@@ -4575,6 +4596,27 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertIsNone(evidence["validated_at"])
         self.assertIsNone(evidence["validator"])
         self.assertEqual(evidence["validation_method"], "deferred")
+
+    def test_api_submit_strips_verified_status_from_initial_support_artifacts(self) -> None:
+        payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        payload["request"]["task_envelope"]["artifacts"]["items"] = [
+            {
+                **_review_note_artifact("artifact-api-submit-review-note-1"),
+                "provenance": {
+                    "source_system": "codex",
+                    "source_type": "executor_report",
+                    "source_id": "submit/self-certified-review-note-api-1",
+                    "captured_by": "harness-api",
+                },
+            }
+        ]
+
+        status, response = self._post_json("/tasks", payload)
+
+        self.assertEqual(status, 200)
+        stored_artifact = response["task_envelope"]["artifacts"]["items"][0]
+        self.assertEqual(stored_artifact["verification_status"], "unverified")
+        self.assertEqual(stored_artifact["metadata"]["submitted_verification_status"], "verified")
 
     def test_api_completion_claim_rejects_submission_style_mutation_fields(self) -> None:
         payload = _manual_happy_path_overlay_payload()

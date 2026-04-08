@@ -199,6 +199,43 @@ class IngressRequestBuilderTests(unittest.TestCase):
                 context=self._context(),
             )
 
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_submission_payload(
+                intent=IngressTaskIntent(
+                    **{
+                        **self._intent().__dict__,
+                        "linked_artifacts": (
+                            {
+                                "id": "artifact-ingress-initial-review-note-1",
+                                "type": "review_note",
+                                "title": "Initial review note",
+                                "description": "A caller tried to seed verified support proof on a new task.",
+                                "location": None,
+                                "content_type": "text/plain",
+                                "external_id": None,
+                                "commit_sha": None,
+                                "pull_request_number": None,
+                                "review_state": None,
+                                "provenance": {
+                                    "source_system": "harness",
+                                    "source_type": "manual_review",
+                                    "source_id": "review/ingress-initial-note-1",
+                                    "captured_by": "operator",
+                                },
+                                "verification_status": "verified",
+                                "repository": None,
+                                "branch": None,
+                                "changed_files": [],
+                                "external_refs": [],
+                                "captured_at": "2026-03-25T18:20:00Z",
+                                "metadata": {},
+                            },
+                        ),
+                    }
+                ),
+                context=self._context(),
+            )
+
     def test_rejects_pre_satisfied_completion_evidence_without_claimed_completion(self) -> None:
         with self.assertRaises(IngressRequestBuilderError):
             build_task_reevaluation_payload(

@@ -78,6 +78,8 @@ Nested `request.task_envelope` content is also checked. A fresh task must not al
 - execution attempts or advisory completion claims
 - reconciliation attempts or resolved reconciliation state
 
+If initial `request.task_envelope.artifacts.items` includes support artifacts, they are stored as advisory attachments only. Caller-submitted `verification_status=verified` is stripped on new-task submission so a task cannot begin with pre-certified artifact truth.
+
 `request.task_status` is intentionally narrow. It may seed only intake/planning lifecycle states:
 
 - `intake_ready`
