@@ -102,10 +102,10 @@ class IngressRequestBuilderTests(unittest.TestCase):
                     "pull_request_number": None,
                     "review_state": None,
                     "provenance": {
-                        "source_system": "openclaw",
-                        "source_type": "manual",
-                        "source_id": "msg-ingress-review-note-1",
-                        "captured_by": "ingress-builder-test",
+                        "source_system": "harness",
+                        "source_type": "manual_review",
+                        "source_id": "review/ingress-builder-note-1",
+                        "captured_by": "operator",
                     },
                     "verification_status": "verified",
                     "repository": None,
@@ -122,6 +122,40 @@ class IngressRequestBuilderTests(unittest.TestCase):
 
         self.assertEqual(payload["request"]["new_artifacts"][0]["type"], "review_note")
         self.assertTrue(payload["request"]["claimed_completion"])
+
+    def test_rejects_untrusted_verified_artifacts(self) -> None:
+        with self.assertRaises(IngressRequestBuilderError):
+            build_task_reevaluation_payload(
+                new_artifacts=(
+                    {
+                        "id": "artifact-ingress-review-note-untrusted-1",
+                        "type": "review_note",
+                        "title": "Untrusted note",
+                        "description": "A caller tried to self-certify support evidence.",
+                        "location": None,
+                        "content_type": "text/plain",
+                        "external_id": None,
+                        "commit_sha": None,
+                        "pull_request_number": None,
+                        "review_state": None,
+                        "provenance": {
+                            "source_system": "openclaw",
+                            "source_type": "manual",
+                            "source_id": "msg-untrusted-review-note-1",
+                            "captured_by": "ingress-builder-test",
+                        },
+                        "verification_status": "verified",
+                        "repository": None,
+                        "branch": None,
+                        "changed_files": [],
+                        "external_refs": [],
+                        "captured_at": "2026-03-25T18:10:00Z",
+                        "metadata": {},
+                    },
+                ),
+                claimed_completion=True,
+                acceptance_criteria_satisfied=True,
+            )
 
     def test_rejects_completion_truth_on_initial_submission(self) -> None:
         with self.assertRaises(IngressRequestBuilderError):
