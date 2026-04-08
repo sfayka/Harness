@@ -26,6 +26,7 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
 - The canonical lifecycle outcome still comes from verification/reconciliation/review enforcement.
 - Caller-supplied support artifacts, pull-request artifacts, commit artifacts, branch artifacts, and changed-file artifacts on completion claims are never trusted as already verified. If a payload submits those artifact types with `verification_status=verified`, Harness downgrades them to `unverified` and strips them from validated evidence until canonical verification or reconciliation re-attests them.
 - If a single completion claim still needs both PR and commit proof after that downgrade, Harness chains the canonical reconciliation handlers in order rather than trusting the self-certified artifact pair.
+- Support artifacts do not satisfy repository, branch, or commit identity for executor-attempt validation. If an executor reports a review note or handoff artifact with GitHub-looking context fields, Harness treats it as support context only, not as current-run code proof.
 - If a reevaluation resolves an active review gate with `authorize_redispatch`, Harness follows through by dispatching the next execution attempt automatically instead of stopping at a passive `dispatch_ready` result.
 - This endpoint must not be used to mutate stored task truth with submission-style fields such as `request.task_envelope`, `request.task_status`, `request.assigned_executor`, or `request.linked_artifacts`. Those payload shapes are rejected as invalid input.
 

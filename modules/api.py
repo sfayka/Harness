@@ -1852,6 +1852,10 @@ def _collect_artifact_context_from_record(
     *,
     source: str,
 ) -> None:
+    artifact_type = _normalized_string(artifact.get("type"))
+    if artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES:
+        return
+
     repository = artifact.get("repository") if isinstance(artifact.get("repository"), dict) else {}
     branch = artifact.get("branch") if isinstance(artifact.get("branch"), dict) else {}
 

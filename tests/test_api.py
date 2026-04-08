@@ -2631,6 +2631,63 @@ class HarnessApiServiceTests(unittest.TestCase):
         )
         self.assertEqual(read_payload["task"]["failure_summary"]["failure_type"], "contract_violation")
 
+    def test_service_completion_claim_ignores_support_artifact_context_for_execution_validation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+            }
+        }
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+        assigned_task = deepcopy(self.service.store.get_task(task_id))
+        assigned_task["status"] = "assigned"
+        assigned_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-invalid-support-context-1",
+            "assignment_reason": "Exercise support artifact context rejection.",
+        }
+        assigned_task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+        self.service.store.update_task(assigned_task)
+
+        support_artifact = _review_note_artifact("artifact-support-context-note-1")
+        support_artifact["repository"] = {
+            "host": "github.com",
+            "owner": "KnoxAnalytics",
+            "name": "HARNESS-DRYRUN",
+        }
+        support_artifact["branch"] = {
+            "name": "codex/e2e-test",
+            "base_branch": "main",
+            "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        }
+        support_artifact["commit_sha"] = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+
+        with patch.dict(os.environ, {"HARNESS_INVALID_EXECUTION_RETRY_BUDGET": "1"}):
+            claim_status, claim_response = self.service.submit_completion_claim(
+                task_id,
+                {
+                    "request": {
+                        **_completion_claim_payload(claim_id="claim-invalid-support-context-1"),
+                        **_execution_attempt_payload(attempt_id="attempt-invalid-support-context-1"),
+                        "new_artifacts": [support_artifact],
+                        "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    }
+                },
+            )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(claim_response["task_envelope"]["status"], "failed")
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "missing_branch_identity",
+        )
+        self.assertFalse(
+            claim_response["contract_violation"]["validation"]["context_observations"].get("repository")
+        )
+
     def test_service_completion_claim_rejects_reserved_work_branch_as_contract_violation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {
@@ -4057,6 +4114,58 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertTrue(payload["invalid_input"])
         self.assertEqual(task_status, 404)
+
+    def test_api_completion_claim_ignores_support_artifact_context_for_execution_validation(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_payload = self._post_json(
+            "/tasks",
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}},
+        )
+        task_id = submit_payload["task_envelope"]["id"]
+        store = FileBackedHarnessStore(self.temp_dir.name)
+        task = deepcopy(store.get_task(task_id))
+        task["status"] = "assigned"
+        task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-invalid-support-context-api-1",
+            "assignment_reason": "Exercise support artifact context rejection.",
+        }
+        task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+        store.update_task(task)
+
+        support_artifact = _review_note_artifact("artifact-support-context-note-api-1")
+        support_artifact["repository"] = {
+            "host": "github.com",
+            "owner": "KnoxAnalytics",
+            "name": "HARNESS-DRYRUN",
+        }
+        support_artifact["branch"] = {
+            "name": "codex/e2e-test",
+            "base_branch": "main",
+            "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+        }
+        support_artifact["commit_sha"] = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+
+        with patch.dict(os.environ, {"HARNESS_INVALID_EXECUTION_RETRY_BUDGET": "1"}):
+            claim_status, claim_response = self._post_json(
+                f"/tasks/{task_id}/completion-claims",
+                {
+                    "request": {
+                        **_completion_claim_payload(claim_id="claim-invalid-support-context-api-1"),
+                        **_execution_attempt_payload(attempt_id="attempt-invalid-support-context-api-1"),
+                        "new_artifacts": [support_artifact],
+                        "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    }
+                },
+            )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "contract_violation_failed")
+        self.assertEqual(
+            claim_response["contract_violation"]["validation"]["rule_failures"][0]["rule"],
+            "missing_branch_identity",
+        )
 
     def test_api_submit_rejects_new_task_with_execution_history(self) -> None:
         payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
