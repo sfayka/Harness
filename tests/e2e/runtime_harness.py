@@ -44,6 +44,76 @@ class RuntimeReevaluationFlowResult:
     final_fetch_response: dict
 
 
+@dataclass(frozen=True)
+class RuntimeTaskSnapshot:
+    task_fetch_status: int
+    task_fetch_response: dict
+    read_model_status: int
+    read_model_response: dict
+    timeline_status: int
+    timeline_response: dict
+    history_status: int
+    history_response: dict
+
+
+@dataclass(frozen=True)
+class RuntimeTaskStepResult:
+    action: str
+    status: int
+    response: dict
+    snapshot: RuntimeTaskSnapshot
+
+    @property
+    def task(self) -> dict:
+        return self.snapshot.task_fetch_response["task"]
+
+    @property
+    def read_model(self) -> dict:
+        return self.snapshot.read_model_response
+
+    @property
+    def timeline(self) -> dict:
+        return self.snapshot.timeline_response
+
+    @property
+    def history(self) -> dict:
+        return self.snapshot.history_response
+
+
+class RuntimeTaskScenario:
+    def __init__(self, case: "RuntimeApiTestCase", *, task_id: str, created: RuntimeTaskStepResult) -> None:
+        self.case = case
+        self.task_id = task_id
+        self.created = created
+        self.last_step = created
+
+    def refresh(self) -> RuntimeTaskSnapshot:
+        snapshot = self.case.snapshot_task(self.task_id)
+        return snapshot
+
+    def mutate_task(self, mutator: Callable[[dict], None]) -> RuntimeTaskSnapshot:
+        store = self.case.server.RequestHandlerClass.service.store
+        task = deepcopy(store.get_task(self.task_id))
+        mutator(task)
+        store.update_task(task)
+        return self.refresh()
+
+    def reevaluate(self, payload: dict) -> RuntimeTaskStepResult:
+        result = self.case.post_task_action(self.task_id, "reevaluate", payload)
+        self.last_step = result
+        return result
+
+    def dispatch(self, payload: dict) -> RuntimeTaskStepResult:
+        result = self.case.post_task_action(self.task_id, "dispatch", payload)
+        self.last_step = result
+        return result
+
+    def completion_claim(self, payload: dict) -> RuntimeTaskStepResult:
+        result = self.case.post_task_action(self.task_id, "completion-claims", payload)
+        self.last_step = result
+        return result
+
+
 class RuntimeApiTestCase(unittest.TestCase):
     """Run E2E scenarios against a real local HTTP server with deterministic storage."""
 
@@ -85,6 +155,64 @@ class RuntimeApiTestCase(unittest.TestCase):
                 return error.code, json.loads(error.read().decode("utf-8"))
             finally:
                 error.close()
+
+    def snapshot_task(self, task_id: str) -> RuntimeTaskSnapshot:
+        task_fetch_status, task_fetch_response = self.get_json(f"/tasks/{task_id}")
+        read_model_status, read_model_response = self.get_json(f"/tasks/{task_id}/read-model")
+        timeline_status, timeline_response = self.get_json(f"/tasks/{task_id}/timeline")
+        history_status, history_response = self.get_json(f"/tasks/{task_id}/evaluations")
+        return RuntimeTaskSnapshot(
+            task_fetch_status=task_fetch_status,
+            task_fetch_response=task_fetch_response,
+            read_model_status=read_model_status,
+            read_model_response=read_model_response,
+            timeline_status=timeline_status,
+            timeline_response=timeline_response,
+            history_status=history_status,
+            history_response=history_response,
+        )
+
+    def create_task_scenario(self, payload: dict) -> RuntimeTaskScenario:
+        status, response = self.post_json("/tasks", payload)
+        task_id = response["task_envelope"]["id"]
+        created = RuntimeTaskStepResult(
+            action="create_task",
+            status=status,
+            response=response,
+            snapshot=self.snapshot_task(task_id),
+        )
+        return RuntimeTaskScenario(self, task_id=task_id, created=created)
+
+    def create_manual_ingress_scenario(self, payload: dict) -> RuntimeTaskScenario:
+        status, response = self.post_json("/ingress/manual", payload)
+        task_id = response["task_envelope"]["id"]
+        created = RuntimeTaskStepResult(
+            action="manual_ingress",
+            status=status,
+            response=response,
+            snapshot=self.snapshot_task(task_id),
+        )
+        return RuntimeTaskScenario(self, task_id=task_id, created=created)
+
+    def create_evaluate_scenario(self, payload: dict) -> RuntimeTaskScenario:
+        status, response = self.post_json("/evaluate", payload)
+        task_id = response["task_envelope"]["id"]
+        created = RuntimeTaskStepResult(
+            action="evaluate_new_task",
+            status=status,
+            response=response,
+            snapshot=self.snapshot_task(task_id),
+        )
+        return RuntimeTaskScenario(self, task_id=task_id, created=created)
+
+    def post_task_action(self, task_id: str, action: str, payload: dict) -> RuntimeTaskStepResult:
+        status, response = self.post_json(f"/tasks/{task_id}/{action}", payload)
+        return RuntimeTaskStepResult(
+            action=action,
+            status=status,
+            response=response,
+            snapshot=self.snapshot_task(task_id),
+        )
 
     def _canonicalize_existing_task_update_payload(self, payload: dict) -> dict:
         request = deepcopy(payload["request"])

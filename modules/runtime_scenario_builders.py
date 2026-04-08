@@ -7,7 +7,13 @@ from dataclasses import asdict, dataclass, is_dataclass
 from enum import Enum
 from typing import Any, Callable
 
-from modules.contracts.task_envelope_review import ReviewOutcome, ReviewTrigger
+from modules.contracts.task_envelope_review import (
+    ReviewOutcome,
+    ReviewRequest,
+    ReviewTrigger,
+    ReviewerIdentity,
+    resolve_review_request,
+)
 from modules.intake import create_task_envelope
 
 
@@ -302,31 +308,93 @@ def build_review_request(task_id: str) -> dict:
     }
 
 
-def build_review_decision(task_id: str, *, target_status: str = "completed") -> dict:
-    review_request = build_review_request(task_id)
-    return {
-        "request": deepcopy(review_request),
-        "record": {
-            "review_id": f"review-{task_id}-1",
-            "review_request_id": review_request["review_request_id"],
-            "task_id": task_id,
-            "reviewer": {
-                "reviewer_id": "reviewer-1",
-                "reviewer_name": "Harness Reviewer",
-                "authority_role": "operator",
-            },
-            "reviewed_at": "2026-04-01T10:04:00Z",
-            "outcome": ReviewOutcome.ACCEPT_COMPLETION.value if target_status == "completed" else ReviewOutcome.KEEP_BLOCKED.value,
-            "reasoning": "Manual review resolved the pending gate.",
-            "authorized_target_status": target_status,
-            "follow_up_action": "none",
-            "basis_refs": [],
-            "preserves_history": True,
-            "metadata": {},
+def build_review_decision(
+    task_id: str,
+    *,
+    outcome: str | ReviewOutcome = ReviewOutcome.ACCEPT_COMPLETION,
+    allowed_outcomes: tuple[str | ReviewOutcome, ...] | None = None,
+) -> dict:
+    return build_review_decision_from_request(
+        build_review_request(task_id),
+        outcome=outcome,
+        allowed_outcomes=allowed_outcomes,
+    )
+
+
+def build_review_decision_from_request(
+    review_request_payload: dict,
+    *,
+    outcome: str | ReviewOutcome = ReviewOutcome.ACCEPT_COMPLETION,
+    allowed_outcomes: tuple[str | ReviewOutcome, ...] | None = None,
+) -> dict:
+    normalized_allowed_outcomes = tuple(
+        item.value if isinstance(item, ReviewOutcome) else str(item)
+        for item in (
+            allowed_outcomes
+            or tuple(review_request_payload.get("allowed_outcomes", ()))
+        )
+    )
+    review_request_payload["allowed_outcomes"] = list(normalized_allowed_outcomes)
+    review_request = ReviewRequest(
+        review_request_id=review_request_payload["review_request_id"],
+        task_id=review_request_payload["task_id"],
+        requested_at=review_request_payload["requested_at"],
+        requested_by=review_request_payload["requested_by"],
+        trigger=ReviewTrigger(review_request_payload["trigger"]),
+        summary=review_request_payload["summary"],
+        presented_sections=tuple(review_request_payload.get("presented_sections", [])),
+        allowed_outcomes=tuple(ReviewOutcome(item) for item in normalized_allowed_outcomes),
+        prior_review_ids=tuple(review_request_payload.get("prior_review_ids", [])),
+        metadata=dict(review_request_payload.get("metadata", {})),
+    )
+    resolved = resolve_review_request(
+        review_request,
+        review_id=f"review-{review_request.task_id}-1",
+        reviewer=ReviewerIdentity(
+            reviewer_id="reviewer-1",
+            reviewer_name="Harness Reviewer",
+            authority_role="operator",
+        ),
+        outcome=ReviewOutcome(outcome),
+        reasoning=(
+            "Manual review resolved the pending gate."
+            if ReviewOutcome(outcome) == ReviewOutcome.ACCEPT_COMPLETION
+            else "Manual review authorized the next control-plane action."
+        ),
+        reviewed_at="2026-04-01T10:04:00Z",
+    )
+    return to_jsonable(resolved)
+
+
+def build_manual_ingress_payload(
+    *,
+    task_id: str,
+    task_status: str | None = None,
+    unresolved_conditions: list[str] | None = None,
+) -> dict:
+    payload: dict[str, Any] = {
+        "task_id": task_id,
+        "task": {
+            "title": f"Runtime scenario {task_id}",
+            "description": "Create and persist a manual task through canonical submission.",
+            "requested_by": "operator@example.com",
+            "ingress_name": "Manual",
+            "ingress_id": f"ING-{task_id}",
+            "acceptance_criteria": [
+                {
+                    "id": "ac-1",
+                    "description": "Task is persisted and queryable via canonical inspection surfaces.",
+                    "required": True,
+                }
+            ],
         },
-        "recommended_target_status": target_status,
-        "follow_up_action": "none",
+        "metadata": {"mode": "manual"},
     }
+    if task_status is not None:
+        payload["task_status"] = task_status
+    if unresolved_conditions is not None:
+        payload["unresolved_conditions"] = list(unresolved_conditions)
+    return payload
 
 
 def build_evaluate_payload(
@@ -527,10 +595,12 @@ __all__ = [
     "build_happy_path_overlays",
     "build_linked_artifacts",
     "build_linear_facts",
+    "build_manual_ingress_payload",
     "build_mismatch_evaluate_payload",
     "build_mismatch_overlays",
     "build_reevaluate_payload",
     "build_review_decision",
+    "build_review_decision_from_request",
     "build_review_request",
     "build_review_required_overlays",
     "build_review_required_payload",
