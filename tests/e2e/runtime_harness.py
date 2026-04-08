@@ -130,6 +130,13 @@ class RuntimeApiTestCase(unittest.TestCase):
         self.thread.join(timeout=2)
         self.temp_dir.cleanup()
 
+    @property
+    def service(self):
+        return self.server.RequestHandlerClass.service
+
+    def set_reconciliation_registry(self, registry) -> None:
+        self.service.reconciliation_registry = registry
+
     def get_json(self, path: str) -> tuple[int, dict]:
         try:
             with urlopen(self.base_url + path) as response:

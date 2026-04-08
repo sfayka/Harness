@@ -366,6 +366,90 @@ def build_review_decision_from_request(
     return to_jsonable(resolved)
 
 
+def build_completion_claim_payload(
+    *,
+    claim_id: str = "claim-1",
+    attempt_id: str = "attempt-1",
+) -> dict:
+    return {
+        "completion_claim": {
+            "claim_id": claim_id,
+            "reported_at": "2026-04-01T08:00:00Z",
+            "reported_by": "stub-executor",
+            "reason": "executor reported completion",
+            "metadata": {"attempt_id": attempt_id},
+        }
+    }
+
+
+def build_execution_attempt_payload(
+    *,
+    attempt_id: str = "attempt-1",
+    repository_owner: str = DEFAULT_OWNER,
+    repository_name: str = DEFAULT_REPO,
+    branch_name: str = DEFAULT_BRANCH,
+    commit_sha: str = DEFAULT_COMMIT,
+    artifact_references: list[dict[str, Any]] | None = None,
+) -> dict:
+    references = artifact_references
+    if references is None:
+        references = [
+            {
+                "reference_id": f"{attempt_id}:commit",
+                "artifact_type": "commit",
+                "location": f"https://github.com/{repository_owner}/{repository_name}/commit/{commit_sha}",
+                "commit_sha": commit_sha,
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": repository_owner,
+                    "repository_name": repository_name,
+                    "branch_name": branch_name,
+                    "commit_sha": commit_sha,
+                },
+            }
+        ]
+    return {
+        "execution_attempt": {
+            "attempt_id": attempt_id,
+            "recorded_at": "2026-04-01T08:00:05Z",
+            "status": "succeeded",
+            "reported_by": "stub-executor",
+            "artifact_references": deepcopy(references),
+            "metadata": {},
+        }
+    }
+
+
+def build_completion_claim_request(
+    *,
+    claim_id: str = "claim-1",
+    attempt_id: str = "attempt-1",
+    new_artifacts: list[dict[str, Any]] | None = None,
+    completion_evidence: dict | None = None,
+    external_facts: dict | None = None,
+    acceptance_criteria_satisfied: bool = True,
+    runtime_facts: dict | None = None,
+    execution_attempt: dict | None = None,
+) -> dict:
+    request: dict[str, Any] = {
+        **build_completion_claim_payload(claim_id=claim_id, attempt_id=attempt_id),
+        **(
+            deepcopy(execution_attempt)
+            if execution_attempt is not None
+            else build_execution_attempt_payload(attempt_id=attempt_id)
+        ),
+        "acceptance_criteria_satisfied": acceptance_criteria_satisfied,
+        "runtime_facts": deepcopy(runtime_facts or build_runtime_facts()),
+    }
+    if new_artifacts is not None:
+        request["new_artifacts"] = deepcopy(new_artifacts)
+    if completion_evidence is not None:
+        request["completion_evidence"] = deepcopy(completion_evidence)
+    if external_facts is not None:
+        request["external_facts"] = deepcopy(external_facts)
+    return {"request": request}
+
+
 def build_manual_ingress_payload(
     *,
     task_id: str,
@@ -586,10 +670,13 @@ __all__ = [
     "DEFAULT_PR_NUMBER",
     "DEFAULT_REPO",
     "RuntimeScenarioDefinition",
+    "build_completion_claim_payload",
+    "build_completion_claim_request",
     "build_completion_evidence",
     "build_create_task_payload",
     "build_evaluate_payload",
     "build_expected_code_context",
+    "build_execution_attempt_payload",
     "build_github_facts",
     "build_happy_path_evaluate_payload",
     "build_happy_path_overlays",
