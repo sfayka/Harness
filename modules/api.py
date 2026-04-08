@@ -860,6 +860,8 @@ def _merge_artifacts(
     *,
     new_artifacts: tuple[dict[str, Any], ...],
     sanitize_submitted_verification: bool = False,
+    sanitize_non_execution_artifacts: bool = True,
+    allow_trusted_verification_provenance: bool = False,
 ) -> dict[str, Any]:
     merged_task = deepcopy(existing_task)
     artifact_items = list(merged_task["artifacts"]["items"])
@@ -872,15 +874,19 @@ def _merge_artifacts(
         sanitized_artifact = deepcopy(artifact)
         submitted_verification_status = _normalized_string(sanitized_artifact.get("verification_status"))
         artifact_type = _normalized_string(sanitized_artifact.get("type"))
+        trusted_verification_provenance = (
+            allow_trusted_verification_provenance and _artifact_has_trusted_verification_provenance(sanitized_artifact)
+        )
         if (
             sanitize_submitted_verification
             and submitted_verification_status == "verified"
+            and not trusted_verification_provenance
             and (
                 artifact_type == "pull_request"
                 or artifact_type == "commit"
                 or artifact_type == "branch"
                 or artifact_type == "changed_file"
-                or artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES
+                or (sanitize_non_execution_artifacts and artifact_type not in _CODE_EXECUTION_ARTIFACT_TYPES)
             )
         ):
             metadata = sanitized_artifact.get("metadata") if isinstance(sanitized_artifact.get("metadata"), dict) else {}
@@ -894,6 +900,19 @@ def _merge_artifacts(
 
     merged_task["artifacts"]["items"] = artifact_items
     return merged_task
+
+
+def _artifact_has_trusted_verification_provenance(artifact: dict[str, Any]) -> bool:
+    provenance = artifact.get("provenance")
+    if not isinstance(provenance, dict):
+        return False
+    source_system = _normalized_string(provenance.get("source_system"))
+    source_type = _normalized_string(provenance.get("source_type"))
+    if source_system == "github" and source_type == "api":
+        return True
+    if source_system == "harness" and source_type in {"manual_review", "verification"}:
+        return True
+    return False
 
 
 def _merge_completion_evidence(
@@ -950,6 +969,45 @@ def _prune_unverified_validated_artifact_ids(task_envelope: dict[str, Any]) -> d
         for artifact_id in validated_artifact_ids
         if verification_by_id.get(str(artifact_id)) == "verified"
     ]
+    if filtered_ids == validated_artifact_ids:
+        return task_envelope
+
+    updated = deepcopy(task_envelope)
+    updated_evidence = updated["artifacts"]["completion_evidence"]
+    updated_evidence["validated_artifact_ids"] = filtered_ids
+    if not filtered_ids:
+        updated_evidence["status"] = "deferred"
+        updated_evidence["validated_at"] = None
+        updated_evidence["validator"] = None
+        updated_evidence["validation_method"] = "deferred"
+    return updated
+
+
+def _prune_downgraded_validated_artifact_ids(task_envelope: dict[str, Any]) -> dict[str, Any]:
+    completion_evidence = ((task_envelope.get("artifacts") or {}).get("completion_evidence") or {})
+    if not isinstance(completion_evidence, dict):
+        return task_envelope
+    validated_artifact_ids = completion_evidence.get("validated_artifact_ids")
+    if not isinstance(validated_artifact_ids, list):
+        return task_envelope
+
+    artifact_items = ((task_envelope.get("artifacts") or {}).get("items") or [])
+    if not isinstance(artifact_items, list):
+        return task_envelope
+
+    downgraded_ids = {
+        str(item.get("id"))
+        for item in artifact_items
+        if isinstance(item, dict)
+        and item.get("id") is not None
+        and _normalized_string(item.get("verification_status")) != "verified"
+        and isinstance(item.get("metadata"), dict)
+        and _normalized_string(item["metadata"].get("submitted_verification_status")) == "verified"
+    }
+    if not downgraded_ids:
+        return task_envelope
+
+    filtered_ids = [artifact_id for artifact_id in validated_artifact_ids if str(artifact_id) not in downgraded_ids]
     if filtered_ids == validated_artifact_ids:
         return task_envelope
 
@@ -1117,7 +1175,7 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
             merged_task,
             completion_evidence_update=completion_evidence_update,
         )
-    merged_task = _prune_unverified_validated_artifact_ids(merged_task)
+    merged_task = _prune_downgraded_validated_artifact_ids(merged_task)
 
     review_request = _parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request"))
     review_decision = _parse_review_decision(
@@ -1172,7 +1230,13 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
 
     new_artifacts = _optional_object_list(request_payload.get("new_artifacts"), field_name="new_artifacts")
     if new_artifacts:
-        merged_task = _merge_artifacts(merged_task, new_artifacts=new_artifacts)
+        merged_task = _merge_artifacts(
+            merged_task,
+            new_artifacts=new_artifacts,
+            sanitize_submitted_verification=True,
+            sanitize_non_execution_artifacts=False,
+            allow_trusted_verification_provenance=True,
+        )
 
     completion_evidence_update = _optional_mapping(
         request_payload.get("completion_evidence"),
@@ -1189,6 +1253,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
             merged_task,
             completion_evidence_update=completion_evidence_update,
         )
+    merged_task = _prune_downgraded_validated_artifact_ids(merged_task)
     merged_task["timestamps"]["updated_at"] = _iso_now()
 
     review_request = _parse_review_request(_optional_mapping(request_payload.get("review_request"), field_name="review_request"))
