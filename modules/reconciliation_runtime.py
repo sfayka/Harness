@@ -501,6 +501,8 @@ def _context_from_execution_attempt(task_envelope: TaskEnvelope) -> Reconciliati
     for artifact_reference in latest_attempt.get("artifact_references") or []:
         if not isinstance(artifact_reference, dict):
             continue
+        if str(artifact_reference.get("artifact_type") or "").strip() not in _CODE_EXECUTION_ARTIFACT_TYPES:
+            continue
         metadata = artifact_reference.get("metadata")
         if isinstance(metadata, dict):
             repository_host = repository_host or _normalize_sha(metadata.get("repository_host")) or "github.com"
