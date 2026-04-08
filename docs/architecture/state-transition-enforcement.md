@@ -93,7 +93,7 @@ No module may cause lifecycle movement outside its authority just because it obs
 | `blocked` | `intake_ready` | yes | clarification handling or operator | blocked intake task has newly resolved clarification and must resume normalization |
 | `blocked` | `planned` | yes | planner, clarification handling, or operator | planning blocker resolved and task should return to planned state |
 | `blocked` | `dispatch_ready` | yes | clarification handling, dispatcher, or operator | dispatch blocker resolved and task is ready for assignment |
-| `blocked` | `assigned` | yes | dispatcher | reassignment/redispatch is explicitly allowed and active assignment is recorded |
+| `blocked` | `assigned` | yes | clarification handling or dispatcher | reassignment/redispatch is explicitly allowed, or clarification on an already-assigned task has been resolved and the active assignment can resume |
 | `blocked` | `executing` | yes but narrow | runtime | execution resumes from a blocked in-flight state and a real execution-start/resume fact exists |
 | `blocked` | `reconciling` | yes | reconciliation runtime | the blocker was missing or unresolved reconciliation context and the system can now safely resume bounded recovery |
 | `blocked` | `canceled` | yes | operator or authorized control-plane policy | blocked task is intentionally stopped |

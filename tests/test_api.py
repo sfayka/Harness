@@ -2118,6 +2118,42 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(dispatch_events)
         self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "automatic_policy_post_reevaluation")
 
+    def test_service_reevaluate_resumes_assigned_clarification_to_active_assignment(self) -> None:
+        submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(self.service.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-clarification-resume-1",
+            "assignment_reason": "Resume active assignment after clarification.",
+        }
+        self.service.store.update_task(stored_task)
+
+        blocked_status, blocked_response = self.service.reevaluate(
+            task_id,
+            {"request": {"unresolved_conditions": ["Need clarification before the assigned work can continue."]}},
+        )
+        resolved_status, resolved_response = self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(blocked_status, 200)
+        self.assertEqual(blocked_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(blocked_response["task_envelope"]["clarification"]["resume_target_status"], "assigned")
+        self.assertEqual(resolved_status, 200)
+        self.assertEqual(resolved_response["task_envelope"]["status"], "assigned")
+        self.assertEqual(resolved_response["task_envelope"]["assigned_executor"]["executor_id"], "executor-clarification-resume-1")
+        self.assertEqual(resolved_response["task_envelope"]["clarification"]["status"], "resolved")
+        self.assertNotIn("automatic_dispatch", resolved_response)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "assigned")
+
     def test_service_evaluate_existing_task_rejects_top_level_overlays(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         evaluate_payload = deepcopy(payload)
@@ -5342,6 +5378,40 @@ class HarnessHttpApiTests(unittest.TestCase):
             reevaluation_response["task_envelope"]["clarification"]["resume_target_status"],
             "dispatch_ready",
         )
+
+    def test_api_reevaluate_resumes_assigned_clarification_to_active_assignment(self) -> None:
+        submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
+        submit_status, submit_response = self._post_json("/tasks", submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(self.server.RequestHandlerClass.service.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-clarification-resume-api-1",
+            "assignment_reason": "Resume active assignment after clarification.",
+        }
+        self.server.RequestHandlerClass.service.store.update_task(stored_task)
+
+        blocked_status, blocked_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {"request": {"unresolved_conditions": ["Need clarification before the assigned work can continue."]}},
+        )
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(blocked_status, 200)
+        self.assertEqual(blocked_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "assigned")
+        self.assertEqual(
+            reevaluation_response["task_envelope"]["assigned_executor"]["executor_id"],
+            "executor-clarification-resume-api-1",
+        )
+        self.assertEqual(reevaluation_response["task_envelope"]["clarification"]["status"], "resolved")
 
     def test_api_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
         initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
