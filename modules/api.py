@@ -939,6 +939,24 @@ def _artifact_has_trusted_verification_provenance(artifact: dict[str, Any]) -> b
     return False
 
 
+def _sanitize_initial_task_artifact_trust(task_envelope: dict[str, Any]) -> dict[str, Any]:
+    artifacts = ((task_envelope.get("artifacts") or {}).get("items") or [])
+    if not isinstance(artifacts, list) or not artifacts:
+        return task_envelope
+
+    sanitized = deepcopy(task_envelope)
+    sanitized["artifacts"]["items"] = [
+        _sanitize_submitted_artifact(
+            artifact if isinstance(artifact, dict) else {},
+            sanitize_submitted_verification=True,
+            allow_trusted_verification_provenance=False,
+        )
+        for artifact in artifacts
+        if isinstance(artifact, dict)
+    ]
+    return _prune_downgraded_validated_artifact_ids(sanitized)
+
+
 def _merge_completion_evidence(
     existing_task: dict[str, Any],
     *,
@@ -2977,6 +2995,11 @@ class HarnessApiService:
         contract_violations = _new_task_submission_contract_violations(request_payload)
         if contract_violations:
             return _new_task_submission_contract_error_response(contract_violations)
+
+        request = replace(
+            request,
+            task_envelope=_sanitize_initial_task_artifact_trust(request.task_envelope),
+        )
 
         task_id = str(request.task_envelope["id"])
         try:
