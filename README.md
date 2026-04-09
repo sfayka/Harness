@@ -57,6 +57,8 @@ If a manual-review follow-up is attempted but lifecycle policy rejects it, Harne
 
 That rejected attempt also must not strand the task. Later manual review decisions still resolve the original persisted review request; a failed follow-up attempt does not consume the gate.
 
+The same fail-closed rule now applies to other rejected late follow-up. If reevaluation or completion-claim input hits a forbidden transition against already-settled task truth, Harness records the rejected attempt in evaluation history and timeline without letting that rejected action replace the current lifecycle, verification, reconciliation, or failure projection for the task. New external facts may still be persisted when they represent real synchronized state; the rejected transition itself is what does not become canonical task truth.
+
 If manual review resolves the gate without accepting completion, Harness also clears any previously satisfied completion evidence back to deferred. A replan, retry, blocked, failed, canceled, or clarification outcome must not leave stale validated proof behind that can auto-complete the task later without a new governed execution or explicit acceptance.
 
 When manual review explicitly authorizes redispatch, Harness now performs that redispatch automatically instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.

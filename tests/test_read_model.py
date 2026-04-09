@@ -24,6 +24,7 @@ from modules.contracts.task_envelope_review import (
     ReviewerIdentity,
     resolve_review_request,
 )
+from tests.e2e.scenario_builders import build_review_decision_from_request
 
 
 def _to_jsonable(value):
@@ -249,6 +250,54 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         )
         self.assertTrue(payload["task"]["verification_summary"]["failure_classification"]["terminal"])
         self.assertTrue(payload["task"]["verification_summary"]["is_terminal"])
+
+    def test_read_model_ignores_rejected_follow_up_when_projecting_canceled_task_truth(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "cancel_task",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        canceled_status, _ = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        submit_payload["enforcement_result"]["review_request"],
+                        outcome="cancel_task",
+                    )
+                }
+            },
+        )
+        before_status, before_payload = self.service.get_task_read_model(task_id)
+
+        rejected_status, _ = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "external_facts": _to_jsonable(build_demo_request("accepted_completion").external_facts),
+                    "runtime_facts": _to_jsonable(build_demo_request("accepted_completion").runtime_facts),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+        after_status, after_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(canceled_status, 200)
+        self.assertEqual(before_status, 200)
+        self.assertEqual(rejected_status, 200)
+        self.assertEqual(after_status, 200)
+        self.assertEqual(after_payload["task"]["current_status"], "canceled")
+        self.assertEqual(after_payload["task"]["failure_summary"], before_payload["task"]["failure_summary"])
+        self.assertEqual(
+            after_payload["task"]["verification_summary"],
+            before_payload["task"]["verification_summary"],
+        )
+        self.assertEqual(after_payload["task"]["evaluation_summary"]["latest_action"], "transition_rejected")
 
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(
