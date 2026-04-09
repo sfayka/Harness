@@ -84,3 +84,27 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertEqual(after_entry["execution_summary"]["failure_state"], "clear")
         self.assertFalse(after_entry["execution_summary"]["retry_eligible"])
         self.assertEqual(after_entry["evaluation_summary"]["latest_action"], "transition_applied")
+
+    def test_task_list_disables_automatic_completion_safe_after_manual_keep_blocked(self) -> None:
+        review = self.create_evaluate_scenario({"request": to_jsonable(build_demo_request("review_required"))})
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="keep_blocked",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "blocked")
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])

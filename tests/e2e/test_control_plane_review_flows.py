@@ -105,3 +105,36 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
                 for event in resolved.timeline["timeline"]
             )
         )
+
+    def test_manual_review_keep_blocked_resolves_gate_without_projecting_automatic_acceptance(self) -> None:
+        scenario = self.create_evaluate_scenario(
+            build_review_required_payload(
+                build_create_task_payload(
+                    "e2e-control-review-keep-blocked",
+                    title="Manual review can keep work blocked without projecting safe completion",
+                )["request"]["task_envelope"]
+            )
+        )
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="keep_blocked",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.response["action"], "transition_applied")
+        self.assertEqual(resolved.task["status"], "blocked")
+        self.assertEqual(resolved.read_model["task"]["current_status"], "blocked")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(resolved.read_model["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(
+            resolved.read_model["task"]["verification_summary"]["acceptance_criteria_assessment"][
+                "automatic_completion_safe"
+            ]
+        )

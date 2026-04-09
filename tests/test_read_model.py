@@ -74,9 +74,17 @@ def _goal_request() -> GoalToWorkRequest:
     )
 
 
-def _review_decision_payload(task_id: str) -> dict:
+def _review_decision_payload(
+    task_id: str,
+    *,
+    outcome: ReviewOutcome = ReviewOutcome.ACCEPT_COMPLETION,
+) -> dict:
     review_request_payload = deepcopy(_request_payload("review_required")["request"]["review_request"])
     review_request_payload["task_id"] = task_id
+    allowed_outcomes = list(review_request_payload.get("allowed_outcomes", []))
+    if outcome.value not in allowed_outcomes:
+        allowed_outcomes.append(outcome.value)
+    review_request_payload["allowed_outcomes"] = allowed_outcomes
     review_request = ReviewRequest(
         review_request_id=review_request_payload["review_request_id"],
         task_id=review_request_payload["task_id"],
@@ -97,8 +105,12 @@ def _review_decision_payload(task_id: str) -> dict:
             reviewer_name="Casey Reviewer",
             authority_role="operator",
         ),
-        outcome=ReviewOutcome.ACCEPT_COMPLETION,
-        reasoning="Manual review confirms the completion claim should be accepted.",
+        outcome=outcome,
+        reasoning=(
+            "Manual review confirms the completion claim should be accepted."
+            if outcome == ReviewOutcome.ACCEPT_COMPLETION
+            else "Manual review resolved the pending gate without accepting completion."
+        ),
     )
     return _to_jsonable(review_decision)
 
@@ -177,6 +189,54 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertTrue(payload["task"]["verification_summary"]["accepted_completion"])
         self.assertEqual(payload["task"]["verification_summary"]["target_status"], "completed")
         self.assertEqual(payload["task"]["verification_summary"]["reconciliation_status"], "resolved")
+
+    def test_read_model_disables_automatic_completion_safe_after_manual_keep_blocked(self) -> None:
+        submit_status, submit_payload = self.service.evaluate(_request_payload("review_required"))
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {"request": {"review_decision": _review_decision_payload(task_id, outcome=ReviewOutcome.KEEP_BLOCKED)}},
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "blocked")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
+
+    def test_read_model_disables_automatic_completion_safe_after_manual_mark_failed(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "keep_blocked",
+            "mark_failed",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {"request": {"review_decision": _review_decision_payload(task_id, outcome=ReviewOutcome.MARK_FAILED)}},
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "failed")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
 
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(
