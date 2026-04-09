@@ -38,6 +38,73 @@ def _latest_mapping(records: tuple[EvaluationRecord, ...], path: tuple[str, ...]
     return None
 
 
+def _latest_verification_base(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
+    latest_verification = _latest_mapping(records, ("enforcement_result", "verification_result"))
+    if isinstance(latest_verification, dict):
+        outcome = latest_verification.get("outcome")
+        if outcome not in (None, "verification_deferred") or latest_verification.get("claimed_completion"):
+            return latest_verification
+    for record in reversed(records):
+        result = record.result if isinstance(record.result, dict) else {}
+        enforcement_result = result.get("enforcement_result") if isinstance(result.get("enforcement_result"), dict) else {}
+        verification_result = enforcement_result.get("verification_result")
+        if not isinstance(verification_result, dict):
+            continue
+        outcome = verification_result.get("outcome")
+        if outcome not in (None, "verification_deferred") or verification_result.get("claimed_completion"):
+            return verification_result
+    return latest_verification
+
+
+def _latest_verification_summary(
+    records: tuple[EvaluationRecord, ...],
+    *,
+    review_summary: dict[str, Any],
+    reconciliation_summary: dict[str, Any] | None,
+    current_status: str,
+) -> dict[str, Any] | None:
+    verification_summary = _latest_verification_base(records)
+    latest_decision = review_summary.get("latest_decision") if isinstance(review_summary, dict) else None
+    if (
+        review_summary.get("status") == "resolved"
+        and isinstance(latest_decision, dict)
+        and latest_decision.get("authorized_target_status") == current_status
+    ):
+        resolved_summary = dict(verification_summary or {})
+        reasons = list(resolved_summary.get("reasons") or [])
+        resolution_reason = str(latest_decision.get("reasoning") or "Manual review resolved the pending gate.")
+        if resolution_reason not in reasons:
+            reasons.append(resolution_reason)
+        resolved_summary.update(
+            {
+                "accepted_completion": bool(
+                    latest_decision.get("outcome") == "accept_completion" and current_status == "completed"
+                ),
+                "failure_classification": {
+                    "category": "none",
+                    "failure_type": "none",
+                    "reason": resolution_reason,
+                    "recoverable": False,
+                    "retryable": False,
+                    "source": "none",
+                    "terminal": False,
+                },
+                "is_terminal": False,
+                "outcome": "review_resolved",
+                "reasons": reasons,
+                "requires_review": False,
+                "resolved_by": "manual_review",
+                "target_status": current_status,
+                "task_id": resolved_summary.get("task_id"),
+                "verification_passed": False,
+            }
+        )
+        if isinstance(reconciliation_summary, dict):
+            resolved_summary["reconciliation_status"] = reconciliation_summary.get("status")
+        return resolved_summary
+    return verification_summary
+
+
 def _latest_reconciliation_summary(
     records: tuple[EvaluationRecord, ...],
     *,
@@ -691,10 +758,15 @@ class HarnessReadModelService:
                 key=lambda record: (_parse_iso_timestamp(record.recorded_at), record.evaluation_id),
             )
         )
-        verification_summary = _latest_mapping(records, ("enforcement_result", "verification_result"))
         clarification_summary = _build_clarification_summary(task)
         review_summary = _build_review_summary(records)
         reconciliation_summary = _latest_reconciliation_summary(records, review_summary=review_summary)
+        verification_summary = _latest_verification_summary(
+            records,
+            review_summary=review_summary,
+            reconciliation_summary=reconciliation_summary,
+            current_status=str(task.get("status") or ""),
+        )
         execution_summary = _build_execution_summary(task, records)
         failure_summary = _latest_failure_summary(records)
         timeline = _build_timeline(task, records)
