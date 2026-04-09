@@ -3251,6 +3251,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(claim_response["action"], "reconciliation_failed")
         self.assertEqual(claim_response["reconciliation_attempt"]["failure_type"], "missing_pr_after_execution")
         self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(claim_response["review_request"]["trigger"], "reconciliation")
+        self.assertEqual(claim_response["evaluation_record"]["result"]["action"], "review_required")
         latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
         self.assertIn("metadata", latest_attempt)
         self.assertIn("attempt_validation", latest_attempt["metadata"])
@@ -3259,6 +3261,95 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["current_status"], "in_review")
         self.assertEqual(read_payload["task"]["execution_summary"]["invalid_attempt_count"], 0)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "requested")
+
+        history_status, history_payload = service.get_evaluation_history(task_id)
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 2)
+        self.assertEqual(history_payload["evaluations"][-1]["result"]["action"], "review_required")
+
+    def test_service_completion_claim_reconciliation_review_gate_can_be_manually_resolved(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-no-pr-resolve-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-valid-no-pr-resolve-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-valid-no-pr-resolve-1"),
+                    **valid_attempt_payload,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        review_request_payload = claim_response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        review_request = ReviewRequest(
+            review_request_id=review_request_payload["review_request_id"],
+            task_id=review_request_payload["task_id"],
+            requested_at=review_request_payload["requested_at"],
+            requested_by=review_request_payload["requested_by"],
+            trigger=ReviewTrigger(review_request_payload["trigger"]),
+            summary=review_request_payload["summary"],
+            presented_sections=tuple(review_request_payload["presented_sections"]),
+            allowed_outcomes=tuple(ReviewOutcome(item) for item in review_request_payload["allowed_outcomes"]),
+            prior_review_ids=tuple(review_request_payload.get("prior_review_ids", ())),
+            metadata=dict(review_request_payload.get("metadata", {})),
+        )
+        reevaluation_status, reevaluation_response = service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _to_jsonable(
+                        resolve_review_request(
+                            review_request,
+                            review_id="review-reconcile-1",
+                            reviewer=ReviewerIdentity(
+                                reviewer_id="operator-1",
+                                reviewer_name="Casey Reviewer",
+                                authority_role="operator",
+                            ),
+                            outcome=ReviewOutcome.ACCEPT_COMPLETION,
+                            reasoning="Manual review accepted the reconciliation-backed completion.",
+                        )
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "completed")
+
+        read_status, read_payload = service.get_task_read_model(task_id)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(read_payload["task"]["review_summary"]["decision_count"], 1)
 
     def test_service_completion_claim_strips_executor_verified_status_and_still_reconciles(self) -> None:
         service = HarnessApiService(

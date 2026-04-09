@@ -47,6 +47,8 @@ Harness also canonicalizes missing-information blockers instead of leaving them 
 
 Harness also validates manual-review decisions mechanically. A serialized `review_decision` only counts if its outcome, target status, and follow-up action still match the original review request and canonical review policy, and if it resolves the currently active review gate for that task. Review gates are now derived from enforcement-recorded review requests only; caller-supplied `review_request` payloads do not create active review state by themselves, and future-dated review timestamps are rejected.
 
+That rule also applies to reconciliation-driven escalation. If `POST /tasks/<task_id>/completion-claims` cannot safely prove the reported GitHub execution state and moves the task into `in_review`, Harness now persists a real reconciliation review request and matching evaluation record instead of treating `in_review` as an unstructured status flag. The resulting gate is visible on the canonical read-model, timeline, history, and task-list surfaces, and later manual review must resolve that exact persisted request.
+
 When manual review explicitly authorizes redispatch, Harness now performs that redispatch automatically instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.
 
 Reevaluation also cannot pre-satisfy completion evidence as a side channel. If a reevaluation is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise preload final evidence state before a canonical completion decision.

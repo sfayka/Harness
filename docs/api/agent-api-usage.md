@@ -26,6 +26,7 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
 - The canonical lifecycle outcome still comes from verification/reconciliation/review enforcement.
 - Caller-supplied support artifacts, pull-request artifacts, commit artifacts, branch artifacts, and changed-file artifacts on completion claims are never trusted as already verified. If a payload submits those artifact types with `verification_status=verified`, Harness downgrades them to `unverified` and strips them from validated evidence until canonical verification or reconciliation re-attests them.
 - If a single completion claim still needs both PR and commit proof after that downgrade, Harness chains the canonical reconciliation handlers in order rather than trusting the self-certified artifact pair.
+- If that chained reconciliation escalates to `in_review`, Harness persists the resulting reconciliation review gate as a real evaluation record with a canonical `review_request`. Clients should use that persisted request when later sending `review_decision`; `in_review` is not an informal status-only signal.
 - Support artifacts do not satisfy repository, branch, or commit identity for executor-attempt validation. If an executor reports a review note or handoff artifact with GitHub-looking context fields, Harness treats it as support context only, not as current-run code proof.
 - If a reevaluation resolves an active review gate with `authorize_redispatch`, Harness follows through by dispatching the next execution attempt automatically instead of stopping at a passive `dispatch_ready` result.
 - This endpoint must not be used to mutate stored task truth with submission-style fields such as `request.task_envelope`, `request.task_status`, `request.assigned_executor`, or `request.linked_artifacts`. Those payload shapes are rejected as invalid input.
@@ -102,6 +103,7 @@ It must not be used to inject runtime or terminal states such as `executing`, `r
 - Manual review is what resolves `in_review` back to `completed`, `blocked`, `failed`, `planned`, `dispatch_ready`, `assigned`, or `canceled`.
 - A submitted `review_decision` is only accepted if it still matches the original review request's `allowed_outcomes` and canonical outcome-to-status mapping, and if it resolves the task's currently active review request. Callers cannot forge a different target status, follow-up action, or stale review-request payload by editing the serialized decision.
 - Once review is active, automatic reevaluation, artifact sync, or external reconciliation must keep the task in `in_review` until an explicit manual decision resolves it.
+- Reconciliation-driven `in_review` states follow the same rule. If completion-claim reconciliation cannot safely finish automatically, the API persists a concrete `review_request` and exposes it through evaluation history, read-model, timeline, and task-list surfaces.
 
 ## Reconciliation Classification Rule
 

@@ -455,7 +455,7 @@ def build_review_decision_from_request(
             if ReviewOutcome(outcome) == ReviewOutcome.ACCEPT_COMPLETION
             else "Manual review authorized the next control-plane action."
         ),
-        reviewed_at="2026-04-01T10:04:00Z",
+        reviewed_at=review_request_payload["requested_at"],
     )
     return to_jsonable(resolved)
 
