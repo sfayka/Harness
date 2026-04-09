@@ -153,6 +153,26 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertFalse(payload["task"]["failure_summary"]["recoverable"])
         self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "review_required")
 
+    def test_read_model_clears_review_required_failure_projection_after_manual_resolution(self) -> None:
+        submit_status, submit_payload = self.service.evaluate(_request_payload("review_required"))
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {"request": {"review_decision": _review_decision_payload(task_id)}},
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "completed")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "none")
+        self.assertEqual(payload["task"]["failure_summary"]["state"], "clear")
+        self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "clear")
+        self.assertFalse(payload["task"]["execution_summary"]["retry_eligible"])
+
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(
             {
