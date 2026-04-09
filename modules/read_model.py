@@ -147,7 +147,42 @@ def _failure_state(
     return "failed"
 
 
-def _latest_failure_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
+def _latest_failure_summary(
+    records: tuple[EvaluationRecord, ...],
+    *,
+    review_summary: dict[str, Any] | None = None,
+    current_status: str = "",
+) -> dict[str, Any] | None:
+    latest_decision = review_summary.get("latest_decision") if isinstance(review_summary, dict) else None
+    if (
+        current_status == "failed"
+        and isinstance(latest_decision, dict)
+        and latest_decision.get("outcome") == "mark_failed"
+        and latest_decision.get("authorized_target_status") == "failed"
+    ):
+        last_record = records[-1] if records else None
+        failure_reason = str(
+            latest_decision.get("reasoning")
+            or "Manual review authorized the next control-plane action."
+        )
+        return {
+            "state": "terminal",
+            "failure_type": "manual_review_failed",
+            "failure_source": "manual_review",
+            "failure_reason": failure_reason,
+            "terminal": True,
+            "recoverable": False,
+            "recorded_at": (
+                last_record.recorded_at
+                if isinstance(last_record, EvaluationRecord)
+                else latest_decision.get("reviewed_at")
+            ),
+            "evaluation_id": (
+                last_record.evaluation_id
+                if isinstance(last_record, EvaluationRecord)
+                else None
+            ),
+        }
     for record in reversed(records):
         payload = record.result if isinstance(record.result, dict) else {}
         failure = payload.get("failure_classification")
@@ -286,7 +321,12 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
 
 def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
     execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
-    latest_failure_summary = _latest_failure_summary(records)
+    review_summary = _build_review_summary(records)
+    latest_failure_summary = _latest_failure_summary(
+        records,
+        review_summary=review_summary,
+        current_status=str(task_envelope.get("status") or ""),
+    )
     retry_count = 0
     invalid_attempt_count = 0
     for record in records:
@@ -768,7 +808,11 @@ class HarnessReadModelService:
             current_status=str(task.get("status") or ""),
         )
         execution_summary = _build_execution_summary(task, records)
-        failure_summary = _latest_failure_summary(records)
+        failure_summary = _latest_failure_summary(
+            records,
+            review_summary=review_summary,
+            current_status=str(task.get("status") or ""),
+        )
         timeline = _build_timeline(task, records)
 
         return TaskReadModel(

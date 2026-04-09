@@ -200,3 +200,51 @@ class ControlPlaneTaskListReconciliationFlowTests(RuntimeApiTestCase):
         self.assertEqual(entry["reconciliation_summary"]["outcome"], "review_resolved")
         self.assertFalse(entry["reconciliation_summary"]["blocking"])
         self.assertEqual(entry["reconciliation_summary"]["resolved_by"], "manual_review")
+
+    def test_task_list_surfaces_manual_review_mark_failed_as_terminal_failure(self) -> None:
+        self.set_reconciliation_registry(
+            _registry_with_gateway(
+                _FakeGitHubGateway(
+                    branch_exists=True,
+                    existing_branch_prs=(),
+                    existing_commit_prs=(),
+                    persisted_created_pr=None,
+                )
+            )
+        )
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-list-reconciliation-review-mark-failed",
+                title="Task list should project manual review failure honestly",
+            )
+        )
+        self._mark_task_assigned(scenario.task_id, executor_id="executor-list-reconciliation-review-failed-1")
+
+        claimed = self._claim_with_standard_external_facts(
+            scenario,
+            claim_id="claim-list-reconciliation-review-failed-1",
+            attempt_id="attempt-list-reconciliation-review-failed-1",
+        )
+        review_request = claimed.response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="mark_failed",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[scenario.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "failed")
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(entry["failure_summary"]["state"], "terminal")
+        self.assertEqual(entry["failure_summary"]["failure_type"], "manual_review_failed")
+        self.assertEqual(entry["failure_summary"]["failure_source"], "manual_review")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "terminal")

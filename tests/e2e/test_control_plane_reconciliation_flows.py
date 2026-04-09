@@ -154,6 +154,56 @@ class ControlPlaneReconciliationFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.read_model["task"]["reconciliation_summary"]["resolved_by"], "manual_review")
         self.assertEqual(resolved.history["evaluations"][-1]["result"]["action"], "transition_applied")
 
+    def test_missing_pr_reconciliation_review_gate_can_be_marked_failed_by_manual_review(self) -> None:
+        self.set_reconciliation_registry(
+            _registry_with_gateway(
+                _FakeGitHubGateway(
+                    branch_exists=True,
+                    existing_branch_prs=(),
+                    existing_commit_prs=(),
+                    persisted_created_pr=None,
+                )
+            )
+        )
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-control-reconciliation-review-mark-failed",
+                title="Reconciliation review gate can be manually failed",
+            )
+        )
+        self._mark_task_assigned(scenario.task_id, executor_id="executor-reconcile-review-failed-1")
+
+        claimed = scenario.completion_claim(
+            build_completion_claim_request(
+                claim_id="claim-no-pr-review-failed-1",
+                attempt_id="attempt-no-pr-review-failed-1",
+                external_facts={
+                    "expected_code_context": build_expected_code_context(),
+                    "github_facts": build_github_facts(),
+                },
+            )
+        )
+        review_request = claimed.response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="mark_failed",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.status, 200)
+        self.assertEqual(resolved.task["status"], "failed")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(resolved.read_model["task"]["failure_summary"]["state"], "terminal")
+        self.assertEqual(resolved.read_model["task"]["failure_summary"]["failure_type"], "manual_review_failed")
+        self.assertEqual(resolved.read_model["task"]["failure_summary"]["failure_source"], "manual_review")
+        self.assertEqual(resolved.read_model["task"]["execution_summary"]["failure_state"], "terminal")
+
     def test_self_certified_pr_and_commit_are_reconciled_sequentially_before_completion(self) -> None:
         self.set_reconciliation_registry(
             _registry_with_gateway(
