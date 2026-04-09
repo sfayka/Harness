@@ -467,6 +467,7 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["execution_summary"]["last_failure_type"], "evidence_insufficient")
         self.assertTrue(read_payload["task"]["execution_summary"]["retry_eligible"])
         self.assertEqual(read_payload["task"]["execution_summary"]["failure_state"], "retryable")
+        self.assertEqual(read_payload["task"]["failure_summary"]["state"], "retryable")
 
 
 class HarnessReadModelHttpApiTests(unittest.TestCase):
