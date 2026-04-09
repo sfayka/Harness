@@ -216,3 +216,45 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         self.assertFalse(
             any(event["event_type"] == "review_decided" for event in resolved.timeline["timeline"])
         )
+
+    def test_manual_review_can_still_resolve_gate_after_rejected_retry_attempt(self) -> None:
+        payload = build_review_required_payload(
+            build_create_task_payload(
+                "e2e-control-review-retry-then-accept",
+                title="Rejected retry attempt should not strand the review gate",
+            )["request"]["task_envelope"]
+        )
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        rejected = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="authorize_retry",
+                    )
+                }
+            }
+        )
+        accepted = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="accept_completion",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(rejected.response["action"], "transition_rejected")
+        self.assertEqual(accepted.status, 200)
+        self.assertEqual(accepted.response["action"], "transition_applied")
+        self.assertEqual(accepted.task["status"], "completed")
+        self.assertEqual(accepted.read_model["task"]["review_summary"]["status"], "resolved")
+        self.assertTrue(any(event["event_type"] == "review_decision_rejected" for event in accepted.timeline["timeline"]))
+        self.assertTrue(any(event["event_type"] == "review_decided" for event in accepted.timeline["timeline"]))
