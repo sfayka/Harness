@@ -104,6 +104,7 @@ It must not be used to inject runtime or terminal states such as `executing`, `r
 - A submitted `review_decision` is only accepted if it still matches the original review request's `allowed_outcomes` and canonical outcome-to-status mapping, and if it resolves the task's currently active review request. Callers cannot forge a different target status, follow-up action, or stale review-request payload by editing the serialized decision.
 - Once review is active, automatic reevaluation, artifact sync, or external reconciliation must keep the task in `in_review` until an explicit manual decision resolves it.
 - Reconciliation-driven `in_review` states follow the same rule. If completion-claim reconciliation cannot safely finish automatically, the API persists a concrete `review_request` and exposes it through evaluation history, read-model, timeline, and task-list surfaces.
+- On those inspection surfaces, `review_required` remains a separate triage class. A task in `in_review` may report `failure_type=review_required`, but its projected state is `review_required`, not terminal `failed`.
 
 ## Reconciliation Classification Rule
 

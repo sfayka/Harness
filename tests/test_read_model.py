@@ -138,6 +138,21 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "evidence_insufficient")
         self.assertEqual(payload["task"]["failure_summary"]["failure_source"], "evaluation")
 
+    def test_read_model_surfaces_review_required_as_non_terminal_triage_state(self) -> None:
+        submit_status, submit_payload = self.service.evaluate(_request_payload("review_required"))
+
+        status, payload = self.service.get_task_read_model(submit_payload["task_envelope"]["id"])
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "in_review")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "review_required")
+        self.assertEqual(payload["task"]["failure_summary"]["state"], "review_required")
+        self.assertFalse(payload["task"]["failure_summary"]["terminal"])
+        self.assertFalse(payload["task"]["failure_summary"]["recoverable"])
+        self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "review_required")
+
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(
             {

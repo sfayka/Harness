@@ -185,6 +185,8 @@ Backend inspection routes:
 - `GET /tasks/<task_id>/read-model`: canonical detail surface for current task truth.
 - `GET /tasks/<task_id>/timeline`: canonical audit timeline.
 
+For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
+
 ## Storage And Environment
 
 Required frontend environment variable:
