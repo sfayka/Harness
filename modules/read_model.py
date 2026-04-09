@@ -47,13 +47,15 @@ def _latest_failure_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, 
         failure_type = failure.get("failure_type") or failure.get("category")
         if failure_type in (None, "none"):
             continue
+        terminal = bool(failure.get("terminal"))
+        recoverable = bool(failure.get("recoverable") or failure.get("retryable"))
         return {
-            "state": "failed",
+            "state": "terminal" if terminal else "retryable" if recoverable else "failed",
             "failure_type": failure_type,
             "failure_source": failure.get("source") or "evaluation",
             "failure_reason": failure.get("reason"),
-            "terminal": bool(failure.get("terminal")),
-            "recoverable": bool(failure.get("recoverable") or failure.get("retryable")),
+            "terminal": terminal,
+            "recoverable": recoverable,
             "recorded_at": record.recorded_at,
             "evaluation_id": record.evaluation_id,
         }
