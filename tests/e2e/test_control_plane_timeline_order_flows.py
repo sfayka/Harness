@@ -61,7 +61,7 @@ class ControlPlaneTimelineOrderFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.status, 200)
         self.assertTrue(resolved.response["automatic_dispatch"]["attempted"])
         evaluation_indexes = self._event_indexes(timeline, "evaluation_recorded")
-        self.assertEqual(len(evaluation_indexes), 2)
+        self.assertEqual(len(evaluation_indexes), 3)
         self.assertLess(
             evaluation_indexes[0],
             self._event_index(timeline, "clarification_resolved"),
@@ -77,4 +77,8 @@ class ControlPlaneTimelineOrderFlowTests(RuntimeApiTestCase):
         self.assertLess(
             self._event_index(timeline, "task_dispatched"),
             self._event_index(timeline, "execution_attempt_recorded"),
+        )
+        self.assertLess(
+            self._event_index(timeline, "execution_attempt_recorded"),
+            evaluation_indexes[2],
         )

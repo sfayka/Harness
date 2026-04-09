@@ -36,7 +36,12 @@ from modules.contracts.task_envelope_lifecycle import apply_task_transition
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
 from modules.contracts.task_envelope_enforcement import EnforcementAction, EnforcementResult
-from modules.contracts.task_envelope_reconciliation import ExpectedCodeContext
+from modules.contracts.task_envelope_reconciliation import (
+    ExpectedCodeContext,
+    MismatchCategory,
+    ReconciliationOutcome,
+    ReconciliationResult,
+)
 from modules.contracts.task_envelope_review import (
     ReviewDecisionResult,
     ReviewFollowUpAction,
@@ -49,6 +54,7 @@ from modules.contracts.task_envelope_review import (
     validate_review_decision_result,
 )
 from modules.contracts.task_envelope_verification import RuntimeVerificationFacts
+from modules.contracts.task_envelope_verification import ReconciliationStatus
 from modules.evaluation import HarnessEvaluationRequest, HarnessEvaluationResult, evaluate_task_case
 from modules.read_model import HarnessReadModelService
 from modules.reconciliation_runtime import (
@@ -101,6 +107,13 @@ _DISPATCH_BLOCKED_STATUSES = frozenset({"in_review"})
 _AUTO_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready"})
 _MANUAL_DISPATCHABLE_STATUSES = frozenset({"dispatch_ready", "assigned", "blocked"})
 _CLARIFICATION_RESUME_TARGET_STATUSES = frozenset({"intake_ready", "planned", "dispatch_ready", "assigned", "executing"})
+_RECONCILIATION_REVIEW_PRESENTED_SECTIONS = ("task_state", "execution", "evidence", "reconciliation")
+_RECONCILIATION_REVIEW_ALLOWED_OUTCOMES = (
+    ReviewOutcome.ACCEPT_COMPLETION,
+    ReviewOutcome.KEEP_BLOCKED,
+    ReviewOutcome.MARK_FAILED,
+    ReviewOutcome.AUTHORIZE_REDISPATCH,
+)
 _DISPATCH_DEPENDENCY_STATUS_ORDER = {
     "planned": 0,
     "dispatch_ready": 1,
@@ -2421,6 +2434,143 @@ def _execution_attempt_failure_result(
     )
 
 
+def _reconciliation_failure_mismatch_category(
+    failure_type: ReconciliationFailureType | None,
+) -> MismatchCategory | None:
+    if failure_type in {
+        ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+    }:
+        return MismatchCategory.MISSING_REQUIRED_ARTIFACT
+    return None
+
+
+def _reconciliation_failure_review_request(
+    task_envelope: dict[str, Any],
+    *,
+    failure_type: ReconciliationFailureType | None,
+    reason: str,
+    attempt: dict[str, Any] | None,
+) -> ReviewRequest:
+    task_id = str(task_envelope["id"])
+    attempt_count = len((((task_envelope.get("reconciliation") or {}).get("attempts")) or []))
+    requested_at = str(((task_envelope.get("timestamps") or {}).get("updated_at")) or _iso_now())
+    attempt_id = None
+    if isinstance(attempt, dict):
+        attempt_id = _optional_non_empty_string(attempt.get("attempt_id"), field_name="reconciliation_attempt.attempt_id")
+    return ReviewRequest(
+        review_request_id=f"review-request-{task_id}-reconciliation-{max(attempt_count, 1)}",
+        task_id=task_id,
+        requested_at=requested_at,
+        requested_by="reconciliation",
+        trigger=ReviewTrigger.RECONCILIATION,
+        summary=(
+            "Manual review is required because post-execution reconciliation could not prove "
+            f"the reported external state: {reason}"
+        ),
+        presented_sections=_RECONCILIATION_REVIEW_PRESENTED_SECTIONS,
+        allowed_outcomes=_RECONCILIATION_REVIEW_ALLOWED_OUTCOMES,
+        metadata={
+            "reconciliation_failure_type": failure_type.value if failure_type is not None else "unresolved_runtime_failure",
+            "reconciliation_attempt_id": attempt_id,
+        },
+    )
+
+
+def _reconciliation_failure_result(
+    *,
+    task_envelope: dict[str, Any],
+    failure_type: ReconciliationFailureType | None,
+    target_status: str,
+    reason: str,
+    review_request: ReviewRequest | None,
+) -> HarnessEvaluationResult:
+    mismatch_category = _reconciliation_failure_mismatch_category(failure_type)
+    if target_status == "in_review":
+        action = EnforcementAction.REVIEW_REQUIRED
+        requires_review = True
+        failure = FailureClassification(
+            failure_type=FailureType.REVIEW_REQUIRED,
+            source=FailureSource.EVALUATION,
+            reason=reason,
+            terminal=False,
+            recoverable=False,
+        )
+        reconciliation_result = ReconciliationResult(
+            task_id=str(task_envelope["id"]),
+            outcome=ReconciliationOutcome.REVIEW_REQUIRED,
+            status=ReconciliationStatus.REVIEW_REQUIRED,
+            blocking=True,
+            terminal=False,
+            mismatch_categories=((mismatch_category,) if mismatch_category is not None else ()),
+            reasons=(reason,),
+        )
+    elif target_status == "blocked":
+        action = EnforcementAction.TRANSITION_APPLIED
+        requires_review = False
+        failure = FailureClassification(
+            failure_type=FailureType.RECONCILIATION_MISMATCH,
+            source=FailureSource.EVALUATION,
+            reason=reason,
+            terminal=False,
+            recoverable=True,
+        )
+        reconciliation_result = ReconciliationResult(
+            task_id=str(task_envelope["id"]),
+            outcome=ReconciliationOutcome.RECONCILIATION_PENDING,
+            status=ReconciliationStatus.PENDING,
+            blocking=True,
+            terminal=False,
+            mismatch_categories=((mismatch_category,) if mismatch_category is not None else ()),
+            reasons=(reason,),
+        )
+    else:
+        action = EnforcementAction.TRANSITION_APPLIED
+        requires_review = False
+        failure = FailureClassification(
+            failure_type=FailureType.RECONCILIATION_MISMATCH,
+            source=FailureSource.EVALUATION,
+            reason=reason,
+            terminal=True,
+            recoverable=False,
+        )
+        reconciliation_result = ReconciliationResult(
+            task_id=str(task_envelope["id"]),
+            outcome=ReconciliationOutcome.TERMINAL_INVALID,
+            status=ReconciliationStatus.MISMATCH,
+            blocking=True,
+            terminal=True,
+            mismatch_categories=((mismatch_category,) if mismatch_category is not None else ()),
+            reasons=(reason,),
+        )
+    enforcement_result = EnforcementResult(
+        action=action,
+        task_envelope=task_envelope,
+        evidence_result=None,
+        reconciliation_result=reconciliation_result,
+        verification_result=None,
+        review_request=review_request,
+        review_decision=None,
+        transition_result=None,
+        target_status=target_status,
+        reasons=(reason,),
+        failure_classification=failure,
+        error=reason,
+    )
+    return HarnessEvaluationResult(
+        action=action,
+        target_status=target_status,
+        task_envelope=task_envelope,
+        enforcement_result=enforcement_result,
+        accepted_completion=False,
+        requires_review=requires_review,
+        invalid_input=False,
+        failure_classification=failure,
+        reasons=(reason,),
+        error=reason,
+    )
+
+
 def _requires_missing_pr_reconciliation(request: HarnessEvaluationRequest) -> bool:
     if not request.claimed_completion:
         return False
@@ -2729,25 +2879,81 @@ class HarnessApiService:
         active_request = request
         handled_failure_types: list[ReconciliationFailureType] = []
 
+        def _persist_failure_response(
+            *,
+            task_envelope: dict[str, Any],
+            failure_type: ReconciliationFailureType | None,
+            target_status: str,
+            error: str,
+            attempt: dict[str, Any] | None,
+        ) -> dict[str, Any]:
+            action, requires_review = _reconciliation_failure_response_shape(target_status=target_status)
+            review_request = (
+                _reconciliation_failure_review_request(
+                    task_envelope,
+                    failure_type=failure_type,
+                    reason=error,
+                    attempt=attempt,
+                )
+                if target_status == "in_review"
+                else None
+            )
+            persisted_task = self.store.update_task(task_envelope)
+            failed_request = replace(
+                active_request,
+                task_envelope=persisted_task,
+                review_request=review_request,
+            )
+            failed_result = _reconciliation_failure_result(
+                task_envelope=persisted_task,
+                failure_type=failure_type,
+                target_status=target_status,
+                reason=error,
+                review_request=review_request,
+            )
+            evaluation_record = self.store.put_evaluation_record(
+                request=failed_request,
+                result=failed_result,
+            )
+            response_payload = {
+                "action": action,
+                "accepted_completion": False,
+                "requires_review": requires_review,
+                "invalid_input": False,
+                "target_status": target_status,
+                "error": error,
+                "reasons": [error],
+                "reconciliation_attempt": deepcopy(attempt),
+                "task_envelope": _to_jsonable(persisted_task),
+                "enforcement_result": _to_jsonable(failed_result.enforcement_result),
+                "evaluation_record": _serialize_evaluation_record(evaluation_record),
+            }
+            if review_request is not None:
+                response_payload["review_request"] = _to_jsonable(review_request)
+            return response_payload
+
         for _ in range(len(ReconciliationFailureType) + 1):
             failure_type = _completion_claim_reconciliation_failure_type(active_request)
             if failure_type is None:
                 return active_request, None
 
             if failure_type in handled_failure_types:
-                return None, {
-                    "action": "reconciliation_failed",
-                    "accepted_completion": False,
-                    "requires_review": True,
-                    "invalid_input": False,
-                    "target_status": "in_review",
-                    "error": f"Reconciliation failure type {failure_type.value!r} remained unresolved after handler execution.",
-                    "reasons": [
-                        f"Reconciliation failure type {failure_type.value!r} remained unresolved after handler execution."
-                    ],
-                    "reconciliation_attempt": None,
-                    "task_envelope": _to_jsonable(active_request.task_envelope),
-                }
+                unresolved_reason = (
+                    f"Reconciliation failure type {failure_type.value!r} remained unresolved after handler execution."
+                )
+                failed_task = self._task_with_transition(
+                    active_request.task_envelope,
+                    to_status="in_review",
+                    reason=unresolved_reason,
+                    actor="reconciliation",
+                )
+                return None, _persist_failure_response(
+                    task_envelope=failed_task,
+                    failure_type=failure_type,
+                    target_status="in_review",
+                    error=unresolved_reason,
+                    attempt=None,
+                )
 
             handled_failure_types.append(failure_type)
 
@@ -2798,21 +3004,15 @@ class HarnessApiService:
                 failed_task["reconciliation"]["active_failure_type"] = failure_type.value
                 failed_task["reconciliation"]["last_error"] = str(error)
                 failed_task["timestamps"]["updated_at"] = _iso_now()
-                self.store.update_task(failed_task)
-                return None, {
-                    "action": action,
-                    "accepted_completion": False,
-                    "requires_review": requires_review,
-                    "invalid_input": False,
-                    "target_status": target_status,
-                    "error": str(error),
-                    "reasons": [str(error)],
-                    "reconciliation_attempt": None,
-                    "task_envelope": _to_jsonable(failed_task),
-                }
+                return None, _persist_failure_response(
+                    task_envelope=failed_task,
+                    failure_type=failure_type,
+                    target_status=target_status,
+                    error=str(error),
+                    attempt=None,
+                )
 
             if handler_result.status == ReconciliationAttemptStatus.FAILED:
-                action, requires_review = _reconciliation_failure_response_shape(target_status=handler_result.target_status)
                 reason_prefix = (
                     "Post-execution reconciliation blocked by retryable provider failure"
                     if handler_result.target_status == "blocked"
@@ -2827,18 +3027,13 @@ class HarnessApiService:
                     actor="reconciliation",
                     facts={"terminal_failure": True} if handler_result.target_status == "failed" else None,
                 )
-                self.store.update_task(failed_task)
-                return None, {
-                    "action": action,
-                    "accepted_completion": False,
-                    "requires_review": requires_review,
-                    "invalid_input": False,
-                    "target_status": handler_result.target_status,
-                    "error": handler_result.error,
-                    "reasons": [handler_result.error or "Reconciliation failed."],
-                    "reconciliation_attempt": deepcopy(handler_result.attempt),
-                    "task_envelope": _to_jsonable(failed_task),
-                }
+                return None, _persist_failure_response(
+                    task_envelope=failed_task,
+                    failure_type=failure_type,
+                    target_status=handler_result.target_status,
+                    error=handler_result.error or "Reconciliation failed.",
+                    attempt=handler_result.attempt,
+                )
 
             active_request = replace(
                 active_request,
@@ -2849,17 +3044,20 @@ class HarnessApiService:
                 attempt=handler_result.attempt,
             )
 
-        return None, {
-            "action": "reconciliation_failed",
-            "accepted_completion": False,
-            "requires_review": True,
-            "invalid_input": False,
-            "target_status": "in_review",
-            "error": "Reconciliation exceeded the maximum chained handler depth.",
-            "reasons": ["Reconciliation exceeded the maximum chained handler depth."],
-            "reconciliation_attempt": None,
-            "task_envelope": _to_jsonable(active_request.task_envelope),
-        }
+        depth_reason = "Reconciliation exceeded the maximum chained handler depth."
+        failed_task = self._task_with_transition(
+            active_request.task_envelope,
+            to_status="in_review",
+            reason=depth_reason,
+            actor="reconciliation",
+        )
+        return None, _persist_failure_response(
+            task_envelope=failed_task,
+            failure_type=handled_failure_types[-1] if handled_failure_types else None,
+            target_status="in_review",
+            error=depth_reason,
+            attempt=None,
+        )
 
     def _with_retry_provenance(
         self,

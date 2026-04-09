@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from modules.runtime_scenario_builders import build_review_decision_from_request
 from tests.e2e.runtime_harness import RuntimeApiTestCase
 from tests.e2e.scenario_builders import (
     build_completion_claim_request,
@@ -20,6 +21,9 @@ from tests.test_completion_claim_reconciliation import (
 
 
 class ControlPlaneReconciliationFlowTests(RuntimeApiTestCase):
+    def _tasks_by_id(self, payload: dict) -> dict[str, dict]:
+        return {item["task_id"]: item for item in payload["tasks"]}
+
     def _mark_task_assigned(self, task_id: str, *, executor_id: str) -> None:
         self.service.store.update_task(
             {
@@ -62,16 +66,33 @@ class ControlPlaneReconciliationFlowTests(RuntimeApiTestCase):
                 },
             )
         )
+        list_status, list_payload = self.list_tasks()
+        list_entry = self._tasks_by_id(list_payload)[scenario.task_id]
 
         self.assertEqual(claimed.response["action"], "reconciliation_failed")
         self.assertTrue(claimed.response["requires_review"])
         self.assertEqual(claimed.task["status"], "in_review")
         self.assertEqual(claimed.task["reconciliation"]["active_failure_type"], "missing_pr_after_execution")
         self.assertEqual(claimed.read_model["task"]["current_status"], "in_review")
-        self.assertEqual(claimed.read_model["task"]["review_summary"]["status"], "none")
+        self.assertEqual(claimed.read_model["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(claimed.read_model["task"]["review_summary"]["request_count"], 1)
+        self.assertEqual(claimed.response["review_request"]["trigger"], "reconciliation")
+        self.assertEqual(
+            claimed.response["evaluation_record"]["result"]["enforcement_result"]["review_request"]["trigger"],
+            "reconciliation",
+        )
+        self.assertEqual(len(claimed.history["evaluations"]), 2)
+        self.assertEqual(claimed.history["evaluations"][-1]["result"]["action"], "review_required")
         self.assertEqual(claimed.response["reconciliation_attempt"]["details"]["error_disposition"], "review_required")
+        self.assertEqual(list_status, 200)
+        self.assertEqual(list_entry["current_status"], "in_review")
+        self.assertEqual(list_entry["review_summary"]["status"], "requested")
+        self.assertEqual(list_entry["evaluation_summary"]["latest_action"], "review_required")
         self.assertTrue(
             any(event["event_type"] == "reconciliation_attempt_recorded" for event in claimed.timeline["timeline"])
+        )
+        self.assertTrue(
+            any(event["event_type"] == "review_requested" for event in claimed.timeline["timeline"])
         )
         self.assertTrue(
             any(
@@ -79,6 +100,55 @@ class ControlPlaneReconciliationFlowTests(RuntimeApiTestCase):
                 for event in claimed.timeline["timeline"]
             )
         )
+
+    def test_missing_pr_reconciliation_review_gate_can_be_resolved_by_persisted_request(self) -> None:
+        self.set_reconciliation_registry(
+            _registry_with_gateway(
+                _FakeGitHubGateway(
+                    branch_exists=True,
+                    existing_branch_prs=(),
+                    existing_commit_prs=(),
+                    persisted_created_pr=None,
+                )
+            )
+        )
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-control-reconciliation-review-resolution",
+                title="Reconciliation review gate should be manually resolvable",
+            )
+        )
+        self._mark_task_assigned(scenario.task_id, executor_id="executor-reconcile-review-resolve-1")
+
+        claimed = scenario.completion_claim(
+            build_completion_claim_request(
+                claim_id="claim-no-pr-review-resolve-1",
+                attempt_id="attempt-no-pr-review-resolve-1",
+                external_facts={
+                    "expected_code_context": build_expected_code_context(),
+                    "github_facts": build_github_facts(),
+                },
+            )
+        )
+        review_request = claimed.response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="accept_completion",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(claimed.status, 200)
+        self.assertEqual(claimed.task["status"], "in_review")
+        self.assertEqual(resolved.status, 200)
+        self.assertEqual(resolved.task["status"], "completed")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["decision_count"], 1)
+        self.assertEqual(resolved.history["evaluations"][-1]["result"]["action"], "transition_applied")
 
     def test_self_certified_pr_and_commit_are_reconciled_sequentially_before_completion(self) -> None:
         self.set_reconciliation_registry(
