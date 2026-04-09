@@ -25,8 +25,21 @@ def _count_by(items: list[dict[str, Any]], field_name: str) -> dict[str, int]:
     return counts
 
 
-def _latest_mapping(records: tuple[EvaluationRecord, ...], path: tuple[str, ...]) -> dict[str, Any] | None:
+def _record_action(record: EvaluationRecord) -> str:
+    result = record.result if isinstance(record.result, dict) else {}
+    enforcement_result = result.get("enforcement_result") if isinstance(result.get("enforcement_result"), dict) else {}
+    return str(enforcement_result.get("action") or result.get("action") or "")
+
+
+def _latest_mapping(
+    records: tuple[EvaluationRecord, ...],
+    path: tuple[str, ...],
+    *,
+    include_transition_rejected: bool = True,
+) -> dict[str, Any] | None:
     for record in reversed(records):
+        if not include_transition_rejected and _record_action(record) == "transition_rejected":
+            continue
         current: Any = record.result
         for key in path:
             if not isinstance(current, dict):
@@ -39,12 +52,18 @@ def _latest_mapping(records: tuple[EvaluationRecord, ...], path: tuple[str, ...]
 
 
 def _latest_verification_base(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
-    latest_verification = _latest_mapping(records, ("enforcement_result", "verification_result"))
+    latest_verification = _latest_mapping(
+        records,
+        ("enforcement_result", "verification_result"),
+        include_transition_rejected=False,
+    )
     if isinstance(latest_verification, dict):
         outcome = latest_verification.get("outcome")
         if outcome not in (None, "verification_deferred") or latest_verification.get("claimed_completion"):
             return latest_verification
     for record in reversed(records):
+        if _record_action(record) == "transition_rejected":
+            continue
         result = record.result if isinstance(record.result, dict) else {}
         enforcement_result = result.get("enforcement_result") if isinstance(result.get("enforcement_result"), dict) else {}
         verification_result = enforcement_result.get("verification_result")
@@ -127,7 +146,11 @@ def _latest_reconciliation_summary(
     *,
     review_summary: dict[str, Any],
 ) -> dict[str, Any] | None:
-    reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
+    reconciliation_summary = _latest_mapping(
+        records,
+        ("enforcement_result", "reconciliation_result"),
+        include_transition_rejected=False,
+    )
     if not isinstance(reconciliation_summary, dict):
         return None
     latest_request = review_summary.get("latest_request") if isinstance(review_summary, dict) else None
@@ -203,6 +226,8 @@ def _latest_failure_summary(
             ),
         }
     for record in reversed(records):
+        if _record_action(record) == "transition_rejected":
+            continue
         payload = record.result if isinstance(record.result, dict) else {}
         failure = payload.get("failure_classification")
         if not isinstance(failure, dict):

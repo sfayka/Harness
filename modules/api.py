@@ -32,7 +32,7 @@ from modules.connectors import (
     translate_manual_submission_payload,
 )
 from modules.contracts.failure_classification import FailureClassification, FailureSource, FailureType
-from modules.contracts.task_envelope_lifecycle import apply_task_transition
+from modules.contracts.task_envelope_lifecycle import ForbiddenTransitionError, apply_task_transition
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
 from modules.contracts.task_envelope_enforcement import EnforcementAction, EnforcementResult
@@ -3227,13 +3227,13 @@ class HarnessApiService:
         request: HarnessEvaluationRequest,
         validation: dict[str, Any],
     ) -> tuple[int, dict[str, Any]]:
+        stored_task = deepcopy(self.store.get_task(task_id))
         completion_claim = _latest_advisory_completion_claim(request.task_envelope)
         validated_task = _with_execution_attempt_validation(
             request.task_envelope,
             completion_claim=completion_claim,
             validation=validation,
         )
-        self.store.update_task(validated_task)
 
         reasons = tuple(str(item) for item in validation.get("reasons") or () if isinstance(item, str) and item.strip())
         reason = reasons[0] if reasons else "Execution attempt is invalid for completion handling."
@@ -3275,6 +3275,7 @@ class HarnessApiService:
         evaluation_record = self.store.put_evaluation_record(request=evaluation_request, result=evaluation_result)
 
         if can_retry:
+            self.store.update_task(validated_task)
             dispatch_status, dispatch_payload = self.dispatch_task(
                 task_id,
                 {
@@ -3303,13 +3304,72 @@ class HarnessApiService:
             failed_reason = (
                 f"{reason} Automatic retry could not be scheduled because no compatible executor was assigned."
             )
-        failed_task = self._task_with_transition(
-            validated_task,
-            to_status="failed",
-            reason=failed_reason,
-            actor="verification",
-            facts={"terminal_failure": True, "reason_provided": True},
-        )
+        try:
+            failed_task = self._task_with_transition(
+                validated_task,
+                to_status="failed",
+                reason=failed_reason,
+                actor="verification",
+                facts={"terminal_failure": True, "reason_provided": True},
+            )
+        except ForbiddenTransitionError as error:
+            rejected_reason = str(error)
+            rejected_failure = FailureClassification(
+                failure_type=FailureType.CONTRACT_VIOLATION,
+                source=FailureSource.EVALUATION,
+                reason=rejected_reason,
+                terminal=True,
+                recoverable=False,
+            )
+            rejected_result = HarnessEvaluationResult(
+                action=EnforcementAction.TRANSITION_REJECTED,
+                target_status=None,
+                task_envelope=stored_task,
+                enforcement_result=EnforcementResult(
+                    action=EnforcementAction.TRANSITION_REJECTED,
+                    task_envelope=stored_task,
+                    evidence_result=None,
+                    reconciliation_result=None,
+                    verification_result=None,
+                    review_request=None,
+                    review_decision=None,
+                    transition_result=None,
+                    target_status=None,
+                    reasons=(rejected_reason,),
+                    failure_classification=rejected_failure,
+                    error=rejected_reason,
+                ),
+                accepted_completion=False,
+                requires_review=False,
+                invalid_input=False,
+                failure_classification=rejected_failure,
+                reasons=(rejected_reason,),
+                error=rejected_reason,
+            )
+            failure_record = self.store.put_evaluation_record(
+                request=evaluation_request,
+                result=rejected_result,
+            )
+            return HTTPStatus.OK, {
+                "action": "transition_rejected",
+                "accepted_completion": False,
+                "requires_review": False,
+                "invalid_input": False,
+                "target_status": None,
+                "error": rejected_reason,
+                "reasons": [rejected_reason],
+                "invalid_execution_attempt": {
+                    "status": "rejected",
+                    "validation": deepcopy(validation),
+                    "retry_budget": retry_budget,
+                    "invalid_attempt_count": invalid_attempt_count,
+                    "initial_evaluation_record": _serialize_evaluation_record(evaluation_record),
+                    "failure_evaluation_record": _serialize_evaluation_record(failure_record),
+                },
+                "task_envelope": _to_jsonable(stored_task),
+                "evaluation_record": _serialize_evaluation_record(failure_record),
+            }
+
         self.store.update_task(failed_task)
         failure_record = self.store.put_evaluation_record(
             request=replace(request, task_envelope=failed_task),

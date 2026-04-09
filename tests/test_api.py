@@ -29,6 +29,7 @@ from modules.contracts.task_envelope_review import (
 from modules.demo_cases import build_demo_request
 from modules.intake import create_task_envelope
 from modules.store import FileBackedHarnessStore, PostgresHarnessStore
+from tests.e2e.scenario_builders import build_review_decision_from_request
 
 
 POSTGRES_TEST_DATABASE_URL = os.environ.get("HARNESS_TEST_DATABASE_URL")
@@ -2700,6 +2701,63 @@ class HarnessApiServiceTests(unittest.TestCase):
             "contract_violation",
         )
         self.assertEqual(read_payload["task"]["failure_summary"]["failure_type"], "contract_violation")
+
+    def test_service_completion_claim_invalid_execution_attempt_does_not_corrupt_canceled_task_truth(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "cancel_task",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        canceled_status, canceled_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="cancel_task",
+                    )
+                }
+            },
+        )
+        before_task = deepcopy(self.service.store.get_task(task_id))
+
+        invalid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-canceled-invalid-1")
+        invalid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-canceled-invalid-1:commit",
+                "artifact_type": "commit",
+                "location": "stub://attempts/attempt-canceled-invalid-1/commit",
+                "metadata": {
+                    "branch_name": "codex/e2e-test",
+                },
+            }
+        ]
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-canceled-invalid-1"),
+                    **invalid_attempt_payload,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        after_task = self.service.store.get_task(task_id)
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(canceled_status, 200)
+        self.assertEqual(canceled_response["task_envelope"]["status"], "canceled")
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "transition_rejected")
+        self.assertIn("canceled -> failed", claim_response["error"])
+        self.assertEqual(claim_response["task_envelope"]["status"], "canceled")
+        self.assertEqual(before_task, after_task)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "canceled")
 
     def test_service_completion_claim_ignores_support_artifact_context_for_execution_validation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
