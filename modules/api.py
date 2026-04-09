@@ -1609,6 +1609,23 @@ def _latest_advisory_completion_claim(task_envelope: dict[str, Any]) -> dict[str
     return next((claim for claim in reversed(claims) if isinstance(claim, dict)), None)
 
 
+def _advisory_completion_claim_by_id(task_envelope: dict[str, Any], claim_id: str | None) -> dict[str, Any] | None:
+    if not isinstance(claim_id, str) or not claim_id.strip():
+        return None
+    normalized_claim_id = claim_id.strip()
+    claims = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get(
+        "advisory_completion_claims"
+    ) or []
+    if not isinstance(claims, list):
+        return None
+    for claim in reversed(claims):
+        if not isinstance(claim, dict):
+            continue
+        if claim.get("claim_id") == normalized_claim_id:
+            return claim
+    return None
+
+
 def _latest_execution_attempt(task_envelope: dict[str, Any]) -> dict[str, Any] | None:
     attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     if not isinstance(attempts, list):
@@ -1655,6 +1672,32 @@ def _execution_attempt_for_completion_claim(
 
     matching_attempts = [attempt for attempt in reversed(dict_attempts) if attempt.get("completion_claim_id") == claim_id]
     return matching_attempts[0] if len(matching_attempts) == 1 else None
+
+
+def _is_replayed_completion_claim(
+    stored_task: dict[str, Any],
+    *,
+    completion_claim: dict[str, Any] | None,
+    execution_attempt: dict[str, Any] | None,
+) -> bool:
+    if completion_claim is None or execution_attempt is None:
+        return False
+
+    claim_id = completion_claim.get("claim_id")
+    if not isinstance(claim_id, str) or not claim_id.strip():
+        return False
+    attempt_id = execution_attempt.get("attempt_id")
+    if not isinstance(attempt_id, str) or not attempt_id.strip():
+        return False
+
+    existing_claim = _advisory_completion_claim_by_id(stored_task, claim_id)
+    if existing_claim is None:
+        return False
+
+    existing_attempt = _execution_attempt_for_completion_claim(stored_task, completion_claim=existing_claim)
+    if existing_attempt is None:
+        return False
+    return existing_attempt.get("attempt_id") == attempt_id
 
 
 def _is_successful_execution_attempt(attempt: dict[str, Any] | None) -> bool:
@@ -3368,6 +3411,22 @@ class HarnessApiService:
             return HTTPStatus.BAD_REQUEST, {
                 "error": str(error),
                 "invalid_input": True,
+            }
+
+        latest_claim = _latest_advisory_completion_claim(request.task_envelope)
+        replay_attempt = _latest_execution_attempt(request.task_envelope)
+        if _is_replayed_completion_claim(
+            stored_task,
+            completion_claim=latest_claim,
+            execution_attempt=replay_attempt,
+        ):
+            return HTTPStatus.OK, {
+                "task_envelope": _to_jsonable(stored_task),
+                "accepted_completion": stored_task.get("status") == "completed",
+                "requires_review": _review_gate_is_active(stored_task, existing_records),
+                "action": "completion_claim_replayed",
+                "replayed_claim_id": latest_claim.get("claim_id"),
+                "replayed_attempt_id": replay_attempt.get("attempt_id"),
             }
 
         attempt_valid, attempt_validation = _validate_execution_attempt(request, request_payload=request_payload)
