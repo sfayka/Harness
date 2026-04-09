@@ -63,7 +63,7 @@ If recovery succeeds, the task can proceed to canonical reevaluation. If recover
 
 Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
 
-Harness also does not auto-dispatch work just because it is merely `planned`. Normal automatic dispatch begins from `dispatch_ready`, after planning and clarification boundaries have actually been satisfied. Even then, explicit blocking dependencies must already satisfy their required milestone before dispatch is allowed to proceed.
+Harness also does not auto-dispatch work just because it is merely `planned`. Normal automatic dispatch begins from `dispatch_ready`, after planning and clarification boundaries have actually been satisfied. Even then, explicit blocking dependencies must already satisfy their required milestone before dispatch is allowed to proceed. When a reevaluation triggers automatic dispatch, the API response now reports the post-dispatch canonical task outcome rather than the intermediate `dispatch_ready` hop, so operators see the real result of the follow-up attempt immediately.
 
 Governed reconciliation (current scope):
 
