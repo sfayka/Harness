@@ -237,6 +237,16 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertFalse(
             payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
         )
+        self.assertEqual(
+            payload["task"]["verification_summary"]["failure_classification"]["failure_type"],
+            "manual_review_failed",
+        )
+        self.assertEqual(
+            payload["task"]["verification_summary"]["failure_classification"]["source"],
+            "manual_review",
+        )
+        self.assertTrue(payload["task"]["verification_summary"]["failure_classification"]["terminal"])
+        self.assertTrue(payload["task"]["verification_summary"]["is_terminal"])
 
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(

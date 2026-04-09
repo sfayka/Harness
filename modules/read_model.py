@@ -81,20 +81,25 @@ def _latest_verification_summary(
             reasons.append(resolution_reason)
         if not accepted_completion:
             acceptance_assessment["automatic_completion_safe"] = False
+        is_manual_failure = bool(
+            current_status == "failed"
+            and latest_decision.get("outcome") == "mark_failed"
+            and latest_decision.get("authorized_target_status") == "failed"
+        )
         resolved_summary.update(
             {
                 "accepted_completion": accepted_completion,
                 "acceptance_criteria_assessment": acceptance_assessment,
                 "failure_classification": {
-                    "category": "none",
-                    "failure_type": "none",
+                    "category": "manual_review_failed" if is_manual_failure else "none",
+                    "failure_type": "manual_review_failed" if is_manual_failure else "none",
                     "reason": resolution_reason,
                     "recoverable": False,
                     "retryable": False,
-                    "source": "none",
-                    "terminal": False,
+                    "source": "manual_review" if is_manual_failure else "none",
+                    "terminal": is_manual_failure,
                 },
-                "is_terminal": False,
+                "is_terminal": is_manual_failure,
                 "outcome": "review_resolved",
                 "reasons": reasons,
                 "requires_review": False,

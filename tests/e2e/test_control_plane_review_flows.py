@@ -138,3 +138,43 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
                 "automatic_completion_safe"
             ]
         )
+
+    def test_manual_review_mark_failed_projects_terminal_verification_failure(self) -> None:
+        payload = build_review_required_payload(
+            build_create_task_payload(
+                "e2e-control-review-mark-failed",
+                title="Manual review mark_failed should project a terminal verification failure",
+            )["request"]["task_envelope"]
+        )
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "keep_blocked",
+            "mark_failed",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="mark_failed",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.response["action"], "transition_applied")
+        self.assertEqual(resolved.task["status"], "failed")
+        self.assertEqual(resolved.read_model["task"]["current_status"], "failed")
+        self.assertEqual(resolved.read_model["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(
+            resolved.read_model["task"]["verification_summary"]["failure_classification"]["failure_type"],
+            "manual_review_failed",
+        )
+        self.assertEqual(
+            resolved.read_model["task"]["verification_summary"]["failure_classification"]["source"],
+            "manual_review",
+        )
+        self.assertTrue(resolved.read_model["task"]["verification_summary"]["failure_classification"]["terminal"])
+        self.assertTrue(resolved.read_model["task"]["verification_summary"]["is_terminal"])
