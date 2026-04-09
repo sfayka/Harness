@@ -38,6 +38,31 @@ def _latest_mapping(records: tuple[EvaluationRecord, ...], path: tuple[str, ...]
     return None
 
 
+def _latest_reconciliation_summary(
+    records: tuple[EvaluationRecord, ...],
+    *,
+    review_summary: dict[str, Any],
+) -> dict[str, Any] | None:
+    reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
+    if not isinstance(reconciliation_summary, dict):
+        return None
+    latest_request = review_summary.get("latest_request") if isinstance(review_summary, dict) else None
+    if (
+        reconciliation_summary.get("status") == "review_required"
+        and review_summary.get("status") == "resolved"
+        and isinstance(latest_request, dict)
+        and latest_request.get("trigger") == "reconciliation"
+    ):
+        resolved_summary = dict(reconciliation_summary)
+        resolved_summary["status"] = "resolved"
+        resolved_summary["outcome"] = "review_resolved"
+        resolved_summary["blocking"] = False
+        resolved_summary["terminal"] = False
+        resolved_summary["resolved_by"] = "manual_review"
+        return resolved_summary
+    return reconciliation_summary
+
+
 def _failure_state(
     *,
     failure_type: str | None,
@@ -667,9 +692,9 @@ class HarnessReadModelService:
             )
         )
         verification_summary = _latest_mapping(records, ("enforcement_result", "verification_result"))
-        reconciliation_summary = _latest_mapping(records, ("enforcement_result", "reconciliation_result"))
         clarification_summary = _build_clarification_summary(task)
         review_summary = _build_review_summary(records)
+        reconciliation_summary = _latest_reconciliation_summary(records, review_summary=review_summary)
         execution_summary = _build_execution_summary(task, records)
         failure_summary = _latest_failure_summary(records)
         timeline = _build_timeline(task, records)
