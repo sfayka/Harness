@@ -123,11 +123,12 @@ class ControlPlaneStateFlowTests(RuntimeApiTestCase):
             }
         )
 
-        self.assertEqual(resolved.response["target_status"], "dispatch_ready")
+        self.assertEqual(resolved.response["target_status"], "failed")
         self.assertTrue(resolved.response["automatic_dispatch"]["attempted"])
         self.assertEqual(resolved.response["automatic_dispatch"]["status"], 200)
         self.assertEqual(resolved.response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
         self.assertEqual(resolved.read_model["task"]["execution_summary"]["attempt_count"], 2)
+        self.assertEqual(resolved.task["status"], "failed")
         self.assertTrue(
             any(
                 event["event_type"] == "task_dispatched"

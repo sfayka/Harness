@@ -2841,6 +2841,24 @@ class HarnessApiService:
             "status": int(dispatch_status),
         }
         if dispatch_status == HTTPStatus.OK:
+            for response_key in (
+                "action",
+                "accepted_completion",
+                "requires_review",
+                "invalid_input",
+                "target_status",
+                "error",
+                "reasons",
+                "enforcement_result",
+                "review_request",
+                "reconciliation_attempt",
+                "contract_violation",
+                "invalid_execution_attempt",
+            ):
+                if response_key in dispatch_payload:
+                    response_payload[response_key] = deepcopy(dispatch_payload[response_key])
+                else:
+                    response_payload.pop(response_key, None)
             if isinstance(dispatch_payload.get("dispatch"), dict):
                 response_payload["automatic_dispatch"]["dispatch"] = deepcopy(dispatch_payload["dispatch"])
             if isinstance(dispatch_payload.get("task_envelope"), dict):

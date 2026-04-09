@@ -3928,16 +3928,107 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(initial_status, 200)
         self.assertEqual(resolution_status, 200)
-        self.assertEqual(resolution_response["target_status"], "dispatch_ready")
+        self.assertEqual(resolution_response["target_status"], "failed")
         self.assertTrue(resolution_response["automatic_dispatch"]["attempted"])
         self.assertEqual(resolution_response["automatic_dispatch"]["status"], 200)
         self.assertEqual(resolution_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "failed")
         self.assertEqual(timeline_status, 200)
         dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
         self.assertTrue(dispatch_events)
         self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "manual_review_authorize_redispatch")
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 2)
+
+    def test_service_reconciliation_authorize_redispatch_returns_post_dispatch_failure_truth(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-reconcile-redispatch-1",
+            "assignment_reason": "Seed active assignment for reconciliation redispatch coverage.",
+        }
+        service.store.update_task(stored_task)
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-no-pr-redispatch-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-valid-no-pr-redispatch-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-valid-no-pr-redispatch-1"),
+                    **valid_attempt_payload,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        review_request_payload = claim_response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        review_request = ReviewRequest(
+            review_request_id=review_request_payload["review_request_id"],
+            task_id=review_request_payload["task_id"],
+            requested_at=review_request_payload["requested_at"],
+            requested_by=review_request_payload["requested_by"],
+            trigger=ReviewTrigger(review_request_payload["trigger"]),
+            summary=review_request_payload["summary"],
+            presented_sections=tuple(review_request_payload["presented_sections"]),
+            allowed_outcomes=tuple(ReviewOutcome(item) for item in review_request_payload["allowed_outcomes"]),
+            prior_review_ids=tuple(review_request_payload.get("prior_review_ids", ())),
+            metadata=dict(review_request_payload.get("metadata", {})),
+        )
+        reevaluation_status, reevaluation_response = service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _to_jsonable(
+                        resolve_review_request(
+                            review_request,
+                            review_id="review-reconcile-redispatch-1",
+                            reviewer=ReviewerIdentity(
+                                reviewer_id="operator-1",
+                                reviewer_name="Casey Reviewer",
+                                authority_role="operator",
+                            ),
+                            outcome=ReviewOutcome.AUTHORIZE_REDISPATCH,
+                            reasoning="Manual review authorized redispatch for a new grounded execution attempt.",
+                        )
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["action"], "contract_violation_failed")
+        self.assertEqual(reevaluation_response["target_status"], "failed")
+        self.assertTrue(reevaluation_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "failed")
 
     def test_service_reevaluate_rejects_review_decision_with_mismatched_target_status(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
@@ -5440,10 +5531,101 @@ class HarnessHttpApiTests(unittest.TestCase):
 
         self.assertEqual(initial_status, 200)
         self.assertEqual(reevaluation_status, 200)
-        self.assertEqual(reevaluation_response["target_status"], "dispatch_ready")
+        self.assertEqual(reevaluation_response["target_status"], "failed")
         self.assertTrue(reevaluation_response["automatic_dispatch"]["attempted"])
         self.assertEqual(reevaluation_response["automatic_dispatch"]["status"], 200)
         self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "failed")
+
+    def test_api_reconciliation_authorize_redispatch_returns_post_dispatch_failure_truth(self) -> None:
+        self.server.RequestHandlerClass.service.reconciliation_registry = _registry_with_no_create_pull_request_gateway()
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = self._post_json(
+            "/tasks",
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}},
+        )
+        task_id = submit_response["task_envelope"]["id"]
+        stored_task = deepcopy(self.server.RequestHandlerClass.service.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-reconcile-redispatch-api-1",
+            "assignment_reason": "Seed active assignment for reconciliation redispatch coverage.",
+        }
+        self.server.RequestHandlerClass.service.store.update_task(stored_task)
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-valid-no-pr-redispatch-api-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-valid-no-pr-redispatch-api-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = self._post_json(
+            f"/tasks/{task_id}/completion-claims",
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-valid-no-pr-redispatch-api-1"),
+                    **valid_attempt_payload,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+
+        review_request_payload = claim_response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "review_decision": _to_jsonable(
+                        resolve_review_request(
+                            ReviewRequest(
+                                review_request_id=review_request_payload["review_request_id"],
+                                task_id=review_request_payload["task_id"],
+                                requested_at=review_request_payload["requested_at"],
+                                requested_by=review_request_payload["requested_by"],
+                                trigger=ReviewTrigger(review_request_payload["trigger"]),
+                                summary=review_request_payload["summary"],
+                                presented_sections=tuple(review_request_payload["presented_sections"]),
+                                allowed_outcomes=tuple(
+                                    ReviewOutcome(item) for item in review_request_payload["allowed_outcomes"]
+                                ),
+                                prior_review_ids=tuple(review_request_payload.get("prior_review_ids", ())),
+                                metadata=dict(review_request_payload.get("metadata", {})),
+                            ),
+                            review_id="review-reconcile-redispatch-api-1",
+                            reviewer=ReviewerIdentity(
+                                reviewer_id="operator-1",
+                                reviewer_name="Casey Reviewer",
+                                authority_role="operator",
+                            ),
+                            outcome=ReviewOutcome.AUTHORIZE_REDISPATCH,
+                            reasoning="Manual review authorized redispatch for a new grounded execution attempt.",
+                        )
+                    )
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["action"], "contract_violation_failed")
+        self.assertEqual(reevaluation_response["target_status"], "failed")
+        self.assertTrue(reevaluation_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "failed")
 
     def test_api_reevaluate_resumes_dispatch_ready_clarification_and_auto_dispatches(self) -> None:
         payload = _manual_ingress_payload(task_id="task-clarification-resume-dispatch-api-1")
