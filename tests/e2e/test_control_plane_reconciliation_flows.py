@@ -148,6 +148,10 @@ class ControlPlaneReconciliationFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.task["status"], "completed")
         self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
         self.assertEqual(resolved.read_model["task"]["review_summary"]["decision_count"], 1)
+        self.assertEqual(resolved.read_model["task"]["reconciliation_summary"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["reconciliation_summary"]["outcome"], "review_resolved")
+        self.assertFalse(resolved.read_model["task"]["reconciliation_summary"]["blocking"])
+        self.assertEqual(resolved.read_model["task"]["reconciliation_summary"]["resolved_by"], "manual_review")
         self.assertEqual(resolved.history["evaluations"][-1]["result"]["action"], "transition_applied")
 
     def test_self_certified_pr_and_commit_are_reconciled_sequentially_before_completion(self) -> None:

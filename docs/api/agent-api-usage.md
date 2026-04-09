@@ -105,6 +105,7 @@ It must not be used to inject runtime or terminal states such as `executing`, `r
 - Once review is active, automatic reevaluation, artifact sync, or external reconciliation must keep the task in `in_review` until an explicit manual decision resolves it.
 - Reconciliation-driven `in_review` states follow the same rule. If completion-claim reconciliation cannot safely finish automatically, the API persists a concrete `review_request` and exposes it through evaluation history, read-model, timeline, and task-list surfaces.
 - On those inspection surfaces, `review_required` remains a separate triage class. A task in `in_review` may report `failure_type=review_required`, but its projected state is `review_required`, not terminal `failed`.
+- If a reconciliation-driven review gate is later resolved by explicit manual review, the projected `reconciliation_summary` resolves too. Inspection surfaces should not continue to present that older reconciliation gate as still active after the task has completed.
 
 ## Reconciliation Classification Rule
 
