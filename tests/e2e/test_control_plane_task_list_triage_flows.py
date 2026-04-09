@@ -76,4 +76,8 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertEqual(after_entry["current_status"], "completed")
         self.assertEqual(after_entry["review_summary"]["status"], "resolved")
         self.assertEqual(after_entry["review_summary"]["decision_count"], 1)
+        self.assertEqual(after_entry["failure_summary"]["state"], "clear")
+        self.assertEqual(after_entry["failure_summary"]["failure_type"], "none")
+        self.assertEqual(after_entry["execution_summary"]["failure_state"], "clear")
+        self.assertFalse(after_entry["execution_summary"]["retry_eligible"])
         self.assertEqual(after_entry["evaluation_summary"]["latest_action"], "transition_applied")

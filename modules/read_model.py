@@ -62,10 +62,19 @@ def _latest_failure_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, 
         if not isinstance(failure, dict):
             continue
         failure_type = failure.get("failure_type") or failure.get("category")
-        if failure_type in (None, "none"):
-            continue
         terminal = bool(failure.get("terminal"))
         recoverable = bool(failure.get("recoverable") or failure.get("retryable"))
+        if failure_type in (None, "none"):
+            return {
+                "state": "clear",
+                "failure_type": "none",
+                "failure_source": failure.get("source") or "none",
+                "failure_reason": failure.get("reason"),
+                "terminal": False,
+                "recoverable": False,
+                "recorded_at": record.recorded_at,
+                "evaluation_id": record.evaluation_id,
+            }
         return {
             "state": _failure_state(
                 failure_type=str(failure_type),
