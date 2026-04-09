@@ -166,6 +166,38 @@ def build_linked_artifacts(
     ]
 
 
+def build_review_note_artifact(
+    artifact_id: str = "artifact-review-note-1",
+    *,
+    verification_status: str = "verified",
+) -> dict:
+    return {
+        "id": artifact_id,
+        "type": "review_note",
+        "title": "Manual evidence note",
+        "description": "Evidence was manually confirmed during reevaluation.",
+        "location": None,
+        "content_type": "text/plain",
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "harness",
+            "source_type": "manual_review",
+            "source_id": f"review/{artifact_id}",
+            "captured_by": "operator",
+        },
+        "verification_status": verification_status,
+        "repository": None,
+        "branch": None,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-03-24T17:10:00Z",
+        "metadata": {},
+    }
+
+
 def build_completion_evidence(
     *,
     policy: str = "required",
@@ -761,6 +793,7 @@ __all__ = [
     "build_mismatch_overlays",
     "build_openclaw_ingress_payload",
     "build_reevaluate_payload",
+    "build_review_note_artifact",
     "build_review_decision",
     "build_review_decision_from_request",
     "build_review_request",
