@@ -178,3 +178,41 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         )
         self.assertTrue(resolved.read_model["task"]["verification_summary"]["failure_classification"]["terminal"])
         self.assertTrue(resolved.read_model["task"]["verification_summary"]["is_terminal"])
+
+    def test_manual_review_authorize_retry_without_assignment_keeps_review_gate_active(self) -> None:
+        payload = build_review_required_payload(
+            build_create_task_payload(
+                "e2e-control-review-authorize-retry-rejected",
+                title="Manual review retry should stay active until a real assignment exists",
+            )["request"]["task_envelope"]
+        )
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="authorize_retry",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.response["action"], "transition_rejected")
+        self.assertTrue(resolved.response["requires_review"])
+        self.assertEqual(resolved.task["status"], "in_review")
+        self.assertEqual(resolved.read_model["task"]["current_status"], "in_review")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["request_count"], 1)
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["decision_count"], 1)
+        self.assertTrue(
+            any(event["event_type"] == "review_decision_rejected" for event in resolved.timeline["timeline"])
+        )
+        self.assertFalse(
+            any(event["event_type"] == "review_decided" for event in resolved.timeline["timeline"])
+        )
