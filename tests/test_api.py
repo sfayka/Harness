@@ -4027,6 +4027,118 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(accepted_response["action"], "transition_applied")
         self.assertEqual(accepted_response["task_envelope"]["status"], "completed")
 
+    def test_service_reevaluate_authorize_replan_clears_prior_completion_evidence(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_replan",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.AUTHORIZE_REPLAN,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.AUTHORIZE_REPLAN,
+                        ),
+                    )
+                }
+            },
+        )
+        evidence = resolution_response["task_envelope"]["artifacts"]["completion_evidence"]
+        follow_up_status, follow_up_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                    "runtime_facts": deepcopy(_request_payload("accepted_completion")["request"]["runtime_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "follow_up_authorized")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "planned")
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
+        self.assertEqual(follow_up_status, 200)
+        self.assertFalse(follow_up_response["accepted_completion"])
+        self.assertNotEqual(follow_up_response["task_envelope"]["status"], "completed")
+
+    def test_service_reevaluate_authorize_retry_with_assignment_clears_prior_completion_evidence(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(self.service.store.get_task(task_id))
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-retry-proof-reset-1",
+            "assignment_reason": "Seed active assignment for authorize_retry proof reset coverage.",
+        }
+        self.service.store.update_task(stored_task)
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.AUTHORIZE_RETRY,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.AUTHORIZE_RETRY,
+                        ),
+                    )
+                }
+            },
+        )
+        evidence = resolution_response["task_envelope"]["artifacts"]["completion_evidence"]
+        follow_up_status, follow_up_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                    "runtime_facts": deepcopy(_request_payload("accepted_completion")["request"]["runtime_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "follow_up_authorized")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "assigned")
+        self.assertEqual(
+            resolution_response["task_envelope"]["assigned_executor"]["executor_id"],
+            "executor-review-retry-proof-reset-1",
+        )
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
+        self.assertEqual(follow_up_status, 200)
+        self.assertFalse(follow_up_response["accepted_completion"])
+        self.assertNotEqual(follow_up_response["task_envelope"]["status"], "completed")
+
     def test_service_reconciliation_authorize_redispatch_returns_post_dispatch_failure_truth(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),

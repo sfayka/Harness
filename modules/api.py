@@ -1102,6 +1102,63 @@ def _prune_downgraded_validated_artifact_ids(task_envelope: dict[str, Any]) -> d
     return updated
 
 
+def _defer_completion_evidence(task_envelope: dict[str, Any]) -> dict[str, Any]:
+    completion_evidence = ((task_envelope.get("artifacts") or {}).get("completion_evidence") or {})
+    if not isinstance(completion_evidence, dict):
+        return task_envelope
+
+    validated_artifact_ids = completion_evidence.get("validated_artifact_ids")
+    has_validated_artifact_ids = isinstance(validated_artifact_ids, list) and any(
+        _normalized_string(item) for item in validated_artifact_ids
+    )
+    validation_method = _normalized_string(completion_evidence.get("validation_method"))
+    needs_reset = (
+        _normalized_string(completion_evidence.get("status")) == "satisfied"
+        or has_validated_artifact_ids
+        or _normalized_string(completion_evidence.get("validated_at")) is not None
+        or completion_evidence.get("validator") is not None
+        or (validation_method is not None and validation_method != "deferred")
+    )
+    if not needs_reset:
+        return task_envelope
+
+    updated = deepcopy(task_envelope)
+    updated_evidence = updated["artifacts"]["completion_evidence"]
+    updated_evidence["status"] = "deferred"
+    updated_evidence["validated_artifact_ids"] = []
+    updated_evidence["validated_at"] = None
+    updated_evidence["validator"] = None
+    updated_evidence["validation_method"] = "deferred"
+    return updated
+
+
+def _with_manual_review_completion_evidence_reset(
+    request: HarnessEvaluationRequest,
+    result: HarnessEvaluationResult,
+) -> HarnessEvaluationResult:
+    review_decision = request.review_decision
+    if review_decision is None or review_decision.record.outcome == ReviewOutcome.ACCEPT_COMPLETION:
+        return result
+    if result.action not in {EnforcementAction.FOLLOW_UP_AUTHORIZED, EnforcementAction.TRANSITION_APPLIED}:
+        return result
+    if result.requires_review:
+        return result
+
+    updated_task = _defer_completion_evidence(result.task_envelope)
+    if updated_task is result.task_envelope:
+        return result
+
+    enforcement_result = result.enforcement_result
+    if enforcement_result is not None:
+        enforcement_result = replace(enforcement_result, task_envelope=updated_task)
+
+    return replace(
+        result,
+        task_envelope=updated_task,
+        enforcement_result=enforcement_result,
+    )
+
+
 def _parse_completion_claim(payload: dict[str, Any]) -> dict[str, Any]:
     claim_payload = _require_mapping(payload.get("completion_claim"), field_name="completion_claim")
     claim_id = _require_non_empty_string(claim_payload.get("claim_id"), field_name="completion_claim.claim_id")
@@ -2743,6 +2800,7 @@ def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str,
             "invalid_input": True,
         }, None
 
+    result = _with_manual_review_completion_evidence_reset(request, result)
     status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
     return status, _to_jsonable(result), result
 

@@ -139,6 +139,52 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
             ]
         )
 
+    def test_manual_review_authorize_replan_clears_prior_completion_proof(self) -> None:
+        payload = build_review_required_payload(
+            build_create_task_payload(
+                "e2e-control-review-replan-proof-reset",
+                title="Manual review replan should clear stale completion proof",
+            )["request"]["task_envelope"]
+        )
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_replan",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="authorize_replan",
+                    )
+                }
+            }
+        )
+        evidence = resolved.task["artifacts"]["completion_evidence"]
+        happy_overlays = build_happy_path_overlays()
+        follow_up = scenario.reevaluate(
+            build_reevaluate_payload(
+                external_facts=happy_overlays["external_facts"],
+                runtime_facts=happy_overlays["runtime_facts"],
+                claimed_completion=True,
+                acceptance_criteria_satisfied=True,
+            )
+        )
+
+        self.assertEqual(resolved.response["action"], "follow_up_authorized")
+        self.assertEqual(resolved.task["status"], "planned")
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
+        self.assertEqual(resolved.read_model["task"]["evidence_summary"]["completion_evidence"]["status"], "deferred")
+        self.assertEqual(follow_up.status, 200)
+        self.assertFalse(follow_up.response["accepted_completion"])
+        self.assertNotEqual(follow_up.task["status"], "completed")
+
     def test_manual_review_mark_failed_projects_terminal_verification_failure(self) -> None:
         payload = build_review_required_payload(
             build_create_task_payload(
