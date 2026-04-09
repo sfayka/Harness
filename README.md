@@ -55,6 +55,8 @@ If a manual-review follow-up is attempted but lifecycle policy rejects it, Harne
 
 That rejected attempt also must not strand the task. Later manual review decisions still resolve the original persisted review request; a failed follow-up attempt does not consume the gate.
 
+If manual review resolves the gate without accepting completion, Harness also clears any previously satisfied completion evidence back to deferred. A replan, retry, blocked, failed, canceled, or clarification outcome must not leave stale validated proof behind that can auto-complete the task later without a new governed execution or explicit acceptance.
+
 When manual review explicitly authorizes redispatch, Harness now performs that redispatch automatically instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.
 
 Reevaluation also cannot pre-satisfy completion evidence as a side channel. If a reevaluation is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise preload final evidence state before a canonical completion decision.
