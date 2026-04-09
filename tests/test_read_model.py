@@ -172,6 +172,11 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["state"], "clear")
         self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "clear")
         self.assertFalse(payload["task"]["execution_summary"]["retry_eligible"])
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(payload["task"]["verification_summary"]["requires_review"])
+        self.assertTrue(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertEqual(payload["task"]["verification_summary"]["target_status"], "completed")
+        self.assertEqual(payload["task"]["verification_summary"]["reconciliation_status"], "resolved")
 
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(

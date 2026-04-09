@@ -91,6 +91,9 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.read_model["task"]["current_status"], "completed")
         self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
         self.assertEqual(resolved.read_model["task"]["review_summary"]["decision_count"], 1)
+        self.assertEqual(resolved.read_model["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(resolved.read_model["task"]["verification_summary"]["requires_review"])
+        self.assertTrue(resolved.read_model["task"]["verification_summary"]["accepted_completion"])
         self.assertEqual(
             resolved.read_model["task"]["review_summary"]["latest_decision"]["outcome"],
             "accept_completion",
