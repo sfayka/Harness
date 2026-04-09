@@ -107,4 +107,6 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertEqual(entry["review_summary"]["status"], "resolved")
         self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
         self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
         self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])

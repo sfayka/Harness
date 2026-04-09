@@ -51,6 +51,8 @@ That rule also applies to reconciliation-driven escalation. If `POST /tasks/<tas
 
 The same projection rule now applies to verification. Once explicit manual review resolves a pending review gate, the canonical read-model and task-list `verification_summary` no longer keep reporting the older `review_required` or `verification_deferred` state as if it were still current.
 
+That resolved verification projection also has to match the current task evidence. If manual review resolves the gate without accepting completion, inspection surfaces no longer keep projecting stale `claimed_completion=true` or `evidence_is_sufficient=true` from the old pre-review verification attempt.
+
 If a manual-review follow-up is attempted but lifecycle policy rejects it, Harness keeps the review gate active and records that attempt honestly. The timeline exposes that as `review_decision_rejected` instead of projecting the gate as resolved.
 
 That rejected attempt also must not strand the task. Later manual review decisions still resolve the original persisted review request; a failed follow-up attempt does not consume the gate.

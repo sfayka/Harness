@@ -59,6 +59,7 @@ def _latest_verification_base(records: tuple[EvaluationRecord, ...]) -> dict[str
 def _latest_verification_summary(
     records: tuple[EvaluationRecord, ...],
     *,
+    task_envelope: TaskEnvelope,
     review_summary: dict[str, Any],
     reconciliation_summary: dict[str, Any] | None,
     current_status: str,
@@ -73,6 +74,7 @@ def _latest_verification_summary(
         and latest_decision.get("authorized_target_status") == current_status
     ):
         resolved_summary = dict(verification_summary or {})
+        completion_evidence = dict(((task_envelope.get("artifacts") or {}).get("completion_evidence") or {}))
         acceptance_assessment = dict(resolved_summary.get("acceptance_criteria_assessment") or {})
         reasons = list(resolved_summary.get("reasons") or [])
         resolution_reason = str(latest_decision.get("reasoning") or "Manual review resolved the pending gate.")
@@ -92,6 +94,9 @@ def _latest_verification_summary(
             {
                 "accepted_completion": accepted_completion,
                 "acceptance_criteria_assessment": acceptance_assessment,
+                "claimed_completion": accepted_completion,
+                "evidence_is_sufficient": accepted_completion
+                or str(completion_evidence.get("status") or "") == "satisfied",
                 "failure_classification": {
                     "category": "manual_review_failed" if is_manual_failure else "none",
                     "failure_type": "manual_review_failed" if is_manual_failure else "none",
@@ -842,6 +847,7 @@ class HarnessReadModelService:
         reconciliation_summary = _latest_reconciliation_summary(records, review_summary=review_summary)
         verification_summary = _latest_verification_summary(
             records,
+            task_envelope=task,
             review_summary=review_summary,
             reconciliation_summary=reconciliation_summary,
             current_status=str(task.get("status") or ""),

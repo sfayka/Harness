@@ -207,6 +207,8 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
         self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
         self.assertFalse(
             payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
         )
