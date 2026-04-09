@@ -198,6 +198,68 @@ def build_review_note_artifact(
     }
 
 
+def build_progress_artifact(artifact_id: str = "artifact-progress-1") -> dict:
+    return {
+        "id": artifact_id,
+        "type": "progress_artifact",
+        "title": "Progress snapshot",
+        "description": "Progress carried across reevaluations.",
+        "location": None,
+        "content_type": "application/json",
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": f"progress/{artifact_id}",
+            "captured_by": "harness-api",
+        },
+        "verification_status": "informational",
+        "repository": None,
+        "branch": None,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-03-24T17:15:00Z",
+        "metadata": {
+            "completed_items": "2",
+            "remaining_items": "1",
+        },
+    }
+
+
+def build_handoff_artifact(artifact_id: str = "artifact-handoff-1") -> dict:
+    return {
+        "id": artifact_id,
+        "type": "handoff_artifact",
+        "title": "Session handoff",
+        "description": "Resume from external reconciliation on the next session.",
+        "location": None,
+        "content_type": "application/json",
+        "external_id": None,
+        "commit_sha": None,
+        "pull_request_number": None,
+        "review_state": None,
+        "provenance": {
+            "source_system": "codex",
+            "source_type": "executor_report",
+            "source_id": f"handoff/{artifact_id}",
+            "captured_by": "harness-api",
+        },
+        "verification_status": "informational",
+        "repository": None,
+        "branch": None,
+        "changed_files": [],
+        "external_refs": [],
+        "captured_at": "2026-03-24T17:20:00Z",
+        "metadata": {
+            "from_session_id": "session-1",
+            "resume_hint": "Continue verification after the next sync.",
+        },
+    }
+
+
 def build_completion_evidence(
     *,
     policy: str = "required",
@@ -783,6 +845,7 @@ __all__ = [
     "build_expected_code_context",
     "build_execution_attempt_payload",
     "build_github_facts",
+    "build_handoff_artifact",
     "build_happy_path_evaluate_payload",
     "build_happy_path_overlays",
     "build_linked_artifacts",
@@ -792,6 +855,7 @@ __all__ = [
     "build_mismatch_evaluate_payload",
     "build_mismatch_overlays",
     "build_openclaw_ingress_payload",
+    "build_progress_artifact",
     "build_reevaluate_payload",
     "build_review_note_artifact",
     "build_review_decision",
