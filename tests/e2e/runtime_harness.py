@@ -147,6 +147,9 @@ class RuntimeApiTestCase(unittest.TestCase):
             finally:
                 error.close()
 
+    def list_tasks(self) -> tuple[int, dict]:
+        return self.get_json("/tasks")
+
     def post_json(self, path: str, payload: dict) -> tuple[int, dict]:
         request = Request(
             self.base_url + path,
