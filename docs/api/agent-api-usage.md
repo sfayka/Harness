@@ -109,6 +109,7 @@ It must not be used to inject runtime or terminal states such as `executing`, `r
 - If a reconciliation-driven review gate is later resolved by explicit manual review, the projected `reconciliation_summary` resolves too. Inspection surfaces should not continue to present that older reconciliation gate as still active after the task has completed.
 - The same rule applies to `verification_summary`: once explicit manual review resolves the gate, inspection surfaces should project a resolved verification state rather than leaving the older `review_required` or `verification_deferred` result in place as if it were still active.
 - If a manual-review follow-up is attempted but lifecycle policy rejects the requested transition, the review gate stays active. Inspection surfaces should keep `review_summary.status="requested"` and expose the attempt as a rejected review decision instead of projecting the gate as resolved.
+- That rejected attempt does not consume the active request. A later valid `review_decision` must still be able to resolve the same persisted gate.
 
 ## Reconciliation Classification Rule
 

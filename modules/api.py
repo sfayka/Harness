@@ -1540,6 +1540,22 @@ def _collect_review_activity(records: tuple[EvaluationRecord, ...]) -> tuple[lis
     return requests, decisions
 
 
+def _effective_review_decisions(records: tuple[EvaluationRecord, ...]) -> list[dict[str, Any]]:
+    decisions: list[dict[str, Any]] = []
+    for record in records:
+        result_payload = record.result if isinstance(record.result, dict) else {}
+        enforcement_result = dict(result_payload.get("enforcement_result") or {})
+        action = str(enforcement_result.get("action") or result_payload.get("action") or "")
+        if action not in {"transition_applied", "follow_up_authorized"}:
+            continue
+        review_decision = enforcement_result.get("review_decision")
+        if isinstance(review_decision, dict):
+            review_record = review_decision.get("record")
+            if isinstance(review_record, dict):
+                decisions.append(review_record)
+    return decisions
+
+
 def _review_status_from_activity(
     *,
     requests: list[dict[str, Any]],
@@ -1560,12 +1576,14 @@ def _review_status_from_activity(
 def _review_gate_is_active(task_envelope: dict[str, Any], records: tuple[EvaluationRecord, ...]) -> bool:
     if task_envelope.get("status") == "in_review":
         return True
-    requests, decisions = _collect_review_activity(records)
+    requests, _ = _collect_review_activity(records)
+    decisions = _effective_review_decisions(records)
     return _review_status_from_activity(requests=requests, decisions=decisions) == "requested"
 
 
 def _active_review_request(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
-    requests, decisions = _collect_review_activity(records)
+    requests, _ = _collect_review_activity(records)
+    decisions = _effective_review_decisions(records)
     if not requests:
         return None
     if _review_status_from_activity(requests=requests, decisions=decisions) != "requested":
