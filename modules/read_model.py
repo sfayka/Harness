@@ -38,6 +38,23 @@ def _latest_mapping(records: tuple[EvaluationRecord, ...], path: tuple[str, ...]
     return None
 
 
+def _failure_state(
+    *,
+    failure_type: str | None,
+    terminal: bool,
+    recoverable: bool,
+) -> str:
+    if failure_type in (None, "none"):
+        return "clear"
+    if failure_type == "review_required":
+        return "review_required"
+    if terminal:
+        return "terminal"
+    if recoverable:
+        return "retryable"
+    return "failed"
+
+
 def _latest_failure_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any] | None:
     for record in reversed(records):
         payload = record.result if isinstance(record.result, dict) else {}
@@ -50,7 +67,11 @@ def _latest_failure_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, 
         terminal = bool(failure.get("terminal"))
         recoverable = bool(failure.get("recoverable") or failure.get("retryable"))
         return {
-            "state": "terminal" if terminal else "retryable" if recoverable else "failed",
+            "state": _failure_state(
+                failure_type=str(failure_type),
+                terminal=terminal,
+                recoverable=recoverable,
+            ),
             "failure_type": failure_type,
             "failure_source": failure.get("source") or "evaluation",
             "failure_reason": failure.get("reason"),
@@ -174,9 +195,11 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
             retry_count += 1
     if not isinstance(execution_attempts, list):
         failure_type = (latest_failure_summary or {}).get("failure_type")
-        failure_state = "clear"
-        if failure_type not in (None, "none"):
-            failure_state = "terminal" if bool((latest_failure_summary or {}).get("terminal")) else "retryable"
+        failure_state = _failure_state(
+            failure_type=str(failure_type) if failure_type is not None else None,
+            terminal=bool((latest_failure_summary or {}).get("terminal")),
+            recoverable=bool((latest_failure_summary or {}).get("recoverable")),
+        )
         return {
             "attempt_count": 0,
             "latest_attempt": None,
@@ -199,9 +222,15 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         if validation.get("failure_type") == "invalid_execution_attempt":
             invalid_attempt_count += 1
     retry_eligible = bool((latest_failure_summary or {}).get("recoverable"))
-    failure_state = "clear"
-    if latest_failure_summary and latest_failure_summary.get("failure_type") not in (None, "none"):
-        failure_state = "terminal" if bool(latest_failure_summary.get("terminal")) else "retryable"
+    failure_state = _failure_state(
+        failure_type=(
+            str(latest_failure_summary.get("failure_type"))
+            if latest_failure_summary and latest_failure_summary.get("failure_type") is not None
+            else None
+        ),
+        terminal=bool((latest_failure_summary or {}).get("terminal")),
+        recoverable=bool((latest_failure_summary or {}).get("recoverable")),
+    )
     return {
         "attempt_count": len([attempt for attempt in execution_attempts if isinstance(attempt, dict)]),
         "latest_attempt": dict(latest_attempt) if latest_attempt is not None else None,
