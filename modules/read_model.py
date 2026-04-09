@@ -71,15 +71,20 @@ def _latest_verification_summary(
         and latest_decision.get("authorized_target_status") == current_status
     ):
         resolved_summary = dict(verification_summary or {})
+        acceptance_assessment = dict(resolved_summary.get("acceptance_criteria_assessment") or {})
         reasons = list(resolved_summary.get("reasons") or [])
         resolution_reason = str(latest_decision.get("reasoning") or "Manual review resolved the pending gate.")
+        accepted_completion = bool(
+            latest_decision.get("outcome") == "accept_completion" and current_status == "completed"
+        )
         if resolution_reason not in reasons:
             reasons.append(resolution_reason)
+        if not accepted_completion:
+            acceptance_assessment["automatic_completion_safe"] = False
         resolved_summary.update(
             {
-                "accepted_completion": bool(
-                    latest_decision.get("outcome") == "accept_completion" and current_status == "completed"
-                ),
+                "accepted_completion": accepted_completion,
+                "acceptance_criteria_assessment": acceptance_assessment,
                 "failure_classification": {
                     "category": "none",
                     "failure_type": "none",
