@@ -551,11 +551,17 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
     order = {
         "task_created": 0,
         "artifact_captured": 1,
-        "review_requested": 2,
-        "review_decided": 3,
-        "evaluation_recorded": 4,
-        "failure_recorded": 5,
-        "status_transition": 6,
+        "clarification_updated": 2,
+        "clarification_required": 3,
+        "clarification_resolved": 3,
+        "review_requested": 4,
+        "review_decided": 5,
+        "task_dispatched": 6,
+        "execution_event_recorded": 7,
+        "execution_attempt_recorded": 8,
+        "evaluation_recorded": 9,
+        "failure_recorded": 10,
+        "status_transition": 11,
     }
     return sorted(
         events,

@@ -3530,6 +3530,16 @@ class HarnessApiService:
             }
             for event in adapter_output.events
         )
+        dispatch_recorded_at = (
+            str(event_payloads[0].get("occurred_at"))
+            if event_payloads and event_payloads[0].get("occurred_at") is not None
+            else _iso_now()
+        )
+        attempt_recorded_at = (
+            str(event_payloads[-1].get("occurred_at"))
+            if event_payloads and event_payloads[-1].get("occurred_at") is not None
+            else dispatch_recorded_at
+        )
         artifact_references = [
             {
                 "reference_id": str(item.reference_id),
@@ -3558,7 +3568,7 @@ class HarnessApiService:
                 if completion_claim_payload is not None
                 else f"{attempt_id}:claim"
             ),
-            "reported_at": _iso_now(),
+            "reported_at": attempt_recorded_at,
             "reported_by": executor,
             "reason": dispatch_reason or f"{dispatch_mode} dispatch execution attempt recorded",
             "metadata": {
@@ -3570,7 +3580,7 @@ class HarnessApiService:
         }
         execution_attempt = {
             "attempt_id": attempt_id,
-            "recorded_at": _iso_now(),
+            "recorded_at": attempt_recorded_at,
             "status": attempt_status,
             "reported_by": executor,
             "completion_claim_id": completion_claim["claim_id"],
@@ -3582,7 +3592,7 @@ class HarnessApiService:
                 "dispatch_reason": dispatch_reason,
                 "executor": executor,
                 "execution_parameters": dict(execution_parameters),
-                "dispatch_at": _iso_now(),
+                "dispatch_at": dispatch_recorded_at,
                 "execution_events": list(event_payloads),
             },
             "reevaluation": {},
