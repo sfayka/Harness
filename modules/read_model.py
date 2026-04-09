@@ -64,7 +64,9 @@ def _latest_verification_summary(
     current_status: str,
 ) -> dict[str, Any] | None:
     verification_summary = _latest_verification_base(records)
-    latest_decision = review_summary.get("latest_decision") if isinstance(review_summary, dict) else None
+    latest_decision = (
+        review_summary.get("latest_effective_decision") if isinstance(review_summary, dict) else None
+    )
     if (
         review_summary.get("status") == "resolved"
         and isinstance(latest_decision, dict)
@@ -163,7 +165,9 @@ def _latest_failure_summary(
     review_summary: dict[str, Any] | None = None,
     current_status: str = "",
 ) -> dict[str, Any] | None:
-    latest_decision = review_summary.get("latest_decision") if isinstance(review_summary, dict) else None
+    latest_decision = (
+        review_summary.get("latest_effective_decision") if isinstance(review_summary, dict) else None
+    )
     if (
         current_status == "failed"
         and isinstance(latest_decision, dict)
@@ -245,6 +249,20 @@ def _review_status(
     return "resolved"
 
 
+def _effective_review_decision_records(records: tuple[EvaluationRecord, ...]) -> list[dict[str, Any]]:
+    decisions: list[dict[str, Any]] = []
+    for record in records:
+        result_payload = record.result if isinstance(record.result, dict) else {}
+        enforcement_result = dict(result_payload.get("enforcement_result") or {})
+        action = str(enforcement_result.get("action") or result_payload.get("action") or "")
+        if action not in {"transition_applied", "follow_up_authorized"}:
+            continue
+        review_decision = enforcement_result.get("review_decision")
+        if isinstance(review_decision, dict) and isinstance(review_decision.get("record"), dict):
+            decisions.append(review_decision["record"])
+    return decisions
+
+
 def _build_evidence_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
     artifacts = dict(task_envelope.get("artifacts") or {})
     items = list(artifacts.get("items") or [])
@@ -302,10 +320,10 @@ def _build_clarification_summary(task_envelope: TaskEnvelope) -> dict[str, Any] 
 def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
     requests: list[dict[str, Any]] = []
     decisions: list[dict[str, Any]] = []
+    effective_decisions = _effective_review_decision_records(records)
 
     for record in records:
         result_payload = record.result if isinstance(record.result, dict) else {}
-        request_payload = record.request if isinstance(record.request, dict) else {}
         result_enforcement = dict(result_payload.get("enforcement_result") or {})
 
         review_request = result_enforcement.get("review_request")
@@ -319,11 +337,13 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
                 decisions.append(record_payload)
 
     return {
-        "status": _review_status(requests=requests, decisions=decisions),
+        "status": _review_status(requests=requests, decisions=effective_decisions),
         "request_count": len(requests),
         "decision_count": len(decisions),
+        "resolved_decision_count": len(effective_decisions),
         "latest_request": requests[-1] if requests else None,
         "latest_decision": decisions[-1] if decisions else None,
+        "latest_effective_decision": effective_decisions[-1] if effective_decisions else None,
         "requests": requests,
         "decisions": decisions,
     }
@@ -717,14 +737,22 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
         review_decision = enforcement_result.get("review_decision")
         if isinstance(review_decision, dict) and isinstance(review_decision.get("record"), dict):
             review_record = review_decision["record"]
+            decision_rejected = str(enforcement_result.get("action") or "") == "transition_rejected"
             events.append(
                 {
                     "event_id": f"{task_envelope['id']}:review-decision:{review_record.get('review_id')}",
-                    "event_type": "review_decided",
+                    "event_type": "review_decision_rejected" if decision_rejected else "review_decided",
                     "occurred_at": review_record.get("reviewed_at") or record.recorded_at,
-                    "summary": f"Manual review decided: {review_record.get('outcome')}",
+                    "summary": (
+                        f"Manual review decision rejected: {review_record.get('outcome')}"
+                        if decision_rejected
+                        else f"Manual review decided: {review_record.get('outcome')}"
+                    ),
                     "source": str((review_record.get("reviewer") or {}).get("reviewer_name") or "operator"),
-                    "details": review_record,
+                    "details": {
+                        **review_record,
+                        "rejection_reason": enforcement_result.get("error") if decision_rejected else None,
+                    },
                 }
             )
 
@@ -736,6 +764,7 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
         "clarification_resolved": 3,
         "review_requested": 4,
         "review_decided": 5,
+        "review_decision_rejected": 5,
         "task_dispatched": 6,
         "execution_event_recorded": 7,
         "execution_attempt_recorded": 8,

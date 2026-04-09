@@ -3329,9 +3329,11 @@ class HarnessApiService:
         record = None
         for attempt_request, attempt_result in attempts:
             record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
+        updated_records = self.store.list_evaluation_records(task_id)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        response_payload["requires_review"] = _review_gate_is_active(stored_task, updated_records)
 
         should_dispatch, reason = _dispatch_policy_decision(stored_task, store=self.store)
         if should_dispatch:
@@ -3452,9 +3454,11 @@ class HarnessApiService:
         record = None
         for attempt_request, attempt_result in attempts:
             record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
+        updated_records = self.store.list_evaluation_records(task_id)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        response_payload["requires_review"] = _review_gate_is_active(stored_task, updated_records)
         if (
             request.review_decision is not None
             and request.review_decision.follow_up_action == ReviewFollowUpAction.REDISPATCH
@@ -3543,9 +3547,11 @@ class HarnessApiService:
         record = None
         for attempt_request, attempt_result in attempts:
             record = self.store.put_evaluation_record(request=attempt_request, result=attempt_result)
+        updated_records = self.store.list_evaluation_records(task_id)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        response_payload["requires_review"] = _review_gate_is_active(stored_task, updated_records)
         if (
             request.review_decision is not None
             and request.review_decision.follow_up_action == ReviewFollowUpAction.REDISPATCH
@@ -3692,9 +3698,11 @@ class HarnessApiService:
                     evaluation_record=record,
                 )
             )
+        updated_records = self.store.list_evaluation_records(task_id)
         response_payload["task_envelope"] = _to_jsonable(stored_task)
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
+        response_payload["requires_review"] = _review_gate_is_active(stored_task, updated_records)
         return status, response_payload
 
     def dispatch_task(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:

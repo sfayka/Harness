@@ -3940,6 +3940,46 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 2)
 
+    def test_service_reevaluate_authorize_retry_without_assignment_keeps_review_gate_active(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.AUTHORIZE_RETRY,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.AUTHORIZE_RETRY,
+                        ),
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "transition_rejected")
+        self.assertTrue(resolution_response["requires_review"])
+        self.assertEqual(resolution_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(
+            any(event["event_type"] == "review_decision_rejected" for event in timeline_payload["timeline"])
+        )
+        self.assertFalse(any(event["event_type"] == "review_decided" for event in timeline_payload["timeline"]))
+
     def test_service_reconciliation_authorize_redispatch_returns_post_dispatch_failure_truth(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
@@ -5536,6 +5576,47 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_response["automatic_dispatch"]["status"], 200)
         self.assertEqual(reevaluation_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
         self.assertEqual(reevaluation_response["task_envelope"]["status"], "failed")
+
+    def test_api_authorize_retry_without_assignment_keeps_review_gate_active(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+
+        initial_status, initial_response = self._post_json("/evaluate", initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.AUTHORIZE_RETRY,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.AUTHORIZE_RETRY,
+                        ),
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self._get_json(f"/tasks/{task_id}/read-model")
+        timeline_status, timeline_payload = self._get_json(f"/tasks/{task_id}/timeline")
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(reevaluation_status, 200)
+        self.assertEqual(reevaluation_response["action"], "transition_rejected")
+        self.assertTrue(reevaluation_response["requires_review"])
+        self.assertEqual(reevaluation_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(
+            any(event["event_type"] == "review_decision_rejected" for event in timeline_payload["timeline"])
+        )
+        self.assertFalse(any(event["event_type"] == "review_decided" for event in timeline_payload["timeline"]))
 
     def test_api_reconciliation_authorize_redispatch_returns_post_dispatch_failure_truth(self) -> None:
         self.server.RequestHandlerClass.service.reconciliation_registry = _registry_with_no_create_pull_request_gateway()
