@@ -110,3 +110,77 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertFalse(entry["verification_summary"]["claimed_completion"])
         self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
         self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
+
+    def test_task_list_disables_automatic_completion_safe_after_manual_reject_completion(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "reject_completion",
+        ]
+        review = self.create_evaluate_scenario(payload)
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="reject_completion",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "blocked")
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["review_summary"]["latest_decision"]["outcome"], "reject_completion")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
+
+    def test_task_list_projects_manual_cancel_task_as_canceled_without_safe_completion(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["task_envelope"]["status"] = "assigned"
+        payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-task-list-cancel-1",
+            "assignment_reason": "Seed active assignment for cancel task-list coverage.",
+        }
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "cancel_task",
+        ]
+        review = self.create_evaluate_scenario(payload)
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="cancel_task",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "canceled")
+        self.assertIsNone(entry["assigned_executor"])
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["review_summary"]["latest_decision"]["outcome"], "cancel_task")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(entry["verification_summary"]["target_status"], "canceled")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
+        self.assertEqual(entry["failure_summary"]["state"], "clear")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "clear")

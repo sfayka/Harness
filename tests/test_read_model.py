@@ -220,6 +220,42 @@ class HarnessReadModelServiceTests(unittest.TestCase):
             payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
         )
 
+    def test_read_model_disables_automatic_completion_safe_after_manual_reject_completion(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "reject_completion",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        submit_payload["enforcement_result"]["review_request"],
+                        outcome="reject_completion",
+                    )
+                }
+            },
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "blocked")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["review_summary"]["latest_decision"]["outcome"], "reject_completion")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
+
     def test_read_model_disables_automatic_completion_safe_after_manual_mark_failed(self) -> None:
         initial_payload = _request_payload("review_required")
         initial_payload["request"]["review_request"]["allowed_outcomes"] = [
@@ -256,6 +292,43 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         )
         self.assertTrue(payload["task"]["verification_summary"]["failure_classification"]["terminal"])
         self.assertTrue(payload["task"]["verification_summary"]["is_terminal"])
+
+    def test_read_model_disables_automatic_completion_safe_after_manual_cancel_task(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "cancel_task",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        submit_payload["enforcement_result"]["review_request"],
+                        outcome="cancel_task",
+                    )
+                }
+            },
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "canceled")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["review_summary"]["latest_decision"]["outcome"], "cancel_task")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(payload["task"]["verification_summary"]["target_status"], "canceled")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
 
     def test_read_model_clears_pending_verification_projection_after_reconciliation_redispatch_failure(self) -> None:
         service = HarnessApiService(
