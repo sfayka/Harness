@@ -274,3 +274,85 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertEqual(entry["clarification_summary"]["requested_by"], "manual_review")
         self.assertEqual(entry["failure_summary"]["state"], "clear")
         self.assertEqual(entry["execution_summary"]["failure_state"], "clear")
+
+    def test_task_list_surfaces_manual_authorize_replan_as_resolved_review_without_assignment(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["task_envelope"]["status"] = "assigned"
+        payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-task-list-replan-1",
+            "assignment_reason": "Seed active assignment for task-list replan coverage.",
+        }
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_replan",
+        ]
+        review = self.create_evaluate_scenario(payload)
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="authorize_replan",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "planned")
+        self.assertIsNone(entry.get("assigned_executor"))
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["review_summary"]["latest_decision"]["outcome"], "authorize_replan")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(entry["verification_summary"]["target_status"], "planned")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertEqual(entry["failure_summary"]["state"], "clear")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "clear")
+
+    def test_task_list_surfaces_direct_manual_mark_failed_as_terminal_review_failure(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["task_envelope"]["status"] = "assigned"
+        payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-task-list-mark-failed-1",
+            "assignment_reason": "Seed active assignment for task-list manual failure coverage.",
+        }
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "mark_failed",
+        ]
+        review = self.create_evaluate_scenario(payload)
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="mark_failed",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "failed")
+        self.assertIsNone(entry.get("assigned_executor"))
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["review_summary"]["latest_decision"]["outcome"], "mark_failed")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(entry["verification_summary"]["target_status"], "failed")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertEqual(entry["failure_summary"]["state"], "terminal")
+        self.assertEqual(entry["failure_summary"]["failure_type"], "manual_review_failed")
+        self.assertTrue(entry["failure_summary"]["terminal"])
+        self.assertEqual(entry["execution_summary"]["failure_state"], "terminal")
