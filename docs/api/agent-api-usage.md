@@ -113,6 +113,7 @@ It must not be used to inject runtime or terminal states such as `executing`, `r
 - If a manual-review follow-up is attempted but lifecycle policy rejects the requested transition, the review gate stays active. Inspection surfaces should keep `review_summary.status="requested"` and expose the attempt as a rejected review decision instead of projecting the gate as resolved.
 - That rejected attempt does not consume the active request. A later valid `review_decision` must still be able to resolve the same persisted gate.
 - If manual review resolves the gate without accepting completion, Harness clears the task's satisfied completion evidence back to deferred. Follow-up outcomes such as `authorize_replan`, `authorize_retry`, `keep_blocked`, `mark_failed`, `require_clarification`, and `cancel_task` must not leave stale validated artifact proof behind.
+- `require_clarification` is not just a blocked lifecycle move. When manual review chooses that outcome, Harness also writes a canonical `task_envelope.clarification` block so the missing-information requirement is visible and resumable through the inspection surfaces.
 - More generally, `transition_rejected` on an existing task is an auditable rejected action, not a new lifecycle truth. Rejected reevaluation or completion-claim follow-up may append evaluation history and timeline entries, and may still persist new synchronized facts, but it must not replace the current lifecycle/verification/reconciliation/failure projection for an already-settled task.
 
 ## Reconciliation Classification Rule

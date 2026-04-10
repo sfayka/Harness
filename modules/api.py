@@ -604,39 +604,17 @@ def _clarification_resume_target(
     return "intake_ready"
 
 
-def _with_submission_clarification(
+def _upsert_clarification_block(
     task_envelope: dict[str, Any],
     *,
     unresolved_conditions: tuple[str, ...],
-    preferred_resume_target_status: str | None,
     requested_by: str,
+    requested_at: str,
+    resume_target_status: str | None,
 ) -> dict[str, Any]:
-    if not unresolved_conditions:
-        return task_envelope
-
     updated_task = deepcopy(task_envelope)
     blocking_reason = _infer_clarification_blocking_reason(unresolved_conditions)
-    requested_at = _iso_now()
-    resume_target_status = _clarification_resume_target(
-        updated_task,
-        preferred_status=preferred_resume_target_status,
-    )
-    current_status = str(updated_task.get("status") or "")
-    if current_status != "blocked":
-        transition = apply_task_transition(
-            updated_task,
-            to_status="blocked",
-            actor=_clarification_transition_actor(current_status),
-            reason=f"Clarification is required before work can continue: {unresolved_conditions[0]}",
-            facts={"reason_provided": True},
-        )
-        updated_task = transition.task_envelope
-        requested_at = transition.changed_at
-    else:
-        updated_task["timestamps"]["updated_at"] = requested_at
-
-    existing_clarification = updated_task.get("clarification")
-    clarification = dict(existing_clarification) if isinstance(existing_clarification, dict) else {}
+    clarification = dict(updated_task.get("clarification") or {}) if isinstance(updated_task.get("clarification"), dict) else {}
     existing_required_inputs = [
         deepcopy(item)
         for item in clarification.get("required_inputs", [])
@@ -687,6 +665,44 @@ def _with_submission_clarification(
     return updated_task
 
 
+def _with_submission_clarification(
+    task_envelope: dict[str, Any],
+    *,
+    unresolved_conditions: tuple[str, ...],
+    preferred_resume_target_status: str | None,
+    requested_by: str,
+) -> dict[str, Any]:
+    if not unresolved_conditions:
+        return task_envelope
+
+    updated_task = deepcopy(task_envelope)
+    requested_at = _iso_now()
+    resume_target_status = _clarification_resume_target(
+        updated_task,
+        preferred_status=preferred_resume_target_status,
+    )
+    current_status = str(updated_task.get("status") or "")
+    if current_status != "blocked":
+        transition = apply_task_transition(
+            updated_task,
+            to_status="blocked",
+            actor=_clarification_transition_actor(current_status),
+            reason=f"Clarification is required before work can continue: {unresolved_conditions[0]}",
+            facts={"reason_provided": True},
+        )
+        updated_task = transition.task_envelope
+        requested_at = transition.changed_at
+    else:
+        updated_task["timestamps"]["updated_at"] = requested_at
+    return _upsert_clarification_block(
+        updated_task,
+        unresolved_conditions=unresolved_conditions,
+        requested_by=requested_by,
+        requested_at=requested_at,
+        resume_target_status=resume_target_status,
+    )
+
+
 def _resolve_submission_clarification_if_cleared(
     task_envelope: dict[str, Any],
     *,
@@ -735,6 +751,24 @@ def _resolve_submission_clarification_if_cleared(
         resolved_task["clarification"] = updated_clarification
 
     return resolved_task
+
+
+def _manual_review_clarification_resume_target(task_envelope: dict[str, Any]) -> str | None:
+    history = task_envelope.get("status_history")
+    if isinstance(history, list):
+        for entry in reversed(history):
+            if not isinstance(entry, dict):
+                continue
+            if str(entry.get("to_status") or "") != "in_review":
+                continue
+            from_status = str(entry.get("from_status") or "")
+            if from_status in _CLARIFICATION_RESUME_TARGET_STATUSES:
+                return from_status
+
+    if isinstance(task_envelope.get("assigned_executor"), dict):
+        return "assigned"
+
+    return _clarification_resume_target(task_envelope, preferred_status=None)
 
 _EXISTING_TASK_EVALUATE_OVERLAY_FIELDS: tuple[tuple[str, str], ...] = (
     ("task_status", "request.task_status"),
@@ -1148,6 +1182,41 @@ def _with_manual_review_completion_evidence_reset(
     if updated_task is result.task_envelope:
         return result
 
+    enforcement_result = result.enforcement_result
+    if enforcement_result is not None:
+        enforcement_result = replace(enforcement_result, task_envelope=updated_task)
+
+    return replace(
+        result,
+        task_envelope=updated_task,
+        enforcement_result=enforcement_result,
+    )
+
+
+def _with_manual_review_clarification_follow_up(
+    request: HarnessEvaluationRequest,
+    result: HarnessEvaluationResult,
+) -> HarnessEvaluationResult:
+    review_decision = request.review_decision
+    if review_decision is None or review_decision.follow_up_action != ReviewFollowUpAction.CLARIFICATION:
+        return result
+    if result.action not in {EnforcementAction.FOLLOW_UP_AUTHORIZED, EnforcementAction.TRANSITION_APPLIED}:
+        return result
+    if result.requires_review:
+        return result
+
+    clarification_reason = str(review_decision.record.reasoning or "").strip()
+    if not clarification_reason:
+        clarification_reason = "Manual review requested clarification before work can continue."
+
+    requested_at = str(((result.task_envelope.get("timestamps") or {}).get("updated_at")) or _iso_now())
+    updated_task = _upsert_clarification_block(
+        result.task_envelope,
+        unresolved_conditions=(clarification_reason,),
+        requested_by="manual_review",
+        requested_at=requested_at,
+        resume_target_status=_manual_review_clarification_resume_target(request.task_envelope),
+    )
     enforcement_result = result.enforcement_result
     if enforcement_result is not None:
         enforcement_result = replace(enforcement_result, task_envelope=updated_task)
@@ -2801,6 +2870,7 @@ def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str,
         }, None
 
     result = _with_manual_review_completion_evidence_reset(request, result)
+    result = _with_manual_review_clarification_follow_up(request, result)
     status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
     return status, _to_jsonable(result), result
 

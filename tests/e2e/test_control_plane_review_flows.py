@@ -196,6 +196,43 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         self.assertFalse(follow_up.read_model["task"]["verification_summary"]["failure_classification"]["terminal"])
         self.assertFalse(follow_up.read_model["task"]["verification_summary"]["is_terminal"])
 
+    def test_manual_review_require_clarification_creates_visible_clarification_block(self) -> None:
+        payload = build_review_required_payload(
+            build_create_task_payload(
+                "e2e-control-review-require-clarification",
+                title="Manual review clarification should create an explicit clarification block",
+            )["request"]["task_envelope"]
+        )
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.response["action"], "follow_up_authorized")
+        self.assertEqual(resolved.task["status"], "blocked")
+        self.assertEqual(resolved.task["clarification"]["status"], "required")
+        self.assertEqual(resolved.task["clarification"]["resume_target_status"], "intake_ready")
+        self.assertEqual(resolved.task["clarification"]["requested_by"], "manual_review")
+        self.assertEqual(
+            resolved.task["clarification"]["required_inputs"][0]["description"],
+            "Manual review authorized the next control-plane action.",
+        )
+        self.assertEqual(resolved.read_model["task"]["clarification_summary"]["status"], "required")
+        self.assertEqual(resolved.read_model["task"]["clarification_summary"]["resume_target_status"], "intake_ready")
+        self.assertTrue(any(event["event_type"] == "clarification_required" for event in resolved.timeline["timeline"]))
+
     def test_manual_review_mark_failed_projects_terminal_verification_failure(self) -> None:
         payload = build_review_required_payload(
             build_create_task_payload(
