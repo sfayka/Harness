@@ -1118,6 +1118,67 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["execution_summary"]["total_attempts"], 2)
         self.assertEqual(read_payload["task"]["execution_summary"]["latest_attempt"]["attempt_id"], "attempt-2")
 
+    def test_read_model_uses_newest_recorded_execution_attempt_for_latest_summary(self) -> None:
+        submit_status, submit_payload = self.service.submit(
+            {
+                "request": {
+                    "task_envelope": create_task_envelope(
+                        {
+                            "id": "task-read-model-latest-attempt-by-recorded-at-1",
+                            "title": "Latest execution attempt follows recorded_at",
+                            "description": "Read-model execution summaries should follow canonical attempt chronology.",
+                            "origin": {
+                                "source_system": "manual",
+                                "source_type": "manual",
+                                "source_id": "task-read-model-latest-attempt-by-recorded-at-1",
+                            },
+                            "acceptance_criteria": [
+                                {
+                                    "id": "ac-1",
+                                    "description": "Execution summary picks the newest recorded attempt.",
+                                    "required": True,
+                                }
+                            ],
+                        },
+                        now="2026-04-10T00:00:00Z",
+                    )
+                }
+            }
+        )
+        task_id = submit_payload["task_envelope"]["id"]
+        task = deepcopy(self.store.get_task(task_id))
+        task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-newer",
+                "recorded_at": "2026-04-10T00:10:00Z",
+                "status": "completed",
+                "reported_by": "codex",
+                "completion_claim_id": None,
+                "artifact_references": [],
+                "metadata": {"dispatch_trigger": "manual_api", "dispatch_mode": "manual"},
+                "reevaluation": {},
+            },
+            {
+                "attempt_id": "attempt-older",
+                "recorded_at": "2026-04-10T00:05:00Z",
+                "status": "failed",
+                "reported_by": "codex",
+                "completion_claim_id": None,
+                "artifact_references": [],
+                "metadata": {"dispatch_trigger": "manual_api", "dispatch_mode": "manual"},
+                "reevaluation": {},
+            },
+        ]
+        self.store.update_task(task)
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 2)
+        self.assertEqual(read_payload["task"]["execution_summary"]["latest_attempt"]["attempt_id"], "attempt-newer")
+        self.assertEqual(read_payload["task"]["execution_summary"]["latest_status"], "completed")
+
     def test_read_model_exposes_clarification_summary_and_timeline_event(self) -> None:
         task_envelope = create_task_envelope(
             {

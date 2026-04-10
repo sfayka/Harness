@@ -474,6 +474,19 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
     }
 
 
+def _latest_execution_attempt(execution_attempts: list[dict[str, Any]]) -> dict[str, Any] | None:
+    valid_attempts = [attempt for attempt in execution_attempts if isinstance(attempt, dict)]
+    if not valid_attempts:
+        return None
+    return max(
+        valid_attempts,
+        key=lambda attempt: (
+            _parse_iso_timestamp(str(attempt.get("recorded_at") or "")),
+            str(attempt.get("attempt_id") or ""),
+        ),
+    )
+
+
 def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
     execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
     review_summary = _build_review_summary(records)
@@ -506,10 +519,7 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
             "retry_eligible": bool((latest_failure_summary or {}).get("recoverable")),
             "failure_state": failure_state,
         }
-    latest_attempt = next(
-        (attempt for attempt in reversed(execution_attempts) if isinstance(attempt, dict)),
-        None,
-    )
+    latest_attempt = _latest_execution_attempt(execution_attempts)
     attempt_count = len([attempt for attempt in execution_attempts if isinstance(attempt, dict)])
     for attempt in execution_attempts:
         if not isinstance(attempt, dict):

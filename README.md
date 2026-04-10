@@ -213,6 +213,8 @@ For triage surfaces, `review_required` stays distinct from terminal failure. If 
 
 Within `execution_summary`, `attempt_count` is the number of recorded canonical execution attempts. `total_attempts` may be higher when retry/evaluation history exists without a new execution-attempt record, but it must never undercount the recorded execution attempts already attached to the task.
 
+That same chronology rule applies to the projected latest-attempt fields. `execution_summary.latest_attempt`, `latest_status`, and related latest-attempt details follow the newest recorded execution attempt by `recorded_at`; they do not trust raw list append order when stored attempt arrays arrive out of sequence.
+
 ## Storage And Environment
 
 Required frontend environment variable:

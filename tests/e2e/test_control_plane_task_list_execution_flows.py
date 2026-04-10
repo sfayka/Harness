@@ -172,3 +172,47 @@ class ControlPlaneTaskListExecutionFlowTests(RuntimeApiTestCase):
         self.assertEqual(entry["execution_summary"]["attempt_count"], 2)
         self.assertEqual(entry["execution_summary"]["total_attempts"], 2)
         self.assertEqual(entry["execution_summary"]["latest_attempt"]["attempt_id"], "attempt-2")
+
+    def test_task_list_uses_newest_recorded_execution_attempt_for_latest_summary(self) -> None:
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-list-execution-latest-attempt-by-recorded-at",
+                title="Task list latest attempt follows recorded_at",
+            )
+        )
+
+        scenario.mutate_task(
+            lambda task: task["observability"]["execution_metadata"].__setitem__(
+                "execution_attempts",
+                [
+                    {
+                        "attempt_id": "attempt-newer",
+                        "recorded_at": "2026-04-10T12:10:00Z",
+                        "status": "completed",
+                        "reported_by": "codex",
+                        "completion_claim_id": None,
+                        "artifact_references": [],
+                        "metadata": {"dispatch_trigger": "manual_api", "dispatch_mode": "manual"},
+                        "reevaluation": {},
+                    },
+                    {
+                        "attempt_id": "attempt-older",
+                        "recorded_at": "2026-04-10T12:05:00Z",
+                        "status": "failed",
+                        "reported_by": "codex",
+                        "completion_claim_id": None,
+                        "artifact_references": [],
+                        "metadata": {"dispatch_trigger": "manual_api", "dispatch_mode": "manual"},
+                        "reevaluation": {},
+                    },
+                ],
+            )
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)["e2e-list-execution-latest-attempt-by-recorded-at"]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["execution_summary"]["attempt_count"], 2)
+        self.assertEqual(entry["execution_summary"]["latest_attempt"]["attempt_id"], "attempt-newer")
+        self.assertEqual(entry["execution_summary"]["latest_status"], "completed")
