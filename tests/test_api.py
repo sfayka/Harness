@@ -2759,6 +2759,44 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["current_status"], "canceled")
 
+    def test_service_reevaluate_cancel_task_clears_active_assignment(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-cancel-clear-1",
+            "assignment_reason": "Seed active assignment for review cancel coverage.",
+        }
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "cancel_task",
+        ]
+
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="cancel_task",
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "transition_applied")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "canceled")
+        self.assertIsNone(resolution_response["task_envelope"].get("assigned_executor"))
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "canceled")
+        self.assertIsNone(read_payload["task"].get("assigned_executor"))
+
     def test_service_completion_claim_ignores_support_artifact_context_for_execution_validation(self) -> None:
         payload = _manual_happy_path_overlay_payload()
         submit_payload = {
