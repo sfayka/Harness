@@ -4135,6 +4135,55 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertFalse(follow_up_response["accepted_completion"])
         self.assertNotEqual(follow_up_response["task_envelope"]["status"], "completed")
 
+    def test_service_reevaluate_require_clarification_creates_canonical_clarification_block(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(initial_response["task_envelope"]["status"], "in_review")
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "follow_up_authorized")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(resolution_response["task_envelope"]["clarification"]["status"], "required")
+        self.assertEqual(
+            resolution_response["task_envelope"]["clarification"]["resume_target_status"],
+            "intake_ready",
+        )
+        self.assertEqual(
+            resolution_response["task_envelope"]["clarification"]["requested_by"],
+            "manual_review",
+        )
+        self.assertEqual(
+            resolution_response["task_envelope"]["clarification"]["required_inputs"][0]["description"],
+            "Manual review authorized the next control-plane action.",
+        )
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["clarification_summary"]["status"], "required")
+        self.assertEqual(read_payload["task"]["clarification_summary"]["resume_target_status"], "intake_ready")
+        self.assertEqual(timeline_status, 200)
+        self.assertTrue(
+            any(event["event_type"] == "clarification_required" for event in timeline_payload["timeline"])
+        )
+
     def test_service_reevaluate_authorize_retry_with_assignment_clears_prior_completion_evidence(self) -> None:
         initial_payload = _request_payload("review_required")
         initial_payload["request"]["review_request"]["allowed_outcomes"] = [
