@@ -53,6 +53,8 @@ The same projection rule now applies to verification. Once explicit manual revie
 
 That resolved verification projection also has to match the current task evidence. If manual review resolves the gate without accepting completion, inspection surfaces no longer keep projecting stale `claimed_completion=true` or `evidence_is_sufficient=true` from the old pre-review verification attempt.
 
+That same rule applies when manual review resolves the gate by authorizing follow-up work. If `authorize_redispatch`, `authorize_retry`, or `authorize_replan` leads to a later non-review outcome, the canonical `verification_summary` must still stay resolved; inspection surfaces should not fall back to `verification_deferred` or `review_required` after the manual gate has already been cleared.
+
 If a manual-review follow-up is attempted but lifecycle policy rejects it, Harness keeps the review gate active and records that attempt honestly. The timeline exposes that as `review_decision_rejected` instead of projecting the gate as resolved.
 
 That rejected attempt also must not strand the task. Later manual review decisions still resolve the original persisted review request; a failed follow-up attempt does not consume the gate.

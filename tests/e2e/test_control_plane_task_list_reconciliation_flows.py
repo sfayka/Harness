@@ -201,6 +201,61 @@ class ControlPlaneTaskListReconciliationFlowTests(RuntimeApiTestCase):
         self.assertFalse(entry["reconciliation_summary"]["blocking"])
         self.assertEqual(entry["reconciliation_summary"]["resolved_by"], "manual_review")
 
+    def test_task_list_surfaces_reconciliation_redispatch_failure_as_resolved_not_pending(self) -> None:
+        self.set_reconciliation_registry(
+            _registry_with_gateway(
+                _FakeGitHubGateway(
+                    branch_exists=True,
+                    existing_branch_prs=(),
+                    existing_commit_prs=(),
+                    persisted_created_pr=None,
+                )
+            )
+        )
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-list-reconciliation-review-redispatch-failed",
+                title="Task list should not project resolved reconciliation redispatch failures as pending review",
+            )
+        )
+        self._mark_task_assigned(scenario.task_id, executor_id="executor-list-reconciliation-review-redispatch-1")
+
+        claimed = self._claim_with_standard_external_facts(
+            scenario,
+            claim_id="claim-list-reconciliation-review-redispatch-1",
+            attempt_id="attempt-list-reconciliation-review-redispatch-1",
+        )
+        review_request = claimed.response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="authorize_redispatch",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[scenario.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "failed")
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(entry["verification_summary"]["requires_review"])
+        self.assertEqual(entry["verification_summary"]["reconciliation_status"], "resolved")
+        self.assertEqual(
+            entry["verification_summary"]["failure_classification"]["failure_type"],
+            "contract_violation",
+        )
+        self.assertTrue(entry["verification_summary"]["is_terminal"])
+        self.assertEqual(entry["failure_summary"]["failure_type"], "contract_violation")
+        self.assertEqual(entry["failure_summary"]["state"], "terminal")
+        self.assertEqual(entry["reconciliation_summary"]["status"], "resolved")
+        self.assertEqual(entry["reconciliation_summary"]["outcome"], "review_resolved")
+
     def test_task_list_surfaces_manual_review_mark_failed_as_terminal_failure(self) -> None:
         self.set_reconciliation_registry(
             _registry_with_gateway(

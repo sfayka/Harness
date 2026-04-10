@@ -252,6 +252,15 @@ class ControlPlaneReconciliationFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-2")
         self.assertEqual(resolved.task["status"], "failed")
         self.assertEqual(resolved.read_model["task"]["current_status"], "failed")
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(resolved.read_model["task"]["verification_summary"]["requires_review"])
+        self.assertEqual(resolved.read_model["task"]["verification_summary"]["reconciliation_status"], "resolved")
+        self.assertEqual(
+            resolved.read_model["task"]["verification_summary"]["failure_classification"]["failure_type"],
+            "contract_violation",
+        )
+        self.assertTrue(resolved.read_model["task"]["verification_summary"]["is_terminal"])
         self.assertEqual(resolved.read_model["task"]["failure_summary"]["failure_type"], "contract_violation")
 
     def test_self_certified_pr_and_commit_are_reconciled_sequentially_before_completion(self) -> None:

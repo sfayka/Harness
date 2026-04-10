@@ -75,6 +75,21 @@ def _latest_verification_base(records: tuple[EvaluationRecord, ...]) -> dict[str
     return latest_verification
 
 
+def _latest_failure_classification(
+    records: tuple[EvaluationRecord, ...],
+    *,
+    include_transition_rejected: bool = False,
+) -> dict[str, Any] | None:
+    for record in reversed(records):
+        if not include_transition_rejected and _record_action(record) == "transition_rejected":
+            continue
+        result = record.result if isinstance(record.result, dict) else {}
+        failure = result.get("failure_classification")
+        if isinstance(failure, dict):
+            return failure
+    return None
+
+
 def _latest_verification_summary(
     records: tuple[EvaluationRecord, ...],
     *,
@@ -87,11 +102,7 @@ def _latest_verification_summary(
     latest_decision = (
         review_summary.get("latest_effective_decision") if isinstance(review_summary, dict) else None
     )
-    if (
-        review_summary.get("status") == "resolved"
-        and isinstance(latest_decision, dict)
-        and latest_decision.get("authorized_target_status") == current_status
-    ):
+    if review_summary.get("status") == "resolved" and isinstance(latest_decision, dict):
         resolved_summary = dict(verification_summary or {})
         completion_evidence = dict(((task_envelope.get("artifacts") or {}).get("completion_evidence") or {}))
         acceptance_assessment = dict(resolved_summary.get("acceptance_criteria_assessment") or {})
@@ -104,11 +115,29 @@ def _latest_verification_summary(
             reasons.append(resolution_reason)
         if not accepted_completion:
             acceptance_assessment["automatic_completion_safe"] = False
+        latest_failure = dict(_latest_failure_classification(records) or {})
         is_manual_failure = bool(
             current_status == "failed"
             and latest_decision.get("outcome") == "mark_failed"
             and latest_decision.get("authorized_target_status") == "failed"
         )
+        if latest_failure and (
+            latest_failure.get("failure_type") not in (None, "none")
+            or latest_failure.get("category") not in (None, "none")
+        ):
+            failure_classification = latest_failure
+            is_terminal = bool(latest_failure.get("terminal"))
+        else:
+            failure_classification = {
+                "category": "manual_review_failed" if is_manual_failure else "none",
+                "failure_type": "manual_review_failed" if is_manual_failure else "none",
+                "reason": resolution_reason,
+                "recoverable": False,
+                "retryable": False,
+                "source": "manual_review" if is_manual_failure else "none",
+                "terminal": is_manual_failure,
+            }
+            is_terminal = is_manual_failure
         resolved_summary.update(
             {
                 "accepted_completion": accepted_completion,
@@ -116,16 +145,8 @@ def _latest_verification_summary(
                 "claimed_completion": accepted_completion,
                 "evidence_is_sufficient": accepted_completion
                 or str(completion_evidence.get("status") or "") == "satisfied",
-                "failure_classification": {
-                    "category": "manual_review_failed" if is_manual_failure else "none",
-                    "failure_type": "manual_review_failed" if is_manual_failure else "none",
-                    "reason": resolution_reason,
-                    "recoverable": False,
-                    "retryable": False,
-                    "source": "manual_review" if is_manual_failure else "none",
-                    "terminal": is_manual_failure,
-                },
-                "is_terminal": is_manual_failure,
+                "failure_classification": failure_classification,
+                "is_terminal": is_terminal,
                 "outcome": "review_resolved",
                 "reasons": reasons,
                 "requires_review": False,

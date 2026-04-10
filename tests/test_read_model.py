@@ -25,6 +25,12 @@ from modules.contracts.task_envelope_review import (
     resolve_review_request,
 )
 from tests.e2e.scenario_builders import build_review_decision_from_request
+from tests.test_api import (
+    _completion_claim_payload,
+    _execution_attempt_payload,
+    _manual_happy_path_overlay_payload,
+    _registry_with_no_create_pull_request_gateway,
+)
 
 
 def _to_jsonable(value):
@@ -249,6 +255,81 @@ class HarnessReadModelServiceTests(unittest.TestCase):
             "manual_review",
         )
         self.assertTrue(payload["task"]["verification_summary"]["failure_classification"]["terminal"])
+        self.assertTrue(payload["task"]["verification_summary"]["is_terminal"])
+
+    def test_read_model_clears_pending_verification_projection_after_reconciliation_redispatch_failure(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-read-model-reconcile-redispatch-1",
+            "assignment_reason": "Seed active assignment for reconciliation redispatch projection coverage.",
+        }
+        service.store.update_task(stored_task)
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-read-model-reconcile-redispatch-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-read-model-reconcile-redispatch-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-read-model-reconcile-redispatch-1"),
+                    **valid_attempt_payload,
+                    "external_facts": deepcopy(payload["request"]["external_facts"]),
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        review_request = claim_response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        reevaluate_status, _ = service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="authorize_redispatch",
+                    )
+                }
+            },
+        )
+        status, payload = service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "failed")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertFalse(payload["task"]["verification_summary"]["requires_review"])
+        self.assertEqual(payload["task"]["verification_summary"]["reconciliation_status"], "resolved")
+        self.assertEqual(
+            payload["task"]["verification_summary"]["failure_classification"]["failure_type"],
+            "contract_violation",
+        )
         self.assertTrue(payload["task"]["verification_summary"]["is_terminal"])
 
     def test_read_model_ignores_rejected_follow_up_when_projecting_canceled_task_truth(self) -> None:
