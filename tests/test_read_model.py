@@ -24,7 +24,12 @@ from modules.contracts.task_envelope_review import (
     ReviewerIdentity,
     resolve_review_request,
 )
-from tests.e2e.scenario_builders import build_review_decision_from_request
+from tests.e2e.scenario_builders import (
+    build_create_task_payload,
+    build_expected_code_context,
+    build_github_facts,
+    build_review_decision_from_request,
+)
 from tests.test_api import (
     _completion_claim_payload,
     _execution_attempt_payload,
@@ -673,6 +678,99 @@ class HarnessReadModelServiceTests(unittest.TestCase):
             before_payload["task"]["verification_summary"],
         )
         self.assertEqual(after_payload["task"]["evaluation_summary"]["latest_action"], "transition_rejected")
+
+    def test_read_model_projects_reopened_reconciliation_review_gate_over_stale_prior_resolution(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        submit_status, submit_payload = service.submit(
+            build_create_task_payload(
+                "task-read-model-reopened-reconciliation-review-1",
+                title="Read-model reopened reconciliation review should override stale prior resolution",
+            )
+        )
+        task_id = submit_payload["task_envelope"]["id"]
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-read-model-reopened-reconciliation-review-1",
+            "assignment_reason": "Seed assigned state for reopened reconciliation review projection coverage.",
+        }
+        service.store.update_task(stored_task)
+
+        valid_attempt_payload = _execution_attempt_payload(
+            attempt_id="attempt-read-model-reopened-reconciliation-review-1"
+        )
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "artifact_id": "artifact-existing-pr-ref",
+                "type": "pull_request",
+                "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/401",
+                "verification_status": "deferred",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-read-model-reopened-reconciliation-review-1"),
+                    **valid_attempt_payload,
+                    "external_facts": {
+                        "expected_code_context": build_expected_code_context(),
+                        "github_facts": build_github_facts(),
+                    },
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                }
+            },
+        )
+        review_request = claim_response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["assigned_executor"] = None
+        service.store.update_task(stored_task)
+
+        reevaluate_status, reevaluate_payload = service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="authorize_redispatch",
+                    )
+                }
+            },
+        )
+        status, payload = service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(reevaluate_payload["action"], "reconciliation_failed")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "in_review")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(payload["task"]["review_summary"]["request_count"], 2)
+        self.assertEqual(payload["task"]["review_summary"]["decision_count"], 1)
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_required")
+        self.assertTrue(payload["task"]["verification_summary"]["requires_review"])
+        self.assertEqual(payload["task"]["verification_summary"]["reconciliation_status"], "review_required")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
+        self.assertEqual(payload["task"]["failure_summary"]["state"], "review_required")
+        self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "review_required")
+        self.assertEqual(payload["task"]["reconciliation_summary"]["status"], "review_required")
 
     def test_read_model_and_timeline_expose_clarification_state(self) -> None:
         task_envelope = create_task_envelope(

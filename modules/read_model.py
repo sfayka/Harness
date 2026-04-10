@@ -99,31 +99,59 @@ def _latest_verification_summary(
     current_status: str,
 ) -> dict[str, Any] | None:
     verification_summary = _latest_verification_base(records)
+    latest_request = review_summary.get("latest_request") if isinstance(review_summary, dict) else None
     latest_effective_decision = (
         review_summary.get("latest_effective_decision") if isinstance(review_summary, dict) else None
     )
     latest_decision = review_summary.get("latest_decision") if isinstance(review_summary, dict) else None
+    reopened_review_after_prior_resolution = (
+        review_summary.get("status") == "requested"
+        and isinstance(latest_request, dict)
+        and isinstance(latest_effective_decision, dict)
+        and _parse_iso_timestamp(latest_request.get("requested_at"))
+        > _parse_iso_timestamp(latest_effective_decision.get("reviewed_at"))
+    )
     if (
         review_summary.get("status") == "requested"
-        and isinstance(latest_decision, dict)
-        and not isinstance(latest_effective_decision, dict)
+        and (
+            (isinstance(latest_decision, dict) and not isinstance(latest_effective_decision, dict))
+            or reopened_review_after_prior_resolution
+        )
     ):
         pending_summary = dict(verification_summary or {})
         acceptance_assessment = dict(pending_summary.get("acceptance_criteria_assessment") or {})
         acceptance_assessment["automatic_completion_safe"] = False
         reasons = list(pending_summary.get("reasons") or [])
-        pending_reason = str(
-            latest_decision.get("reasoning")
-            or "Manual review follow-up was rejected; the active review gate still requires explicit resolution."
-        )
+        latest_failure = dict(_latest_failure_classification(records) or {})
+        if reopened_review_after_prior_resolution and isinstance(latest_request, dict):
+            pending_reason = str(
+                latest_request.get("summary")
+                or "A newer manual review gate is active and must be resolved explicitly."
+            )
+        else:
+            pending_reason = str(
+                latest_decision.get("reasoning")
+                or "Manual review follow-up was rejected; the active review gate still requires explicit resolution."
+            )
         if pending_reason not in reasons:
             reasons.append(pending_reason)
+        failure_classification = (
+            latest_failure
+            if latest_failure
+            and (
+                latest_failure.get("failure_type") not in (None, "none")
+                or latest_failure.get("category") not in (None, "none")
+            )
+            else dict(pending_summary.get("failure_classification") or {})
+        )
         pending_summary.update(
             {
                 "accepted_completion": False,
                 "acceptance_criteria_assessment": acceptance_assessment,
                 "claimed_completion": False,
                 "evidence_is_sufficient": False,
+                "failure_classification": failure_classification,
+                "is_terminal": bool(failure_classification.get("terminal")),
                 "outcome": "review_required",
                 "reasons": reasons,
                 "requires_review": True,
