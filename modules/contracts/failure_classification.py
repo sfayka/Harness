@@ -94,7 +94,7 @@ def classify_verification_outcome(
             failure_type=FailureType.RECONCILIATION_MISMATCH,
             source=FailureSource.EVALUATION,
             reason=reason,
-            terminal=True,
+            terminal=False,
             recoverable=False,
         )
 

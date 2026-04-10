@@ -58,7 +58,8 @@ class ControlPlaneRetryVisibilityFlowTests(RuntimeApiTestCase):
             "reconciliation_mismatch",
         )
         self.assertFalse(scenario.created.read_model["task"]["execution_summary"]["retry_eligible"])
-        self.assertEqual(scenario.created.read_model["task"]["execution_summary"]["failure_state"], "terminal")
+        self.assertEqual(scenario.created.read_model["task"]["execution_summary"]["failure_state"], "failed")
+        self.assertFalse(scenario.created.read_model["task"]["failure_summary"]["terminal"])
         self.assertEqual(len(scenario.created.history["evaluations"]), 1)
         self.assertNotIn("retry_scheduled", event_types)
         self.assertNotIn("retry_attempt_started", event_types)

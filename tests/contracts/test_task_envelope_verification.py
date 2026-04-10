@@ -274,6 +274,8 @@ class VerificationDecisionPrimitiveTests(unittest.TestCase):
         self.assertEqual(result.target_status, "blocked")
         self.assertFalse(result.is_terminal)
         self.assertEqual(result.failure_classification.category, FailureType.RECONCILIATION_MISMATCH)
+        self.assertFalse(result.failure_classification.terminal)
+        self.assertFalse(result.failure_classification.recoverable)
 
     def test_returns_review_required_when_manual_review_is_needed(self) -> None:
         result = _evaluate(
