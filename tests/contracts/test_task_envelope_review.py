@@ -202,6 +202,19 @@ class ManualReviewPrimitiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ReviewValidationError, "requested_at"):
             validate_review_request(review_request)
 
+    def test_rejects_review_decision_reviewed_before_request(self) -> None:
+        review_request = _base_review_request()
+
+        with self.assertRaisesRegex(ReviewValidationError, "reviewed_at must not be earlier than requested_at"):
+            resolve_review_request(
+                review_request,
+                review_id="review-before-request-1",
+                reviewer=_base_reviewer(),
+                outcome=ReviewOutcome.ACCEPT_COMPLETION,
+                reasoning="A backdated review decision should be rejected.",
+                reviewed_at="2026-03-24T15:59:59Z",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

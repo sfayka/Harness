@@ -162,6 +162,22 @@ def _require_not_too_far_in_future(value: datetime | str, *, field_name: str) ->
     return normalized
 
 
+def _require_not_earlier_than(
+    value: datetime | str,
+    *,
+    floor: datetime | str,
+    field_name: str,
+    floor_field_name: str,
+) -> str:
+    normalized = _iso_timestamp(value)
+    floor_normalized = _iso_timestamp(floor)
+    parsed = datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    floor_parsed = datetime.fromisoformat(floor_normalized.replace("Z", "+00:00"))
+    if parsed < floor_parsed:
+        raise ReviewValidationError(f"{field_name} must not be earlier than {floor_field_name}")
+    return normalized
+
+
 def _require_non_empty(value: str, *, field_name: str) -> None:
     if not value or not value.strip():
         raise ReviewValidationError(f"{field_name} is required")
@@ -223,6 +239,12 @@ def resolve_review_request(
 
     reviewed_at_iso = _iso_timestamp(reviewed_at)
     _require_not_too_far_in_future(reviewed_at_iso, field_name="reviewed_at")
+    _require_not_earlier_than(
+        reviewed_at_iso,
+        floor=review_request.requested_at,
+        field_name="reviewed_at",
+        floor_field_name="requested_at",
+    )
     target_status = _OUTCOME_TO_TARGET_STATUS[outcome]
     follow_up_action = _OUTCOME_TO_FOLLOW_UP[outcome]
     if target_status not in _ALLOWED_STATUSES:

@@ -4389,6 +4389,29 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(resolution_response["invalid_input"])
         self.assertIn("match the active review request exactly", resolution_response["error"])
 
+    def test_service_reevaluate_rejects_review_decision_backdated_before_request(self) -> None:
+        initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+        backdated = _review_decision_payload(task_id)
+        backdated["record"]["reviewed_at"] = "2026-03-24T19:59:59Z"
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": backdated,
+                }
+            },
+        )
+        task_status, task_payload = self.service.get_task(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 400)
+        self.assertTrue(resolution_response["invalid_input"])
+        self.assertIn("reviewed_at must not be earlier than requested_at", resolution_response["error"])
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "in_review")
+
     def test_health_reports_file_store_without_database_configuration(self) -> None:
         status, payload = self.service.health()
 
@@ -6067,6 +6090,25 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(reevaluation_status, 400)
         self.assertTrue(reevaluation_response["invalid_input"])
         self.assertIn("active review", reevaluation_response["error"])
+
+    def test_api_reevaluate_rejects_review_decision_backdated_before_request(self) -> None:
+        initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))
+        task_id = initial_response["task_envelope"]["id"]
+        backdated = _review_decision_payload(task_id)
+        backdated["record"]["reviewed_at"] = "2026-03-24T19:59:59Z"
+
+        reevaluation_status, reevaluation_response = self._post_json(
+            f"/tasks/{task_id}/reevaluate",
+            {"request": {"review_decision": backdated}},
+        )
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertIn("reviewed_at must not be earlier than requested_at", reevaluation_response["error"])
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["status"], "in_review")
 
     def test_api_cannot_reevaluate_in_review_task_to_completed_without_manual_decision(self) -> None:
         initial_status, initial_response = self._post_json("/evaluate", _request_payload("review_required"))

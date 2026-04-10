@@ -111,3 +111,16 @@ class ControlPlaneReviewAuthorityFlowTests(RuntimeApiTestCase):
         self.assertTrue(rejected.response["invalid_input"])
         self.assertIn("match the active review request exactly", rejected.response["error"])
         self._assert_review_gate_still_active(rejected)
+
+    def test_review_decision_backdated_before_request_is_rejected_and_gate_stays_active(self) -> None:
+        scenario = self._review_required_scenario("e2e-review-backdated-decision")
+        review_request = scenario.created.response["enforcement_result"]["review_request"]
+        tampered = build_review_decision_from_request(review_request, outcome="accept_completion")
+        tampered["record"]["reviewed_at"] = "2026-03-24T19:59:59Z"
+
+        rejected = scenario.reevaluate({"request": {"review_decision": tampered}})
+
+        self.assertEqual(rejected.status, 400)
+        self.assertTrue(rejected.response["invalid_input"])
+        self.assertIn("reviewed_at must not be earlier than requested_at", rejected.response["error"])
+        self._assert_review_gate_still_active(rejected)
