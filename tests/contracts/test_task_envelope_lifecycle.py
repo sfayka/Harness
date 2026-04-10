@@ -225,6 +225,26 @@ class TaskEnvelopeLifecycleTests(unittest.TestCase):
                 self.assertEqual(result.task_envelope["status_history"][-1]["from_status"], status)
                 self.assertEqual(result.task_envelope["status_history"][-1]["to_status"], "completed")
 
+    def test_terminal_transition_clears_active_assignment(self) -> None:
+        task = _base_task()
+        task["status"] = "assigned"
+        task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-terminal-clear-1",
+            "assignment_reason": "Active assignment should not survive terminal transitions.",
+        }
+
+        result = apply_task_transition(
+            task,
+            to_status="canceled",
+            actor="manual_review",
+            reason="Manual review canceled the task.",
+            now="2026-03-25T12:19:00Z",
+        )
+
+        self.assertEqual(result.task_envelope["status"], "canceled")
+        self.assertIsNone(result.task_envelope.get("assigned_executor"))
+
     def test_executing_can_transition_to_reconciling(self) -> None:
         task = _base_task()
         task["status"] = "executing"

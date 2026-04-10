@@ -56,6 +56,7 @@ _STATUSES = {
     "failed",
     "canceled",
 }
+_TERMINAL_STATUSES = {"completed", "failed", "canceled"}
 
 _ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     "intake_ready": {"planned", "reconciling", "blocked", "in_review", "completed", "failed"},
@@ -327,6 +328,9 @@ def apply_task_transition(
     updated = deepcopy(task_envelope)
     updated["status"] = to_status
     updated["timestamps"]["updated_at"] = changed_at
+
+    if to_status in _TERMINAL_STATUSES:
+        updated["assigned_executor"] = None
 
     if to_status == "completed":
         updated["timestamps"]["completed_at"] = changed_at

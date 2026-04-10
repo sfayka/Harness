@@ -273,6 +273,42 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         self.assertTrue(resolved.read_model["task"]["verification_summary"]["failure_classification"]["terminal"])
         self.assertTrue(resolved.read_model["task"]["verification_summary"]["is_terminal"])
 
+    def test_manual_review_cancel_task_clears_active_assignment_across_surfaces(self) -> None:
+        task_envelope = build_create_task_payload(
+            "e2e-control-review-cancel-clears-assignment",
+            title="Manual review cancel should clear stale active assignment",
+        )["request"]["task_envelope"]
+        task_envelope["status"] = "assigned"
+        task_envelope["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-review-cancel-clear-1",
+            "assignment_reason": "Seed active assignment for cancel review coverage.",
+        }
+        payload = build_review_required_payload(task_envelope)
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "cancel_task",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="cancel_task",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.response["action"], "transition_applied")
+        self.assertEqual(resolved.task["status"], "canceled")
+        self.assertIsNone(resolved.task.get("assigned_executor"))
+        self.assertEqual(resolved.read_model["task"]["current_status"], "canceled")
+        self.assertIsNone(resolved.read_model["task"].get("assigned_executor"))
+        self.assertTrue(any(event["event_type"] == "review_decided" for event in resolved.timeline["timeline"]))
+
     def test_manual_review_authorize_retry_without_assignment_keeps_review_gate_active(self) -> None:
         payload = build_review_required_payload(
             build_create_task_payload(
