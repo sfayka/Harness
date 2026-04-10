@@ -185,6 +185,43 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertEqual(entry["failure_summary"]["state"], "clear")
         self.assertEqual(entry["execution_summary"]["failure_state"], "clear")
 
+    def test_task_list_keeps_review_gate_active_without_projecting_stale_completion_safety_after_rejected_retry(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        review = self.create_evaluate_scenario(payload)
+
+        rejected = review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="authorize_retry",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(rejected.response["action"], "transition_rejected")
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "in_review")
+        self.assertEqual(entry["review_summary"]["status"], "requested")
+        self.assertEqual(entry["review_summary"]["decision_count"], 1)
+        self.assertIsNone(entry["review_summary"]["latest_effective_decision"])
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_required")
+        self.assertTrue(entry["verification_summary"]["requires_review"])
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
+        self.assertEqual(entry["failure_summary"]["state"], "review_required")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "review_required")
+
     def test_task_list_surfaces_manual_authorize_retry_as_resolved_review_with_active_assignment(self) -> None:
         payload = {"request": to_jsonable(build_demo_request("review_required"))}
         payload["request"]["review_request"]["allowed_outcomes"] = [

@@ -99,9 +99,41 @@ def _latest_verification_summary(
     current_status: str,
 ) -> dict[str, Any] | None:
     verification_summary = _latest_verification_base(records)
-    latest_decision = (
+    latest_effective_decision = (
         review_summary.get("latest_effective_decision") if isinstance(review_summary, dict) else None
     )
+    latest_decision = review_summary.get("latest_decision") if isinstance(review_summary, dict) else None
+    if (
+        review_summary.get("status") == "requested"
+        and isinstance(latest_decision, dict)
+        and not isinstance(latest_effective_decision, dict)
+    ):
+        pending_summary = dict(verification_summary or {})
+        acceptance_assessment = dict(pending_summary.get("acceptance_criteria_assessment") or {})
+        acceptance_assessment["automatic_completion_safe"] = False
+        reasons = list(pending_summary.get("reasons") or [])
+        pending_reason = str(
+            latest_decision.get("reasoning")
+            or "Manual review follow-up was rejected; the active review gate still requires explicit resolution."
+        )
+        if pending_reason not in reasons:
+            reasons.append(pending_reason)
+        pending_summary.update(
+            {
+                "accepted_completion": False,
+                "acceptance_criteria_assessment": acceptance_assessment,
+                "claimed_completion": False,
+                "evidence_is_sufficient": False,
+                "outcome": "review_required",
+                "reasons": reasons,
+                "requires_review": True,
+                "target_status": current_status,
+                "verification_passed": False,
+            }
+        )
+        if isinstance(reconciliation_summary, dict):
+            pending_summary["reconciliation_status"] = reconciliation_summary.get("status")
+        return pending_summary
     if review_summary.get("status") == "resolved" and isinstance(latest_decision, dict):
         resolved_summary = dict(verification_summary or {})
         completion_evidence = dict(((task_envelope.get("artifacts") or {}).get("completion_evidence") or {}))

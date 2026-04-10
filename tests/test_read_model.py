@@ -378,6 +378,47 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["state"], "clear")
         self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "clear")
 
+    def test_read_model_keeps_review_gate_active_without_projecting_stale_completion_safety_after_rejected_retry(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, reevaluate_payload = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        submit_payload["enforcement_result"]["review_request"],
+                        outcome="authorize_retry",
+                    )
+                }
+            },
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(reevaluate_payload["action"], "transition_rejected")
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "in_review")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(payload["task"]["review_summary"]["decision_count"], 1)
+        self.assertIsNone(payload["task"]["review_summary"]["latest_effective_decision"])
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_required")
+        self.assertTrue(payload["task"]["verification_summary"]["requires_review"])
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
+        self.assertEqual(payload["task"]["failure_summary"]["state"], "review_required")
+        self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "review_required")
+
     def test_read_model_surfaces_manual_clarification_as_resolved_review_plus_active_blocker(self) -> None:
         initial_payload = _request_payload("review_required")
         initial_payload["request"]["task_envelope"]["status"] = "assigned"
