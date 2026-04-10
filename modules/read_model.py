@@ -428,6 +428,20 @@ def _build_clarification_summary(task_envelope: TaskEnvelope) -> dict[str, Any] 
     }
 
 
+def _project_assigned_executor(
+    task_envelope: TaskEnvelope,
+    *,
+    current_status: str,
+    review_summary: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    assigned_executor = task_envelope.get("assigned_executor")
+    if not isinstance(assigned_executor, dict):
+        return None
+    if current_status == "in_review" and (review_summary or {}).get("status") == "requested":
+        return None
+    return dict(assigned_executor)
+
+
 def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
     requests: list[dict[str, Any]] = []
     decisions: list[dict[str, Any]] = []
@@ -979,7 +993,11 @@ class HarnessReadModelService:
                 "child_task_ids": list(task.get("child_task_ids") or []),
                 "dependencies": list(task.get("dependencies") or []),
             },
-            assigned_executor=dict(task.get("assigned_executor") or {}) if task.get("assigned_executor") is not None else None,
+            assigned_executor=_project_assigned_executor(
+                task,
+                current_status=str(task.get("status") or ""),
+                review_summary=review_summary,
+            ),
             clarification_summary=clarification_summary,
             evidence_summary=_build_evidence_summary(task),
             coordination_summary={

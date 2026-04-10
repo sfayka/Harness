@@ -85,6 +85,26 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertFalse(after_entry["execution_summary"]["retry_eligible"])
         self.assertEqual(after_entry["evaluation_summary"]["latest_action"], "transition_applied")
 
+    def test_task_list_hides_stale_active_assignment_when_task_enters_in_review(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["task_envelope"]["status"] = "assigned"
+        payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-task-list-in-review-1",
+            "assignment_reason": "Seed active assignment before review gate list projection coverage.",
+        }
+        review = self.create_evaluate_scenario(payload)
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "in_review")
+        self.assertEqual(entry["review_summary"]["status"], "requested")
+        self.assertIsNone(entry.get("assigned_executor"))
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_required")
+        self.assertTrue(entry["verification_summary"]["requires_review"])
+
     def test_task_list_disables_automatic_completion_safe_after_manual_keep_blocked(self) -> None:
         review = self.create_evaluate_scenario({"request": to_jsonable(build_demo_request("review_required"))})
 

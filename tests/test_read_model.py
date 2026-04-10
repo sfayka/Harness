@@ -470,6 +470,27 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["state"], "clear")
         self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "clear")
 
+    def test_read_model_hides_stale_active_assignment_when_task_enters_in_review(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-read-model-in-review-1",
+            "assignment_reason": "Seed active assignment before review gate projection coverage.",
+        }
+
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "in_review")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "requested")
+        self.assertIsNone(payload["task"].get("assigned_executor"))
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_required")
+        self.assertTrue(payload["task"]["verification_summary"]["requires_review"])
+
     def test_read_model_surfaces_manual_authorize_replan_as_resolved_review_without_assignment(self) -> None:
         initial_payload = _request_payload("review_required")
         initial_payload["request"]["task_envelope"]["status"] = "assigned"
