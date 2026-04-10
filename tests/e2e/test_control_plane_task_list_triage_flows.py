@@ -184,3 +184,93 @@ class ControlPlaneTaskListTriageFlowTests(RuntimeApiTestCase):
         self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
         self.assertEqual(entry["failure_summary"]["state"], "clear")
         self.assertEqual(entry["execution_summary"]["failure_state"], "clear")
+
+    def test_task_list_surfaces_manual_authorize_retry_as_resolved_review_with_active_assignment(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        review = self.create_evaluate_scenario(payload)
+        review.mutate_task(
+            lambda task: task.__setitem__(
+                "assigned_executor",
+                {
+                    "executor_type": "codex",
+                    "executor_id": "executor-e2e-task-list-retry-1",
+                    "assignment_reason": "Seed active assignment for task-list retry coverage.",
+                },
+            )
+        )
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="authorize_retry",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "assigned")
+        self.assertEqual(entry["assigned_executor"]["executor_id"], "executor-e2e-task-list-retry-1")
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["review_summary"]["latest_decision"]["outcome"], "authorize_retry")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(entry["verification_summary"]["target_status"], "assigned")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
+        self.assertEqual(entry["failure_summary"]["state"], "clear")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "clear")
+
+    def test_task_list_surfaces_manual_clarification_as_resolved_review_plus_active_blocker(self) -> None:
+        payload = {"request": to_jsonable(build_demo_request("review_required"))}
+        payload["request"]["task_envelope"]["status"] = "assigned"
+        payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-task-list-review-clarification-1",
+            "assignment_reason": "Resume assigned work after manual review clarification.",
+        }
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        review = self.create_evaluate_scenario(payload)
+
+        review.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review.created.response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[review.task_id]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "blocked")
+        self.assertEqual(entry["assigned_executor"]["executor_id"], "executor-e2e-task-list-review-clarification-1")
+        self.assertEqual(entry["review_summary"]["status"], "resolved")
+        self.assertEqual(entry["review_summary"]["latest_decision"]["outcome"], "require_clarification")
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(entry["verification_summary"]["target_status"], "blocked")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertEqual(entry["clarification_summary"]["status"], "required")
+        self.assertEqual(entry["clarification_summary"]["resume_target_status"], "assigned")
+        self.assertEqual(entry["clarification_summary"]["requested_by"], "manual_review")
+        self.assertEqual(entry["failure_summary"]["state"], "clear")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "clear")
