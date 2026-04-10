@@ -1200,6 +1200,8 @@ def _with_manual_review_assignment_reset(
     review_decision = request.review_decision
     if review_decision is None:
         return result
+    if review_decision.follow_up_action == ReviewFollowUpAction.CLARIFICATION:
+        return result
     if result.action not in {EnforcementAction.FOLLOW_UP_AUTHORIZED, EnforcementAction.TRANSITION_APPLIED}:
         return result
     if result.requires_review:
