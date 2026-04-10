@@ -237,6 +237,53 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.read_model["task"]["clarification_summary"]["resume_target_status"], "intake_ready")
         self.assertTrue(any(event["event_type"] == "clarification_required" for event in resolved.timeline["timeline"]))
 
+    def test_manual_review_clarification_from_assigned_resumes_original_assignment(self) -> None:
+        task_envelope = build_create_task_payload(
+            "e2e-control-review-clarification-assigned-resume",
+            title="Manual review clarification should resume assigned work truthfully",
+        )["request"]["task_envelope"]
+        task_envelope["status"] = "assigned"
+        task_envelope["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-e2e-review-clarification-resume-1",
+            "assignment_reason": "Resume assigned work after manual review clarification.",
+        }
+        payload = build_review_required_payload(task_envelope)
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        blocked = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            }
+        )
+        resolved = scenario.reevaluate(
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}}
+        )
+
+        self.assertEqual(blocked.task["status"], "blocked")
+        self.assertEqual(blocked.task["clarification"]["resume_target_status"], "assigned")
+        self.assertEqual(resolved.task["status"], "assigned")
+        self.assertEqual(
+            resolved.task["assigned_executor"]["executor_id"],
+            "executor-e2e-review-clarification-resume-1",
+        )
+        self.assertEqual(resolved.task["clarification"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["current_status"], "assigned")
+        self.assertEqual(
+            resolved.read_model["task"]["assigned_executor"]["executor_id"],
+            "executor-e2e-review-clarification-resume-1",
+        )
+        self.assertTrue(any(event["event_type"] == "clarification_resolved" for event in resolved.timeline["timeline"]))
+
     def test_manual_review_mark_failed_projects_terminal_verification_failure(self) -> None:
         payload = build_review_required_payload(
             build_create_task_payload(

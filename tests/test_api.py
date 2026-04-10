@@ -4222,6 +4222,56 @@ class HarnessApiServiceTests(unittest.TestCase):
             any(event["event_type"] == "clarification_required" for event in timeline_payload["timeline"])
         )
 
+    def test_service_reevaluate_manual_review_clarification_from_assigned_resumes_original_assignment(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-clarification-resume-1",
+            "assignment_reason": "Resume assigned work after manual review clarification.",
+        }
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        blocked_status, blocked_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            },
+        )
+        resolved_status, resolved_response = self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(blocked_status, 200)
+        self.assertEqual(blocked_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(blocked_response["task_envelope"]["clarification"]["resume_target_status"], "assigned")
+        self.assertEqual(resolved_status, 200)
+        self.assertEqual(resolved_response["task_envelope"]["status"], "assigned")
+        self.assertEqual(
+            resolved_response["task_envelope"]["assigned_executor"]["executor_id"],
+            "executor-review-clarification-resume-1",
+        )
+        self.assertEqual(resolved_response["task_envelope"]["clarification"]["status"], "resolved")
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "assigned")
+        self.assertEqual(
+            read_payload["task"]["assigned_executor"]["executor_id"],
+            "executor-review-clarification-resume-1",
+        )
+
     def test_service_reevaluate_authorize_retry_with_assignment_clears_prior_completion_evidence(self) -> None:
         initial_payload = _request_payload("review_required")
         initial_payload["request"]["review_request"]["allowed_outcomes"] = [
