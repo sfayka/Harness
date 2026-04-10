@@ -141,6 +141,46 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
             ]
         )
 
+    def test_manual_review_reject_completion_clears_prior_completion_proof(self) -> None:
+        payload = build_review_required_payload(
+            build_create_task_payload(
+                "e2e-control-review-reject-proof-reset",
+                title="Manual review reject should clear stale completion proof",
+            )["request"]["task_envelope"]
+        )
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "reject_completion",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        resolved = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="reject_completion",
+                    )
+                }
+            }
+        )
+
+        self.assertEqual(resolved.response["action"], "transition_applied")
+        self.assertEqual(resolved.task["status"], "blocked")
+        self.assertEqual(resolved.task["artifacts"]["completion_evidence"]["status"], "deferred")
+        self.assertEqual(resolved.task["artifacts"]["completion_evidence"]["validated_artifact_ids"], [])
+        self.assertEqual(resolved.read_model["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(
+            resolved.read_model["task"]["review_summary"]["latest_decision"]["outcome"],
+            "reject_completion",
+        )
+        self.assertFalse(resolved.read_model["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(
+            resolved.read_model["task"]["verification_summary"]["acceptance_criteria_assessment"][
+                "automatic_completion_safe"
+            ]
+        )
+
     def test_manual_review_authorize_replan_clears_prior_completion_proof(self) -> None:
         payload = build_review_required_payload(
             build_create_task_payload(
@@ -283,6 +323,50 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
             "executor-e2e-review-clarification-resume-1",
         )
         self.assertTrue(any(event["event_type"] == "clarification_resolved" for event in resolved.timeline["timeline"]))
+
+    def test_manual_review_clarification_from_dispatch_ready_creates_real_follow_up_dispatch_attempt(self) -> None:
+        task_envelope = build_create_task_payload(
+            "e2e-control-review-clarification-dispatch-resume",
+            title="Manual review clarification should resume dispatch-ready work with a real attempt",
+        )["request"]["task_envelope"]
+        task_envelope["status"] = "dispatch_ready"
+        payload = build_review_required_payload(task_envelope)
+        payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        scenario = self.create_evaluate_scenario(payload)
+
+        blocked = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        scenario.created.response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            }
+        )
+        resolved = scenario.reevaluate(
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}}
+        )
+        dispatch_events = [
+            event
+            for event in resolved.timeline["timeline"]
+            if event["event_type"] == "task_dispatched"
+        ]
+
+        self.assertEqual(blocked.task["status"], "blocked")
+        self.assertEqual(blocked.task["clarification"]["resume_target_status"], "dispatch_ready")
+        self.assertEqual(resolved.task["clarification"]["status"], "resolved")
+        self.assertTrue(resolved.response["automatic_dispatch"]["attempted"])
+        self.assertEqual(resolved.response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
+        self.assertEqual(resolved.read_model["task"]["clarification_summary"]["status"], "resolved")
+        self.assertEqual(resolved.read_model["task"]["execution_summary"]["attempt_count"], 1)
+        self.assertTrue(any(event["event_type"] == "clarification_resolved" for event in resolved.timeline["timeline"]))
+        self.assertTrue(
+            any(event["details"]["dispatch_trigger"] == "automatic_policy_post_reevaluation" for event in dispatch_events)
+        )
 
     def test_manual_review_mark_failed_projects_terminal_verification_failure(self) -> None:
         payload = build_review_required_payload(

@@ -4173,6 +4173,56 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertFalse(follow_up_response["accepted_completion"])
         self.assertNotEqual(follow_up_response["task_envelope"]["status"], "completed")
 
+    def test_service_reevaluate_reject_completion_clears_prior_completion_evidence(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "reject_completion",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": _review_decision_payload(
+                        task_id,
+                        outcome=ReviewOutcome.REJECT_COMPLETION,
+                        allowed_outcomes=(
+                            ReviewOutcome.ACCEPT_COMPLETION,
+                            ReviewOutcome.REJECT_COMPLETION,
+                        ),
+                    )
+                }
+            },
+        )
+        evidence = resolution_response["task_envelope"]["artifacts"]["completion_evidence"]
+        follow_up_status, follow_up_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "external_facts": deepcopy(_request_payload("accepted_completion")["request"]["external_facts"]),
+                    "runtime_facts": deepcopy(_request_payload("accepted_completion")["request"]["runtime_facts"]),
+                    "claimed_completion": True,
+                    "acceptance_criteria_satisfied": True,
+                }
+            },
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "transition_applied")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(evidence["validated_artifact_ids"], [])
+        self.assertEqual(evidence["status"], "deferred")
+        self.assertIsNone(evidence["validated_at"])
+        self.assertIsNone(evidence["validator"])
+        self.assertEqual(evidence["validation_method"], "deferred")
+        self.assertEqual(follow_up_status, 200)
+        self.assertFalse(follow_up_response["accepted_completion"])
+        self.assertNotEqual(follow_up_response["task_envelope"]["status"], "completed")
+
     def test_service_reevaluate_require_clarification_creates_canonical_clarification_block(self) -> None:
         initial_payload = _request_payload("review_required")
         initial_payload["request"]["review_request"]["allowed_outcomes"] = [
@@ -4271,6 +4321,55 @@ class HarnessApiServiceTests(unittest.TestCase):
             read_payload["task"]["assigned_executor"]["executor_id"],
             "executor-review-clarification-resume-1",
         )
+
+    def test_service_reevaluate_manual_review_clarification_from_dispatch_ready_auto_dispatches(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "dispatch_ready"
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        blocked_status, blocked_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            },
+        )
+        resolved_status, resolved_response = self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": False, "acceptance_criteria_satisfied": False}},
+        )
+        timeline_status, timeline_payload = self.service.get_task_timeline(task_id)
+        execution_attempts = (
+            ((resolved_response["task_envelope"].get("observability") or {}).get("execution_metadata") or {}).get(
+                "execution_attempts"
+            )
+            or []
+        )
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(blocked_status, 200)
+        self.assertEqual(blocked_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(blocked_response["task_envelope"]["clarification"]["resume_target_status"], "dispatch_ready")
+        self.assertEqual(resolved_status, 200)
+        self.assertEqual(resolved_response["task_envelope"]["clarification"]["status"], "resolved")
+        self.assertTrue(resolved_response["automatic_dispatch"]["attempted"])
+        self.assertEqual(resolved_response["automatic_dispatch"]["dispatch"]["attempt_id"], "attempt-1")
+        self.assertEqual(len(execution_attempts), 1)
+        self.assertEqual(timeline_status, 200)
+        dispatch_events = [event for event in timeline_payload["timeline"] if event["event_type"] == "task_dispatched"]
+        self.assertTrue(
+            any(event["event_type"] == "clarification_resolved" for event in timeline_payload["timeline"])
+        )
+        self.assertEqual(dispatch_events[-1]["details"]["dispatch_trigger"], "automatic_policy_post_reevaluation")
 
     def test_service_reevaluate_authorize_retry_with_assignment_clears_prior_completion_evidence(self) -> None:
         initial_payload = _request_payload("review_required")
@@ -4393,6 +4492,43 @@ class HarnessApiServiceTests(unittest.TestCase):
                     "review_decision": build_review_decision_from_request(
                         initial_response["enforcement_result"]["review_request"],
                         outcome="keep_blocked",
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "transition_applied")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "blocked")
+        self.assertIsNone(resolution_response["task_envelope"].get("assigned_executor"))
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "blocked")
+        self.assertIsNone(read_payload["task"].get("assigned_executor"))
+
+    def test_service_reevaluate_reject_completion_clears_active_assignment(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-reject-clear-1",
+            "assignment_reason": "Seed active assignment for review reject coverage.",
+        }
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "reject_completion",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="reject_completion",
                     )
                 }
             },
