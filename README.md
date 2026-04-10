@@ -63,6 +63,8 @@ The same fail-closed rule now applies to other rejected late follow-up. If reeva
 
 If manual review resolves the gate without accepting completion, Harness also clears any previously satisfied completion evidence back to deferred. A replan, retry, blocked, failed, canceled, or clarification outcome must not leave stale validated proof behind that can auto-complete the task later without a new governed execution or explicit acceptance.
 
+That same current-truth rule applies to assignment. If manual review moves a task into a non-active state like `planned` or `blocked`, Harness clears `assigned_executor` instead of leaving stale active-assignment state attached after work has been explicitly paused or sent back for replanning.
+
 If that manual-review outcome is `require_clarification`, Harness now records a real canonical `task.clarification` contract at the same time. The task does not just become generically `blocked`; operators can see the explicit clarification blocker, its `resume_target_status`, and the required input through the task, read-model, list, and timeline surfaces.
 
 When manual review explicitly authorizes redispatch, Harness now performs that redispatch automatically instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.

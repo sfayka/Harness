@@ -4284,6 +4284,80 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertFalse(follow_up_response["accepted_completion"])
         self.assertNotEqual(follow_up_response["task_envelope"]["status"], "completed")
 
+    def test_service_reevaluate_authorize_replan_clears_active_assignment(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-replan-clear-1",
+            "assignment_reason": "Seed active assignment for review replan coverage.",
+        }
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_replan",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="authorize_replan",
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "follow_up_authorized")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "planned")
+        self.assertIsNone(resolution_response["task_envelope"].get("assigned_executor"))
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "planned")
+        self.assertIsNone(read_payload["task"].get("assigned_executor"))
+
+    def test_service_reevaluate_keep_blocked_clears_active_assignment(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-review-blocked-clear-1",
+            "assignment_reason": "Seed active assignment for review blocked coverage.",
+        }
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "keep_blocked",
+        ]
+        initial_status, initial_response = self.service.evaluate(initial_payload)
+        task_id = initial_response["task_envelope"]["id"]
+
+        resolution_status, resolution_response = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        initial_response["enforcement_result"]["review_request"],
+                        outcome="keep_blocked",
+                    )
+                }
+            },
+        )
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(initial_status, 200)
+        self.assertEqual(resolution_status, 200)
+        self.assertEqual(resolution_response["action"], "transition_applied")
+        self.assertEqual(resolution_response["task_envelope"]["status"], "blocked")
+        self.assertIsNone(resolution_response["task_envelope"].get("assigned_executor"))
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["current_status"], "blocked")
+        self.assertIsNone(read_payload["task"].get("assigned_executor"))
+
     def test_service_reconciliation_authorize_redispatch_returns_post_dispatch_failure_truth(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
