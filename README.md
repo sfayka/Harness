@@ -205,6 +205,8 @@ Backend inspection routes:
 
 For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
 
+Within `execution_summary`, `attempt_count` is the number of recorded canonical execution attempts. `total_attempts` may be higher when retry/evaluation history exists without a new execution-attempt record, but it must never undercount the recorded execution attempts already attached to the task.
+
 ## Storage And Environment
 
 Required frontend environment variable:

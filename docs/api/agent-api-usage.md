@@ -128,6 +128,12 @@ Current canonical example:
 
 - `linear_record_not_found` is treated as `review_required`, not as an automatic mismatch, because the system cannot safely infer whether the task is missing, mislinked, or temporarily unresolved
 
+## Inspection Surface Attempt Semantics
+
+On `GET /tasks` and `GET /tasks/<task_id>/read-model`, `execution_summary.attempt_count` is the number of canonical execution attempts currently recorded on the task.
+
+`execution_summary.total_attempts` is broader: it can include retry/evaluation-chain activity even when no new execution-attempt record exists. It must never be lower than `attempt_count`, because inspection surfaces cannot truthfully report fewer total attempts than the canonical execution-attempt history already attached to the task.
+
 ## Linear Facts Workflow Rule
 
 The `external_facts.linear_facts.workflow` field is conditional on `record_found`.

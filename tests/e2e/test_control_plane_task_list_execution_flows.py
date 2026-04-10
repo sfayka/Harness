@@ -128,3 +128,47 @@ class ControlPlaneTaskListExecutionFlowTests(RuntimeApiTestCase):
         )
         self.assertEqual(entry["review_summary"]["status"], "resolved")
         self.assertEqual(entry["review_summary"]["decision_count"], 1)
+
+    def test_task_list_total_attempts_does_not_undercount_recorded_execution_attempts(self) -> None:
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-list-execution-total-attempts",
+                title="Task list execution total attempts scenario",
+            )
+        )
+
+        scenario.mutate_task(
+            lambda task: task["observability"]["execution_metadata"].__setitem__(
+                "execution_attempts",
+                [
+                    {
+                        "attempt_id": "attempt-1",
+                        "recorded_at": "2026-04-10T12:00:00Z",
+                        "status": "completed",
+                        "reported_by": "codex",
+                        "completion_claim_id": None,
+                        "artifact_references": [],
+                        "metadata": {"dispatch_trigger": "manual_api", "dispatch_mode": "manual"},
+                        "reevaluation": {},
+                    },
+                    {
+                        "attempt_id": "attempt-2",
+                        "recorded_at": "2026-04-10T12:05:00Z",
+                        "status": "failed",
+                        "reported_by": "codex",
+                        "completion_claim_id": None,
+                        "artifact_references": [],
+                        "metadata": {"dispatch_trigger": "manual_api", "dispatch_mode": "manual"},
+                        "reevaluation": {},
+                    },
+                ],
+            )
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)["e2e-list-execution-total-attempts"]
+
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["execution_summary"]["attempt_count"], 2)
+        self.assertEqual(entry["execution_summary"]["total_attempts"], 2)
+        self.assertEqual(entry["execution_summary"]["latest_attempt"]["attempt_id"], "attempt-2")
