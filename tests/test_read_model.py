@@ -330,6 +330,100 @@ class HarnessReadModelServiceTests(unittest.TestCase):
             payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
         )
 
+    def test_read_model_surfaces_manual_authorize_retry_as_resolved_review_with_active_assignment(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "authorize_retry",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        stored_task = deepcopy(self.service.store.get_task(task_id))
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-read-model-review-retry-1",
+            "assignment_reason": "Seed active assignment for manual review retry projection coverage.",
+        }
+        self.service.store.update_task(stored_task)
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        submit_payload["enforcement_result"]["review_request"],
+                        outcome="authorize_retry",
+                    )
+                }
+            },
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "assigned")
+        self.assertEqual(payload["task"]["assigned_executor"]["executor_id"], "executor-read-model-review-retry-1")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["review_summary"]["latest_decision"]["outcome"], "authorize_retry")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(payload["task"]["verification_summary"]["target_status"], "assigned")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(
+            payload["task"]["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"]
+        )
+        self.assertEqual(payload["task"]["failure_summary"]["state"], "clear")
+        self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "clear")
+
+    def test_read_model_surfaces_manual_clarification_as_resolved_review_plus_active_blocker(self) -> None:
+        initial_payload = _request_payload("review_required")
+        initial_payload["request"]["task_envelope"]["status"] = "assigned"
+        initial_payload["request"]["task_envelope"]["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-read-model-review-clarification-1",
+            "assignment_reason": "Resume assigned work after manual review clarification.",
+        }
+        initial_payload["request"]["review_request"]["allowed_outcomes"] = [
+            "accept_completion",
+            "require_clarification",
+        ]
+        submit_status, submit_payload = self.service.evaluate(initial_payload)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        reevaluate_status, _ = self.service.reevaluate(
+            task_id,
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        submit_payload["enforcement_result"]["review_request"],
+                        outcome="require_clarification",
+                    )
+                }
+            },
+        )
+        status, payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluate_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["task"]["current_status"], "blocked")
+        self.assertEqual(payload["task"]["assigned_executor"]["executor_id"], "executor-read-model-review-clarification-1")
+        self.assertEqual(payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(payload["task"]["review_summary"]["latest_decision"]["outcome"], "require_clarification")
+        self.assertEqual(payload["task"]["verification_summary"]["outcome"], "review_resolved")
+        self.assertEqual(payload["task"]["verification_summary"]["target_status"], "blocked")
+        self.assertFalse(payload["task"]["verification_summary"]["accepted_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["claimed_completion"])
+        self.assertFalse(payload["task"]["verification_summary"]["evidence_is_sufficient"])
+        self.assertEqual(payload["task"]["clarification_summary"]["status"], "required")
+        self.assertEqual(payload["task"]["clarification_summary"]["resume_target_status"], "assigned")
+        self.assertEqual(payload["task"]["clarification_summary"]["requested_by"], "manual_review")
+        self.assertEqual(payload["task"]["failure_summary"]["state"], "clear")
+        self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "clear")
+
     def test_read_model_clears_pending_verification_projection_after_reconciliation_redispatch_failure(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
