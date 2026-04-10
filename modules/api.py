@@ -1193,6 +1193,38 @@ def _with_manual_review_completion_evidence_reset(
     )
 
 
+def _with_manual_review_assignment_reset(
+    request: HarnessEvaluationRequest,
+    result: HarnessEvaluationResult,
+) -> HarnessEvaluationResult:
+    review_decision = request.review_decision
+    if review_decision is None:
+        return result
+    if result.action not in {EnforcementAction.FOLLOW_UP_AUTHORIZED, EnforcementAction.TRANSITION_APPLIED}:
+        return result
+    if result.requires_review:
+        return result
+
+    current_status = str(result.task_envelope.get("status") or "")
+    if current_status not in {"planned", "blocked"}:
+        return result
+    assigned_executor = result.task_envelope.get("assigned_executor")
+    if assigned_executor is None:
+        return result
+
+    updated_task = deepcopy(result.task_envelope)
+    updated_task["assigned_executor"] = None
+    enforcement_result = result.enforcement_result
+    if enforcement_result is not None:
+        enforcement_result = replace(enforcement_result, task_envelope=updated_task)
+
+    return replace(
+        result,
+        task_envelope=updated_task,
+        enforcement_result=enforcement_result,
+    )
+
+
 def _with_manual_review_clarification_follow_up(
     request: HarnessEvaluationRequest,
     result: HarnessEvaluationResult,
@@ -2870,6 +2902,7 @@ def _evaluate_request(request: HarnessEvaluationRequest) -> tuple[int, dict[str,
         }, None
 
     result = _with_manual_review_completion_evidence_reset(request, result)
+    result = _with_manual_review_assignment_reset(request, result)
     result = _with_manual_review_clarification_follow_up(request, result)
     status = HTTPStatus.BAD_REQUEST if result.invalid_input else HTTPStatus.OK
     return status, _to_jsonable(result), result
