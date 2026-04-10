@@ -436,6 +436,7 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         (attempt for attempt in reversed(execution_attempts) if isinstance(attempt, dict)),
         None,
     )
+    attempt_count = len([attempt for attempt in execution_attempts if isinstance(attempt, dict)])
     for attempt in execution_attempts:
         if not isinstance(attempt, dict):
             continue
@@ -454,7 +455,7 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         recoverable=bool((latest_failure_summary or {}).get("recoverable")),
     )
     return {
-        "attempt_count": len([attempt for attempt in execution_attempts if isinstance(attempt, dict)]),
+        "attempt_count": attempt_count,
         "latest_attempt": dict(latest_attempt) if latest_attempt is not None else None,
         "latest_status": latest_attempt.get("status") if isinstance(latest_attempt, dict) else None,
         "latest_dispatch_origin": (
@@ -468,7 +469,7 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
             else None
         ),
         "latest_artifact_references": list((latest_attempt or {}).get("artifact_references") or []),
-        "total_attempts": len(records),
+        "total_attempts": max(len(records), attempt_count),
         "retry_count": retry_count,
         "invalid_attempt_count": invalid_attempt_count,
         "last_failure_type": (latest_failure_summary or {}).get("failure_type"),
