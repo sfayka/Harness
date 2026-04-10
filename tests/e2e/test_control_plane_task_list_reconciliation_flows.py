@@ -201,6 +201,64 @@ class ControlPlaneTaskListReconciliationFlowTests(RuntimeApiTestCase):
         self.assertFalse(entry["reconciliation_summary"]["blocking"])
         self.assertEqual(entry["reconciliation_summary"]["resolved_by"], "manual_review")
 
+    def test_task_list_surfaces_reopened_reconciliation_review_gate_as_requested_not_deferred(self) -> None:
+        self.set_reconciliation_registry(
+            _registry_with_gateway(
+                _FakeGitHubGateway(
+                    branch_exists=True,
+                    existing_branch_prs=(),
+                    existing_commit_prs=(),
+                    persisted_created_pr=None,
+                )
+            )
+        )
+        scenario = self.create_task_scenario(
+            build_create_task_payload(
+                "e2e-list-reopened-reconciliation-review",
+                title="Task list should prefer the newer active reconciliation review gate over stale prior resolution",
+            )
+        )
+        self._mark_task_assigned(scenario.task_id, executor_id="executor-list-reopened-reconciliation-review-1")
+
+        claimed = self._claim_with_standard_external_facts(
+            scenario,
+            claim_id="claim-list-reopened-reconciliation-review-1",
+            attempt_id="attempt-list-reopened-reconciliation-review-1",
+        )
+        review_request = claimed.response["evaluation_record"]["result"]["enforcement_result"]["review_request"]
+        scenario.mutate_task(lambda task: task.__setitem__("assigned_executor", None))
+        reopened = scenario.reevaluate(
+            {
+                "request": {
+                    "review_decision": build_review_decision_from_request(
+                        review_request,
+                        outcome="authorize_redispatch",
+                    )
+                }
+            }
+        )
+
+        list_status, list_payload = self.list_tasks()
+        entry = self._tasks_by_id(list_payload)[scenario.task_id]
+
+        self.assertEqual(reopened.response["action"], "reconciliation_failed")
+        self.assertEqual(list_status, 200)
+        self.assertEqual(entry["current_status"], "in_review")
+        self.assertEqual(entry["review_summary"]["status"], "requested")
+        self.assertEqual(entry["review_summary"]["request_count"], 2)
+        self.assertEqual(entry["review_summary"]["decision_count"], 1)
+        self.assertEqual(entry["verification_summary"]["outcome"], "review_required")
+        self.assertTrue(entry["verification_summary"]["requires_review"])
+        self.assertEqual(entry["verification_summary"]["reconciliation_status"], "review_required")
+        self.assertFalse(entry["verification_summary"]["accepted_completion"])
+        self.assertFalse(entry["verification_summary"]["claimed_completion"])
+        self.assertFalse(entry["verification_summary"]["evidence_is_sufficient"])
+        self.assertFalse(entry["verification_summary"]["acceptance_criteria_assessment"]["automatic_completion_safe"])
+        self.assertEqual(entry["failure_summary"]["state"], "review_required")
+        self.assertEqual(entry["execution_summary"]["failure_state"], "review_required")
+        self.assertEqual(entry["reconciliation_summary"]["status"], "review_required")
+        self.assertEqual(entry["reconciliation_summary"]["outcome"], "review_required")
+
     def test_task_list_surfaces_reconciliation_redispatch_failure_as_resolved_not_pending(self) -> None:
         self.set_reconciliation_registry(
             _registry_with_gateway(
