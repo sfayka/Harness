@@ -237,6 +237,8 @@ class HarnessEvaluationEntryPointTests(unittest.TestCase):
         self.assertEqual(result.action, EnforcementAction.TRANSITION_APPLIED)
         self.assertEqual(result.target_status, "blocked")
         self.assertEqual(result.enforcement_result.verification_result.outcome, VerificationOutcome.EXTERNAL_MISMATCH)
+        self.assertFalse(result.failure_classification.terminal)
+        self.assertFalse(result.failure_classification.recoverable)
 
     def test_returns_review_required_result(self) -> None:
         task = _base_task(status="intake_ready")

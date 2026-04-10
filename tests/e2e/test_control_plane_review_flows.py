@@ -183,7 +183,18 @@ class ControlPlaneReviewFlowTests(RuntimeApiTestCase):
         self.assertEqual(resolved.read_model["task"]["evidence_summary"]["completion_evidence"]["status"], "deferred")
         self.assertEqual(follow_up.status, 200)
         self.assertFalse(follow_up.response["accepted_completion"])
-        self.assertNotEqual(follow_up.task["status"], "completed")
+        self.assertEqual(follow_up.task["status"], "blocked")
+        self.assertEqual(follow_up.response["failure_classification"]["failure_type"], "reconciliation_mismatch")
+        self.assertFalse(follow_up.response["failure_classification"]["terminal"])
+        self.assertFalse(follow_up.response["failure_classification"]["recoverable"])
+        self.assertEqual(follow_up.read_model["task"]["failure_summary"]["state"], "failed")
+        self.assertFalse(follow_up.read_model["task"]["failure_summary"]["terminal"])
+        self.assertEqual(
+            follow_up.read_model["task"]["verification_summary"]["failure_classification"]["failure_type"],
+            "reconciliation_mismatch",
+        )
+        self.assertFalse(follow_up.read_model["task"]["verification_summary"]["failure_classification"]["terminal"])
+        self.assertFalse(follow_up.read_model["task"]["verification_summary"]["is_terminal"])
 
     def test_manual_review_mark_failed_projects_terminal_verification_failure(self) -> None:
         payload = build_review_required_payload(
