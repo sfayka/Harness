@@ -1818,10 +1818,21 @@ def _advisory_completion_claim_by_id(task_envelope: dict[str, Any], claim_id: st
 
 
 def _latest_execution_attempt(task_envelope: dict[str, Any]) -> dict[str, Any] | None:
-    attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    attempts = (
+        ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    )
     if not isinstance(attempts, list):
         return None
-    return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+    dict_attempts = [attempt for attempt in attempts if isinstance(attempt, dict)]
+    if not dict_attempts:
+        return None
+    return max(
+        dict_attempts,
+        key=lambda attempt: (
+            _parse_iso_timestamp(str(attempt.get("recorded_at") or "")),
+            str(attempt.get("attempt_id") or ""),
+        ),
+    )
 
 
 def _execution_attempts(task_envelope: dict[str, Any]) -> list[dict[str, Any]]:

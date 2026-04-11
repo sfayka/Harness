@@ -308,7 +308,7 @@ For `missing_pr_after_execution`, Harness runs a pluggable reconciliation handle
 1. Check that the target branch exists through Git or the GitHub API.
 2. If the commit SHA is missing but repository and branch are known, resolve the current branch head SHA through Git or the GitHub API.
 3. Validate that the resulting commit SHA is present, non-empty, and resolvable.
-4. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest.
+4. Bind the current completion claim to the specific execution attempt it references, using the explicit claim `attempt_id` when present rather than whichever attempt happens to be latest. When no explicit attempt binding is available, treat the current attempt as the newest recorded execution attempt by `recorded_at`, not raw append order.
 5. Compare repository, branch, and commit context across `external_facts`, attached artifacts, and execution-attempt metadata. If those sources disagree, stop and record the conflict rather than choosing one implicitly.
 6. If repository and branch identity come from execution metadata or normalized external facts, do not let attached artifacts silently backfill a missing commit SHA. Leave commit identity unresolved and continue through the bounded recovery path instead of treating historical artifact state as current-run proof.
 7. When reading execution-attempt metadata, ignore non-code artifact references. Support references such as review notes may provide audit context, but they must not seed repository, branch, or commit identity for reconciliation.

@@ -215,6 +215,8 @@ Within `execution_summary`, `attempt_count` is the number of recorded canonical 
 
 That same chronology rule applies to the projected latest-attempt fields. `execution_summary.latest_attempt`, `latest_status`, and related latest-attempt details follow the newest recorded execution attempt by `recorded_at`; they do not trust raw list append order when stored attempt arrays arrive out of sequence.
 
+That chronology rule also applies to current-run binding outside the read model. When reconciliation or replay logic needs the active execution attempt and there is no explicit completion-claim `attempt_id` binding, Harness selects the newest recorded execution attempt by `recorded_at` rather than whichever attempt happened to be appended last.
+
 ## Storage And Environment
 
 Required frontend environment variable:

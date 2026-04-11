@@ -11,6 +11,7 @@ from modules.reconciliation_runtime import (
     ReconciliationRuntimeError,
     RetryableReconciliationRuntimeError,
     _context_from_artifacts,
+    _current_execution_attempt,
     _context_from_execution_attempt,
     _resolved_code_context,
 )
@@ -448,6 +449,140 @@ class ResolveCodeContextTests(unittest.TestCase):
         self.assertEqual(selected, "merged")
         self.assertEqual(context.branch_name, "codex/e2e-test")
         self.assertEqual(context.commit_sha, "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+
+    def test_current_execution_attempt_uses_newest_recorded_attempt_when_attempts_are_out_of_order(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-current-execution-attempt-ordering-1",
+                "title": "Current execution attempt follows recorded_at",
+                "description": "Current attempt binding should not trust raw append order.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-current-execution-attempt-ordering-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Current attempt falls back to the newest recorded attempt.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-11T09:00:00Z",
+        )
+        execution_metadata = task["observability"]["execution_metadata"]
+        execution_metadata["advisory_completion_claims"] = [
+            {
+                "claim_id": "claim-newer",
+                "reported_at": "2026-04-11T09:10:00Z",
+                "reported_by": "codex",
+                "reason": "newer historical claim",
+                "metadata": {"attempt_id": "attempt-newer"},
+            },
+            {
+                "claim_id": "claim-current",
+                "reported_at": "2026-04-11T09:15:00Z",
+                "reported_by": "codex",
+                "reason": "current completion claim without explicit attempt binding",
+                "metadata": {},
+            },
+        ]
+        execution_metadata["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-newer",
+                "recorded_at": "2026-04-11T09:10:05Z",
+                "status": "completed",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-newer",
+                "artifact_references": [],
+                "metadata": {"executor_run_id": "run-attempt-newer"},
+                "reevaluation": {},
+            },
+            {
+                "attempt_id": "attempt-older",
+                "recorded_at": "2026-04-11T09:05:05Z",
+                "status": "failed",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-older",
+                "artifact_references": [],
+                "metadata": {"executor_run_id": "run-attempt-older"},
+                "reevaluation": {},
+            },
+        ]
+
+        attempt = _current_execution_attempt(task)
+
+        self.assertIsNotNone(attempt)
+        self.assertEqual(attempt["attempt_id"], "attempt-newer")
+
+    def test_execution_attempt_context_uses_newest_recorded_attempt_when_attempts_are_out_of_order(self) -> None:
+        task = create_task_envelope(
+            {
+                "id": "task-context-execution-attempt-ordering-1",
+                "title": "Execution attempt context follows recorded_at",
+                "description": "Reconciliation context should bind to the newest recorded execution attempt.",
+                "origin": {
+                    "source_system": "openclaw",
+                    "source_type": "ingress_request",
+                    "source_id": "req-context-execution-attempt-ordering-1",
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Execution-attempt context comes from the newest recorded attempt.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-11T09:00:00Z",
+        )
+        task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-newer",
+                "recorded_at": "2026-04-11T09:10:05Z",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-newer-ref-1",
+                        "artifact_type": "branch",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test-newer",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test-newer",
+                            "base_branch": "main",
+                            "commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                        },
+                    }
+                ],
+            },
+            {
+                "attempt_id": "attempt-older",
+                "recorded_at": "2026-04-11T09:05:05Z",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-older-ref-1",
+                        "artifact_type": "branch",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/tree/codex/e2e-test-older",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test-older",
+                            "base_branch": "main",
+                            "commit_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                        },
+                    }
+                ],
+            },
+        ]
+
+        context = _context_from_execution_attempt(task)
+
+        self.assertIsNotNone(context)
+        self.assertEqual(context.branch_name, "codex/e2e-test-newer")
+        self.assertEqual(context.commit_sha, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
     def test_ignores_support_artifact_references_in_execution_attempt_context(self) -> None:
         task = create_task_envelope(

@@ -13,7 +13,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from modules.adapters.executor_adapter import StubExecutorAdapter
-from modules.api import HarnessApiService, build_parser, evaluate_http_payload, run_server
+from modules.api import HarnessApiService, _latest_execution_attempt, build_parser, evaluate_http_payload, run_server
 from modules.reconciliation_runtime import (
     GitHubPullRequestRecord,
     ReconciliationFailureType,
@@ -55,6 +55,33 @@ class _FakeCursor:
         row = self._rows[self._index]
         self._index += 1
         return row
+
+
+class LatestExecutionAttemptTests(unittest.TestCase):
+    def test_latest_execution_attempt_uses_newest_recorded_attempt_when_out_of_order(self) -> None:
+        task = {
+            "observability": {
+                "execution_metadata": {
+                    "execution_attempts": [
+                        {
+                            "attempt_id": "attempt-newer",
+                            "recorded_at": "2026-04-11T09:10:05Z",
+                            "status": "completed",
+                        },
+                        {
+                            "attempt_id": "attempt-older",
+                            "recorded_at": "2026-04-11T09:05:05Z",
+                            "status": "failed",
+                        },
+                    ]
+                }
+            }
+        }
+
+        attempt = _latest_execution_attempt(task)
+
+        self.assertIsNotNone(attempt)
+        self.assertEqual(attempt["attempt_id"], "attempt-newer")
 
 
 class _FakeConnection:
