@@ -1560,6 +1560,20 @@ def _dispatch_attempt_status(execution_events: tuple[dict[str, Any], ...]) -> st
     return "started"
 
 
+def _dispatch_event_timestamp_bounds(execution_events: tuple[dict[str, Any], ...]) -> tuple[str | None, str | None]:
+    occurred_at_values = tuple(
+        str(event.get("occurred_at"))
+        for event in execution_events
+        if event.get("occurred_at") is not None and str(event.get("occurred_at")).strip()
+    )
+    if not occurred_at_values:
+        return None, None
+    return (
+        min(occurred_at_values, key=_parse_iso_timestamp),
+        max(occurred_at_values, key=_parse_iso_timestamp),
+    )
+
+
 def _dispatch_policy_decision(task_envelope: dict[str, Any], *, store: HarnessStore) -> tuple[bool, str]:
     task_status = str(task_envelope.get("status") or "")
     if task_status in _TERMINAL_TASK_STATUSES:
@@ -4006,14 +4020,15 @@ class HarnessApiService:
             }
             for event in adapter_output.events
         )
+        earliest_event_at, latest_event_at = _dispatch_event_timestamp_bounds(event_payloads)
         dispatch_recorded_at = (
-            str(event_payloads[0].get("occurred_at"))
-            if event_payloads and event_payloads[0].get("occurred_at") is not None
+            earliest_event_at
+            if earliest_event_at is not None
             else _iso_now()
         )
         attempt_recorded_at = (
-            str(event_payloads[-1].get("occurred_at"))
-            if event_payloads and event_payloads[-1].get("occurred_at") is not None
+            latest_event_at
+            if latest_event_at is not None
             else dispatch_recorded_at
         )
         artifact_references = [
