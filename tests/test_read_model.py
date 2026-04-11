@@ -6,6 +6,7 @@ import tempfile
 import threading
 import unittest
 from copy import deepcopy
+from datetime import datetime, timezone
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from pathlib import Path
@@ -58,6 +59,37 @@ POSTGRES_SCHEMA_SQL = (
 
 def _request_payload(case_name: str) -> dict:
     return {"request": _to_jsonable(build_demo_request(case_name))}
+
+
+def _iso_timestamp(value: str) -> str:
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _persist_evaluation_record(
+    store: FileBackedHarnessStore,
+    *,
+    task_id: str,
+    evaluation_id: str,
+    recorded_at: str,
+    request: dict,
+    result: dict,
+) -> None:
+    path = Path(store.root_dir) / "evaluations" / task_id / f"{evaluation_id}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "evaluation_id": evaluation_id,
+                "task_id": task_id,
+                "recorded_at": _iso_timestamp(recorded_at),
+                "request": request,
+                "result": result,
+            },
+            indent=2,
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
 
 
 def _goal_request() -> GoalToWorkRequest:
@@ -952,6 +984,265 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_payload["task"]["review_summary"]["status"], "resolved")
         self.assertEqual(read_payload["task"]["review_summary"]["request_count"], 1)
         self.assertEqual(read_payload["task"]["review_summary"]["decision_count"], 1)
+
+    def test_review_summary_uses_newest_requested_at_for_latest_request(self) -> None:
+        task_id = "task-read-model-latest-review-request-by-requested-at"
+        task_envelope = create_task_envelope(
+            {
+                "id": task_id,
+                "title": "Latest review request follows requested_at",
+                "description": "Review summary must not trust append order for latest request projection.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": task_id,
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Latest review request follows requested_at rather than record append order.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-10T00:00:00Z",
+        )
+        task_envelope["status"] = "in_review"
+        self.store.create_task(task_envelope)
+
+        _persist_evaluation_record(
+            self.store,
+            task_id=task_id,
+            evaluation_id="eval-review-request-newer",
+            recorded_at="2026-04-10T00:01:00Z",
+            request={"task_envelope": {"id": task_id}},
+            result={
+                "action": "review_required",
+                "target_status": "in_review",
+                "failure_classification": {
+                    "failure_type": "review_required",
+                    "source": "evaluation",
+                    "reason": "Manual review gate remains active.",
+                    "terminal": False,
+                    "recoverable": False,
+                    "category": "review_required",
+                },
+                "enforcement_result": {
+                    "review_request": {
+                        "review_request_id": "request-newer",
+                        "task_id": task_id,
+                        "requested_at": "2026-04-10T00:10:00Z",
+                        "requested_by": "operator-1",
+                        "trigger": "verification",
+                        "summary": "Newer review request by requested_at",
+                        "presented_sections": ["verification_summary"],
+                        "allowed_outcomes": ["accept_completion"],
+                        "prior_review_ids": [],
+                        "metadata": {},
+                    }
+                },
+            },
+        )
+        _persist_evaluation_record(
+            self.store,
+            task_id=task_id,
+            evaluation_id="eval-review-request-older",
+            recorded_at="2026-04-10T00:02:00Z",
+            request={"task_envelope": {"id": task_id}},
+            result={
+                "action": "review_required",
+                "target_status": "in_review",
+                "failure_classification": {
+                    "failure_type": "review_required",
+                    "source": "evaluation",
+                    "reason": "Manual review gate remains active.",
+                    "terminal": False,
+                    "recoverable": False,
+                    "category": "review_required",
+                },
+                "enforcement_result": {
+                    "review_request": {
+                        "review_request_id": "request-older",
+                        "task_id": task_id,
+                        "requested_at": "2026-04-10T00:05:00Z",
+                        "requested_by": "operator-1",
+                        "trigger": "verification",
+                        "summary": "Older review request by requested_at",
+                        "presented_sections": ["verification_summary"],
+                        "allowed_outcomes": ["accept_completion"],
+                        "prior_review_ids": [],
+                        "metadata": {},
+                    }
+                },
+            },
+        )
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "requested")
+        self.assertEqual(read_payload["task"]["review_summary"]["request_count"], 2)
+        self.assertEqual(
+            read_payload["task"]["review_summary"]["latest_request"]["review_request_id"],
+            "request-newer",
+        )
+
+    def test_review_summary_uses_newest_reviewed_at_for_latest_decision(self) -> None:
+        task_id = "task-read-model-latest-review-decision-by-reviewed-at"
+        task_envelope = create_task_envelope(
+            {
+                "id": task_id,
+                "title": "Latest review decision follows reviewed_at",
+                "description": "Review summary must not trust append order for latest decision projection.",
+                "origin": {
+                    "source_system": "manual",
+                    "source_type": "manual",
+                    "source_id": task_id,
+                },
+                "acceptance_criteria": [
+                    {
+                        "id": "ac-1",
+                        "description": "Latest review decision follows reviewed_at rather than record append order.",
+                        "required": True,
+                    }
+                ],
+            },
+            now="2026-04-10T00:00:00Z",
+        )
+        task_envelope["status"] = "completed"
+        self.store.create_task(task_envelope)
+
+        _persist_evaluation_record(
+            self.store,
+            task_id=task_id,
+            evaluation_id="eval-review-request",
+            recorded_at="2026-04-10T00:00:30Z",
+            request={"task_envelope": {"id": task_id}},
+            result={
+                "action": "review_required",
+                "target_status": "in_review",
+                "failure_classification": {
+                    "failure_type": "review_required",
+                    "source": "evaluation",
+                    "reason": "Manual review gate remains active.",
+                    "terminal": False,
+                    "recoverable": False,
+                    "category": "review_required",
+                },
+                "enforcement_result": {
+                    "review_request": {
+                        "review_request_id": "request-1",
+                        "task_id": task_id,
+                        "requested_at": "2026-04-10T00:01:00Z",
+                        "requested_by": "operator-1",
+                        "trigger": "verification",
+                        "summary": "Review request",
+                        "presented_sections": ["verification_summary"],
+                        "allowed_outcomes": ["accept_completion"],
+                        "prior_review_ids": [],
+                        "metadata": {},
+                    }
+                },
+            },
+        )
+        _persist_evaluation_record(
+            self.store,
+            task_id=task_id,
+            evaluation_id="eval-review-decision-newer",
+            recorded_at="2026-04-10T00:01:00Z",
+            request={"task_envelope": {"id": task_id}},
+            result={
+                "action": "transition_applied",
+                "target_status": "completed",
+                "failure_classification": {
+                    "failure_type": "none",
+                    "source": "none",
+                    "reason": "Manual review accepted completion.",
+                    "terminal": False,
+                    "recoverable": False,
+                    "category": "none",
+                },
+                "enforcement_result": {
+                    "action": "transition_applied",
+                    "review_decision": {
+                        "record": {
+                            "review_id": "review-newer",
+                            "review_request_id": "request-1",
+                            "task_id": task_id,
+                            "reviewer": {
+                                "reviewer_id": "operator-1",
+                                "reviewer_name": "Operator",
+                                "authority_role": "operator",
+                            },
+                            "reviewed_at": "2026-04-10T00:10:00Z",
+                            "outcome": "accept_completion",
+                            "reasoning": "Newest decision by reviewed_at",
+                            "authorized_target_status": "completed",
+                            "follow_up_action": "none",
+                            "preserves_history": True,
+                            "basis_refs": [],
+                            "metadata": {},
+                        }
+                    },
+                },
+            },
+        )
+        _persist_evaluation_record(
+            self.store,
+            task_id=task_id,
+            evaluation_id="eval-review-decision-older",
+            recorded_at="2026-04-10T00:02:00Z",
+            request={"task_envelope": {"id": task_id}},
+            result={
+                "action": "transition_applied",
+                "target_status": "completed",
+                "failure_classification": {
+                    "failure_type": "none",
+                    "source": "none",
+                    "reason": "Manual review accepted completion.",
+                    "terminal": False,
+                    "recoverable": False,
+                    "category": "none",
+                },
+                "enforcement_result": {
+                    "action": "transition_applied",
+                    "review_decision": {
+                        "record": {
+                            "review_id": "review-older",
+                            "review_request_id": "request-1",
+                            "task_id": task_id,
+                            "reviewer": {
+                                "reviewer_id": "operator-1",
+                                "reviewer_name": "Operator",
+                                "authority_role": "operator",
+                            },
+                            "reviewed_at": "2026-04-10T00:05:00Z",
+                            "outcome": "accept_completion",
+                            "reasoning": "Older decision by reviewed_at",
+                            "authorized_target_status": "completed",
+                            "follow_up_action": "none",
+                            "preserves_history": True,
+                            "basis_refs": [],
+                            "metadata": {},
+                        }
+                    },
+                },
+            },
+        )
+
+        read_status, read_payload = self.service.get_task_read_model(task_id)
+
+        self.assertEqual(read_status, 200)
+        self.assertEqual(read_payload["task"]["review_summary"]["status"], "resolved")
+        self.assertEqual(read_payload["task"]["review_summary"]["decision_count"], 2)
+        self.assertEqual(
+            read_payload["task"]["review_summary"]["latest_decision"]["review_id"],
+            "review-newer",
+        )
+        self.assertEqual(
+            read_payload["task"]["review_summary"]["latest_effective_decision"]["review_id"],
+            "review-newer",
+        )
 
     def test_read_model_keeps_review_requested_tasks_in_review_until_manual_resolution(self) -> None:
         initial_status, initial_response = self.service.evaluate(_request_payload("review_required"))
