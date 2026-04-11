@@ -374,6 +374,24 @@ def _effective_review_decision_records(records: tuple[EvaluationRecord, ...]) ->
     return decisions
 
 
+def _latest_review_payload(
+    items: list[dict[str, Any]],
+    *,
+    timestamp_field: str,
+    id_field: str,
+) -> dict[str, Any] | None:
+    valid_items = [item for item in items if isinstance(item, dict)]
+    if not valid_items:
+        return None
+    return max(
+        valid_items,
+        key=lambda item: (
+            _parse_iso_timestamp(str(item.get(timestamp_field) or "")),
+            str(item.get(id_field) or ""),
+        ),
+    )
+
+
 def _build_evidence_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
     artifacts = dict(task_envelope.get("artifacts") or {})
     items = list(artifacts.get("items") or [])
@@ -466,9 +484,13 @@ def _build_review_summary(records: tuple[EvaluationRecord, ...]) -> dict[str, An
         "request_count": len(requests),
         "decision_count": len(decisions),
         "resolved_decision_count": len(effective_decisions),
-        "latest_request": requests[-1] if requests else None,
-        "latest_decision": decisions[-1] if decisions else None,
-        "latest_effective_decision": effective_decisions[-1] if effective_decisions else None,
+        "latest_request": _latest_review_payload(requests, timestamp_field="requested_at", id_field="review_request_id"),
+        "latest_decision": _latest_review_payload(decisions, timestamp_field="reviewed_at", id_field="review_id"),
+        "latest_effective_decision": _latest_review_payload(
+            effective_decisions,
+            timestamp_field="reviewed_at",
+            id_field="review_id",
+        ),
         "requests": requests,
         "decisions": decisions,
     }
