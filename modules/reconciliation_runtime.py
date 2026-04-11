@@ -487,7 +487,7 @@ def _context_from_execution_attempt(task_envelope: TaskEnvelope) -> Reconciliati
     if not isinstance(attempts, list):
         return None
 
-    latest_attempt = next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+    latest_attempt = _latest_recorded_execution_attempt(attempts)
     if latest_attempt is None:
         return None
 
@@ -733,6 +733,27 @@ def _current_completion_claim(task_envelope: TaskEnvelope) -> dict[str, Any] | N
     return next((claim for claim in reversed(claims) if isinstance(claim, dict)), None)
 
 
+def _parse_iso_timestamp(value: str | None):
+    from datetime import datetime, timezone
+
+    if not value:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
+def _latest_recorded_execution_attempt(attempts: list[dict[str, Any]]) -> dict[str, Any] | None:
+    valid_attempts = [attempt for attempt in attempts if isinstance(attempt, dict)]
+    if not valid_attempts:
+        return None
+    return max(
+        valid_attempts,
+        key=lambda attempt: (
+            _parse_iso_timestamp(str(attempt.get("recorded_at") or "")),
+            str(attempt.get("attempt_id") or ""),
+        ),
+    )
+
+
 def _current_execution_attempt(task_envelope: TaskEnvelope) -> dict[str, Any] | None:
     execution_metadata = ((task_envelope.get("observability") or {}).get("execution_metadata") or {})
     attempts = execution_metadata.get("execution_attempts") or []
@@ -741,26 +762,36 @@ def _current_execution_attempt(task_envelope: TaskEnvelope) -> dict[str, Any] | 
 
     claim = _current_completion_claim(task_envelope)
     if claim is None:
-        return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+        return _latest_recorded_execution_attempt(attempts)
 
     claim_metadata = claim.get("metadata") if isinstance(claim.get("metadata"), dict) else {}
     attempt_id = _normalize_sha(claim_metadata.get("attempt_id"))
     if attempt_id is not None:
-        for attempt in reversed(attempts):
-            if not isinstance(attempt, dict):
-                continue
-            if _normalize_sha(attempt.get("attempt_id")) == attempt_id:
-                return attempt
+        matching_attempt = _latest_recorded_execution_attempt(
+            [
+                attempt
+                for attempt in attempts
+                if isinstance(attempt, dict)
+                and _normalize_sha(attempt.get("attempt_id")) == attempt_id
+            ]
+        )
+        if matching_attempt is not None:
+            return matching_attempt
 
     claim_id = _normalize_sha(claim.get("claim_id"))
     if claim_id is not None:
-        for attempt in reversed(attempts):
-            if not isinstance(attempt, dict):
-                continue
-            if _normalize_sha(attempt.get("completion_claim_id")) == claim_id:
-                return attempt
+        matching_attempt = _latest_recorded_execution_attempt(
+            [
+                attempt
+                for attempt in attempts
+                if isinstance(attempt, dict)
+                and _normalize_sha(attempt.get("completion_claim_id")) == claim_id
+            ]
+        )
+        if matching_attempt is not None:
+            return matching_attempt
 
-    return next((attempt for attempt in reversed(attempts) if isinstance(attempt, dict)), None)
+    return _latest_recorded_execution_attempt(attempts)
 
 
 def _execution_attempt_count(task_envelope: TaskEnvelope) -> int:
