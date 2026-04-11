@@ -1,17 +1,14 @@
 {
   "task": {
-    "assigned_executor": {
-      "assignment_reason": "Runtime coverage for reconciliation.",
-      "executor_id": "executor-1",
-      "executor_type": "codex"
-    },
+    "assigned_executor": null,
+    "clarification_summary": null,
     "coordination_summary": {
       "linear": {
         "issue_id": "lin-1",
         "issue_key": "HAR-1",
         "project": null,
         "provenance": {
-          "linked_at": "2026-04-06T13:58:02.214163Z",
+          "linked_at": "2026-04-11T16:04:28.921111Z",
           "linked_by": "reevaluation",
           "source": "completion_claim.external_facts"
         },
@@ -29,11 +26,18 @@
     "current_status": "in_review",
     "description": "Exercise post-execution PR reconciliation.",
     "evaluation_summary": {
-      "count": 0,
-      "history": [],
-      "latest_action": null,
-      "latest_recorded_at": null,
-      "latest_target_status": null
+      "count": 1,
+      "history": [
+        {
+          "action": "review_required",
+          "evaluation_id": "6db13384-1c82-4a7e-b66c-f60ff7cb9c50",
+          "recorded_at": "2026-04-11T16:04:28.929710Z",
+          "target_status": "in_review"
+        }
+      ],
+      "latest_action": "review_required",
+      "latest_recorded_at": "2026-04-11T16:04:28.929710Z",
+      "latest_target_status": "in_review"
     },
     "evidence_summary": {
       "artifact_count": 1,
@@ -65,9 +69,9 @@
     },
     "execution_summary": {
       "attempt_count": 1,
-      "failure_state": "clear",
+      "failure_state": "review_required",
       "invalid_attempt_count": 0,
-      "last_failure_type": "none",
+      "last_failure_type": "review_required",
       "latest_artifact_references": [
         {
           "artifact_type": "execution_log",
@@ -106,6 +110,8 @@
                   "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
                 }
               ],
+              "commit_resolution_pending": false,
+              "has_valid_current_run_pull_request_artifact": false,
               "repository": [
                 {
                   "sources": [
@@ -118,16 +124,23 @@
               "used_task_artifact_fallback": false
             },
             "policy": {
+              "allow_commit_resolution_via_reconciliation": true,
+              "allow_missing_commit_artifact_with_verified_pull_request": true,
               "allow_missing_pull_request": true,
+              "reject_closed_or_historical_pull_request": true,
+              "reject_non_numeric_pull_request_url": true,
+              "reject_reserved_shared_branch": true,
               "require_commit": true,
               "require_exact_branch": true,
               "require_repository": true,
               "task_artifact_fallback_requires_single_attempt": true
             },
+            "pull_request_observations": [],
             "reasons": [],
             "retryable": false,
+            "rule_failures": [],
             "status": "valid",
-            "validated_at": "2026-04-06T13:58:02.214283Z",
+            "validated_at": "2026-04-11T16:04:28.921225Z",
             "validated_by": "execution_validation"
           },
           "executor_run_id": "run-claim-kno-183-c"
@@ -157,6 +170,8 @@
               "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
             }
           ],
+          "commit_resolution_pending": false,
+          "has_valid_current_run_pull_request_artifact": false,
           "repository": [
             {
               "sources": [
@@ -169,42 +184,52 @@
           "used_task_artifact_fallback": false
         },
         "policy": {
+          "allow_commit_resolution_via_reconciliation": true,
+          "allow_missing_commit_artifact_with_verified_pull_request": true,
           "allow_missing_pull_request": true,
+          "reject_closed_or_historical_pull_request": true,
+          "reject_non_numeric_pull_request_url": true,
+          "reject_reserved_shared_branch": true,
           "require_commit": true,
           "require_exact_branch": true,
           "require_repository": true,
           "task_artifact_fallback_requires_single_attempt": true
         },
+        "pull_request_observations": [],
         "reasons": [],
         "retryable": false,
+        "rule_failures": [],
         "status": "valid",
-        "validated_at": "2026-04-06T13:58:02.214283Z",
+        "validated_at": "2026-04-11T16:04:28.921225Z",
         "validated_by": "execution_validation"
       },
       "latest_dispatch_origin": null,
       "latest_status": "completed",
       "retry_count": 0,
       "retry_eligible": false,
-      "total_attempts": 0
+      "total_attempts": 1
     },
     "extensions": {},
     "failure_summary": {
-      "failure_source": "none",
-      "failure_type": "none",
+      "evaluation_id": "6db13384-1c82-4a7e-b66c-f60ff7cb9c50",
+      "failure_reason": "Created pull request did not satisfy current-run validation policy after read-back",
+      "failure_source": "evaluation",
+      "failure_type": "review_required",
+      "recorded_at": "2026-04-11T16:04:28.929710Z",
       "recoverable": false,
-      "state": "clear",
+      "state": "review_required",
       "terminal": false
     },
     "lifecycle_history": [
       {
-        "changed_at": "2026-04-06T13:58:02.228915Z",
+        "changed_at": "2026-04-11T16:04:28.923324Z",
         "changed_by": "reconciliation",
         "from_status": "executing",
         "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
         "to_status": "reconciling"
       },
       {
-        "changed_at": "2026-04-06T13:58:02.256624Z",
+        "changed_at": "2026-04-11T16:04:28.927511Z",
         "changed_by": "reconciliation",
         "from_status": "reconciling",
         "reason": "Post-execution reconciliation failed: Created pull request did not satisfy current-run validation policy after read-back",
@@ -220,7 +245,19 @@
       "source_system": "openclaw",
       "source_type": "ingress_request"
     },
-    "reconciliation_summary": null,
+    "reconciliation_summary": {
+      "blocking": true,
+      "mismatch_categories": [
+        "missing_required_artifact"
+      ],
+      "outcome": "review_required",
+      "reasons": [
+        "Created pull request did not satisfy current-run validation policy after read-back"
+      ],
+      "status": "review_required",
+      "task_id": "task-kno-183-scenario-c",
+      "terminal": false
+    },
     "relationships": {
       "child_task_ids": [],
       "dependencies": [],
@@ -230,10 +267,62 @@
       "decision_count": 0,
       "decisions": [],
       "latest_decision": null,
-      "latest_request": null,
-      "request_count": 0,
-      "requests": [],
-      "status": "none"
+      "latest_effective_decision": null,
+      "latest_request": {
+        "allowed_outcomes": [
+          "accept_completion",
+          "keep_blocked",
+          "mark_failed",
+          "authorize_redispatch"
+        ],
+        "metadata": {
+          "reconciliation_attempt_id": "reconciliation-attempt-1",
+          "reconciliation_failure_type": "missing_pr_after_execution"
+        },
+        "presented_sections": [
+          "task_state",
+          "execution",
+          "evidence",
+          "reconciliation"
+        ],
+        "prior_review_ids": [],
+        "requested_at": "2026-04-11T16:04:28.927511Z",
+        "requested_by": "reconciliation",
+        "review_request_id": "review-request-task-kno-183-scenario-c-reconciliation-1",
+        "summary": "Manual review is required because post-execution reconciliation could not prove the reported external state: Created pull request did not satisfy current-run validation policy after read-back",
+        "task_id": "task-kno-183-scenario-c",
+        "trigger": "reconciliation"
+      },
+      "request_count": 1,
+      "requests": [
+        {
+          "allowed_outcomes": [
+            "accept_completion",
+            "keep_blocked",
+            "mark_failed",
+            "authorize_redispatch"
+          ],
+          "metadata": {
+            "reconciliation_attempt_id": "reconciliation-attempt-1",
+            "reconciliation_failure_type": "missing_pr_after_execution"
+          },
+          "presented_sections": [
+            "task_state",
+            "execution",
+            "evidence",
+            "reconciliation"
+          ],
+          "prior_review_ids": [],
+          "requested_at": "2026-04-11T16:04:28.927511Z",
+          "requested_by": "reconciliation",
+          "review_request_id": "review-request-task-kno-183-scenario-c-reconciliation-1",
+          "summary": "Manual review is required because post-execution reconciliation could not prove the reported external state: Created pull request did not satisfy current-run validation policy after read-back",
+          "task_id": "task-kno-183-scenario-c",
+          "trigger": "reconciliation"
+        }
+      ],
+      "resolved_decision_count": 0,
+      "status": "requested"
     },
     "task_id": "task-kno-183-scenario-c",
     "timeline": [
@@ -284,18 +373,6 @@
       },
       {
         "details": {
-          "artifact_type": "execution_log",
-          "location": "stub://attempts/log",
-          "reference_id": "claim-kno-183-c:attempt:log"
-        },
-        "event_id": "task-kno-183-scenario-c:execution_artifact:claim-kno-183-c:attempt:claim-kno-183-c:attempt:log",
-        "event_type": "execution_artifact_attached",
-        "occurred_at": "2026-04-04T12:02:05Z",
-        "source": "codex",
-        "summary": "Execution artifact attached: execution_log"
-      },
-      {
-        "details": {
           "artifact_references": [
             {
               "artifact_type": "execution_log",
@@ -324,6 +401,8 @@
                   "value": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
                 }
               ],
+              "commit_resolution_pending": false,
+              "has_valid_current_run_pull_request_artifact": false,
               "repository": [
                 {
                   "sources": [
@@ -336,16 +415,23 @@
               "used_task_artifact_fallback": false
             },
             "policy": {
+              "allow_commit_resolution_via_reconciliation": true,
+              "allow_missing_commit_artifact_with_verified_pull_request": true,
               "allow_missing_pull_request": true,
+              "reject_closed_or_historical_pull_request": true,
+              "reject_non_numeric_pull_request_url": true,
+              "reject_reserved_shared_branch": true,
               "require_commit": true,
               "require_exact_branch": true,
               "require_repository": true,
               "task_artifact_fallback_requires_single_attempt": true
             },
+            "pull_request_observations": [],
             "reasons": [],
             "retryable": false,
+            "rule_failures": [],
             "status": "valid",
-            "validated_at": "2026-04-06T13:58:02.214283Z",
+            "validated_at": "2026-04-11T16:04:28.921225Z",
             "validated_by": "execution_validation"
           },
           "completion_claim_id": "claim-kno-183-c",
@@ -360,11 +446,23 @@
       },
       {
         "details": {
+          "artifact_type": "execution_log",
+          "location": "stub://attempts/log",
+          "reference_id": "claim-kno-183-c:attempt:log"
+        },
+        "event_id": "task-kno-183-scenario-c:execution_artifact:claim-kno-183-c:attempt:claim-kno-183-c:attempt:log",
+        "event_type": "execution_artifact_attached",
+        "occurred_at": "2026-04-04T12:02:05Z",
+        "source": "codex",
+        "summary": "Execution artifact attached: execution_log"
+      },
+      {
+        "details": {
           "issue_id": "lin-1",
           "issue_key": "HAR-1",
           "project": null,
           "provenance": {
-            "linked_at": "2026-04-06T13:58:02.214163Z",
+            "linked_at": "2026-04-11T16:04:28.921111Z",
             "linked_by": "reevaluation",
             "source": "completion_claim.external_facts"
           },
@@ -380,13 +478,13 @@
         },
         "event_id": "task-kno-183-scenario-c:linear_linkage",
         "event_type": "linear_linkage_recorded",
-        "occurred_at": "2026-04-06T13:58:02.214163Z",
+        "occurred_at": "2026-04-11T16:04:28.921111Z",
         "source": "reevaluation",
         "summary": "Linear linkage recorded"
       },
       {
         "details": {
-          "changed_at": "2026-04-06T13:58:02.228915Z",
+          "changed_at": "2026-04-11T16:04:28.923324Z",
           "changed_by": "reconciliation",
           "from_status": "executing",
           "reason": "Execution completed without a pull request artifact; invoking reconciliation handler.",
@@ -394,23 +492,24 @@
         },
         "event_id": "task-kno-183-scenario-c:status:0",
         "event_type": "status_transition",
-        "occurred_at": "2026-04-06T13:58:02.228915Z",
+        "occurred_at": "2026-04-11T16:04:28.923324Z",
         "source": "reconciliation",
         "summary": "Status changed executing -> reconciling"
       },
       {
         "details": {
           "attempt_id": "reconciliation-attempt-1",
-          "completed_at": "2026-04-06T13:58:02.243501Z",
+          "completed_at": "2026-04-11T16:04:28.925470Z",
           "details": {
             "base_branch": "main",
             "branch_exists": true,
+            "branch_head_commit_sha": null,
             "branch_name": "codex/e2e-test",
             "commit_exists": true,
             "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
             "context_resolution": {
               "conflicts": [],
-              "selected_source": "external_facts",
+              "selected_source": "merged",
               "sources": {
                 "artifacts": {
                   "base_branch": "main",
@@ -441,6 +540,7 @@
             "policy": {
               "allow_closed_pr_match": false,
               "allow_commit_association_match": true,
+              "allow_non_head_commit_association_match": false,
               "allow_open_pr_match": true,
               "escalate_on_ambiguous_match": true,
               "require_exact_branch_match": true,
@@ -607,18 +707,51 @@
           },
           "failure_type": "missing_pr_after_execution",
           "handler_key": "missing_pr_after_execution",
-          "started_at": "2026-04-06T13:58:02.243026Z",
+          "started_at": "2026-04-11T16:04:28.925303Z",
           "status": "failed"
         },
         "event_id": "task-kno-183-scenario-c:reconciliation:reconciliation-attempt-1",
         "event_type": "reconciliation_attempt_recorded",
-        "occurred_at": "2026-04-06T13:58:02.243501Z",
+        "occurred_at": "2026-04-11T16:04:28.925470Z",
         "source": "reconciliation",
         "summary": "Reconciliation attempt: missing_pr_after_execution"
       },
       {
         "details": {
-          "changed_at": "2026-04-06T13:58:02.256624Z",
+          "allowed_outcomes": [
+            "accept_completion",
+            "keep_blocked",
+            "mark_failed",
+            "authorize_redispatch"
+          ],
+          "metadata": {
+            "reconciliation_attempt_id": "reconciliation-attempt-1",
+            "reconciliation_failure_type": "missing_pr_after_execution"
+          },
+          "presented_sections": [
+            "task_state",
+            "execution",
+            "evidence",
+            "reconciliation"
+          ],
+          "prior_review_ids": [],
+          "reason": "Manual review is required because post-execution reconciliation could not prove the reported external state: Created pull request did not satisfy current-run validation policy after read-back",
+          "requested_at": "2026-04-11T16:04:28.927511Z",
+          "requested_by": "reconciliation",
+          "review_request_id": "review-request-task-kno-183-scenario-c-reconciliation-1",
+          "summary": "Manual review is required because post-execution reconciliation could not prove the reported external state: Created pull request did not satisfy current-run validation policy after read-back",
+          "task_id": "task-kno-183-scenario-c",
+          "trigger": "reconciliation"
+        },
+        "event_id": "task-kno-183-scenario-c:review-request:review-request-task-kno-183-scenario-c-reconciliation-1",
+        "event_type": "review_requested",
+        "occurred_at": "2026-04-11T16:04:28.927511Z",
+        "source": "reconciliation",
+        "summary": "Manual review requested"
+      },
+      {
+        "details": {
+          "changed_at": "2026-04-11T16:04:28.927511Z",
           "changed_by": "reconciliation",
           "from_status": "reconciling",
           "reason": "Post-execution reconciliation failed: Created pull request did not satisfy current-run validation policy after read-back",
@@ -626,15 +759,61 @@
         },
         "event_id": "task-kno-183-scenario-c:status:1",
         "event_type": "status_transition",
-        "occurred_at": "2026-04-06T13:58:02.256624Z",
+        "occurred_at": "2026-04-11T16:04:28.927511Z",
         "source": "reconciliation",
         "summary": "Status changed reconciling -> in_review"
+      },
+      {
+        "details": {
+          "accepted_completion": false,
+          "action": "review_required",
+          "evaluation_id": "6db13384-1c82-4a7e-b66c-f60ff7cb9c50",
+          "reasons": [
+            "Created pull request did not satisfy current-run validation policy after read-back"
+          ],
+          "reconciliation_result": {
+            "blocking": true,
+            "mismatch_categories": [
+              "missing_required_artifact"
+            ],
+            "outcome": "review_required",
+            "reasons": [
+              "Created pull request did not satisfy current-run validation policy after read-back"
+            ],
+            "status": "review_required",
+            "task_id": "task-kno-183-scenario-c",
+            "terminal": false
+          },
+          "requires_review": true,
+          "target_status": "in_review",
+          "verification_result": null
+        },
+        "event_id": "task-kno-183-scenario-c:evaluation:6db13384-1c82-4a7e-b66c-f60ff7cb9c50",
+        "event_type": "evaluation_recorded",
+        "occurred_at": "2026-04-11T16:04:28.929710Z",
+        "source": "harness",
+        "summary": "Evaluation recorded: review_required"
+      },
+      {
+        "details": {
+          "failure_reason": "Created pull request did not satisfy current-run validation policy after read-back",
+          "failure_recorded": true,
+          "failure_source": "evaluation",
+          "failure_type": "review_required",
+          "recoverable": false,
+          "terminal": false
+        },
+        "event_id": "task-kno-183-scenario-c:failure:6db13384-1c82-4a7e-b66c-f60ff7cb9c50",
+        "event_type": "failure_recorded",
+        "occurred_at": "2026-04-11T16:04:28.929710Z",
+        "source": "evaluation",
+        "summary": "Failure recorded: review_required"
       }
     ],
     "timestamps": {
       "completed_at": null,
       "created_at": "2026-04-04T12:00:00Z",
-      "updated_at": "2026-04-06T13:58:02.256624Z"
+      "updated_at": "2026-04-11T16:04:28.927511Z"
     },
     "title": "Reconcile missing pull request",
     "verification_summary": null

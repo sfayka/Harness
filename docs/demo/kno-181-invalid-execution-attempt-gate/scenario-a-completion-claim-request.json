@@ -2,32 +2,35 @@
   "request": {
     "completion_claim": {
       "claim_id": "claim-kno-181-a-1",
-      "reported_at": "2026-04-01T08:00:00Z",
-      "reported_by": "stub-executor",
-      "reason": "executor reported completion",
       "metadata": {
         "attempt_id": "attempt-1"
-      }
+      },
+      "reason": "executor reported completion",
+      "reported_at": "2026-04-01T08:00:00Z",
+      "reported_by": "stub-executor"
     },
     "execution_attempt": {
-      "attempt_id": "attempt-kno-181-a-1",
-      "recorded_at": "2026-04-01T08:00:05Z",
-      "status": "succeeded",
-      "reported_by": "stub-executor",
       "artifact_references": [
         {
-          "reference_id": "attempt-kno-181-a-1:log",
-          "artifact_type": "execution_log",
-          "location": "stub://attempts/log"
+          "artifact_type": "commit",
+          "location": "stub://attempts/attempt-kno-181-a-1/commit",
+          "metadata": {
+            "branch_name": "codex/e2e-test"
+          },
+          "reference_id": "attempt-kno-181-a-1:commit"
         }
       ],
+      "attempt_id": "attempt-kno-181-a-1",
       "metadata": {
         "executor_run_id": "stub-run-attempt-kno-181-a-1"
-      }
+      },
+      "recorded_at": "2026-04-01T08:00:05Z",
+      "reported_by": "stub-executor",
+      "status": "succeeded"
     },
     "runtime_facts": {
-      "executor_reported_success": true,
-      "attempt_count": 1
+      "attempt_count": 1,
+      "executor_reported_success": true
     }
   }
 }

@@ -62,7 +62,7 @@ def _scenario_a() -> dict:
         "not_invalid_execution_attempt": "invalid_execution_attempt" not in claim_response,
         "action_transition_applied": claim_response.get("action") == "transition_applied",
         "attempt_resolved": attempt.get("status") == "resolved",
-        "branch_head_recovered": attempt.get("details", {}).get("branch_head_commit_sha") == resolved_sha,
+        "task_blocked_pending_pr_recovery": claim_response.get("task_envelope", {}).get("status") == "blocked",
         "commit_sha_recovered": attempt.get("details", {}).get("commit_sha") == resolved_sha,
         "read_model_http_200": read_initial_status == 200 and read_final_status == 200,
         "timeline_http_200": timeline_initial_status == 200 and timeline_final_status == 200,
@@ -77,6 +77,7 @@ def _scenario_a() -> dict:
             "recovery_attempted": True,
             "recovery_succeeds": True,
             "result": "transition_applied",
+            "task_status": "blocked",
         },
         "actual": {
             "claim_status": claim_status,
@@ -124,8 +125,8 @@ def _scenario_b() -> dict:
     checks = {
         "claim_http_200": claim_status == 200,
         "not_invalid_execution_attempt": "invalid_execution_attempt" not in claim_response,
-        "action_reconciliation_failed": claim_response.get("action") == "reconciliation_failed",
-        "task_in_review": claim_response.get("task_envelope", {}).get("status") == "in_review",
+        "action_reconciliation_terminal_failed": claim_response.get("action") == "reconciliation_terminal_failed",
+        "task_failed": claim_response.get("task_envelope", {}).get("status") == "failed",
         "recovery_attempted": "branch head" in str(attempt.get("details", {}).get("error", "")).lower(),
         "branch_head_unresolved": attempt.get("details", {}).get("branch_head_commit_sha") is None,
         "read_model_http_200": read_initial_status == 200 and read_final_status == 200,
@@ -140,7 +141,8 @@ def _scenario_b() -> dict:
             "invalid_execution_attempt": False,
             "recovery_attempted": True,
             "recovery_succeeds": False,
-            "result": "reconciliation_failed",
+            "result": "reconciliation_terminal_failed",
+            "task_status": "failed",
         },
         "actual": {
             "claim_status": claim_status,
@@ -227,12 +229,20 @@ def _scenario_c() -> dict:
     validation = claim_response.get("invalid_execution_attempt", {}).get("validation", {})
     checks = {
         "claim_http_200": claim_status == 200,
-        "invalid_execution_attempt_present": bool(claim_response.get("invalid_execution_attempt")),
-        "failure_type_invalid_execution_attempt": validation.get("failure_type") == "invalid_execution_attempt",
-        "missing_commit_reason_present": any("missing commit" in reason.lower() for reason in validation.get("reasons", [])),
-        "missing_repository_reason_present": any(
-            "missing repository" in reason.lower() for reason in validation.get("reasons", [])
-        ),
+        "action_contract_violation_failed": claim_response.get("action") == "contract_violation_failed",
+        "task_failed": claim_response.get("task_envelope", {}).get("status") == "failed",
+        "failure_type_contract_violation": claim_response.get("evaluation_record", {})
+        .get("result", {})
+        .get("failure_classification", {})
+        .get("failure_type")
+        == "contract_violation",
+        "missing_branch_reason_present": "missing branch identity"
+        in str(
+            claim_response.get("evaluation_record", {})
+            .get("result", {})
+            .get("failure_classification", {})
+            .get("reason", "")
+        ).lower(),
         "read_model_http_200": read_initial_status == 200 and read_final_status == 200,
         "timeline_http_200": timeline_initial_status == 200 and timeline_final_status == 200,
     }
@@ -242,9 +252,10 @@ def _scenario_c() -> dict:
         "description": "Missing commit SHA with untrustworthy repository/branch identity",
         "construction": "Created an executing task with no trusted repo/branch artifacts; submitted a successful execution attempt without repository, branch, or commit identity.",
         "expected": {
-            "invalid_execution_attempt": True,
+            "invalid_execution_attempt": False,
             "recovery_attempted": False,
-            "result": "blocked_by_invalid_execution_attempt",
+            "result": "contract_violation_failed",
+            "task_status": "failed",
         },
         "actual": {
             "claim_status": claim_status,

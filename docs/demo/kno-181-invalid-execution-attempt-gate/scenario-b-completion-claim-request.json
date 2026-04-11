@@ -2,40 +2,40 @@
   "request": {
     "completion_claim": {
       "claim_id": "claim-kno-181-b-1",
-      "reported_at": "2026-04-01T08:00:00Z",
-      "reported_by": "stub-executor",
-      "reason": "executor reported completion",
       "metadata": {
         "attempt_id": "attempt-1"
-      }
+      },
+      "reason": "executor reported completion",
+      "reported_at": "2026-04-01T08:00:00Z",
+      "reported_by": "stub-executor"
     },
     "execution_attempt": {
-      "attempt_id": "attempt-kno-181-b-1",
-      "recorded_at": "2026-04-01T08:00:05Z",
-      "status": "succeeded",
-      "reported_by": "stub-executor",
       "artifact_references": [
         {
-          "reference_id": "attempt-kno-181-b-1:commit",
           "artifact_type": "commit",
-          "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
           "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+          "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
           "metadata": {
-            "repository_host": "github.com",
-            "repository_owner": "KnoxAnalytics",
-            "repository_name": "HARNESS-DRYRUN",
             "branch_name": "codex/e2e-test",
-            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
-          }
+            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+            "repository_host": "github.com",
+            "repository_name": "HARNESS-DRYRUN",
+            "repository_owner": "KnoxAnalytics"
+          },
+          "reference_id": "attempt-kno-181-b-1:commit"
         }
       ],
+      "attempt_id": "attempt-kno-181-b-1",
       "metadata": {
         "executor_run_id": "stub-run-attempt-kno-181-b-1"
-      }
+      },
+      "recorded_at": "2026-04-01T08:00:05Z",
+      "reported_by": "stub-executor",
+      "status": "succeeded"
     },
     "runtime_facts": {
-      "executor_reported_success": true,
-      "attempt_count": 1
+      "attempt_count": 1,
+      "executor_reported_success": true
     }
   }
 }

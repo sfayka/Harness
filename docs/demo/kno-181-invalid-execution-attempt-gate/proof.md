@@ -5,17 +5,18 @@
 - Repository: `sfayka/Harness`
 - Validation mode: **local controlled run** using `HarnessApiService` with a deterministic in-memory/file-backed harness store.
 - Hosted execution: **not used** in this run. No hosted proof is claimed.
+- Generator: `PYTHONPATH=. python docs/demo/kno-181-invalid-execution-attempt-gate/generate_proof_bundle.py`
 - Goal: prove the boundary between:
   1. `invalid_execution_attempt` (no attributable current-run repository/branch/commit proof), and
   2. `missing_pr_after_execution` (real attributable run exists, PR proof still missing).
 
-A deterministic GitHub reconciliation gateway stub was used for reproducibility. It confirms branch/commit existence but intentionally fails PR creation so Scenario B remains in the missing-PR boundary and does not mutate into a created PR artifact.
+A deterministic GitHub reconciliation gateway stub was used for reproducibility. It confirms branch/commit existence but intentionally fails PR creation so Scenario B remains in the missing-PR boundary and requires explicit manual review instead of mutating into a created PR artifact.
 
 ## Scenario A — Invalid execution attempt
 
 ### Construction
 
-- Created a task with assigned code executor.
+- Seeded a controlled local task with an assigned code executor.
 - Submitted a completion claim with a successful execution attempt that only provided an execution log artifact.
 - **No repository / branch / commit current-run proof** was included.
 - Set `HARNESS_INVALID_EXECUTION_RETRY_BUDGET=1` to force a bounded retry and terminal outcome for validation.
@@ -59,7 +60,7 @@ Artifacts:
 
 ### Construction
 
-- Created a task with assigned code executor.
+- Seeded a controlled local task with an assigned code executor.
 - Submitted a completion claim with a successful execution attempt that includes explicit current-run code identity:
   - repository host/owner/name,
   - branch name,
@@ -95,6 +96,8 @@ Artifacts:
 - Reconciliation failure type: `missing_pr_after_execution`.
 - Latest execution attempt validation: `status=valid`.
 - Task moved to `in_review` (manual review required after reconciliation failure).
+- Final read-model now shows `review_summary.status=requested`.
+- Final read-model hides the stale `assigned_executor` while the review gate remains active.
 - No `invalid_execution_attempt` response block appears.
 - Timeline captures reconciliation attempt/failure events for missing PR.
 
