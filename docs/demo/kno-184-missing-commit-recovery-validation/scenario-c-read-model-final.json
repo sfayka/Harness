@@ -1,39 +1,30 @@
 {
   "task": {
-    "assigned_executor": {
-      "assignment_reason": "Validate invalid execution attempt boundary.",
-      "executor_id": "executor-kno-184-scenario-c",
-      "executor_type": "codex"
-    },
+    "assigned_executor": null,
+    "clarification_summary": null,
     "coordination_summary": {
       "linear": null
     },
     "current_status": "failed",
     "description": "Validate invalid execution attempt boundary remains enforced.",
     "evaluation_summary": {
-      "count": 3,
+      "count": 2,
       "history": [
         {
           "action": "no_op",
-          "evaluation_id": "a69bc9e7-831c-426e-b788-28057dbdeb15",
-          "recorded_at": "2026-04-06T15:28:46.344300Z",
-          "target_status": null
-        },
-        {
-          "action": "no_op",
-          "evaluation_id": "8b6bcab3-3de1-4c40-9063-1c3e176e1cbd",
-          "recorded_at": "2026-04-06T15:28:46.351263Z",
+          "evaluation_id": "8a5f3d70-fd9c-4eb5-a82c-4d62a30d6fee",
+          "recorded_at": "2026-04-11T16:04:28.933276Z",
           "target_status": null
         },
         {
           "action": "transition_applied",
-          "evaluation_id": "4331a2a9-241f-4407-889d-0d7f5910ec84",
-          "recorded_at": "2026-04-06T15:28:46.422509Z",
+          "evaluation_id": "6ca68aac-1160-4cef-82e9-4cca94a995c8",
+          "recorded_at": "2026-04-11T16:04:28.936965Z",
           "target_status": "failed"
         }
       ],
       "latest_action": "transition_applied",
-      "latest_recorded_at": "2026-04-06T15:28:46.422509Z",
+      "latest_recorded_at": "2026-04-11T16:04:28.936965Z",
       "latest_target_status": "failed"
     },
     "evidence_summary": {
@@ -52,146 +43,114 @@
       "verification_status_counts": {}
     },
     "execution_summary": {
-      "attempt_count": 2,
+      "attempt_count": 1,
       "failure_state": "terminal",
-      "invalid_attempt_count": 2,
-      "last_failure_type": "invalid_execution_attempt",
-      "latest_artifact_references": [
-        {
-          "artifact_type": "execution_log",
-          "commit_sha": null,
-          "external_id": null,
-          "location": "stub://executions/task-kno-184-scenario-c/attempt-2/log",
-          "metadata": {
-            "advisory": true
-          },
-          "reference_id": "attempt-2:log"
-        }
-      ],
+      "invalid_attempt_count": 0,
+      "last_failure_type": "contract_violation",
+      "latest_artifact_references": [],
       "latest_attempt": {
-        "artifact_references": [
-          {
-            "artifact_type": "execution_log",
-            "commit_sha": null,
-            "external_id": null,
-            "location": "stub://executions/task-kno-184-scenario-c/attempt-2/log",
-            "metadata": {
-              "advisory": true
-            },
-            "reference_id": "attempt-2:log"
-          }
-        ],
-        "attempt_id": "attempt-2",
-        "completion_claim_id": "attempt-2:claim",
+        "artifact_references": [],
+        "attempt_id": "attempt-kno-184-scenario-c",
+        "completion_claim_id": "claim-kno-184-scenario-c",
         "metadata": {
           "attempt_validation": {
             "context_observations": {
               "commit_resolution_pending": false,
+              "has_valid_current_run_pull_request_artifact": false,
               "used_task_artifact_fallback": false
             },
-            "failure_type": "invalid_execution_attempt",
+            "failure_type": "contract_violation",
             "policy": {
               "allow_commit_resolution_via_reconciliation": true,
+              "allow_missing_commit_artifact_with_verified_pull_request": true,
               "allow_missing_pull_request": true,
+              "reject_closed_or_historical_pull_request": true,
+              "reject_non_numeric_pull_request_url": true,
+              "reject_reserved_shared_branch": true,
               "require_commit": true,
               "require_exact_branch": true,
               "require_repository": true,
               "task_artifact_fallback_requires_single_attempt": true
             },
+            "pull_request_observations": [],
             "reasons": [
-              "Successful execution attempt is missing repository identity for the current run.",
-              "Successful execution attempt is missing branch identity for the current run.",
-              "Successful execution attempt is missing commit SHA for the current run."
+              "Successful execution attempt is missing branch identity for the current run."
             ],
-            "retryable": true,
+            "retryable": false,
+            "rule_failures": [
+              {
+                "message": "Successful execution attempt is missing branch identity for the current run.",
+                "rule": "missing_branch_identity"
+              }
+            ],
             "status": "invalid",
-            "validated_at": "2026-04-06T15:28:46.349648Z",
+            "validated_at": "2026-04-11T16:04:28.933135Z",
             "validated_by": "execution_validation"
           },
-          "dispatch_at": "2026-04-06T15:28:46.348588Z",
-          "dispatch_id": "dispatch:task-kno-184-scenario-c:2",
-          "dispatch_mode": "automatic",
-          "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
-          "dispatch_trigger": "invalid_execution_attempt_retry",
-          "execution_events": [
-            {
-              "event_id": "attempt-2:started",
-              "event_type": "execution_started",
-              "metadata": {
-                "adapter": "stub-executor",
-                "mode": "stub"
-              },
-              "occurred_at": "2026-04-06T15:28:46.348407Z",
-              "source_system": "stub-executor"
-            },
-            {
-              "event_id": "attempt-2:completed",
-              "event_type": "execution_succeeded",
-              "metadata": {
-                "adapter": "stub-executor",
-                "executor_run_id": "stub-run-attempt-2"
-              },
-              "occurred_at": "2026-04-06T15:28:46.348422Z",
-              "source_system": "stub-executor"
-            }
-          ],
-          "execution_parameters": {
-            "prior_invalid_attempt_id": null
-          },
-          "executor": "codex"
+          "executor_run_id": "run-kno-184-scenario-c"
         },
-        "recorded_at": "2026-04-06T15:28:46.348583Z",
+        "recorded_at": "2026-04-06T00:01:01Z",
         "reevaluation": {},
         "reported_by": "codex",
-        "status": "completed"
+        "status": "succeeded"
       },
       "latest_attempt_validation": {
         "context_observations": {
           "commit_resolution_pending": false,
+          "has_valid_current_run_pull_request_artifact": false,
           "used_task_artifact_fallback": false
         },
-        "failure_type": "invalid_execution_attempt",
+        "failure_type": "contract_violation",
         "policy": {
           "allow_commit_resolution_via_reconciliation": true,
+          "allow_missing_commit_artifact_with_verified_pull_request": true,
           "allow_missing_pull_request": true,
+          "reject_closed_or_historical_pull_request": true,
+          "reject_non_numeric_pull_request_url": true,
+          "reject_reserved_shared_branch": true,
           "require_commit": true,
           "require_exact_branch": true,
           "require_repository": true,
           "task_artifact_fallback_requires_single_attempt": true
         },
+        "pull_request_observations": [],
         "reasons": [
-          "Successful execution attempt is missing repository identity for the current run.",
-          "Successful execution attempt is missing branch identity for the current run.",
-          "Successful execution attempt is missing commit SHA for the current run."
+          "Successful execution attempt is missing branch identity for the current run."
         ],
-        "retryable": true,
+        "retryable": false,
+        "rule_failures": [
+          {
+            "message": "Successful execution attempt is missing branch identity for the current run.",
+            "rule": "missing_branch_identity"
+          }
+        ],
         "status": "invalid",
-        "validated_at": "2026-04-06T15:28:46.349648Z",
+        "validated_at": "2026-04-11T16:04:28.933135Z",
         "validated_by": "execution_validation"
       },
-      "latest_dispatch_origin": "automatic",
-      "latest_status": "completed",
-      "retry_count": 1,
+      "latest_dispatch_origin": null,
+      "latest_status": "succeeded",
+      "retry_count": 0,
       "retry_eligible": false,
-      "total_attempts": 3
+      "total_attempts": 2
     },
     "extensions": {},
     "failure_summary": {
-      "evaluation_id": "4331a2a9-241f-4407-889d-0d7f5910ec84",
-      "failure_reason": "Successful execution attempt is missing repository identity for the current run.",
+      "evaluation_id": "6ca68aac-1160-4cef-82e9-4cca94a995c8",
+      "failure_reason": "Successful execution attempt is missing branch identity for the current run.",
       "failure_source": "executor",
-      "failure_type": "invalid_execution_attempt",
-      "recorded_at": "2026-04-06T15:28:46.422509Z",
+      "failure_type": "contract_violation",
+      "recorded_at": "2026-04-11T16:04:28.936965Z",
       "recoverable": false,
-      "state": "failed",
+      "state": "terminal",
       "terminal": true
     },
     "lifecycle_history": [
       {
-        "changed_at": "2026-04-06T15:28:46.389386Z",
+        "changed_at": "2026-04-11T16:04:28.935026Z",
         "changed_by": "verification",
         "from_status": "executing",
-        "reason": "Successful execution attempt is missing repository identity for the current run.",
+        "reason": "Successful execution attempt is missing branch identity for the current run.",
         "to_status": "failed"
       }
     ],
@@ -214,9 +173,11 @@
       "decision_count": 0,
       "decisions": [],
       "latest_decision": null,
+      "latest_effective_decision": null,
       "latest_request": null,
       "request_count": 0,
       "requests": [],
+      "resolved_decision_count": 0,
       "status": "none"
     },
     "task_id": "task-kno-184-scenario-c",
@@ -247,25 +208,35 @@
           "attempt_validation": {
             "context_observations": {
               "commit_resolution_pending": false,
+              "has_valid_current_run_pull_request_artifact": false,
               "used_task_artifact_fallback": false
             },
-            "failure_type": "invalid_execution_attempt",
+            "failure_type": "contract_violation",
             "policy": {
               "allow_commit_resolution_via_reconciliation": true,
+              "allow_missing_commit_artifact_with_verified_pull_request": true,
               "allow_missing_pull_request": true,
+              "reject_closed_or_historical_pull_request": true,
+              "reject_non_numeric_pull_request_url": true,
+              "reject_reserved_shared_branch": true,
               "require_commit": true,
               "require_exact_branch": true,
               "require_repository": true,
               "task_artifact_fallback_requires_single_attempt": true
             },
+            "pull_request_observations": [],
             "reasons": [
-              "Successful execution attempt is missing repository identity for the current run.",
-              "Successful execution attempt is missing branch identity for the current run.",
-              "Successful execution attempt is missing commit SHA for the current run."
+              "Successful execution attempt is missing branch identity for the current run."
             ],
-            "retryable": true,
+            "retryable": false,
+            "rule_failures": [
+              {
+                "message": "Successful execution attempt is missing branch identity for the current run.",
+                "rule": "missing_branch_identity"
+              }
+            ],
             "status": "invalid",
-            "validated_at": "2026-04-06T15:28:46.343141Z",
+            "validated_at": "2026-04-11T16:04:28.933135Z",
             "validated_by": "execution_validation"
           },
           "completion_claim_id": "claim-kno-184-scenario-c",
@@ -280,256 +251,49 @@
       },
       {
         "details": {
-          "attempt_number": 1,
-          "is_final_attempt": true,
-          "max_retries": 1,
-          "scheduled_at": "2026-04-06T15:28:46.344064Z",
-          "triggered_by_category": "invalid_execution_attempt",
-          "triggered_by_reason": "Successful execution attempt is missing repository identity for the current run."
-        },
-        "event_id": "task-kno-184-scenario-c:retry-scheduled:a69bc9e7-831c-426e-b788-28057dbdeb15",
-        "event_type": "retry_scheduled",
-        "occurred_at": "2026-04-06T15:28:46.344064Z",
-        "source": "harness",
-        "summary": "Retry scheduled: attempt 1"
-      },
-      {
-        "details": {
-          "attempt_number": 1,
-          "is_final_attempt": true,
-          "max_retries": 1,
-          "scheduled_at": "2026-04-06T15:28:46.344064Z",
-          "triggered_by_category": "invalid_execution_attempt",
-          "triggered_by_reason": "Successful execution attempt is missing repository identity for the current run."
-        },
-        "event_id": "task-kno-184-scenario-c:retry-started:a69bc9e7-831c-426e-b788-28057dbdeb15",
-        "event_type": "retry_attempt_started",
-        "occurred_at": "2026-04-06T15:28:46.344064Z",
-        "source": "harness",
-        "summary": "Retry attempt started: attempt 1"
-      },
-      {
-        "details": {
           "accepted_completion": false,
           "action": "no_op",
-          "evaluation_id": "a69bc9e7-831c-426e-b788-28057dbdeb15",
+          "evaluation_id": "8a5f3d70-fd9c-4eb5-a82c-4d62a30d6fee",
           "reasons": [
-            "Successful execution attempt is missing repository identity for the current run."
+            "Successful execution attempt is missing branch identity for the current run."
           ],
           "reconciliation_result": null,
           "requires_review": false,
           "target_status": null,
           "verification_result": null
         },
-        "event_id": "task-kno-184-scenario-c:evaluation:a69bc9e7-831c-426e-b788-28057dbdeb15",
+        "event_id": "task-kno-184-scenario-c:evaluation:8a5f3d70-fd9c-4eb5-a82c-4d62a30d6fee",
         "event_type": "evaluation_recorded",
-        "occurred_at": "2026-04-06T15:28:46.344300Z",
+        "occurred_at": "2026-04-11T16:04:28.933276Z",
         "source": "harness",
         "summary": "Evaluation recorded: no_op"
       },
       {
         "details": {
-          "failure_reason": "Successful execution attempt is missing repository identity for the current run.",
+          "failure_reason": "Successful execution attempt is missing branch identity for the current run.",
           "failure_recorded": true,
           "failure_source": "executor",
-          "failure_type": "invalid_execution_attempt",
-          "recoverable": true,
-          "terminal": false
-        },
-        "event_id": "task-kno-184-scenario-c:failure:a69bc9e7-831c-426e-b788-28057dbdeb15",
-        "event_type": "failure_recorded",
-        "occurred_at": "2026-04-06T15:28:46.344300Z",
-        "source": "executor",
-        "summary": "Failure recorded: invalid_execution_attempt"
-      },
-      {
-        "details": {
-          "action": "no_op",
-          "attempt_number": 1,
-          "failure_classification": {
-            "category": "invalid_execution_attempt",
-            "failure_type": "invalid_execution_attempt",
-            "reason": "Successful execution attempt is missing repository identity for the current run.",
-            "recoverable": true,
-            "retryable": true,
-            "source": "executor",
-            "terminal": false
-          },
-          "is_final_attempt": true,
-          "max_retries": 1,
-          "scheduled_at": "2026-04-06T15:28:46.344064Z",
-          "triggered_by_category": "invalid_execution_attempt",
-          "triggered_by_reason": "Successful execution attempt is missing repository identity for the current run."
-        },
-        "event_id": "task-kno-184-scenario-c:retry-completed:a69bc9e7-831c-426e-b788-28057dbdeb15",
-        "event_type": "retry_attempt_completed",
-        "occurred_at": "2026-04-06T15:28:46.344300Z",
-        "source": "harness",
-        "summary": "Retry attempt completed: attempt 1"
-      },
-      {
-        "details": {
-          "event_id": "attempt-2:started",
-          "event_type": "execution_started",
-          "metadata": {
-            "adapter": "stub-executor",
-            "mode": "stub"
-          },
-          "occurred_at": "2026-04-06T15:28:46.348407Z",
-          "source_system": "stub-executor"
-        },
-        "event_id": "task-kno-184-scenario-c:execution_event:attempt-2:0",
-        "event_type": "execution_event_recorded",
-        "occurred_at": "2026-04-06T15:28:46.348407Z",
-        "source": "codex",
-        "summary": "Execution event: execution_started"
-      },
-      {
-        "details": {
-          "event_id": "attempt-2:completed",
-          "event_type": "execution_succeeded",
-          "metadata": {
-            "adapter": "stub-executor",
-            "executor_run_id": "stub-run-attempt-2"
-          },
-          "occurred_at": "2026-04-06T15:28:46.348422Z",
-          "source_system": "stub-executor"
-        },
-        "event_id": "task-kno-184-scenario-c:execution_event:attempt-2:1",
-        "event_type": "execution_event_recorded",
-        "occurred_at": "2026-04-06T15:28:46.348422Z",
-        "source": "codex",
-        "summary": "Execution event: execution_succeeded"
-      },
-      {
-        "details": {
-          "artifact_type": "execution_log",
-          "commit_sha": null,
-          "external_id": null,
-          "location": "stub://executions/task-kno-184-scenario-c/attempt-2/log",
-          "metadata": {
-            "advisory": true
-          },
-          "reference_id": "attempt-2:log"
-        },
-        "event_id": "task-kno-184-scenario-c:execution_artifact:attempt-2:attempt-2:log",
-        "event_type": "execution_artifact_attached",
-        "occurred_at": "2026-04-06T15:28:46.348583Z",
-        "source": "codex",
-        "summary": "Execution artifact attached: execution_log"
-      },
-      {
-        "details": {
-          "artifact_references": [
-            {
-              "artifact_type": "execution_log",
-              "commit_sha": null,
-              "external_id": null,
-              "location": "stub://executions/task-kno-184-scenario-c/attempt-2/log",
-              "metadata": {
-                "advisory": true
-              },
-              "reference_id": "attempt-2:log"
-            }
-          ],
-          "attempt_id": "attempt-2",
-          "attempt_validation": {
-            "context_observations": {
-              "commit_resolution_pending": false,
-              "used_task_artifact_fallback": false
-            },
-            "failure_type": "invalid_execution_attempt",
-            "policy": {
-              "allow_commit_resolution_via_reconciliation": true,
-              "allow_missing_pull_request": true,
-              "require_commit": true,
-              "require_exact_branch": true,
-              "require_repository": true,
-              "task_artifact_fallback_requires_single_attempt": true
-            },
-            "reasons": [
-              "Successful execution attempt is missing repository identity for the current run.",
-              "Successful execution attempt is missing branch identity for the current run.",
-              "Successful execution attempt is missing commit SHA for the current run."
-            ],
-            "retryable": true,
-            "status": "invalid",
-            "validated_at": "2026-04-06T15:28:46.349648Z",
-            "validated_by": "execution_validation"
-          },
-          "completion_claim_id": "attempt-2:claim",
-          "reevaluation": {},
-          "status": "completed"
-        },
-        "event_id": "task-kno-184-scenario-c:execution_attempt:attempt-2",
-        "event_type": "execution_attempt_recorded",
-        "occurred_at": "2026-04-06T15:28:46.348583Z",
-        "source": "codex",
-        "summary": "Execution attempt recorded: attempt-2"
-      },
-      {
-        "details": {
-          "attempt_id": "attempt-2",
-          "dispatch_id": "dispatch:task-kno-184-scenario-c:2",
-          "dispatch_mode": "automatic",
-          "dispatch_reason": "Successful execution attempt is missing repository identity for the current run.",
-          "dispatch_trigger": "invalid_execution_attempt_retry",
-          "execution_parameters": {
-            "prior_invalid_attempt_id": null
-          },
-          "executor": "codex"
-        },
-        "event_id": "task-kno-184-scenario-c:dispatch:dispatch:task-kno-184-scenario-c:2",
-        "event_type": "task_dispatched",
-        "occurred_at": "2026-04-06T15:28:46.348588Z",
-        "source": "codex",
-        "summary": "Task dispatched: attempt-2"
-      },
-      {
-        "details": {
-          "accepted_completion": false,
-          "action": "no_op",
-          "evaluation_id": "8b6bcab3-3de1-4c40-9063-1c3e176e1cbd",
-          "reasons": [
-            "Successful execution attempt is missing repository identity for the current run."
-          ],
-          "reconciliation_result": null,
-          "requires_review": false,
-          "target_status": null,
-          "verification_result": null
-        },
-        "event_id": "task-kno-184-scenario-c:evaluation:8b6bcab3-3de1-4c40-9063-1c3e176e1cbd",
-        "event_type": "evaluation_recorded",
-        "occurred_at": "2026-04-06T15:28:46.351263Z",
-        "source": "harness",
-        "summary": "Evaluation recorded: no_op"
-      },
-      {
-        "details": {
-          "failure_reason": "Successful execution attempt is missing repository identity for the current run.",
-          "failure_recorded": true,
-          "failure_source": "executor",
-          "failure_type": "invalid_execution_attempt",
+          "failure_type": "contract_violation",
           "recoverable": false,
           "terminal": true
         },
-        "event_id": "task-kno-184-scenario-c:failure:8b6bcab3-3de1-4c40-9063-1c3e176e1cbd",
+        "event_id": "task-kno-184-scenario-c:failure:8a5f3d70-fd9c-4eb5-a82c-4d62a30d6fee",
         "event_type": "failure_recorded",
-        "occurred_at": "2026-04-06T15:28:46.351263Z",
+        "occurred_at": "2026-04-11T16:04:28.933276Z",
         "source": "executor",
-        "summary": "Failure recorded: invalid_execution_attempt"
+        "summary": "Failure recorded: contract_violation"
       },
       {
         "details": {
-          "changed_at": "2026-04-06T15:28:46.389386Z",
+          "changed_at": "2026-04-11T16:04:28.935026Z",
           "changed_by": "verification",
           "from_status": "executing",
-          "reason": "Successful execution attempt is missing repository identity for the current run.",
+          "reason": "Successful execution attempt is missing branch identity for the current run.",
           "to_status": "failed"
         },
         "event_id": "task-kno-184-scenario-c:status:0",
         "event_type": "status_transition",
-        "occurred_at": "2026-04-06T15:28:46.389386Z",
+        "occurred_at": "2026-04-11T16:04:28.935026Z",
         "source": "verification",
         "summary": "Status changed executing -> failed"
       },
@@ -537,41 +301,41 @@
         "details": {
           "accepted_completion": false,
           "action": "transition_applied",
-          "evaluation_id": "4331a2a9-241f-4407-889d-0d7f5910ec84",
+          "evaluation_id": "6ca68aac-1160-4cef-82e9-4cca94a995c8",
           "reasons": [
-            "Successful execution attempt is missing repository identity for the current run."
+            "Successful execution attempt is missing branch identity for the current run."
           ],
           "reconciliation_result": null,
           "requires_review": false,
           "target_status": "failed",
           "verification_result": null
         },
-        "event_id": "task-kno-184-scenario-c:evaluation:4331a2a9-241f-4407-889d-0d7f5910ec84",
+        "event_id": "task-kno-184-scenario-c:evaluation:6ca68aac-1160-4cef-82e9-4cca94a995c8",
         "event_type": "evaluation_recorded",
-        "occurred_at": "2026-04-06T15:28:46.422509Z",
+        "occurred_at": "2026-04-11T16:04:28.936965Z",
         "source": "harness",
         "summary": "Evaluation recorded: transition_applied"
       },
       {
         "details": {
-          "failure_reason": "Successful execution attempt is missing repository identity for the current run.",
+          "failure_reason": "Successful execution attempt is missing branch identity for the current run.",
           "failure_recorded": true,
           "failure_source": "executor",
-          "failure_type": "invalid_execution_attempt",
+          "failure_type": "contract_violation",
           "recoverable": false,
           "terminal": true
         },
-        "event_id": "task-kno-184-scenario-c:failure:4331a2a9-241f-4407-889d-0d7f5910ec84",
+        "event_id": "task-kno-184-scenario-c:failure:6ca68aac-1160-4cef-82e9-4cca94a995c8",
         "event_type": "failure_recorded",
-        "occurred_at": "2026-04-06T15:28:46.422509Z",
+        "occurred_at": "2026-04-11T16:04:28.936965Z",
         "source": "executor",
-        "summary": "Failure recorded: invalid_execution_attempt"
+        "summary": "Failure recorded: contract_violation"
       }
     ],
     "timestamps": {
       "completed_at": null,
       "created_at": "2026-04-06T00:00:00Z",
-      "updated_at": "2026-04-06T15:28:46.389386Z"
+      "updated_at": "2026-04-11T16:04:28.935026Z"
     },
     "title": "KNO-184 scenario C validation",
     "verification_summary": null

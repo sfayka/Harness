@@ -5,6 +5,7 @@
       "executor_id": "executor-1",
       "executor_type": "codex"
     },
+    "clarification_summary": null,
     "coordination_summary": {
       "linear": null
     },
@@ -74,9 +75,11 @@
       "decision_count": 0,
       "decisions": [],
       "latest_decision": null,
+      "latest_effective_decision": null,
       "latest_request": null,
       "request_count": 0,
       "requests": [],
+      "resolved_decision_count": 0,
       "status": "none"
     },
     "task_id": "task-kno-184-scenario-a",

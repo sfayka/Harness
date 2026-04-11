@@ -1,0 +1,39 @@
+{
+  "execution_mode": "local-controlled",
+  "hosted_validation": "not_performed",
+  "overall": {
+    "all_scenarios_passed": true,
+    "conclusion": "validated"
+  },
+  "proof_name": "kno-181-invalid-execution-attempt-gate",
+  "scenarios": [
+    {
+      "all_checks_passed": true,
+      "checks": {
+        "action_contract_violation_failed": true,
+        "claim_http_200": true,
+        "history_http_200": true,
+        "invalid_execution_attempt_present": true,
+        "read_model_http_200": true,
+        "task_failed": true,
+        "timeline_http_200": true
+      },
+      "scenario": "a"
+    },
+    {
+      "all_checks_passed": true,
+      "checks": {
+        "action_reconciliation_failed": true,
+        "claim_http_200": true,
+        "history_http_200": true,
+        "read_model_assignment_hidden": true,
+        "read_model_http_200": true,
+        "read_model_review_requested": true,
+        "review_request_present": true,
+        "task_in_review": true,
+        "timeline_http_200": true
+      },
+      "scenario": "b"
+    }
+  ]
+}

@@ -1,76 +1,47 @@
 {
   "request": {
+    "assigned_executor": {
+      "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof.",
+      "executor_id": "executor-kno-181-a",
+      "executor_type": "codex"
+    },
     "task_envelope": {
-      "id": "task-kno-181-scenario-a",
-      "title": "KNO-181 task-kno-181-scenario-a",
-      "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
-      "origin": {
-        "source_system": "openclaw",
-        "source_type": "ingress_request",
-        "source_id": "req-happy-overlay-1",
-        "ingress_id": null,
-        "ingress_name": null,
-        "requested_by": null
-      },
-      "status": "intake_ready",
-      "timestamps": {
-        "created_at": "2026-03-31T14:30:00Z",
-        "updated_at": "2026-03-31T14:30:00Z",
-        "completed_at": null
-      },
-      "status_history": [],
-      "objective": {
-        "summary": "Exercise /evaluate with top-level evidence overlays.",
-        "deliverable_type": "unspecified",
-        "success_signal": "Task satisfies declared acceptance criteria."
-      },
-      "constraints": [],
       "acceptance_criteria": [
         {
-          "id": "ac-1",
           "description": "Harness accepts a fully reconciled, evidence-backed completion claim.",
+          "id": "ac-1",
           "required": true
         }
       ],
-      "parent_task_id": null,
-      "child_task_ids": [],
-      "dependencies": [],
-      "assigned_executor": null,
-      "required_capabilities": [],
-      "priority": "normal",
       "artifacts": {
-        "items": [],
         "completion_evidence": {
+          "notes": null,
           "policy": "deferred",
-          "status": "deferred",
           "required_artifact_types": [],
+          "status": "deferred",
           "validated_artifact_ids": [],
-          "validation_method": "deferred",
           "validated_at": null,
-          "validator": null,
-          "notes": null
-        }
+          "validation_method": "deferred",
+          "validator": null
+        },
+        "items": []
       },
+      "assigned_executor": null,
+      "child_task_ids": [],
+      "constraints": [],
       "coordination": {
         "linear": null
       },
-      "reconciliation": {
-        "status": "not_required",
-        "active_failure_type": null,
-        "attempts": [],
-        "last_attempt_id": null,
-        "last_pr_url": null,
-        "last_error": null,
-        "resolved_at": null,
-        "failed_at": null
+      "dependencies": [],
+      "description": "Scenario A: invalid execution attempt without current-run code identity proof.",
+      "id": "task-kno-181-scenario-a",
+      "objective": {
+        "deliverable_type": "unspecified",
+        "success_signal": "Task satisfies declared acceptance criteria.",
+        "summary": "Scenario A: invalid execution attempt without current-run code identity proof."
       },
       "observability": {
         "errors": [],
-        "retries": {
-          "attempt_count": 0,
-          "max_attempts": 0,
-          "last_retry_at": null
-        },
         "execution_metadata": {
           "schema_required_deferred_fields": [
             "parent_task_id",
@@ -83,13 +54,42 @@
             "artifacts.completion_evidence",
             "observability"
           ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
         }
-      }
-    },
-    "assigned_executor": {
-      "executor_type": "codex",
-      "executor_id": "executor-kno-181-a",
-      "assignment_reason": "Scenario A: invalid execution attempt without current-run code identity proof."
+      },
+      "origin": {
+        "ingress_id": null,
+        "ingress_name": null,
+        "requested_by": null,
+        "source_id": "req-happy-overlay-1",
+        "source_system": "openclaw",
+        "source_type": "ingress_request"
+      },
+      "parent_task_id": null,
+      "priority": "normal",
+      "reconciliation": {
+        "active_failure_type": null,
+        "attempts": [],
+        "failed_at": null,
+        "last_attempt_id": null,
+        "last_error": null,
+        "last_pr_url": null,
+        "resolved_at": null,
+        "status": "not_required"
+      },
+      "required_capabilities": [],
+      "status": "intake_ready",
+      "status_history": [],
+      "timestamps": {
+        "completed_at": null,
+        "created_at": "2026-03-31T14:30:00Z",
+        "updated_at": "2026-03-31T14:30:00Z"
+      },
+      "title": "KNO-181 task-kno-181-scenario-a"
     }
   }
 }
