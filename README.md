@@ -15,6 +15,8 @@ It does not trust agent-reported completion on its own. It accepts or blocks lif
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
 OpenClaw ingress is also intentionally narrow. It can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If OpenClaw wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If OpenClaw also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
+On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only projection for OpenClaw-style supervisors: it surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, or stale. It does not authorize actions on its own and it does not replace canonical reevaluation, dispatch, or completion-claim paths.
+
 The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
 
 That same boundary now applies to the canonical `POST /tasks` and one-shot new-task `POST /evaluate` paths as well. A brand-new task may carry intent, planning state, support artifacts, and clarification blockers, but it may not arrive already carrying execution truth. If a caller tries to create a new task with claimed completion, runtime facts, prevalidated completion evidence, execution attempts, advisory completion claims, reconciliation history, assignment truth, or runtime/terminal lifecycle truth, Harness rejects the request as invalid input instead of storing a polluted task snapshot. Even when initial support artifacts are allowed, Harness strips any caller-submitted `verification_status=verified` before persisting the task so new work cannot begin with pre-certified artifact truth.
@@ -149,6 +151,7 @@ See:
   - `GET /tasks/<task_id>/evaluations`
   - `GET /tasks/<task_id>/read-model`
   - `GET /tasks/<task_id>/timeline`
+  - `GET /supervision/queue`
 - Canonical mutation surfaces:
 - `POST /tasks`
 - `POST /tasks/<task_id>/reevaluate`
@@ -208,6 +211,7 @@ Backend inspection routes:
 - `GET /tasks`: dashboard list surface.
 - `GET /tasks/<task_id>/read-model`: canonical detail surface for current task truth.
 - `GET /tasks/<task_id>/timeline`: canonical audit timeline.
+- `GET /supervision/queue`: canonical autonomous-supervision triage surface.
 
 For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
 

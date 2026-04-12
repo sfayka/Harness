@@ -12,6 +12,27 @@ This document is the source-of-truth API usage guide for execution agents and do
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
 
+## Canonical Inspection Paths
+
+- `GET /tasks`: canonical task inventory and triage surface
+- `GET /tasks/<task_id>`: raw persisted task envelope
+- `GET /tasks/<task_id>/evaluations`: append-only evaluation history
+- `GET /tasks/<task_id>/read-model`: canonical current-truth projection for one task
+- `GET /tasks/<task_id>/timeline`: canonical ordered audit timeline for one task
+- `GET /supervision/queue`: canonical attention queue for autonomous supervisors such as OpenClaw
+
+`GET /supervision/queue` is projection-only. It does not create work, mutate task state, or authorize follow-up actions. It exists so an ingress-side supervisor can poll Harness for the tasks that currently need intervention without rebuilding policy client-side from raw task payloads.
+
+Queue entries are derived from canonical read-model and timeline truth and currently classify:
+
+- `review_required`
+- `clarification_required`
+- `invalid_execution_attempt`
+- `retryable_failure`
+- `stale_active_task`
+
+OpenClaw or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, dispatch, completion-claim, or reevaluation paths.
+
 `POST /tasks` is an intake/planning creation path, not a completion-reporting path. A brand-new task may include objective, planning, support artifacts, coordination metadata, and clarification blockers, but it must not arrive with claimed completion, acceptance assertions, runtime facts, validated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle state already attached.
 
 Fresh task creation also cannot inject assignment truth. Do not send `request.assigned_executor`, and do not try to create a new task directly in `assigned`. Executor assignment belongs to dispatcher-owned flows after Harness has accepted and persisted the task.

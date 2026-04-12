@@ -68,6 +68,7 @@ from modules.reconciliation_runtime import (
     task_has_valid_current_run_commit_artifact,
     task_has_valid_current_run_pull_request_artifact,
 )
+from modules.supervision import HarnessSupervisionService
 from modules.store import (
     EvaluationRecord,
     HarnessStore,
@@ -2955,6 +2956,7 @@ class HarnessApiService:
     ) -> None:
         self.store = store or build_harness_store()
         self.read_model_service = HarnessReadModelService(store=self.store)
+        self.supervision_service = HarnessSupervisionService(store=self.store)
         self.reconciliation_registry = reconciliation_registry or build_default_reconciliation_registry()
 
     def _build_postgres_health_payload(self, store: PostgresHarnessStore) -> dict[str, Any]:
@@ -4136,6 +4138,12 @@ class HarnessApiService:
         tasks = self.read_model_service.list_task_read_models()
         return HTTPStatus.OK, {"tasks": [_to_jsonable(task) for task in tasks]}
 
+    def get_supervision_queue(self) -> tuple[int, dict[str, Any]]:
+        return HTTPStatus.OK, {
+            "generated_at": _iso_now(),
+            "queue": self.supervision_service.list_attention_queue(),
+        }
+
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             self.store.get_task(task_id)
@@ -4202,6 +4210,11 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
         if path_components == ("tasks",):
             status, payload = service.list_tasks()
+            self._write_json(status, payload)
+            return
+
+        if path_components == ("supervision", "queue"):
+            status, payload = service.get_supervision_queue()
             self._write_json(status, payload)
             return
 
