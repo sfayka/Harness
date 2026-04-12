@@ -44,6 +44,7 @@ The spike uses only:
 
 - `POST /tasks`
 - `POST /tasks/<task_id>/reevaluate`
+- `GET /supervision/queue`
 - `GET /tasks/<task_id>`
 - `GET /tasks/<task_id>/read-model`
 - `GET /tasks/<task_id>/timeline`
@@ -55,9 +56,10 @@ The built-in spike flow intentionally exercises a real control-plane change:
 
 1. OpenClaw-style client submits a task that claims completion
 2. Harness blocks the task because required evidence is still missing
-3. OpenClaw-style client submits reevaluation with the missing review-note artifact
-4. Harness accepts completion
-5. Client fetches read model, timeline, and evaluation history
+3. OpenClaw-style client reads the canonical supervision queue and sees the live clarification blocker
+4. OpenClaw-style client submits reevaluation with the missing review-note artifact
+5. Harness accepts completion
+6. Client fetches read model, timeline, evaluation history, and confirms the queue entry cleared
 
 ## What Was Learned
 
@@ -75,7 +77,7 @@ That builder now exists in [`modules/connectors/ingress_request_builder.py`](../
 Other observations:
 
 - duplicate task handling is clear: `POST /tasks` returns `409`, and reevaluation remains explicit
-- inspection endpoints are already sufficient for operator and dashboard visibility
+- inspection endpoints are already sufficient for operator, dashboard, and thin-supervisor visibility
 - no API redesign was required for this spike
 
 Since the spike was written, Harness added a dedicated OpenClaw ingress adapter endpoint (`POST /ingress/openclaw`) that still delegates into canonical submission semantics (`POST /tasks`) rather than introducing a separate control-plane contract.
