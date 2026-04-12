@@ -112,6 +112,25 @@ Completion artifacts answer the question, "what externally verifiable repository
 
 Harness still owns the final control-plane judgment. Even with a correct bootstrap and concrete repository artifacts, lifecycle acceptance remains evidence-backed and policy-enforced rather than inferred from executor confidence.
 
+## Current Adapter Boundary
+
+Harness now includes a Codex Cloud executor adapter implementation in [`modules/adapters/codex_cloud/executor_adapter.py`](../../modules/adapters/codex_cloud/executor_adapter.py).
+
+That adapter does two narrow things:
+
+- projects canonical `ExecutorDispatchInput` into a Codex Cloud execution request that includes the required bootstrap and preflight commands
+- refuses to emit a successful advisory completion path unless the runtime response proves the expected repo root, canonical `origin`, and non-empty bootstrap proof
+
+If the runtime response fails that preflight contract, the adapter emits an auditable failed execution event instead of a successful completion claim.
+
+This keeps the contract aligned with Harness intent:
+
+- environment proof is required before executor success can be taken seriously
+- invalid preflight becomes auditable execution truth
+- completion remains advisory until Harness verifies repository artifacts and external facts
+
+The default local dispatch path still uses the stub executor unless a real Codex Cloud runtime client is injected. That is intentional. The adapter boundary is now real and test-covered, while live runtime transport remains a separate follow-on integration step.
+
 ## Known Failure Mode
 
 The previously observed failure mode was:

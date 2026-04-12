@@ -71,6 +71,7 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
   - records advisory completion claim metadata
   - automatically triggers canonical reevaluation through the existing completion-claim path
 - Dispatch remains advisory-only and must not bypass verification, reconciliation, lifecycle enforcement, or review gates.
+- The repository now includes a Codex Cloud adapter boundary that can be injected into dispatch for `request.executor="codex"`. That adapter requires repo/bootstrap preflight proof before it will emit a successful advisory completion path.
 
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
 - `POST /evaluate` may still be used as an evaluation surface for an existing task id, but it no longer accepts submission-style mutation overlays for that stored task.
