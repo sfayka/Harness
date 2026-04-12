@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from modules.adapters.executor_adapter import (
+    ExecutorAdapter,
     ExecutorAdapterInputError,
     ExecutorDispatchInput,
     StubExecutorAdapter,
@@ -2953,11 +2954,19 @@ class HarnessApiService:
         *,
         store: HarnessStore | None = None,
         reconciliation_registry: ReconciliationHandlerRegistry | None = None,
+        executor_adapters: dict[str, ExecutorAdapter] | None = None,
     ) -> None:
         self.store = store or build_harness_store()
         self.read_model_service = HarnessReadModelService(store=self.store)
         self.supervision_service = HarnessSupervisionService(store=self.store)
         self.reconciliation_registry = reconciliation_registry or build_default_reconciliation_registry()
+        self.executor_adapters = dict(executor_adapters or {})
+
+    def _resolve_executor_adapter(self, executor: str) -> ExecutorAdapter:
+        adapter = self.executor_adapters.get(executor)
+        if adapter is not None:
+            return adapter
+        return StubExecutorAdapter()
 
     def _build_postgres_health_payload(self, store: PostgresHarnessStore) -> dict[str, Any]:
         expected_tables = ("tasks", "evaluation_records")
@@ -4017,7 +4026,7 @@ class HarnessApiService:
                 attempt_id=attempt_id,
                 assigned_executor=executor,
             )
-            adapter_output = StubExecutorAdapter().dispatch(dispatch_input)
+            adapter_output = self._resolve_executor_adapter(executor).dispatch(dispatch_input)
         except (ApiRequestError, ExecutorAdapterInputError, ValueError) as error:
             return HTTPStatus.BAD_REQUEST, {"error": str(error), "invalid_input": True}
 

@@ -28,7 +28,7 @@ class OpenClawExecutorAdapterTests(unittest.TestCase):
                 "description": "Map canonical task input to OpenClaw and normalize output",
                 "origin": {
                     "source_system": "linear",
-                    "source_type": "issue",
+                    "source_type": "ingress_request",
                     "source_id": "KNO-157",
                 },
                 "constraints": [

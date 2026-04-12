@@ -12,6 +12,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from modules.adapters.codex_cloud import CodexCloudExecutorAdapter
 from modules.adapters.executor_adapter import ExecutorDispatchOutput, StubExecutorAdapter
 from modules.api import (
     HarnessApiService,
@@ -291,6 +292,47 @@ class _OutOfOrderDispatchAdapter:
             ),
             artifact_references=(artifact_reference,),
         )
+
+
+class _FakeCodexCloudRuntimeClient:
+    def execute(self, request_payload: dict) -> dict:
+        return {
+            "run_id": "codex-runtime-run-1",
+            "preflight": {
+                "pwd": "/workspace/Harness",
+                "git_remote_v": (
+                    "origin\thttps://github.com/sfayka/Harness.git (fetch)\n"
+                    "origin\thttps://github.com/sfayka/Harness.git (push)"
+                ),
+                "bootstrap_proof": "bootstrap ok",
+            },
+            "events": [
+                {"id": "evt-1", "type": "run_started", "timestamp": "2026-04-12T12:00:00Z"},
+                {"id": "evt-2", "type": "run_succeeded", "timestamp": "2026-04-12T12:05:00Z"},
+            ],
+            "artifacts": [
+                {
+                    "type": "branch",
+                    "id": "branch-1",
+                    "external_id": request_payload["task"]["branch_hint"],
+                },
+                {
+                    "type": "commit",
+                    "id": "commit-1",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+                {
+                    "type": "pull_request",
+                    "id": "pr-1",
+                    "url": "https://github.com/sfayka/Harness/pull/999",
+                },
+            ],
+            "completion": {
+                "reported_complete": True,
+                "confidence": "high",
+                "reason": "Codex Cloud produced canonical repository artifacts",
+            },
+        }
 
 
 def _registry_with_no_create_pull_request_gateway():
@@ -4030,6 +4072,35 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(dispatch_status, 200)
         self.assertEqual(latest_attempt["metadata"]["dispatch_at"], "2026-04-11T09:05:00Z")
         self.assertEqual(latest_attempt["recorded_at"], "2026-04-11T09:10:00Z")
+
+    def test_service_dispatch_task_can_use_injected_codex_cloud_adapter(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            executor_adapters={
+                "codex": CodexCloudExecutorAdapter(runtime_client=_FakeCodexCloudRuntimeClient()),
+            },
+        )
+        payload = _manual_happy_path_overlay_payload()
+        evaluate_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "task_status": "dispatch_ready",
+            }
+        }
+        submit_status, submit_response = service.evaluate(evaluate_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        dispatch_status, dispatch_response = service.dispatch_task(task_id, {"request": {"executor": "codex"}})
+
+        latest_attempt = dispatch_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        artifact_types = [item["artifact_type"] for item in latest_attempt["artifact_references"]]
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(dispatch_response["dispatch"]["executor"], "codex")
+        self.assertEqual(latest_attempt["metadata"]["executor"], "codex")
+        self.assertEqual(latest_attempt["metadata"]["execution_events"][-1]["metadata"]["adapter"], "codex-cloud")
+        self.assertEqual(artifact_types, ["branch", "commit", "pull_request"])
 
     def test_service_submit_auto_dispatches_dispatch_ready_task(self) -> None:
         payload = _manual_happy_path_overlay_payload()
