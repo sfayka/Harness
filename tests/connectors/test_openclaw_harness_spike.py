@@ -72,6 +72,7 @@ class OpenClawHarnessSpikeTests(unittest.TestCase):
         read_model_status, read_model_payload = self.client.get_task_read_model(task_id)
         timeline_status, timeline_payload = self.client.get_task_timeline(task_id)
         history_status, history_payload = self.client.get_evaluation_history(task_id)
+        queue_status, queue_payload = self.client.get_supervision_queue()
 
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["id"], task_id)
@@ -81,6 +82,8 @@ class OpenClawHarnessSpikeTests(unittest.TestCase):
         self.assertGreaterEqual(timeline_payload["event_count"], 1)
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
+        self.assertEqual(queue_status, 200)
+        self.assertNotIn(task_id, {item["task_id"] for item in queue_payload["queue"]})
 
     def test_representative_spike_flow_moves_blocked_to_completed(self) -> None:
         result = run_openclaw_spike_flow(base_url=self.base_url, task_id="task-openclaw-flow-1")
@@ -92,6 +95,12 @@ class OpenClawHarnessSpikeTests(unittest.TestCase):
         self.assertEqual(result.read_model_status, 200)
         self.assertEqual(result.timeline_status, 200)
         self.assertEqual(result.evaluation_history_count, 2)
+        self.assertEqual(result.initial_supervision_queue_status, 200)
+        self.assertEqual(result.initial_supervision_attention_type, "clarification_required")
+        self.assertEqual(result.initial_supervision_suggested_action, "collect_clarification")
+        self.assertEqual(result.final_supervision_queue_status, 200)
+        self.assertIsNone(result.final_supervision_attention_type)
+        self.assertIsNone(result.final_supervision_suggested_action)
 
     def test_duplicate_task_id_behavior_matches_canonical_submission_policy(self) -> None:
         self.client.submit_task(intent=self._intent(task_id="task-openclaw-duplicate-1"), context=self._context())

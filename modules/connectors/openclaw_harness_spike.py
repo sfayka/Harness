@@ -51,6 +51,12 @@ class OpenClawHarnessSpikeResult:
     read_model_status: int
     timeline_status: int
     evaluation_history_count: int
+    initial_supervision_queue_status: int
+    initial_supervision_attention_type: str | None
+    initial_supervision_suggested_action: str | None
+    final_supervision_queue_status: int
+    final_supervision_attention_type: str | None
+    final_supervision_suggested_action: str | None
 
 
 def build_task_submission_payload(
@@ -207,6 +213,9 @@ class OpenClawHarnessSpikeClient:
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         return self._request_json("GET", f"/tasks/{task_id}/evaluations")
 
+    def get_supervision_queue(self) -> tuple[int, dict[str, Any]]:
+        return self._request_json("GET", "/supervision/queue")
+
 
 def _demo_review_note_artifact() -> dict[str, Any]:
     return {
@@ -236,6 +245,18 @@ def _demo_review_note_artifact() -> dict[str, Any]:
             "note_kind": "manual_confirmation",
         },
     }
+
+
+def _find_supervision_entry(queue_payload: dict[str, Any], *, task_id: str) -> dict[str, Any] | None:
+    queue = queue_payload.get("queue") if isinstance(queue_payload.get("queue"), list) else []
+    return next(
+        (
+            item
+            for item in queue
+            if isinstance(item, dict) and str(item.get("task_id") or "") == task_id
+        ),
+        None,
+    )
 
 
 def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spike-1") -> OpenClawHarnessSpikeResult:
@@ -277,6 +298,10 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
     read_model_status, _ = client.get_task_read_model(task_id)
     if read_model_status >= 400:
         raise RuntimeError(f"OpenClaw spike read-model fetch failed for {task_id}")
+    initial_supervision_queue_status, initial_supervision_payload = client.get_supervision_queue()
+    if initial_supervision_queue_status >= 400:
+        raise RuntimeError(f"OpenClaw spike supervision queue fetch failed for {task_id}")
+    initial_supervision_entry = _find_supervision_entry(initial_supervision_payload, task_id=task_id)
 
     reevaluation_status, reevaluation_payload = client.reevaluate_task(
         task_id,
@@ -306,8 +331,10 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
 
     timeline_status, _ = client.get_task_timeline(task_id)
     history_status, history_payload = client.get_evaluation_history(task_id)
-    if timeline_status >= 400 or history_status >= 400:
+    final_supervision_queue_status, final_supervision_payload = client.get_supervision_queue()
+    if timeline_status >= 400 or history_status >= 400 or final_supervision_queue_status >= 400:
         raise RuntimeError(f"OpenClaw spike inspection failed for {task_id}")
+    final_supervision_entry = _find_supervision_entry(final_supervision_payload, task_id=task_id)
 
     return OpenClawHarnessSpikeResult(
         task_id=task_id,
@@ -320,6 +347,20 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         read_model_status=read_model_status,
         timeline_status=timeline_status,
         evaluation_history_count=len(history_payload.get("evaluations", ())),
+        initial_supervision_queue_status=initial_supervision_queue_status,
+        initial_supervision_attention_type=(
+            initial_supervision_entry.get("attention_type") if isinstance(initial_supervision_entry, dict) else None
+        ),
+        initial_supervision_suggested_action=(
+            initial_supervision_entry.get("suggested_action") if isinstance(initial_supervision_entry, dict) else None
+        ),
+        final_supervision_queue_status=final_supervision_queue_status,
+        final_supervision_attention_type=(
+            final_supervision_entry.get("attention_type") if isinstance(final_supervision_entry, dict) else None
+        ),
+        final_supervision_suggested_action=(
+            final_supervision_entry.get("suggested_action") if isinstance(final_supervision_entry, dict) else None
+        ),
     )
 
 
@@ -349,6 +390,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"read_model: {result.read_model_status}")
         print(f"timeline: {result.timeline_status}")
         print(f"evaluation_history_count: {result.evaluation_history_count}")
+        print(
+            "initial_supervision: "
+            f"{result.initial_supervision_queue_status} "
+            f"({result.initial_supervision_attention_type}, {result.initial_supervision_suggested_action})"
+        )
+        print(
+            "final_supervision: "
+            f"{result.final_supervision_queue_status} "
+            f"({result.final_supervision_attention_type}, {result.final_supervision_suggested_action})"
+        )
 
     return 0
 
