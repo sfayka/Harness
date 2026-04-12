@@ -297,6 +297,8 @@ class SimulationResult:
     steps: tuple[SimulationStepResult, ...]
     task_snapshot: dict[str, Any] | None
     evaluation_history: tuple[dict[str, Any], ...]
+    supervision_queue_status: int | None
+    supervision_entry: dict[str, Any] | None
 
 
 class HarnessSimulatorClient:
@@ -333,6 +335,9 @@ class HarnessSimulatorClient:
 
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         return self._request_json("GET", f"/tasks/{task_id}/evaluations")
+
+    def get_supervision_queue(self) -> tuple[int, dict[str, Any]]:
+        return self._request_json("GET", "/supervision/queue")
 
 
 class _ScenarioContext:
@@ -450,13 +455,26 @@ def _reevaluate_step(
     )
 
 
-def _fetch_final_state(client: HarnessSimulatorClient, context: _ScenarioContext) -> tuple[dict[str, Any] | None, tuple[dict[str, Any], ...]]:
+def _fetch_final_state(
+    client: HarnessSimulatorClient,
+    context: _ScenarioContext,
+) -> tuple[dict[str, Any] | None, tuple[dict[str, Any], ...], int | None, dict[str, Any] | None]:
     if context.task_id is None:
-        return None, ()
+        return None, (), None, None
 
     _, task_payload = client.get_task(context.task_id)
     _, history_payload = client.get_evaluation_history(context.task_id)
-    return task_payload.get("task"), tuple(history_payload.get("evaluations", ()))
+    queue_status, queue_payload = client.get_supervision_queue()
+    queue_items = queue_payload.get("queue") if isinstance(queue_payload.get("queue"), list) else []
+    supervision_entry = next(
+        (
+            item
+            for item in queue_items
+            if isinstance(item, dict) and str(item.get("task_id") or "") == context.task_id
+        ),
+        None,
+    )
+    return task_payload.get("task"), tuple(history_payload.get("evaluations", ())), queue_status, supervision_entry
 
 
 def _review_request_payload(task_id: str) -> dict[str, Any]:
@@ -520,8 +538,17 @@ def _scenario_successful_completion(
         "complete",
         _reevaluation_payload_from_canonical(context.canonical_payload("accepted_completion")),
     )
-    task_snapshot, history = _fetch_final_state(client, context)
-    return SimulationResult("successful_completion", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "successful_completion",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
 
 
 def _scenario_missing_evidence_then_completed(
@@ -565,8 +592,17 @@ def _scenario_missing_evidence_then_completed(
             }
         },
     )
-    task_snapshot, history = _fetch_final_state(client, context)
-    return SimulationResult("missing_evidence_then_completed", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "missing_evidence_then_completed",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
 
 
 def _scenario_wrong_target_corrected(
@@ -609,8 +645,55 @@ def _scenario_wrong_target_corrected(
             }
         },
     )
-    task_snapshot, history = _fetch_final_state(client, context)
-    return SimulationResult("wrong_target_corrected", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "wrong_target_corrected",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
+
+
+def _scenario_review_required_pending(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    accepted_payload = context.canonical_payload("accepted_completion")
+    review_payload = {
+        "request": deepcopy(_reevaluation_payload_from_canonical(accepted_payload)["request"]),
+    }
+    review_payload["request"]["review_request"] = _review_request_payload(
+        context.task_id or accepted_payload["request"]["task_envelope"]["id"]
+    )
+    review_payload["request"]["external_facts"] = deepcopy(
+        context.canonical_payload("review_required")["request"]["external_facts"]
+    )
+
+    _seed_task(client, context, "accepted_completion")
+    _reevaluate_step(client, context, "request_review", review_payload)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "review_required_pending",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
 
 
 def _scenario_review_required_then_completed(
@@ -644,8 +727,17 @@ def _scenario_review_required_then_completed(
             }
         },
     )
-    task_snapshot, history = _fetch_final_state(client, context)
-    return SimulationResult("review_required_then_completed", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "review_required_then_completed",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
 
 
 def _scenario_contradictory_facts_rollback(
@@ -694,8 +786,17 @@ def _scenario_contradictory_facts_rollback(
             }
         },
     )
-    task_snapshot, history = _fetch_final_state(client, context)
-    return SimulationResult("contradictory_facts_rollback", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "contradictory_facts_rollback",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
 
 
 def _scenario_contradictory_facts_blocked(
@@ -731,7 +832,7 @@ def _scenario_contradictory_facts_blocked(
             }
         },
     )
-    task_snapshot, history = _fetch_final_state(client, context)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
     return SimulationResult(
         "contradictory_facts_blocked",
         context.task_id,
@@ -739,6 +840,8 @@ def _scenario_contradictory_facts_blocked(
         tuple(context.steps),
         task_snapshot,
         history,
+        queue_status,
+        supervision_entry,
     )
 
 
@@ -811,14 +914,24 @@ def _scenario_long_running_handoff(
             }
         },
     )
-    task_snapshot, history = _fetch_final_state(client, context)
-    return SimulationResult("long_running_handoff", context.task_id, task_snapshot.get("status") if task_snapshot else None, tuple(context.steps), task_snapshot, history)
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    return SimulationResult(
+        "long_running_handoff",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+    )
 
 
 _SCENARIOS = {
     "successful_completion": _scenario_successful_completion,
     "missing_evidence_then_completed": _scenario_missing_evidence_then_completed,
     "wrong_target_corrected": _scenario_wrong_target_corrected,
+    "review_required_pending": _scenario_review_required_pending,
     "review_required_then_completed": _scenario_review_required_then_completed,
     "contradictory_facts_blocked": _scenario_contradictory_facts_blocked,
     "contradictory_facts_rollback": _scenario_contradictory_facts_rollback,
@@ -865,6 +978,8 @@ def _format_text_result(result: SimulationResult) -> str:
         f"scenario: {result.scenario_name}",
         f"final_task_id: {result.final_task_id}",
         f"final_task_status: {result.final_task_status}",
+        f"supervision_queue_status: {result.supervision_queue_status}",
+        f"supervision_attention: {result.supervision_entry.get('attention_type') if isinstance(result.supervision_entry, dict) else None}",
         "steps:",
     ]
     lines.extend(_format_step(step) for step in result.steps)

@@ -70,6 +70,7 @@ Real today:
 - Linear-shaped ingress adapter
 - OpenClaw-shaped ingress adapter
 - OpenClaw-informed thin client spike
+- OpenClaw-style simulator flows that can inspect final supervision state through the public API
 
 Not live today:
 

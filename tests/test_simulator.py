@@ -36,6 +36,7 @@ class HarnessSimulatorTests(unittest.TestCase):
 
         self.assertIn("successful_completion", scenarios)
         self.assertIn("missing_evidence_then_completed", scenarios)
+        self.assertIn("review_required_pending", scenarios)
         self.assertIn("review_required_then_completed", scenarios)
         self.assertIn("contradictory_facts_rollback", scenarios)
         self.assertIn("long_running_handoff", scenarios)
@@ -48,6 +49,20 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertEqual(result.steps[0].http_status, 200)
         self.assertEqual(result.steps[0].action, "transition_applied")
         self.assertEqual(len(result.evaluation_history), 2)
+        self.assertEqual(result.supervision_queue_status, 200)
+        self.assertIsNone(result.supervision_entry)
+
+    def test_runs_review_required_pending_scenario_with_live_supervision_entry(self) -> None:
+        result = run_scenario("review_required_pending", base_url=self.base_url)
+
+        self.assertEqual(result.final_task_status, "in_review")
+        self.assertEqual(len(result.steps), 1)
+        self.assertEqual(result.steps[0].action, "review_required")
+        self.assertEqual(result.supervision_queue_status, 200)
+        self.assertIsNotNone(result.supervision_entry)
+        self.assertEqual(result.supervision_entry["task_id"], result.final_task_id)
+        self.assertEqual(result.supervision_entry["attention_type"], "review_required")
+        self.assertEqual(result.supervision_entry["suggested_action"], "resolve_review_gate")
 
     def test_runs_missing_evidence_then_completed_scenario(self) -> None:
         result = run_scenario("missing_evidence_then_completed", base_url=self.base_url)
@@ -121,6 +136,8 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertEqual(payload["scenario_name"], "missing_evidence_then_completed")
         self.assertEqual(payload["final_task_status"], "completed")
         self.assertEqual(len(payload["steps"]), 2)
+        self.assertEqual(payload["supervision_queue_status"], 200)
+        self.assertIsNone(payload["supervision_entry"])
 
 
 if __name__ == "__main__":
