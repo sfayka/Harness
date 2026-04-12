@@ -47,6 +47,12 @@ The existing spike demonstrated:
 
 Harness now includes an OpenClaw-shaped ingress endpoint (`POST /ingress/openclaw`) backed by a thin adapter that normalizes request content into canonical submission payloads.
 
+Harness also now exposes a canonical supervision polling surface for ingress-side autonomy:
+
+- `GET /supervision/queue`
+
+That queue is a read-only projection over canonical Harness truth. It is intended for OpenClaw-style supervisors that need to know which tasks currently require attention because they are review-gated, clarification-blocked, retryable, showing invalid execution proof, or stale.
+
 Relevant code and docs:
 
 - [modules/connectors/openclaw_harness_spike.py](../../modules/connectors/openclaw_harness_spike.py)
@@ -59,6 +65,7 @@ Relevant code and docs:
 Real today:
 
 - canonical API submission and reevaluation
+- canonical supervision queue for autonomous polling
 - normalized fact models
 - Linear-shaped ingress adapter
 - OpenClaw-shaped ingress adapter
@@ -68,6 +75,6 @@ Not live today:
 
 - live GitHub polling or webhook orchestration
 - live Linear issue creation or sync loops
-- full OpenClaw runtime/plugin lifecycle integration
+- full OpenClaw runtime/plugin lifecycle integration or autonomous loop execution
 
 That split is intentional. Harness should remain a standalone control-plane service, not become tightly coupled to any single ingress or executor runtime.

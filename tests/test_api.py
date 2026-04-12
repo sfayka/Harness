@@ -5649,6 +5649,19 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["extensions"]["openclaw"]["metadata"]["request_kind"], "openclaw")
 
+    def test_api_exposes_supervision_queue_endpoint(self) -> None:
+        create_status, create_payload = self._post_json("/evaluate", _request_payload("review_required"))
+
+        status, payload = self._get_json("/supervision/queue")
+
+        self.assertEqual(create_status, 200)
+        self.assertEqual(status, 200)
+        self.assertIn("generated_at", payload)
+        queue_by_task_id = {item["task_id"]: item for item in payload["queue"]}
+        queue_item = queue_by_task_id[create_payload["task_envelope"]["id"]]
+        self.assertEqual(queue_item["attention_type"], "review_required")
+        self.assertEqual(queue_item["suggested_action"], "resolve_review_gate")
+
     def test_api_openclaw_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-invalid-1")
         payload["context"] = "invalid"

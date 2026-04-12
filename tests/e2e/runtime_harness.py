@@ -150,6 +150,9 @@ class RuntimeApiTestCase(unittest.TestCase):
     def list_tasks(self) -> tuple[int, dict]:
         return self.get_json("/tasks")
 
+    def supervision_queue(self) -> tuple[int, dict]:
+        return self.get_json("/supervision/queue")
+
     def post_json(self, path: str, payload: dict) -> tuple[int, dict]:
         request = Request(
             self.base_url + path,
