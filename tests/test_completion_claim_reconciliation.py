@@ -9,6 +9,8 @@ from modules.reconciliation_runtime import (
     ReconciliationFailureType,
     ReconciliationHandlerRegistry,
     RetryableReconciliationRuntimeError,
+    _current_completion_claim,
+    _current_execution_attempt,
     build_default_reconciliation_registry,
 )
 from modules.intake import create_task_envelope
@@ -513,6 +515,50 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
+
+    def test_current_completion_claim_uses_newest_reported_at_when_claims_are_out_of_order(self) -> None:
+        task = _task_envelope(task_id="task-current-claim-order")
+        task = _record_execution_attempt(
+            task,
+            claim_id="claim-newer",
+            attempt_id="attempt-newer",
+            status="completed",
+            recorded_at="2026-04-11T09:10:05Z",
+        )
+        task = _record_execution_attempt(
+            task,
+            claim_id="claim-older",
+            attempt_id="attempt-older",
+            status="failed",
+            recorded_at="2026-04-11T09:05:05Z",
+        )
+
+        claim = _current_completion_claim(task)
+
+        self.assertIsNotNone(claim)
+        self.assertEqual(claim["claim_id"], "claim-newer")
+
+    def test_current_execution_attempt_uses_attempt_for_newest_claim_when_claims_are_out_of_order(self) -> None:
+        task = _task_envelope(task_id="task-current-attempt-order")
+        task = _record_execution_attempt(
+            task,
+            claim_id="claim-newer",
+            attempt_id="attempt-newer",
+            status="completed",
+            recorded_at="2026-04-11T09:10:05Z",
+        )
+        task = _record_execution_attempt(
+            task,
+            claim_id="claim-older",
+            attempt_id="attempt-older",
+            status="failed",
+            recorded_at="2026-04-11T09:05:05Z",
+        )
+
+        attempt = _current_execution_attempt(task)
+
+        self.assertIsNotNone(attempt)
+        self.assertEqual(attempt["attempt_id"], "attempt-newer")
 
     def test_submit_completion_claim_attaches_existing_open_pr_with_matching_branch_and_sha(self) -> None:
         gateway = _FakeGitHubGateway(
