@@ -57,6 +57,7 @@ class OpenClawHarnessSpikeResult:
     final_supervision_queue_status: int
     final_supervision_attention_type: str | None
     final_supervision_suggested_action: str | None
+    final_supervision_reason: str | None
 
 
 def build_task_submission_payload(
@@ -259,11 +260,25 @@ def _find_supervision_entry(queue_payload: dict[str, Any], *, task_id: str) -> d
     )
 
 
-def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spike-1") -> OpenClawHarnessSpikeResult:
-    """Run one representative OpenClaw -> Harness flow through the public API."""
+def _build_spike_intent(*, task_id: str, description: str, success_signal: str) -> OpenClawTaskIntent:
+    return OpenClawTaskIntent(
+        task_id=task_id,
+        title="Validate Harness API boundary from OpenClaw",
+        description=description,
+        acceptance_criteria=(
+            "Harness returns a structured blocked result before the missing evidence exists.",
+            "Harness exposes the canonical supervision state for the client to inspect.",
+        ),
+        objective_summary="Prove that OpenClaw can submit and reevaluate tasks through the Harness API boundary.",
+        deliverable_type="integration_spike",
+        success_signal=success_signal,
+        linked_artifacts=(),
+        requested_by="operator@example.com",
+    )
 
-    client = OpenClawHarnessSpikeClient(base_url)
-    context = OpenClawSourceContext(
+
+def _build_context() -> OpenClawSourceContext:
+    return OpenClawSourceContext(
         conversation_id="conv-openclaw-spike-1",
         message_id="msg-openclaw-spike-1",
         channel="cli",
@@ -271,19 +286,63 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         user_id="operator@example.com",
         agent_id="openclaw-assistant",
     )
-    intent = OpenClawTaskIntent(
+
+
+def _build_result(
+    *,
+    task_id: str,
+    submission_status: int,
+    submission_payload: dict[str, Any],
+    reevaluation_status: int,
+    reevaluation_payload: dict[str, Any],
+    read_model_status: int,
+    timeline_status: int,
+    history_payload: dict[str, Any],
+    initial_supervision_queue_status: int,
+    initial_supervision_entry: dict[str, Any] | None,
+    final_supervision_queue_status: int,
+    final_supervision_entry: dict[str, Any] | None,
+) -> OpenClawHarnessSpikeResult:
+    return OpenClawHarnessSpikeResult(
         task_id=task_id,
-        title="Validate Harness API boundary from OpenClaw",
-        description="Submit a task, observe the blocked result, then reevaluate with the missing evidence supplied.",
-        acceptance_criteria=(
-            "Harness returns a structured blocked result before the missing evidence exists.",
-            "Harness accepts completion once the missing evidence is supplied.",
+        submission_status=submission_status,
+        submission_action=submission_payload.get("action"),
+        initial_task_status=submission_payload.get("task_envelope", {}).get("status"),
+        reevaluation_status=reevaluation_status,
+        reevaluation_action=reevaluation_payload.get("action"),
+        final_task_status=reevaluation_payload.get("task_envelope", {}).get("status"),
+        read_model_status=read_model_status,
+        timeline_status=timeline_status,
+        evaluation_history_count=len(history_payload.get("evaluations", ())),
+        initial_supervision_queue_status=initial_supervision_queue_status,
+        initial_supervision_attention_type=(
+            initial_supervision_entry.get("attention_type") if isinstance(initial_supervision_entry, dict) else None
         ),
-        objective_summary="Prove that OpenClaw can submit and reevaluate tasks through the Harness API boundary.",
-        deliverable_type="integration_spike",
+        initial_supervision_suggested_action=(
+            initial_supervision_entry.get("suggested_action") if isinstance(initial_supervision_entry, dict) else None
+        ),
+        final_supervision_queue_status=final_supervision_queue_status,
+        final_supervision_attention_type=(
+            final_supervision_entry.get("attention_type") if isinstance(final_supervision_entry, dict) else None
+        ),
+        final_supervision_suggested_action=(
+            final_supervision_entry.get("suggested_action") if isinstance(final_supervision_entry, dict) else None
+        ),
+        final_supervision_reason=(
+            final_supervision_entry.get("reason") if isinstance(final_supervision_entry, dict) else None
+        ),
+    )
+
+
+def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spike-1") -> OpenClawHarnessSpikeResult:
+    """Run one representative OpenClaw -> Harness completion flow through the public API."""
+
+    client = OpenClawHarnessSpikeClient(base_url)
+    context = _build_context()
+    intent = _build_spike_intent(
+        task_id=task_id,
+        description="Submit a task, observe the blocked result, then reevaluate with the missing evidence supplied.",
         success_signal="The task moves from blocked to completed through public API calls only.",
-        linked_artifacts=(),
-        requested_by="operator@example.com",
     )
 
     submission_status, submission_payload = client.submit_task(
@@ -336,31 +395,113 @@ def run_openclaw_spike_flow(*, base_url: str, task_id: str = "task-openclaw-spik
         raise RuntimeError(f"OpenClaw spike inspection failed for {task_id}")
     final_supervision_entry = _find_supervision_entry(final_supervision_payload, task_id=task_id)
 
-    return OpenClawHarnessSpikeResult(
+    return _build_result(
         task_id=task_id,
         submission_status=submission_status,
-        submission_action=submission_payload.get("action"),
-        initial_task_status=submission_payload.get("task_envelope", {}).get("status"),
+        submission_payload=submission_payload,
         reevaluation_status=reevaluation_status,
-        reevaluation_action=reevaluation_payload.get("action"),
-        final_task_status=reevaluation_payload.get("task_envelope", {}).get("status"),
+        reevaluation_payload=reevaluation_payload,
         read_model_status=read_model_status,
         timeline_status=timeline_status,
-        evaluation_history_count=len(history_payload.get("evaluations", ())),
+        history_payload=history_payload,
         initial_supervision_queue_status=initial_supervision_queue_status,
-        initial_supervision_attention_type=(
-            initial_supervision_entry.get("attention_type") if isinstance(initial_supervision_entry, dict) else None
-        ),
-        initial_supervision_suggested_action=(
-            initial_supervision_entry.get("suggested_action") if isinstance(initial_supervision_entry, dict) else None
-        ),
+        initial_supervision_entry=initial_supervision_entry,
         final_supervision_queue_status=final_supervision_queue_status,
-        final_supervision_attention_type=(
-            final_supervision_entry.get("attention_type") if isinstance(final_supervision_entry, dict) else None
-        ),
-        final_supervision_suggested_action=(
-            final_supervision_entry.get("suggested_action") if isinstance(final_supervision_entry, dict) else None
-        ),
+        final_supervision_entry=final_supervision_entry,
+    )
+
+
+def run_openclaw_review_gate_spike_flow(
+    *,
+    base_url: str,
+    task_id: str = "task-openclaw-review-gate-spike-1",
+) -> OpenClawHarnessSpikeResult:
+    """Run one representative OpenClaw -> Harness review-gate flow through the public API."""
+
+    client = OpenClawHarnessSpikeClient(base_url)
+    context = _build_context()
+    intent = _build_spike_intent(
+        task_id=task_id,
+        description="Submit a task, then reevaluate with unresolved external truth so the task enters review.",
+        success_signal="The task moves into review and the canonical supervision queue exposes that gate.",
+    )
+
+    submission_status, submission_payload = client.submit_task(
+        intent=intent,
+        context=context,
+        external_facts={},
+    )
+    if submission_status >= 400:
+        raise RuntimeError(f"OpenClaw review-gate spike submission failed: {submission_payload}")
+
+    read_model_status, _ = client.get_task_read_model(task_id)
+    if read_model_status >= 400:
+        raise RuntimeError(f"OpenClaw review-gate spike read-model fetch failed for {task_id}")
+    initial_supervision_queue_status, initial_supervision_payload = client.get_supervision_queue()
+    if initial_supervision_queue_status >= 400:
+        raise RuntimeError(f"OpenClaw review-gate spike supervision queue fetch failed for {task_id}")
+    initial_supervision_entry = _find_supervision_entry(initial_supervision_payload, task_id=task_id)
+
+    reevaluation_status, reevaluation_payload = client.reevaluate_task(
+        task_id,
+        claimed_completion=True,
+        acceptance_criteria_satisfied=True,
+        runtime_facts={"executor_reported_success": True, "attempt_count": 1},
+        external_facts={
+            "github_facts": {
+                "artifact_found": True,
+                "repository": {
+                    "host": "github.com",
+                    "owner": "KnoxAnalytics",
+                    "name": "HARNESS-DRYRUN",
+                    "external_id": "repo-dryrun-1",
+                },
+                "branch": {
+                    "name": "codex/review-gate-spike",
+                    "base_branch": "main",
+                    "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+                "commit": {"sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"},
+                "pull_request": {
+                    "number": 2,
+                    "url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                    "state": "open",
+                    "review_state": "approved",
+                },
+                "changed_files": {
+                    "matches_expected_scope": True,
+                    "files": [{"path": "modules/api.py", "change_type": "modified"}],
+                },
+            },
+            "linear_facts": {
+                "record_found": False,
+                "reasons": ["linear_record_not_found"],
+            },
+        },
+    )
+    if reevaluation_status >= 400:
+        raise RuntimeError(f"OpenClaw review-gate spike reevaluation failed: {reevaluation_payload}")
+
+    timeline_status, _ = client.get_task_timeline(task_id)
+    history_status, history_payload = client.get_evaluation_history(task_id)
+    final_supervision_queue_status, final_supervision_payload = client.get_supervision_queue()
+    if timeline_status >= 400 or history_status >= 400 or final_supervision_queue_status >= 400:
+        raise RuntimeError(f"OpenClaw review-gate spike inspection failed for {task_id}")
+    final_supervision_entry = _find_supervision_entry(final_supervision_payload, task_id=task_id)
+
+    return _build_result(
+        task_id=task_id,
+        submission_status=submission_status,
+        submission_payload=submission_payload,
+        reevaluation_status=reevaluation_status,
+        reevaluation_payload=reevaluation_payload,
+        read_model_status=read_model_status,
+        timeline_status=timeline_status,
+        history_payload=history_payload,
+        initial_supervision_queue_status=initial_supervision_queue_status,
+        initial_supervision_entry=initial_supervision_entry,
+        final_supervision_queue_status=final_supervision_queue_status,
+        final_supervision_entry=final_supervision_entry,
     )
 
 
@@ -370,6 +511,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run a narrow OpenClaw-informed client spike against the Harness API.")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="Harness API base URL")
     parser.add_argument("--task-id", default="task-openclaw-spike-1", help="Task id to use for the representative spike")
+    parser.add_argument(
+        "--flow",
+        choices=("completion", "review-gate"),
+        default="completion",
+        help="Representative spike flow to run",
+    )
     parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON")
     return parser
 
@@ -378,7 +525,10 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entry point for the OpenClaw-informed Harness spike."""
 
     args = build_parser().parse_args(argv)
-    result = run_openclaw_spike_flow(base_url=args.base_url, task_id=args.task_id)
+    if args.flow == "review-gate":
+        result = run_openclaw_review_gate_spike_flow(base_url=args.base_url, task_id=args.task_id)
+    else:
+        result = run_openclaw_spike_flow(base_url=args.base_url, task_id=args.task_id)
 
     if args.as_json:
         print(json.dumps(asdict(result), indent=2, sort_keys=True))
@@ -412,6 +562,7 @@ __all__ = [
     "OpenClawTaskIntent",
     "build_task_reevaluation_payload",
     "build_task_submission_payload",
+    "run_openclaw_review_gate_spike_flow",
     "run_openclaw_spike_flow",
 ]
 

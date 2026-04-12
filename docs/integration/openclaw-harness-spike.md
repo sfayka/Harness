@@ -61,6 +61,13 @@ The built-in spike flow intentionally exercises a real control-plane change:
 5. Harness accepts completion
 6. Client fetches read model, timeline, evaluation history, and confirms the queue entry cleared
 
+The spike now also includes a review-gate flow:
+
+1. OpenClaw-style client submits a task without initial blockers
+2. OpenClaw-style client reevaluates with unresolved external truth that must escalate to manual review
+3. Harness moves the task into `in_review`
+4. OpenClaw-style client reads the canonical supervision queue and sees a live `review_required` entry
+
 ## What Was Learned
 
 The current boundary works cleanly for a thin client.
@@ -79,6 +86,7 @@ Other observations:
 - duplicate task handling is clear: `POST /tasks` returns `409`, and reevaluation remains explicit
 - inspection endpoints are already sufficient for operator, dashboard, and thin-supervisor visibility
 - no API redesign was required for this spike
+- the same thin client can now observe both clarification-driven and review-driven supervision states through the canonical queue
 
 Since the spike was written, Harness added a dedicated OpenClaw ingress adapter endpoint (`POST /ingress/openclaw`) that still delegates into canonical submission semantics (`POST /tasks`) rather than introducing a separate control-plane contract.
 
