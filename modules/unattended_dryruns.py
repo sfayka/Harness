@@ -170,6 +170,8 @@ def actual_outcome_from_entry(entry: dict[str, Any]) -> dict[str, Any]:
         "accepted_completion": entry.get("accepted_completion"),
         "final_status": entry.get("final_status"),
         "requires_review": entry.get("requires_review"),
+        "supervision_present": entry.get("supervision_present"),
+        "supervision_attention_type": entry.get("supervision_attention_type"),
     }
 
 
@@ -326,6 +328,7 @@ def summarize_run(
     create_result: RequestResult,
     evaluate_result: RequestResult,
     fetch_result: RequestResult,
+    supervision_result: RequestResult,
     duration_ms: int,
     raw_files: dict[str, Any],
     attempt_error_stage: str | None = None,
@@ -333,6 +336,15 @@ def summarize_run(
     verification = ((evaluate_result.payload.get("enforcement_result") or {}).get("verification_result") or {})
     reconciliation = ((evaluate_result.payload.get("enforcement_result") or {}).get("reconciliation_result") or {})
     fetched_task = fetch_result.payload.get("task") if isinstance(fetch_result.payload.get("task"), dict) else {}
+    queue_items = supervision_result.payload.get("queue") if isinstance(supervision_result.payload.get("queue"), list) else []
+    supervision_entry = next(
+        (
+            item
+            for item in queue_items
+            if isinstance(item, dict) and str(item.get("task_id") or "") == task_id
+        ),
+        None,
+    )
 
     error = evaluate_result.error or fetch_result.error or create_result.error
     if error is None and evaluate_result.status not in {None, 200}:
@@ -353,6 +365,14 @@ def summarize_run(
         "requires_review": evaluate_result.payload.get("requires_review"),
         "final_status": fetched_task.get("status"),
         "action": evaluate_result.payload.get("action"),
+        "supervision_http_status": supervision_result.status,
+        "supervision_present": supervision_entry is not None,
+        "supervision_attention_type": (
+            supervision_entry.get("attention_type") if isinstance(supervision_entry, dict) else None
+        ),
+        "supervision_suggested_action": (
+            supervision_entry.get("suggested_action") if isinstance(supervision_entry, dict) else None
+        ),
         "error": error,
         "mismatch_categories": reconciliation.get("mismatch_categories", []),
         "duration_ms": duration_ms,
@@ -445,6 +465,19 @@ def run_scenario_once(
             {"status": None, "payload": {}, "error": "skipped because create failed"},
         )
 
+    supervision_result = RequestResult(status=None, payload={}, error="supervision_skipped")
+    if create_result.status == 200:
+        supervision_result = client.get_json("/supervision/queue")
+        raw_files["supervision_queue_response"] = _write_json(
+            scenario_dir / "supervision-queue-response.json",
+            {"status": supervision_result.status, "payload": supervision_result.payload, "error": supervision_result.error},
+        )
+    else:
+        raw_files["supervision_queue_response"] = _write_json(
+            scenario_dir / "supervision-queue-response.json",
+            {"status": None, "payload": {}, "error": "skipped because create failed"},
+        )
+
     return summarize_run(
         timestamp=timestamp,
         scenario=scenario.name,
@@ -452,6 +485,7 @@ def run_scenario_once(
         create_result=create_result,
         evaluate_result=evaluate_result,
         fetch_result=final_fetch_result,
+        supervision_result=supervision_result,
         duration_ms=round((time.monotonic() - scenario_started) * 1000),
         raw_files=raw_files,
         attempt_error_stage=attempt_error_stage,

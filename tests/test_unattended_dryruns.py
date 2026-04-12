@@ -26,15 +26,33 @@ class UnattendedDryRunTests(unittest.TestCase):
         self.assertEqual(list(scenarios), ["happy_path", "mismatch", "review_required"])
         self.assertEqual(
             scenarios["happy_path"],
-            {"accepted_completion": True, "final_status": "completed", "requires_review": False},
+            {
+                "accepted_completion": True,
+                "final_status": "completed",
+                "requires_review": False,
+                "supervision_present": False,
+                "supervision_attention_type": None,
+            },
         )
         self.assertEqual(
             scenarios["mismatch"],
-            {"accepted_completion": False, "final_status": "failed", "requires_review": False},
+            {
+                "accepted_completion": False,
+                "final_status": "failed",
+                "requires_review": False,
+                "supervision_present": False,
+                "supervision_attention_type": None,
+            },
         )
         self.assertEqual(
             scenarios["review_required"],
-            {"accepted_completion": False, "final_status": "in_review", "requires_review": True},
+            {
+                "accepted_completion": False,
+                "final_status": "in_review",
+                "requires_review": True,
+                "supervision_present": True,
+                "supervision_attention_type": "review_required",
+            },
         )
 
     def test_build_task_id_includes_scenario_timestamp_and_suffix(self) -> None:
@@ -48,22 +66,58 @@ class UnattendedDryRunTests(unittest.TestCase):
 
     def test_classify_outcome_distinguishes_expected_success_and_semantic_failure(self) -> None:
         matched, outcome_class = classify_outcome(
-            {"accepted_completion": True, "final_status": "completed", "requires_review": False},
-            {"accepted_completion": True, "final_status": "completed", "requires_review": False},
+            {
+                "accepted_completion": True,
+                "final_status": "completed",
+                "requires_review": False,
+                "supervision_present": False,
+                "supervision_attention_type": None,
+            },
+            {
+                "accepted_completion": True,
+                "final_status": "completed",
+                "requires_review": False,
+                "supervision_present": False,
+                "supervision_attention_type": None,
+            },
         )
         self.assertTrue(matched)
         self.assertEqual(outcome_class, "expected_success")
 
         matched, outcome_class = classify_outcome(
-            {"accepted_completion": False, "final_status": "in_review", "requires_review": True},
-            {"accepted_completion": False, "final_status": "in_review", "requires_review": True},
+            {
+                "accepted_completion": False,
+                "final_status": "in_review",
+                "requires_review": True,
+                "supervision_present": True,
+                "supervision_attention_type": "review_required",
+            },
+            {
+                "accepted_completion": False,
+                "final_status": "in_review",
+                "requires_review": True,
+                "supervision_present": True,
+                "supervision_attention_type": "review_required",
+            },
         )
         self.assertTrue(matched)
         self.assertEqual(outcome_class, "expected_semantic_failure")
 
         matched, outcome_class = classify_outcome(
-            {"accepted_completion": True, "final_status": "completed", "requires_review": False},
-            {"accepted_completion": False, "final_status": "blocked", "requires_review": False},
+            {
+                "accepted_completion": True,
+                "final_status": "completed",
+                "requires_review": False,
+                "supervision_present": False,
+                "supervision_attention_type": None,
+            },
+            {
+                "accepted_completion": False,
+                "final_status": "blocked",
+                "requires_review": False,
+                "supervision_present": True,
+                "supervision_attention_type": "retryable_failure",
+            },
         )
         self.assertFalse(matched)
         self.assertEqual(outcome_class, "unexpected_failure")
@@ -120,6 +174,7 @@ class UnattendedDryRunTests(unittest.TestCase):
                 },
             ),
             fetch_result=RequestResult(status=200, payload={"task": {"status": "completed"}}),
+            supervision_result=RequestResult(status=200, payload={"queue": []}),
             duration_ms=1420,
             raw_files={"create_response": "runs/raw/create.json"},
         )
@@ -134,6 +189,10 @@ class UnattendedDryRunTests(unittest.TestCase):
         self.assertFalse(summary["requires_review"])
         self.assertEqual(summary["final_status"], "completed")
         self.assertEqual(summary["action"], "transition_applied")
+        self.assertEqual(summary["supervision_http_status"], 200)
+        self.assertFalse(summary["supervision_present"])
+        self.assertIsNone(summary["supervision_attention_type"])
+        self.assertIsNone(summary["supervision_suggested_action"])
         self.assertEqual(summary["mismatch_categories"], [])
         self.assertEqual(summary["duration_ms"], 1420)
         self.assertEqual(summary["raw_files"], {"create_response": "runs/raw/create.json"})
@@ -153,6 +212,9 @@ class UnattendedDryRunTests(unittest.TestCase):
             "requires_review": None,
             "final_status": None,
             "action": None,
+            "supervision_http_status": None,
+            "supervision_present": None,
+            "supervision_attention_type": None,
             "error": "Connection refused",
             "mismatch_categories": [],
             "duration_ms": 1000,
@@ -172,6 +234,9 @@ class UnattendedDryRunTests(unittest.TestCase):
             "requires_review": False,
             "final_status": "completed",
             "action": "transition_applied",
+            "supervision_http_status": 200,
+            "supervision_present": False,
+            "supervision_attention_type": None,
             "error": None,
             "mismatch_categories": [],
             "duration_ms": 900,
@@ -217,6 +282,9 @@ class UnattendedDryRunTests(unittest.TestCase):
             "requires_review": False,
             "final_status": "blocked",
             "action": "transition_applied",
+            "supervision_http_status": 200,
+            "supervision_present": False,
+            "supervision_attention_type": None,
             "error": None,
             "mismatch_categories": [],
             "duration_ms": 1000,
@@ -258,6 +326,64 @@ class UnattendedDryRunTests(unittest.TestCase):
         self.assertTrue(result["e2e_suite_run"])
         self.assertFalse(result["e2e_suite_passed"])
         self.assertEqual(result["report_path"], "runs/reports/happy-path-report.json")
+
+    def test_execute_scenario_with_policy_treats_missing_review_queue_entry_as_runtime_regression(self) -> None:
+        scenario = CANONICAL_UNATTENDED_SCENARIOS[2]
+        regression_entry = {
+            "timestamp": "2026-04-01T12:30:00Z",
+            "scenario": scenario.name,
+            "task_id": "task-1",
+            "create_http_status": 200,
+            "evaluate_http_status": 200,
+            "fetch_http_status": 200,
+            "accepted_completion": False,
+            "verification_passed": False,
+            "reconciliation_status": "review_required",
+            "requires_review": True,
+            "final_status": "in_review",
+            "action": "review_required",
+            "supervision_http_status": 200,
+            "supervision_present": False,
+            "supervision_attention_type": None,
+            "error": None,
+            "mismatch_categories": [],
+            "duration_ms": 1000,
+            "raw_files": {},
+            "attempt_error_stage": None,
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch("modules.unattended_dryruns.run_scenario_once", return_value=regression_entry):
+                with patch(
+                    "modules.unattended_dryruns.run_e2e_suite",
+                    return_value=E2ESuiteResult(
+                        ran=True,
+                        passed=False,
+                        exit_code=1,
+                        output_path="runs/reports/e2e-suite.txt",
+                    ),
+                ):
+                    with patch(
+                        "modules.unattended_dryruns.write_diagnostic_report",
+                        return_value="runs/reports/review-required-report.json",
+                    ):
+                        result = execute_scenario_with_policy(
+                            client=object(),
+                            scenario=scenario,
+                            output_dir=Path(temp_dir),
+                            session_state=RunnerSessionState(),
+                            health_retries=2,
+                            health_backoff_seconds=0.01,
+                            max_retries=2,
+                            diagnostics_enabled=True,
+                            max_e2e_suite_runs=1,
+                        )
+
+        self.assertEqual(result["outcome_class"], "unexpected_failure")
+        self.assertEqual(result["classification"], "unexpected_runtime_regression")
+        self.assertEqual(result["retry_count"], 0)
+        self.assertTrue(result["e2e_suite_run"])
+        self.assertEqual(result["report_path"], "runs/reports/review-required-report.json")
 
 
 if __name__ == "__main__":
