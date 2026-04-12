@@ -1811,7 +1811,16 @@ def _latest_advisory_completion_claim(task_envelope: dict[str, Any]) -> dict[str
     ) or []
     if not isinstance(claims, list):
         return None
-    return next((claim for claim in reversed(claims) if isinstance(claim, dict)), None)
+    dict_claims = [claim for claim in claims if isinstance(claim, dict)]
+    if not dict_claims:
+        return None
+    return max(
+        dict_claims,
+        key=lambda claim: (
+            _parse_iso_timestamp(str(claim.get("reported_at") or "")),
+            str(claim.get("claim_id") or ""),
+        ),
+    )
 
 
 def _advisory_completion_claim_by_id(task_envelope: dict[str, Any], claim_id: str | None) -> dict[str, Any] | None:
