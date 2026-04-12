@@ -730,7 +730,16 @@ def _current_completion_claim(task_envelope: TaskEnvelope) -> dict[str, Any] | N
     claims = execution_metadata.get("advisory_completion_claims") or []
     if not isinstance(claims, list):
         return None
-    return next((claim for claim in reversed(claims) if isinstance(claim, dict)), None)
+    valid_claims = [claim for claim in claims if isinstance(claim, dict)]
+    if not valid_claims:
+        return None
+    return max(
+        valid_claims,
+        key=lambda claim: (
+            _parse_iso_timestamp(str(claim.get("reported_at") or "")),
+            str(claim.get("claim_id") or ""),
+        ),
+    )
 
 
 def _parse_iso_timestamp(value: str | None):
