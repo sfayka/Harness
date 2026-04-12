@@ -376,6 +376,7 @@ find runs/raw -type f | sort
 Self-heal behavior:
 
 - each scenario compares its actual outcome to the canonical expected outcome
+- each scenario also compares the task's presence or absence in `GET /supervision/queue` to the canonical expectation
 - transient transport and backend availability failures are retried up to the bounded retry limit
 - runtime regressions can trigger the local E2E suite once per runner session
 - unexpected failures write structured reports under `runs/reports/`

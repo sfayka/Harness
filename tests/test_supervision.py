@@ -24,7 +24,7 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         self.api = HarnessApiService(store=self.store)
         self.service = HarnessSupervisionService(
             store=self.store,
-            now_provider=lambda: "2026-04-12T12:00:00Z",
+            now_provider=lambda: "2026-04-14T12:00:00Z",
             stale_after_seconds_by_status={
                 "planned": 24 * 60 * 60,
                 "dispatch_ready": 2 * 60 * 60,
@@ -150,4 +150,3 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         self.assertEqual(stale_item["attention_type"], "stale_active_task")
         self.assertEqual(stale_item["suggested_action"], "investigate_staleness")
         self.assertTrue(stale_item["stale"])
-
