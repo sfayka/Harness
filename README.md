@@ -315,6 +315,17 @@ Run the full Python test suite:
 python -m unittest discover -s tests
 ```
 
+Run the controlled autonomous dry run that exercises:
+
+- canonical task creation through `POST /evaluate`
+- OpenClaw-style retry supervision through `GET /supervision/queue` and redispatch
+- Codex Cloud adapter proof validation
+- post-dispatch GitHub-backed reevaluation that closes the missing changed-file evidence gap
+
+```bash
+python -m unittest tests.test_autonomous_dryrun
+```
+
 Run frontend validation:
 
 ```bash

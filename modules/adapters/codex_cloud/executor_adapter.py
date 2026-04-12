@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Protocol
@@ -89,14 +90,17 @@ class CodexCloudExecutorAdapter:
         preflight_passed = preflight_reason is None
 
         if preflight_passed:
+            raw_artifacts = _require_list(response_payload.get("artifacts"), "response.artifacts")
+            artifact_context = _build_artifact_context(raw_artifacts)
             artifacts = tuple(
                 self._normalize_artifact(
                     dispatch_input=dispatch_input,
                     run_id=run_id,
                     artifact_payload=artifact_payload,
                     index=index,
+                    artifact_context=artifact_context,
                 )
-                for index, artifact_payload in enumerate(_require_list(response_payload.get("artifacts"), "response.artifacts"))
+                for index, artifact_payload in enumerate(raw_artifacts)
             )
             raw_events = _require_list(response_payload.get("events"), "response.events")
             if not raw_events:
@@ -194,6 +198,7 @@ class CodexCloudExecutorAdapter:
         run_id: str,
         artifact_payload: Any,
         index: int,
+        artifact_context: dict[str, str | None],
     ) -> ArtifactReference:
         if not isinstance(artifact_payload, dict):
             raise CodexCloudAdapterError(f"response.artifacts[{index}] must be an object")
@@ -202,6 +207,11 @@ class CodexCloudExecutorAdapter:
         location = artifact_payload.get("url")
         external_id = artifact_payload.get("external_id")
         commit_sha = artifact_payload.get("commit_sha")
+        metadata = _artifact_metadata(
+            artifact_type=artifact_type,
+            artifact_payload=artifact_payload,
+            artifact_context=artifact_context,
+        )
         return validate_artifact_reference(
             ArtifactReference(
                 artifact_type=artifact_type,
@@ -210,7 +220,7 @@ class CodexCloudExecutorAdapter:
                 external_id=external_id if isinstance(external_id, str) and external_id.strip() else None,
                 commit_sha=commit_sha if isinstance(commit_sha, str) and commit_sha.strip() else None,
                 provenance=_provenance(run_id=run_id, source_id=artifact_id, source_type="executor_artifact"),
-                metadata={"adapter": self.adapter_name},
+                metadata=metadata,
             )
         )
 
@@ -259,6 +269,133 @@ def _require_list(value: Any, field_name: str) -> list[Any]:
     if not isinstance(value, list):
         raise CodexCloudAdapterError(f"{field_name} must be a list")
     return value
+
+
+def _build_artifact_context(raw_artifacts: list[Any]) -> dict[str, str | None]:
+    branch_name: str | None = None
+    commit_sha: str | None = None
+    repository_host: str | None = None
+    repository_owner: str | None = None
+    repository_name: str | None = None
+
+    for artifact in raw_artifacts:
+        if not isinstance(artifact, dict):
+            continue
+        artifact_type = artifact.get("type")
+        if branch_name is None and artifact_type == "branch":
+            branch_name = _string_or_none(artifact.get("branch_name")) or _string_or_none(artifact.get("external_id"))
+        if commit_sha is None:
+            commit_sha = _string_or_none(artifact.get("commit_sha")) or _string_or_none(artifact.get("head_commit_sha"))
+        if artifact_type == "pull_request":
+            location = _string_or_none(artifact.get("url"))
+            if location:
+                parsed = _parse_repository_location(location)
+                if parsed is not None:
+                    repository_host, repository_owner, repository_name = parsed
+        if repository_owner is None or repository_name is None or repository_host is None:
+            repository_payload = artifact.get("repository") if isinstance(artifact.get("repository"), dict) else {}
+            repository_host = repository_host or _string_or_none(repository_payload.get("host"))
+            repository_owner = repository_owner or _string_or_none(repository_payload.get("owner"))
+            repository_name = repository_name or _string_or_none(repository_payload.get("name"))
+
+    return {
+        "branch_name": branch_name,
+        "commit_sha": commit_sha,
+        "repository_host": repository_host,
+        "repository_owner": repository_owner,
+        "repository_name": repository_name,
+    }
+
+
+def _artifact_metadata(
+    *,
+    artifact_type: str,
+    artifact_payload: dict[str, Any],
+    artifact_context: dict[str, str | None],
+) -> dict[str, Any]:
+    metadata = {"adapter": "codex-cloud"}
+    payload_metadata = artifact_payload.get("metadata") if isinstance(artifact_payload.get("metadata"), dict) else {}
+    if payload_metadata:
+        metadata.update(deepcopy(payload_metadata))
+
+    repository_payload = artifact_payload.get("repository") if isinstance(artifact_payload.get("repository"), dict) else {}
+    repository_host = (
+        _string_or_none(repository_payload.get("host"))
+        or _string_or_none(artifact_payload.get("repository_host"))
+        or artifact_context.get("repository_host")
+    )
+    repository_owner = (
+        _string_or_none(repository_payload.get("owner"))
+        or _string_or_none(artifact_payload.get("repository_owner"))
+        or artifact_context.get("repository_owner")
+    )
+    repository_name = (
+        _string_or_none(repository_payload.get("name"))
+        or _string_or_none(artifact_payload.get("repository_name"))
+        or artifact_context.get("repository_name")
+    )
+    if repository_host is not None:
+        metadata.setdefault("repository_host", repository_host)
+    if repository_owner is not None:
+        metadata.setdefault("repository_owner", repository_owner)
+    if repository_name is not None:
+        metadata.setdefault("repository_name", repository_name)
+
+    branch_name = (
+        _string_or_none(artifact_payload.get("branch_name"))
+        or _string_or_none(artifact_payload.get("head_branch"))
+        or _string_or_none(artifact_payload.get("branch"))
+        or (
+            _string_or_none(artifact_payload.get("external_id"))
+            if artifact_type == "branch"
+            else None
+        )
+        or artifact_context.get("branch_name")
+    )
+    if branch_name is not None:
+        metadata.setdefault("branch_name", branch_name)
+
+    commit_sha = (
+        _string_or_none(artifact_payload.get("commit_sha"))
+        or _string_or_none(artifact_payload.get("head_commit_sha"))
+        or artifact_context.get("commit_sha")
+    )
+    if commit_sha is not None:
+        metadata.setdefault("commit_sha", commit_sha)
+        if artifact_type in {"branch", "pull_request"}:
+            metadata.setdefault("head_commit_sha", commit_sha)
+
+    if artifact_type == "pull_request":
+        pr_number = artifact_payload.get("pull_request_number")
+        if pr_number is None:
+            pr_number = artifact_payload.get("number")
+        if pr_number is not None:
+            metadata.setdefault("pull_request_number", pr_number)
+            metadata.setdefault("number", pr_number)
+        pr_state = _string_or_none(artifact_payload.get("pull_request_state")) or _string_or_none(artifact_payload.get("state"))
+        if pr_state is not None:
+            metadata.setdefault("pull_request_state", pr_state)
+            metadata.setdefault("state", pr_state)
+        if "merged" in artifact_payload:
+            metadata.setdefault("merged", artifact_payload.get("merged"))
+        elif "pull_request_merged" in artifact_payload:
+            metadata.setdefault("merged", artifact_payload.get("pull_request_merged"))
+
+    return metadata
+
+
+def _string_or_none(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
+def _parse_repository_location(url: str) -> tuple[str, str, str] | None:
+    match = re.match(r"^https://([^/]+)/([^/]+)/([^/]+)/", url)
+    if match is None:
+        return None
+    return match.group(1), match.group(2), match.group(3)
 
 
 def _normalize_event_type(raw_type: str) -> ExecutionEventType:
