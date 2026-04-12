@@ -1,0 +1,158 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import threading
+import unittest
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+from modules.api import run_server
+from modules.connectors.openclaw_harness_spike import (
+    OpenClawHarnessSpikeClient,
+    OpenClawSourceContext,
+    OpenClawTaskIntent,
+    run_openclaw_review_gate_spike_flow,
+)
+from modules.connectors.openclaw_supervisor import OpenClawHarnessSupervisor
+from modules.demo_cases import build_demo_request
+from modules.runtime_scenario_builders import to_jsonable
+
+
+class OpenClawHarnessSupervisorTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.server = run_server(host="127.0.0.1", port=0, store_root=self.temp_dir.name)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.base_url = f"http://127.0.0.1:{self.server.server_port}"
+        self.client = OpenClawHarnessSpikeClient(self.base_url)
+
+    def tearDown(self) -> None:
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=2)
+        self.temp_dir.cleanup()
+
+    def _request_json(
+        self,
+        method: str,
+        path: str,
+        payload: dict | None = None,
+    ) -> tuple[int, dict]:
+        data = None
+        headers = {}
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+
+        request = Request(self.base_url + path, data=data, headers=headers, method=method)
+        try:
+            with urlopen(request) as response:
+                return response.status, json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            try:
+                return error.code, json.loads(error.read().decode("utf-8"))
+            finally:
+                error.close()
+
+    def _context(self) -> OpenClawSourceContext:
+        return OpenClawSourceContext(
+            conversation_id="conv-supervisor-1",
+            message_id="msg-supervisor-1",
+            channel="cli",
+            workspace_id="workspace-supervisor",
+            user_id="operator@example.com",
+            agent_id="openclaw-assistant",
+        )
+
+    def _intent(self, task_id: str) -> OpenClawTaskIntent:
+        return OpenClawTaskIntent(
+            task_id=task_id,
+            title="OpenClaw supervisor attention test",
+            description="Create canonical supervision attention for the OpenClaw loop.",
+            acceptance_criteria=(
+                "Harness persists the task.",
+                "Harness exposes canonical supervision attention for the task.",
+            ),
+            objective_summary="Exercise canonical attention states through the OpenClaw client boundary.",
+            deliverable_type="integration_spike",
+            success_signal="The OpenClaw supervisor loop can inspect and react to the task.",
+            requested_by="operator@example.com",
+        )
+
+    def test_cycle_collects_canonical_context_for_review_and_clarification_attention(self) -> None:
+        run_openclaw_review_gate_spike_flow(
+            base_url=self.base_url,
+            task_id="task-openclaw-supervisor-review-1",
+        )
+        submit_status, _ = self.client.submit_task(
+            intent=self._intent("task-openclaw-supervisor-clarification-1"),
+            context=self._context(),
+            unresolved_conditions=("Need operator clarification before dispatch can continue.",),
+        )
+        self.assertEqual(submit_status, 200)
+
+        supervisor = OpenClawHarnessSupervisor(self.base_url)
+        cycle = supervisor.run_cycle()
+        decisions = {decision.task_id: decision for decision in cycle.decisions}
+        actions = {result.task_id: result for result in cycle.action_results}
+
+        self.assertEqual(cycle.queue_status, 200)
+        self.assertEqual(cycle.decision_count, 2)
+
+        review_decision = decisions["task-openclaw-supervisor-review-1"]
+        self.assertEqual(review_decision.attention_type, "review_required")
+        self.assertEqual(review_decision.suggested_action, "resolve_review_gate")
+        self.assertEqual(review_decision.read_model_status, 200)
+        self.assertEqual(review_decision.timeline_status, 200)
+        self.assertGreaterEqual(review_decision.evaluation_history_count, 2)
+        self.assertFalse(review_decision.can_autonomously_dispatch)
+        self.assertIsNone(review_decision.proposed_dispatch_payload)
+        self.assertEqual(actions[review_decision.task_id].action_status, "manual_review_required")
+
+        clarification_decision = decisions["task-openclaw-supervisor-clarification-1"]
+        self.assertEqual(clarification_decision.attention_type, "clarification_required")
+        self.assertEqual(clarification_decision.suggested_action, "collect_clarification")
+        self.assertEqual(clarification_decision.read_model_status, 200)
+        self.assertEqual(clarification_decision.timeline_status, 200)
+        self.assertGreaterEqual(clarification_decision.evaluation_history_count, 1)
+        self.assertFalse(clarification_decision.can_autonomously_dispatch)
+        self.assertIsNone(clarification_decision.proposed_dispatch_payload)
+        self.assertEqual(actions[clarification_decision.task_id].action_status, "clarification_required")
+
+    def test_cycle_can_trigger_bounded_redispatch_for_retryable_failure(self) -> None:
+        retry_payload = {"request": to_jsonable(build_demo_request("blocked_insufficient_evidence"))}
+        retry_payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        create_status, create_payload = self._request_json("POST", "/evaluate", retry_payload)
+        self.assertEqual(create_status, 200)
+        task_id = create_payload["task_envelope"]["id"]
+
+        supervisor = OpenClawHarnessSupervisor(self.base_url)
+        cycle = supervisor.run_cycle(allow_redispatch=True, executor="codex")
+        decisions = {decision.task_id: decision for decision in cycle.decisions}
+        actions = {result.task_id: result for result in cycle.action_results}
+
+        retry_decision = decisions[task_id]
+        self.assertEqual(retry_decision.attention_type, "retryable_failure")
+        self.assertEqual(retry_decision.suggested_action, "retry_or_redispatch")
+        self.assertTrue(retry_decision.can_autonomously_dispatch)
+        self.assertIsNotNone(retry_decision.proposed_dispatch_payload)
+        self.assertEqual(
+            retry_decision.proposed_dispatch_payload["request"]["dispatch_trigger"],
+            "openclaw_supervision_loop",
+        )
+
+        retry_action = actions[task_id]
+        self.assertEqual(retry_action.action_status, "redispatch_triggered")
+        self.assertEqual(retry_action.http_status, 200)
+        self.assertIsNotNone(retry_action.action)
+        self.assertIn(retry_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
+
+
+if __name__ == "__main__":
+    unittest.main()
