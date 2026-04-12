@@ -10,6 +10,7 @@ from modules.connectors.openclaw_harness_spike import (
     OpenClawSourceContext,
     OpenClawTaskIntent,
     build_task_submission_payload,
+    run_openclaw_review_gate_spike_flow,
     run_openclaw_spike_flow,
 )
 
@@ -101,6 +102,28 @@ class OpenClawHarnessSpikeTests(unittest.TestCase):
         self.assertEqual(result.final_supervision_queue_status, 200)
         self.assertIsNone(result.final_supervision_attention_type)
         self.assertIsNone(result.final_supervision_suggested_action)
+        self.assertIsNone(result.final_supervision_reason)
+
+    def test_review_gate_spike_flow_surfaces_live_review_queue_entry(self) -> None:
+        result = run_openclaw_review_gate_spike_flow(
+            base_url=self.base_url,
+            task_id="task-openclaw-review-gate-flow-1",
+        )
+
+        self.assertEqual(result.submission_status, 200)
+        self.assertIn(result.initial_task_status, {"intake_ready", "planned", "dispatch_ready", "blocked", None})
+        self.assertEqual(result.reevaluation_status, 200)
+        self.assertEqual(result.reevaluation_action, "review_required")
+        self.assertEqual(result.final_task_status, "in_review")
+        self.assertEqual(result.read_model_status, 200)
+        self.assertEqual(result.timeline_status, 200)
+        self.assertEqual(result.evaluation_history_count, 2)
+        self.assertEqual(result.initial_supervision_queue_status, 200)
+        self.assertIsNone(result.initial_supervision_attention_type)
+        self.assertEqual(result.final_supervision_queue_status, 200)
+        self.assertEqual(result.final_supervision_attention_type, "review_required")
+        self.assertEqual(result.final_supervision_suggested_action, "resolve_review_gate")
+        self.assertIn("manual review gate", result.final_supervision_reason)
 
     def test_duplicate_task_id_behavior_matches_canonical_submission_policy(self) -> None:
         self.client.submit_task(intent=self._intent(task_id="task-openclaw-duplicate-1"), context=self._context())
