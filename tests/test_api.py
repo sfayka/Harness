@@ -12,8 +12,15 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from modules.adapters.executor_adapter import StubExecutorAdapter
+from modules.adapters.executor_adapter import ExecutorDispatchOutput, StubExecutorAdapter
 from modules.api import HarnessApiService, _latest_execution_attempt, build_parser, evaluate_http_payload, run_server
+from modules.contracts.execution_advisory import (
+    AdvisoryCompletionClaim,
+    ArtifactReference,
+    ExecutionEvent,
+    ExecutionEventType,
+    ExecutionProvenance,
+)
 from modules.reconciliation_runtime import (
     GitHubPullRequestRecord,
     ReconciliationFailureType,
@@ -160,6 +167,56 @@ class _CurrentRunPullRequestGateway(_NoCreatePullRequestGateway):
         if commit_sha == "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705":
             return (self._record(),)
         return ()
+
+
+class _OutOfOrderDispatchAdapter:
+    """Adapter stub that returns valid events in non-chronological sequence."""
+
+    def dispatch(self, dispatch_input) -> ExecutorDispatchOutput:
+        provenance = ExecutionProvenance(
+            source_system="stub-executor",
+            source_type="adapter",
+            source_id=f"{dispatch_input.attempt_id}:dispatch",
+            captured_by="stub-executor",
+        )
+        artifact_reference = ArtifactReference(
+            artifact_type="execution_log",
+            reference_id=f"{dispatch_input.attempt_id}:log",
+            location=f"stub://executions/{dispatch_input.task_id}/{dispatch_input.attempt_id}/log",
+            provenance=provenance,
+            metadata={"advisory": True},
+        )
+        return ExecutorDispatchOutput(
+            events=(
+                ExecutionEvent(
+                    event_id=f"{dispatch_input.attempt_id}:completed",
+                    task_id=dispatch_input.task_id,
+                    attempt_id=dispatch_input.attempt_id,
+                    event_type=ExecutionEventType.EXECUTION_SUCCEEDED,
+                    occurred_at="2026-04-11T09:10:00Z",
+                    provenance=provenance,
+                    artifact_references=(artifact_reference,),
+                    advisory_completion=AdvisoryCompletionClaim(
+                        claim_id=f"{dispatch_input.attempt_id}:claim",
+                        reported_complete=True,
+                        confidence="low",
+                        reason="out-of-order regression coverage",
+                        metadata={"advisory_only": True},
+                    ),
+                    metadata={"adapter": "out-of-order"},
+                ),
+                ExecutionEvent(
+                    event_id=f"{dispatch_input.attempt_id}:started",
+                    task_id=dispatch_input.task_id,
+                    attempt_id=dispatch_input.attempt_id,
+                    event_type=ExecutionEventType.EXECUTION_STARTED,
+                    occurred_at="2026-04-11T09:05:00Z",
+                    provenance=provenance,
+                    metadata={"adapter": "out-of-order"},
+                ),
+            ),
+            artifact_references=(artifact_reference,),
+        )
 
 
 def _registry_with_no_create_pull_request_gateway():
@@ -3878,6 +3935,27 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(any(event["event_type"] == "execution_artifact_attached" for event in timeline_payload["timeline"]))
         self.assertEqual(read_model_status, 200)
         self.assertEqual(read_model_payload["task"]["execution_summary"]["attempt_count"], 1)
+
+    def test_service_dispatch_task_uses_event_timestamps_when_adapter_events_arrive_out_of_order(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        evaluate_payload = {
+            "request": {
+                "task_envelope": deepcopy(payload["request"]["task_envelope"]),
+                "task_status": "dispatch_ready",
+            }
+        }
+        submit_status, submit_response = self.service.evaluate(evaluate_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        with patch("modules.api.StubExecutorAdapter", return_value=_OutOfOrderDispatchAdapter()):
+            dispatch_status, dispatch_response = self.service.dispatch_task(task_id, {"request": {"executor": "codex"}})
+
+        latest_attempt = dispatch_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(dispatch_status, 200)
+        self.assertEqual(latest_attempt["metadata"]["dispatch_at"], "2026-04-11T09:05:00Z")
+        self.assertEqual(latest_attempt["recorded_at"], "2026-04-11T09:10:00Z")
 
     def test_service_submit_auto_dispatches_dispatch_ready_task(self) -> None:
         payload = _manual_happy_path_overlay_payload()
