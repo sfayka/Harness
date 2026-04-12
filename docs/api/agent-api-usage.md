@@ -33,6 +33,12 @@ Queue entries are derived from canonical read-model and timeline truth and curre
 
 OpenClaw or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, dispatch, completion-claim, or reevaluation paths.
 
+The repository now includes a thin example supervisor loop in [`modules/connectors/openclaw_supervisor.py`](../../modules/connectors/openclaw_supervisor.py). That client does not mutate review, clarification, or proof decisions on its own. It only:
+
+- polls `GET /supervision/queue`
+- enriches queue entries with canonical inspection surfaces
+- optionally triggers `POST /tasks/<task_id>/dispatch` for bounded redispatch when the queue recommends `retry_or_redispatch` and the current canonical task state remains dispatchable
+
 `POST /tasks` is an intake/planning creation path, not a completion-reporting path. A brand-new task may include objective, planning, support artifacts, coordination metadata, and clarification blockers, but it must not arrive with claimed completion, acceptance assertions, runtime facts, validated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle state already attached.
 
 Fresh task creation also cannot inject assignment truth. Do not send `request.assigned_executor`, and do not try to create a new task directly in `assigned`. Executor assignment belongs to dispatcher-owned flows after Harness has accepted and persisted the task.

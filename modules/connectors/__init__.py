@@ -51,7 +51,14 @@ from .openclaw_harness_spike import (
     OpenClawHarnessSpikeResult,
     OpenClawSourceContext,
     OpenClawTaskIntent,
+    run_openclaw_review_gate_spike_flow,
     run_openclaw_spike_flow,
+)
+from .openclaw_supervisor import (
+    OpenClawHarnessSupervisor,
+    OpenClawSupervisionActionResult,
+    OpenClawSupervisionCycleResult,
+    OpenClawSupervisionDecision,
 )
 
 __all__ = [
@@ -71,11 +78,16 @@ __all__ = [
     "OpenClawHarnessSpikeClient",
     "OpenClawHarnessSpikeError",
     "OpenClawHarnessSpikeResult",
+    "OpenClawHarnessSupervisor",
     "OpenClawIngressInputError",
     "OpenClawSourceContext",
+    "OpenClawSupervisionActionResult",
+    "OpenClawSupervisionCycleResult",
+    "OpenClawSupervisionDecision",
     "OpenClawTaskIntent",
     "build_task_reevaluation_payload",
     "build_task_submission_payload",
+    "run_openclaw_review_gate_spike_flow",
     "run_openclaw_spike_flow",
     "translate_github_artifact_facts",
     "validate_github_artifact_references",

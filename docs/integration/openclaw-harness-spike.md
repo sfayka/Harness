@@ -88,6 +88,35 @@ Other observations:
 - no API redesign was required for this spike
 - the same thin client can now observe both clarification-driven and review-driven supervision states through the canonical queue
 
+## Thin Supervisor Loop
+
+The spike now also includes a thin OpenClaw-side supervisor client in [`modules/connectors/openclaw_supervisor.py`](../../modules/connectors/openclaw_supervisor.py).
+
+That loop does not invent new control-plane behavior. It:
+
+- polls `GET /supervision/queue`
+- enriches each attention item with `GET /tasks/<task_id>/read-model`
+- inspects `GET /tasks/<task_id>/timeline`
+- inspects `GET /tasks/<task_id>/evaluations`
+- turns the canonical `suggested_action` into an explicit next-step decision
+
+The loop remains intentionally narrow:
+
+- `review_required` stays a manual-review requirement
+- `clarification_required` stays a clarification collection requirement
+- `invalid_execution_attempt` stays a proof-or-rework requirement
+- `stale_active_task` stays an investigation requirement
+
+It currently performs one bounded autonomous follow-up:
+
+- if the queue surfaces `retryable_failure`, and the canonical task state is dispatchable, the loop may call `POST /tasks/<task_id>/dispatch` with an explicit `dispatch_trigger=openclaw_supervision_loop`
+
+That keeps OpenClaw thin while proving the next autonomy step:
+
+- OpenClaw can observe what needs attention
+- OpenClaw can inspect the canonical evidence behind that attention
+- OpenClaw can trigger a governed redispatch without bypassing Harness lifecycle enforcement
+
 Since the spike was written, Harness added a dedicated OpenClaw ingress adapter endpoint (`POST /ingress/openclaw`) that still delegates into canonical submission semantics (`POST /tasks`) rather than introducing a separate control-plane contract.
 
 That ingress endpoint is now explicitly constrained to intake/planning handoff. It accepts task intent, provenance, and other ingress-owned context, but it rejects executor runtime facts, completion claims, and execution/terminal lifecycle states. OpenClaw can describe the work; it cannot declare the work executed or complete through ingress.
