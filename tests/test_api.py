@@ -13,7 +13,15 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from modules.adapters.executor_adapter import ExecutorDispatchOutput, StubExecutorAdapter
-from modules.api import HarnessApiService, _latest_execution_attempt, build_parser, evaluate_http_payload, run_server
+from modules.api import (
+    HarnessApiService,
+    _execution_attempt_for_completion_claim,
+    _latest_advisory_completion_claim,
+    _latest_execution_attempt,
+    build_parser,
+    evaluate_http_payload,
+    run_server,
+)
 from modules.contracts.execution_advisory import (
     AdvisoryCompletionClaim,
     ArtifactReference,
@@ -86,6 +94,72 @@ class LatestExecutionAttemptTests(unittest.TestCase):
         }
 
         attempt = _latest_execution_attempt(task)
+
+        self.assertIsNotNone(attempt)
+        self.assertEqual(attempt["attempt_id"], "attempt-newer")
+
+
+class LatestAdvisoryCompletionClaimTests(unittest.TestCase):
+    def test_latest_advisory_completion_claim_uses_newest_reported_at_when_out_of_order(self) -> None:
+        task = {
+            "observability": {
+                "execution_metadata": {
+                    "advisory_completion_claims": [
+                        {
+                            "claim_id": "claim-newer",
+                            "reported_at": "2026-04-11T09:10:05Z",
+                            "metadata": {"attempt_id": "attempt-newer"},
+                        },
+                        {
+                            "claim_id": "claim-older",
+                            "reported_at": "2026-04-11T09:05:05Z",
+                            "metadata": {"attempt_id": "attempt-older"},
+                        },
+                    ]
+                }
+            }
+        }
+
+        claim = _latest_advisory_completion_claim(task)
+
+        self.assertIsNotNone(claim)
+        self.assertEqual(claim["claim_id"], "claim-newer")
+
+    def test_execution_attempt_for_completion_claim_uses_latest_claim_by_reported_at(self) -> None:
+        task = {
+            "observability": {
+                "execution_metadata": {
+                    "advisory_completion_claims": [
+                        {
+                            "claim_id": "claim-newer",
+                            "reported_at": "2026-04-11T09:10:05Z",
+                            "metadata": {"attempt_id": "attempt-newer"},
+                        },
+                        {
+                            "claim_id": "claim-older",
+                            "reported_at": "2026-04-11T09:05:05Z",
+                            "metadata": {"attempt_id": "attempt-older"},
+                        },
+                    ],
+                    "execution_attempts": [
+                        {
+                            "attempt_id": "attempt-newer",
+                            "completion_claim_id": "claim-newer",
+                            "recorded_at": "2026-04-11T09:10:05Z",
+                            "status": "completed",
+                        },
+                        {
+                            "attempt_id": "attempt-older",
+                            "completion_claim_id": "claim-older",
+                            "recorded_at": "2026-04-11T09:05:05Z",
+                            "status": "failed",
+                        },
+                    ],
+                }
+            }
+        }
+
+        attempt = _execution_attempt_for_completion_claim(task)
 
         self.assertIsNotNone(attempt)
         self.assertEqual(attempt["attempt_id"], "attempt-newer")
