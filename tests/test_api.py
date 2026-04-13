@@ -5979,6 +5979,115 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(evidence["status"], "satisfied")
         self.assertEqual(evidence["validation_method"], "external_reconciliation")
 
+    def test_api_github_sync_blocks_resumed_completion_when_acceptance_remains_unconfirmed(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        task_envelope = deepcopy(payload["request"]["task_envelope"])
+        task_envelope["id"] = "task-api-github-sync-resume-blocked-1"
+        task_envelope["title"] = "GitHub sync stays blocked without acceptance proof"
+        task_envelope["description"] = "GitHub sync should not crash when repository facts arrive before acceptance is proven."
+        task_envelope["artifacts"]["items"] = []
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request", "commit", "changed_file"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["status"] = "blocked"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-api-github-sync-resume-blocked-1",
+            "assignment_reason": "Exercise resumed completion while acceptance remains unconfirmed.",
+        }
+        execution_metadata = stored_task["observability"]["execution_metadata"]
+        execution_metadata["advisory_completion_claims"] = [
+            {
+                "claim_id": "claim-api-github-sync-resume-blocked-1",
+                "reported_at": "2026-04-13T10:00:00Z",
+                "reported_by": "codex",
+                "reason": "Executor reported completion pending GitHub reconciliation.",
+                "metadata": {"attempt_id": "attempt-api-github-sync-resume-blocked-1"},
+            }
+        ]
+        execution_metadata["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-api-github-sync-resume-blocked-1",
+                "recorded_at": "2026-04-13T10:00:05Z",
+                "status": "succeeded",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-api-github-sync-resume-blocked-1",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-api-github-sync-resume-blocked-1:pr",
+                        "artifact_type": "pull_request",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "pull_request_number": 2,
+                            "state": "open",
+                        },
+                    },
+                    {
+                        "reference_id": "attempt-api-github-sync-resume-blocked-1:commit",
+                        "artifact_type": "commit",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    },
+                ],
+                "metadata": {
+                    "executor_run_id": "stub-run-sync-blocked-1",
+                    "attempt_validation": {
+                        "status": "valid",
+                        "validated_at": "2026-04-13T10:00:06Z",
+                    },
+                },
+            }
+        ]
+        service.store.update_task(stored_task)
+        self.assertEqual(submit_status, 200)
+
+        service.reconciliation_registry = _registry_with_current_run_pull_request_gateway()
+        sync_status, sync_response = service.submit_github_sync(_github_sync_payload(task_id=task_id))
+
+        self.assertEqual(sync_status, 200)
+        self.assertEqual(sync_response["action"], "no_op")
+        self.assertFalse(sync_response["accepted_completion"])
+        self.assertEqual(sync_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(
+            sync_response["enforcement_result"]["verification_result"]["acceptance_criteria_assessment"][
+                "automatic_completion_safe"
+            ],
+            True,
+        )
+        self.assertIn("acceptance criteria are not yet satisfied", " ".join(sync_response["reasons"]).lower())
+        evidence = sync_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["policy"], "required")
+        self.assertEqual(evidence["status"], "satisfied")
+        self.assertEqual(evidence["validation_method"], "external_reconciliation")
+
     def test_api_exposes_supervision_queue_endpoint(self) -> None:
         create_status, create_payload = self._post_json("/evaluate", _request_payload("review_required"))
 

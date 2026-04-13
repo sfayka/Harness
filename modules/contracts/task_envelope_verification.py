@@ -488,6 +488,7 @@ def evaluate_verification_decision(
             evidence_is_valid=evidence_result.is_valid,
             evidence_is_sufficient=evidence_result.is_sufficient,
             reconciliation_status=decision_input.reconciliation_facts.status,
+            acceptance_criteria_assessment=acceptance_criteria_assessment,
             reasons=tuple(reasons),
             failure_classification=classify_verification_outcome(
                 outcome=outcome,
