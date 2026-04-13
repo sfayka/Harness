@@ -18,6 +18,7 @@ from modules.connectors.openclaw_supervisor import OpenClawHarnessSupervisor
 from modules.demo_cases import build_demo_request
 from modules.runtime_scenario_builders import to_jsonable
 from modules.store import FileBackedHarnessStore
+from modules.supervision import HarnessSupervisionService
 from tests.test_api import (
     _registry_with_current_run_pull_request_gateway,
     _registry_with_no_create_pull_request_gateway,
@@ -166,6 +167,49 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
         self.assertEqual(retry_action.http_status, 200)
         self.assertIsNotNone(retry_action.action)
         self.assertIn(retry_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
+
+    def test_cycle_can_trigger_bounded_redispatch_for_stale_active_task(self) -> None:
+        self.service.supervision_service = HarnessSupervisionService(
+            store=self.service.store,
+            now_provider=lambda: "2026-04-16T12:00:00Z",
+        )
+        submit_status, submit_payload = self.client.submit_task(
+            intent=self._intent("task-openclaw-supervisor-stale-1"),
+            context=self._context(),
+        )
+        self.assertEqual(submit_status, 200)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        stored_task = self.service.store.get_task(task_id)
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-openclaw-supervisor-stale-1",
+            "assignment_reason": "Exercise supervisor stale-task redispatch.",
+        }
+        stored_task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+        self.service.store.update_task(stored_task)
+
+        supervisor = OpenClawHarnessSupervisor(self.base_url)
+        cycle = supervisor.run_cycle(allow_redispatch=True, executor="codex")
+        decisions = {decision.task_id: decision for decision in cycle.decisions}
+        actions = {result.task_id: result for result in cycle.action_results}
+
+        stale_decision = decisions[task_id]
+        self.assertEqual(stale_decision.attention_type, "stale_active_task")
+        self.assertEqual(stale_decision.suggested_action, "investigate_staleness")
+        self.assertTrue(stale_decision.can_autonomously_dispatch)
+        self.assertIsNotNone(stale_decision.proposed_dispatch_payload)
+        self.assertEqual(
+            stale_decision.proposed_dispatch_payload["request"]["dispatch_trigger"],
+            "openclaw_supervision_loop",
+        )
+
+        stale_action = actions[task_id]
+        self.assertEqual(stale_action.action_status, "redispatch_triggered")
+        self.assertEqual(stale_action.http_status, 200)
+        self.assertIsNotNone(stale_action.action)
+        self.assertIn(stale_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
 
     def test_cycle_can_trigger_github_sync_for_sync_required_attention(self) -> None:
         submit_status, submit_payload = self.client.submit_task(
