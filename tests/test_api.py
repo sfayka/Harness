@@ -3472,6 +3472,67 @@ class HarnessApiServiceTests(unittest.TestCase):
         latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
         self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
 
+    def test_service_completion_claim_reconciliation_sets_required_policy_when_artifact_evidence_becomes_satisfied(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        task_envelope = deepcopy(payload["request"]["task_envelope"])
+        task_envelope["id"] = "task-reconciliation-policy-upgrade-1"
+        task_envelope["title"] = "Reconciliation evidence policy upgrade"
+        task_envelope["description"] = "Harness-owned reconciliation must not leave satisfied evidence under deferred policy."
+        task_envelope["artifacts"]["items"] = []
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request", "commit"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        valid_attempt_payload = _execution_attempt_payload(attempt_id="attempt-reconciliation-policy-upgrade-1")
+        valid_attempt_payload["execution_attempt"]["artifact_references"] = [
+            {
+                "reference_id": "attempt-reconciliation-policy-upgrade-1:commit",
+                "artifact_type": "commit",
+                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "metadata": {
+                    "repository_host": "github.com",
+                    "repository_owner": "KnoxAnalytics",
+                    "repository_name": "HARNESS-DRYRUN",
+                    "branch_name": "codex/e2e-test",
+                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                },
+            }
+        ]
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-reconciliation-policy-upgrade-1"),
+                    **valid_attempt_payload,
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "transition_applied")
+        self.assertTrue(claim_response["accepted_completion"])
+        evidence = claim_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["policy"], "required")
+        self.assertEqual(evidence["status"], "satisfied")
+        self.assertEqual(evidence["validation_method"], "external_reconciliation")
+
     def test_service_completion_claim_flags_vague_acceptance_criteria_for_review(self) -> None:
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
@@ -5810,6 +5871,113 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(task_payload["task"]["artifacts"]["items"], [])
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 1)
+
+    def test_api_github_sync_resumes_completion_with_required_policy_when_prior_attempt_is_valid(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        task_envelope = deepcopy(payload["request"]["task_envelope"])
+        task_envelope["id"] = "task-api-github-sync-resume-1"
+        task_envelope["title"] = "GitHub sync completion resume"
+        task_envelope["description"] = "GitHub sync should resume a prior valid completion attempt."
+        task_envelope["artifacts"]["items"] = []
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request", "commit"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        stored_task = deepcopy(service.store.get_task(task_id))
+        stored_task["status"] = "blocked"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-api-github-sync-resume-1",
+            "assignment_reason": "Exercise GitHub sync completion resume.",
+        }
+        execution_metadata = stored_task["observability"]["execution_metadata"]
+        execution_metadata["advisory_completion_claims"] = [
+            {
+                "claim_id": "claim-api-github-sync-resume-1",
+                "reported_at": "2026-04-13T10:00:00Z",
+                "reported_by": "codex",
+                "reason": "Executor reported completion pending GitHub reconciliation.",
+                "metadata": {"attempt_id": "attempt-api-github-sync-resume-1"},
+            }
+        ]
+        execution_metadata["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-api-github-sync-resume-1",
+                "recorded_at": "2026-04-13T10:00:05Z",
+                "status": "succeeded",
+                "reported_by": "codex",
+                "completion_claim_id": "claim-api-github-sync-resume-1",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-api-github-sync-resume-1:pr",
+                        "artifact_type": "pull_request",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "pull_request_number": 2,
+                            "state": "open",
+                        },
+                    },
+                    {
+                        "reference_id": "attempt-api-github-sync-resume-1:commit",
+                        "artifact_type": "commit",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    },
+                ],
+                "metadata": {
+                    "executor_run_id": "stub-run-sync-1",
+                    "attempt_validation": {
+                        "status": "valid",
+                        "validated_at": "2026-04-13T10:00:06Z",
+                    },
+                },
+            }
+        ]
+        service.store.update_task(stored_task)
+        self.assertEqual(submit_status, 200)
+        reevaluate_status, _ = service.reevaluate(
+            task_id,
+            {"request": {"acceptance_criteria_satisfied": True}},
+        )
+        self.assertEqual(reevaluate_status, 200)
+
+        service.reconciliation_registry = _registry_with_current_run_pull_request_gateway()
+        sync_status, sync_response = service.submit_github_sync(_github_sync_payload(task_id=task_id))
+
+        self.assertEqual(sync_status, 200)
+        self.assertEqual(sync_response["action"], "transition_applied")
+        self.assertTrue(sync_response["accepted_completion"])
+        self.assertEqual(sync_response["task_envelope"]["status"], "completed")
+        evidence = sync_response["task_envelope"]["artifacts"]["completion_evidence"]
+        self.assertEqual(evidence["policy"], "required")
+        self.assertEqual(evidence["status"], "satisfied")
+        self.assertEqual(evidence["validation_method"], "external_reconciliation")
 
     def test_api_exposes_supervision_queue_endpoint(self) -> None:
         create_status, create_payload = self._post_json("/evaluate", _request_payload("review_required"))

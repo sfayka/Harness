@@ -1137,6 +1137,8 @@ def _mark_reconciled_artifact_validated(
     }
     validated_types.discard(None)
 
+    if any(isinstance(required_type, str) and required_type.strip() for required_type in required_types):
+        completion_evidence["policy"] = "required"
     completion_evidence["validation_method"] = "external_reconciliation"
     completion_evidence["validated_at"] = _iso_now()
     completion_evidence["validator"] = {
