@@ -1990,6 +1990,7 @@ def _github_sync_completion_evidence_update(
     all_required_types_present = all(required_type in validated_types for required_type in required_types)
 
     return {
+        "policy": "required",
         "validated_artifact_ids": merged_validated_ids,
         "validation_method": "external_reconciliation",
         "validated_at": _iso_now(),
