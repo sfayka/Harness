@@ -150,3 +150,82 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         self.assertEqual(stale_item["attention_type"], "stale_active_task")
         self.assertEqual(stale_item["suggested_action"], "investigate_staleness")
         self.assertTrue(stale_item["stale"])
+
+    def test_queue_surfaces_github_sync_required_when_valid_execution_proof_exists_without_synced_artifacts(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        task = deepcopy(payload["request"]["task_envelope"])
+        task["id"] = "task-supervision-github-sync-1"
+        task["title"] = "GitHub sync required queue coverage"
+        task["description"] = "Queue should surface missing canonical GitHub sync when current-run proof already exists."
+        task["artifacts"]["completion_evidence"]["required_artifact_types"] = ["pull_request", "commit"]
+
+        submit_status, submit_response = self.api.submit({"request": {"task_envelope": task}})
+        self.assertEqual(submit_status, 200)
+
+        task_id = submit_response["task_envelope"]["id"]
+        stored_task = deepcopy(self.store.get_task(task_id))
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-supervision-github-sync-1",
+            "assignment_reason": "Exercise GitHub sync supervision.",
+        }
+        self.store.update_task(stored_task)
+
+        stored_task["status"] = "blocked"
+        stored_task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-supervision-github-sync-1",
+                "completion_claim_id": "claim-supervision-github-sync-1",
+                "recorded_at": "2026-04-13T10:00:05Z",
+                "reported_by": "codex",
+                "status": "succeeded",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-supervision-github-sync-1:pr",
+                        "artifact_type": "pull_request",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/123",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "pull_request_number": 123,
+                            "state": "open",
+                        },
+                    },
+                    {
+                        "reference_id": "attempt-supervision-github-sync-1:commit",
+                        "artifact_type": "commit",
+                        "location": (
+                            "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/"
+                            "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                        ),
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    },
+                ],
+                "metadata": {
+                    "attempt_validation": {
+                        "status": "valid",
+                        "validated_by": "execution_validation",
+                    }
+                },
+            }
+        ]
+        self.store.update_task(stored_task)
+
+        queue = self._queue_by_task_id()
+
+        sync_item = queue[task_id]
+        self.assertEqual(sync_item["attention_type"], "github_sync_required")
+        self.assertEqual(sync_item["suggested_action"], "sync_github_artifacts")
+        self.assertFalse(sync_item["stale"])

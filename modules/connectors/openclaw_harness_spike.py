@@ -217,6 +217,9 @@ class OpenClawHarnessSpikeClient:
     def get_supervision_queue(self) -> tuple[int, dict[str, Any]]:
         return self._request_json("GET", "/supervision/queue")
 
+    def sync_github(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", "/sync/github", payload)
+
     def dispatch_task(self, task_id: str, *, payload: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         return self._request_json("POST", f"/tasks/{task_id}/dispatch", payload or {})
 
