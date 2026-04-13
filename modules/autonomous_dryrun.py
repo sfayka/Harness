@@ -166,69 +166,46 @@ def _task_scoped_branch_name(task_id: str) -> str:
     return f"codex/{slug or 'task'}"
 
 
-def _github_sync_reevaluation_payload(task_id: str) -> dict[str, Any]:
+def _github_sync_payload(task_id: str) -> dict[str, Any]:
     branch_name = _task_scoped_branch_name(task_id)
-    changed_file_artifact_id = f"artifact-changed-file-{task_id}"
     commit_sha = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
     return {
-        "request": {
-            "new_artifacts": [
+        "task_id": task_id,
+        "captured_at": "2026-04-12T16:06:00Z",
+        "expected_code_context": build_expected_code_context(branch_name=branch_name),
+        "github": {
+            "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN",
+                "node_id": "repo-dryrun-1",
+            },
+            "branch": {
+                "name": branch_name,
+                "baseRefName": "main",
+                "target": {"oid": commit_sha},
+            },
+            "commit": {
+                "sha": commit_sha,
+                "html_url": f"https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/{commit_sha}",
+                "commit": {"message": "GitHub sync filled the missing changed-file evidence"},
+            },
+            "pull_request": {
+                "number": 2,
+                "state": "open",
+                "reviewDecision": "approved",
+                "html_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                "merged": False,
+            },
+            "files": [
                 {
-                    "id": changed_file_artifact_id,
-                    "type": "changed_file",
-                    "title": "GitHub changed-file proof",
-                    "description": "Post-dispatch GitHub sync captured the changed file for the latest run.",
-                    "location": f"https://github.com/KnoxAnalytics/HARNESS-DRYRUN/blob/{branch_name}/modules/api.py",
-                    "content_type": None,
-                    "external_id": None,
-                    "commit_sha": commit_sha,
-                    "pull_request_number": None,
-                    "review_state": None,
-                    "provenance": {
-                        "source_system": "github",
-                        "source_type": "api",
-                        "source_id": f"contents/{branch_name}/modules/api.py",
-                        "captured_by": "github-sync",
-                    },
-                    "verification_status": "verified",
-                    "repository": {
-                        "host": "github.com",
-                        "owner": "KnoxAnalytics",
-                        "name": "HARNESS-DRYRUN",
-                        "external_id": "repo-dryrun-1",
-                    },
-                    "branch": {
-                        "name": branch_name,
-                        "base_branch": "main",
-                        "head_commit_sha": commit_sha,
-                    },
-                    "changed_files": [
-                        {
-                            "path": "modules/api.py",
-                            "change_type": "modified",
-                        }
-                    ],
-                    "external_refs": [],
-                    "captured_at": "2026-04-12T16:06:00Z",
-                    "metadata": {},
+                    "filename": "modules/api.py",
+                    "status": "modified",
+                    "additions": 12,
+                    "deletions": 1,
                 }
             ],
-            "completion_evidence": {
-                "validated_artifact_ids": [
-                    "artifact-pr-1",
-                    "artifact-commit-1",
-                    changed_file_artifact_id,
-                ],
-                "validation_method": "external_reconciliation",
-            },
-            "external_facts": {
-                "expected_code_context": build_expected_code_context(branch_name=branch_name),
-                "github_facts": build_github_facts(branch_name=branch_name),
-                "linear_facts": build_linear_facts(state="completed", workflow_state_type="completed"),
-            },
-            "claimed_completion": True,
-            "acceptance_criteria_satisfied": True,
-        }
+        },
     }
 
 
@@ -280,8 +257,8 @@ def run_retryable_codex_supervision_dry_run(
                 reevaluation_status, reevaluation_payload = _request_json(
                     base_url,
                     "POST",
-                    f"/tasks/{task_id}/reevaluate",
-                    _github_sync_reevaluation_payload(task_id),
+                    "/sync/github",
+                    _github_sync_payload(task_id),
                 )
                 if reevaluation_status >= 400:
                     raise RuntimeError(f"Autonomous dry run GitHub sync failed: {reevaluation_payload}")

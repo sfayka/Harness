@@ -81,14 +81,12 @@ class GitHubSyncTranslationTests(unittest.TestCase):
         github_facts = request["external_facts"]["github_facts"]
         self.assertEqual(github_facts["repository"]["name"], "HARNESS-DRYRUN")
         self.assertEqual(github_facts["pull_request"]["number"], 2)
-        self.assertEqual(len(request["new_artifacts"]), 3)
+        self.assertEqual(len(request["new_artifacts"]), 4)
         artifact_types = [artifact["type"] for artifact in request["new_artifacts"]]
-        self.assertEqual(artifact_types, ["branch", "commit", "pull_request"])
+        self.assertEqual(artifact_types, ["branch", "commit", "pull_request", "changed_file"])
         self.assertTrue(all(artifact["verification_status"] == "verified" for artifact in request["new_artifacts"]))
-        self.assertEqual(
-            request["new_artifacts"][2]["changed_files"][0]["path"],
-            "modules/api.py",
-        )
+        self.assertEqual(request["new_artifacts"][2]["changed_files"][0]["path"], "modules/api.py")
+        self.assertEqual(request["new_artifacts"][3]["changed_files"][0]["path"], "modules/api.py")
 
     def test_rejects_runtime_and_completion_shaped_fields(self) -> None:
         payload = _github_sync_payload()

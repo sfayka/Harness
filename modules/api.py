@@ -1903,6 +1903,106 @@ def _execution_attempt_for_completion_claim(
     return matching_attempts[0] if len(matching_attempts) == 1 else None
 
 
+def _historical_acceptance_criteria_satisfied(records: tuple[EvaluationRecord, ...]) -> bool:
+    return any(
+        isinstance(record.request, dict) and bool(record.request.get("acceptance_criteria_satisfied", False))
+        for record in records
+    )
+
+
+def _github_sync_should_resume_completion(
+    stored_task: dict[str, Any],
+    *,
+    records: tuple[EvaluationRecord, ...],
+) -> tuple[bool, bool]:
+    if str(stored_task.get("status") or "") in _TERMINAL_TASK_STATUSES:
+        return False, False
+    latest_claim = _latest_advisory_completion_claim(stored_task)
+    if latest_claim is None:
+        return False, False
+    if not _is_successful_execution_attempt(
+        _execution_attempt_for_completion_claim(stored_task, completion_claim=latest_claim)
+    ):
+        return False, False
+    return True, _historical_acceptance_criteria_satisfied(records)
+
+
+def _github_sync_completion_evidence_update(
+    stored_task: dict[str, Any],
+    *,
+    new_artifacts: tuple[dict[str, Any], ...],
+) -> dict[str, Any] | None:
+    completion_evidence = ((stored_task.get("artifacts") or {}).get("completion_evidence") or {})
+    if not isinstance(completion_evidence, dict):
+        return None
+
+    required_types = [
+        _normalized_string(item)
+        for item in completion_evidence.get("required_artifact_types") or []
+        if _normalized_string(item) is not None
+    ]
+    if not required_types:
+        return None
+
+    existing_validated_ids = [
+        str(item)
+        for item in completion_evidence.get("validated_artifact_ids") or []
+        if _normalized_string(item) is not None
+    ]
+
+    synced_validated_ids = [
+        str(artifact.get("id"))
+        for artifact in new_artifacts
+        if isinstance(artifact, dict)
+        and artifact.get("id") is not None
+        and _normalized_string(artifact.get("verification_status")) == "verified"
+        and _normalized_string(artifact.get("type")) in required_types
+    ]
+
+    merged_validated_ids: list[str] = []
+    for artifact_id in [*existing_validated_ids, *synced_validated_ids]:
+        if artifact_id not in merged_validated_ids:
+            merged_validated_ids.append(artifact_id)
+    if merged_validated_ids == existing_validated_ids:
+        return None
+
+    artifact_type_by_id: dict[str, str] = {}
+    artifact_items = ((stored_task.get("artifacts") or {}).get("items") or [])
+    if isinstance(artifact_items, list):
+        for item in artifact_items:
+            if not isinstance(item, dict) or item.get("id") is None:
+                continue
+            artifact_type = _normalized_string(item.get("type"))
+            if artifact_type is not None:
+                artifact_type_by_id[str(item.get("id"))] = artifact_type
+    for artifact in new_artifacts:
+        if not isinstance(artifact, dict) or artifact.get("id") is None:
+            continue
+        artifact_type = _normalized_string(artifact.get("type"))
+        if artifact_type is not None:
+            artifact_type_by_id[str(artifact.get("id"))] = artifact_type
+
+    validated_types = {
+        artifact_type_by_id.get(str(artifact_id))
+        for artifact_id in merged_validated_ids
+    }
+    validated_types.discard(None)
+    all_required_types_present = all(required_type in validated_types for required_type in required_types)
+
+    return {
+        "validated_artifact_ids": merged_validated_ids,
+        "validation_method": "external_reconciliation",
+        "validated_at": _iso_now(),
+        "validator": {
+            "source_system": "harness",
+            "source_type": "verification",
+            "source_id": "sync/github",
+            "captured_by": "github-sync",
+        },
+        "status": "satisfied" if all_required_types_present else "deferred",
+    }
+
+
 def _is_replayed_completion_claim(
     stored_task: dict[str, Any],
     *,
@@ -3684,7 +3784,33 @@ class HarnessApiService:
                 "invalid_input": True,
             }
 
-        return self.reevaluate(canonical_payload["task_id"], {"request": canonical_payload["request"]})
+        task_id = canonical_payload["task_id"]
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        records = self.store.list_evaluation_records(task_id)
+        request_payload = deepcopy(canonical_payload["request"])
+        new_artifacts = tuple(
+            item for item in (request_payload.get("new_artifacts") or []) if isinstance(item, dict)
+        )
+        resume_claimed_completion, resume_acceptance = _github_sync_should_resume_completion(
+            stored_task,
+            records=records,
+        )
+        if resume_claimed_completion:
+            request_payload["claimed_completion"] = True
+            request_payload["acceptance_criteria_satisfied"] = resume_acceptance
+
+        completion_evidence_update = _github_sync_completion_evidence_update(
+            stored_task,
+            new_artifacts=new_artifacts,
+        )
+        if completion_evidence_update is not None:
+            request_payload["completion_evidence"] = completion_evidence_update
+
+        return self.reevaluate(task_id, {"request": request_payload})
 
     def evaluate(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:

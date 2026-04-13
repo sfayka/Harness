@@ -120,6 +120,25 @@ def _derive_pull_request_location(repository: RepositoryFact | None, pull_reques
     return f"https://{repository.host}/{repository.owner}/{repository.name}/pull/{pull_request.number}"
 
 
+def _derive_changed_file_location(
+    *,
+    repository: RepositoryFact | None,
+    branch: BranchFact | None,
+    commit: CommitFact | None,
+    path: str,
+) -> str | None:
+    if repository is None:
+        return None
+    revision = None
+    if commit is not None and commit.sha:
+        revision = commit.sha
+    elif branch is not None and branch.name:
+        revision = branch.name
+    if revision is None:
+        return None
+    return f"https://{repository.host}/{repository.owner}/{repository.name}/blob/{revision}/{path}"
+
+
 def _branch_artifact(
     *,
     repository: RepositoryFact | None,
@@ -232,6 +251,70 @@ def _pull_request_artifact(
     }
 
 
+def _changed_file_artifacts(
+    *,
+    repository: RepositoryFact | None,
+    branch: BranchFact | None,
+    commit: CommitFact | None,
+    pull_request: PullRequestFact | None,
+    changed_files: ChangedFilesSummary | None,
+    captured_at: str,
+    captured_by: str,
+) -> tuple[dict[str, Any], ...]:
+    if changed_files is None:
+        return ()
+
+    artifacts: list[dict[str, Any]] = []
+    commit_sha = None
+    if commit is not None:
+        commit_sha = commit.sha
+    elif branch is not None:
+        commit_sha = branch.head_commit_sha
+
+    for index, file_fact in enumerate(changed_files.files, start=1):
+        artifacts.append(
+            {
+                "id": f"artifact-changed-file-{_artifact_id_suffix(file_fact.path)}-{index}",
+                "type": "changed_file",
+                "title": "GitHub changed-file sync",
+                "description": "Attached by GitHub sync through canonical reevaluation.",
+                "location": _derive_changed_file_location(
+                    repository=repository,
+                    branch=branch,
+                    commit=commit,
+                    path=file_fact.path,
+                ),
+                "content_type": None,
+                "external_id": file_fact.path,
+                "commit_sha": commit_sha,
+                "pull_request_number": pull_request.number if pull_request is not None else None,
+                "review_state": None,
+                "provenance": {
+                    "source_system": "github",
+                    "source_type": "api",
+                    "source_id": f"contents/{file_fact.path}",
+                    "captured_by": captured_by,
+                },
+                "verification_status": "verified",
+                "repository": _repository_payload(repository),
+                "branch": _branch_payload(branch),
+                "changed_files": [
+                    {
+                        "path": file_fact.path,
+                        "change_type": file_fact.change_type,
+                        "additions": file_fact.additions,
+                        "deletions": file_fact.deletions,
+                        "previous_path": file_fact.previous_path,
+                    }
+                ],
+                "external_refs": [],
+                "captured_at": captured_at,
+                "metadata": {},
+            }
+        )
+    return tuple(artifacts)
+
+
 def _new_artifacts_from_github_facts(
     github_facts: GitHubArtifactFacts,
     *,
@@ -274,6 +357,17 @@ def _new_artifacts_from_github_facts(
                 captured_by=captured_by,
             )
         )
+    artifacts.extend(
+        _changed_file_artifacts(
+            repository=repository,
+            branch=branch,
+            commit=commit,
+            pull_request=pull_request,
+            changed_files=github_facts.changed_files,
+            captured_at=captured_at,
+            captured_by=captured_by,
+        )
+    )
     return tuple(artifacts)
 
 

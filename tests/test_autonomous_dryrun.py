@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
+import modules.autonomous_dryrun as autonomous_dryrun
 from modules.autonomous_dryrun import (
     SampleCodexCloudRuntimeClient,
     run_retryable_codex_supervision_dry_run,
@@ -65,6 +67,25 @@ class _SuccessfulCodexCloudRuntimeClient:
 
 
 class AutonomousDryRunTests(unittest.TestCase):
+    def test_retryable_codex_supervision_dry_run_uses_github_sync_endpoint(self) -> None:
+        with patch(
+            "modules.autonomous_dryrun._request_json",
+            wraps=autonomous_dryrun._request_json,
+        ) as request_json:
+            result = run_retryable_codex_supervision_dry_run(
+                runtime_client=_SuccessfulCodexCloudRuntimeClient(),
+                task_id="autonomous-dryrun-sync-endpoint-1",
+            )
+
+        request_pairs = [(call.args[1], call.args[2]) for call in request_json.call_args_list]
+
+        self.assertEqual(result.final_task_status, "completed")
+        self.assertIn(("POST", "/sync/github"), request_pairs)
+        self.assertNotIn(
+            ("POST", f"/tasks/{result.task_id}/reevaluate"),
+            request_pairs,
+        )
+
     def test_retryable_codex_supervision_dry_run_recovers_to_completed(self) -> None:
         result = run_retryable_codex_supervision_dry_run(
             runtime_client=_SuccessfulCodexCloudRuntimeClient(),
