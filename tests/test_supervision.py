@@ -78,6 +78,9 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
             retry_status, retry_response = self.api.evaluate(retry_payload)
         self.assertEqual(retry_status, 200)
+        retry_task = deepcopy(self.store.get_task(retry_response["task_envelope"]["id"]))
+        retry_task["timestamps"]["updated_at"] = "2026-04-14T11:30:00Z"
+        self.store.update_task(retry_task)
 
         invalid_payload = _manual_happy_path_overlay_payload()
         invalid_task = deepcopy(invalid_payload["request"]["task_envelope"])
@@ -203,6 +206,114 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
                             "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/"
                             "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
                         ),
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    },
+                ],
+                "metadata": {
+                    "attempt_validation": {
+                        "status": "valid",
+                        "validated_by": "execution_validation",
+                    }
+                },
+            }
+        ]
+        self.store.update_task(stored_task)
+
+        queue = self._queue_by_task_id()
+
+        sync_item = queue[task_id]
+        self.assertEqual(sync_item["attention_type"], "github_sync_required")
+        self.assertEqual(sync_item["suggested_action"], "sync_github_artifacts")
+        self.assertFalse(sync_item["stale"])
+
+    def test_queue_still_surfaces_github_sync_required_when_required_artifact_type_is_missing_from_satisfied_evidence(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        task = deepcopy(payload["request"]["task_envelope"])
+        task["id"] = "task-supervision-github-sync-coverage-gap-1"
+        task["title"] = "GitHub sync required despite stale satisfied evidence"
+        task["description"] = "Queue should not let stale satisfied evidence hide missing required artifact coverage."
+
+        submit_status, submit_response = self.api.submit({"request": {"task_envelope": task}})
+        self.assertEqual(submit_status, 200)
+
+        task_id = submit_response["task_envelope"]["id"]
+        stored_task = deepcopy(self.store.get_task(task_id))
+        stored_task["artifacts"]["completion_evidence"]["required_artifact_types"] = [
+            "pull_request",
+            "commit",
+            "changed_file",
+        ]
+        stored_task["artifacts"]["completion_evidence"]["status"] = "satisfied"
+        stored_task["artifacts"]["completion_evidence"]["validated_artifact_ids"] = [
+            "artifact-pr-1",
+            "artifact-commit-1",
+        ]
+        stored_task["status"] = "blocked"
+        stored_task["timestamps"]["updated_at"] = "2026-04-14T11:30:00Z"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-supervision-github-sync-coverage-gap-1",
+            "assignment_reason": "Exercise stale satisfied evidence supervision.",
+        }
+        stored_task["observability"]["execution_metadata"]["advisory_completion_claims"] = [
+            {
+                "claim_id": "claim-supervision-github-sync-coverage-gap-1",
+                "reported_at": "2026-04-14T11:30:00Z",
+                "reported_by": "codex",
+                "reason": "Executor reported completion",
+                "metadata": {"attempt_id": "attempt-supervision-github-sync-coverage-gap-1"},
+            }
+        ]
+        stored_task["observability"]["execution_metadata"]["execution_attempts"] = [
+            {
+                "attempt_id": "attempt-supervision-github-sync-coverage-gap-1",
+                "completion_claim_id": "claim-supervision-github-sync-coverage-gap-1",
+                "recorded_at": "2026-04-14T11:30:05Z",
+                "reported_by": "codex",
+                "status": "succeeded",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-supervision-github-sync-coverage-gap-1:pr",
+                        "artifact_type": "pull_request",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                            "pull_request_number": 2,
+                            "state": "open",
+                        },
+                    },
+                    {
+                        "reference_id": "attempt-supervision-github-sync-coverage-gap-1:commit",
+                        "artifact_type": "commit",
+                        "location": (
+                            "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/"
+                            "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                        ),
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        },
+                    },
+                    {
+                        "reference_id": "attempt-supervision-github-sync-coverage-gap-1:file",
+                        "artifact_type": "changed_file",
+                        "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/blob/main/modules/api.py",
                         "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                         "metadata": {
                             "repository_host": "github.com",
