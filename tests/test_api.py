@@ -697,6 +697,53 @@ def _openclaw_ingress_payload(*, task_id: str | None = None) -> dict:
         payload["task_id"] = task_id
     return payload
 
+
+def _github_sync_payload(*, task_id: str) -> dict:
+    return {
+        "task_id": task_id,
+        "captured_at": "2026-04-13T15:00:00Z",
+        "expected_code_context": {
+            "repository_host": "github.com",
+            "repository_owner": "KnoxAnalytics",
+            "repository_name": "HARNESS-DRYRUN",
+            "branch_name": "codex/e2e-test",
+            "base_branch": "main",
+        },
+        "github": {
+            "repository": {
+                "host": "github.com",
+                "owner": "KnoxAnalytics",
+                "name": "HARNESS-DRYRUN",
+                "node_id": "repo-dryrun-1",
+            },
+            "branch": {
+                "name": "codex/e2e-test",
+                "baseRefName": "main",
+                "target": {"oid": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"},
+            },
+            "commit": {
+                "sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "html_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                "commit": {"message": "Attach GitHub sync bridge"},
+            },
+            "pull_request": {
+                "number": 2,
+                "state": "open",
+                "reviewDecision": "approved",
+                "html_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                "merged": False,
+            },
+            "files": [
+                {
+                    "filename": "modules/api.py",
+                    "status": "modified",
+                    "additions": 12,
+                    "deletions": 1,
+                }
+            ],
+        },
+    }
+
 def _review_note_artifact(artifact_id: str = "artifact-review-note-1") -> dict:
     return {
         "id": artifact_id,
@@ -5719,6 +5766,50 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(payload["task_envelope"]["origin"]["ingress_name"], "OpenClaw")
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["extensions"]["openclaw"]["metadata"]["request_kind"], "openclaw")
+
+    def test_api_github_sync_delegates_to_canonical_reevaluation(self) -> None:
+        submit_status, submit_payload = self._post_json("/ingress/manual", _manual_ingress_payload())
+        task_id = submit_payload["task_envelope"]["id"]
+
+        status, payload = self._post_json("/sync/github", _github_sync_payload(task_id=task_id))
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(task_status, 200)
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 2)
+        artifacts = payload["task_envelope"]["artifacts"]["items"]
+        self.assertEqual([artifact["type"] for artifact in artifacts], ["branch", "commit", "pull_request"])
+        self.assertTrue(all(artifact["verification_status"] == "verified" for artifact in artifacts))
+        self.assertEqual(
+            task_payload["task"]["artifacts"]["items"][2]["changed_files"][0]["path"],
+            "modules/api.py",
+        )
+        self.assertEqual(
+            history_payload["evaluations"][1]["request"]["external_facts"]["github_facts"]["pull_request"]["number"],
+            2,
+        )
+
+    def test_api_github_sync_rejects_runtime_facts_without_mutating_task(self) -> None:
+        submit_status, submit_payload = self._post_json("/ingress/manual", _manual_ingress_payload())
+        task_id = submit_payload["task_envelope"]["id"]
+        payload = _github_sync_payload(task_id=task_id)
+        payload["runtime_facts"] = {"executor_reported_success": True}
+
+        status, response_payload = self._post_json("/sync/github", payload)
+        task_status, task_payload = self._get_json(f"/tasks/{task_id}")
+        history_status, history_payload = self._get_json(f"/tasks/{task_id}/evaluations")
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("cannot submit runtime_facts", response_payload["error"].lower())
+        self.assertEqual(task_status, 200)
+        self.assertEqual(task_payload["task"]["artifacts"]["items"], [])
+        self.assertEqual(history_status, 200)
+        self.assertEqual(len(history_payload["evaluations"]), 1)
 
     def test_api_exposes_supervision_queue_endpoint(self) -> None:
         create_status, create_payload = self._post_json("/evaluate", _request_payload("review_required"))

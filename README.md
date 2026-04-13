@@ -28,6 +28,8 @@ Harness also keeps new-task submission separate from persisted-task mutation. `P
 That same fail-closed rule now applies to the persisted-task helpers themselves. `POST /tasks/<task_id>/reevaluate` and `POST /tasks/<task_id>/completion-claims` reject submission-style mutation fields such as `task_envelope`, `task_status`, `assigned_executor`, and `linked_artifacts` instead of silently ignoring them.
 Generic reevaluation is also no longer allowed to combine executor runtime telemetry with repository execution artifacts such as PRs, commits, branches, or changed-file proofs. If a caller is reporting executor-side execution evidence, it must use `POST /tasks/<task_id>/completion-claims`, where Harness records the execution attempt and applies executor-side contract validation before completion can proceed. Fact-only reevaluation can still attach externally synchronized repository artifacts without pretending they came from a fresh executor run.
 
+For GitHub-backed sync specifically, Harness now also exposes `POST /sync/github` as a thin wrapper over canonical reevaluation. That helper accepts a GitHub-shaped payload plus `task_id`, derives normalized `external_facts.github_facts`, and may attach trusted `github/api` branch, commit, and pull-request artifacts. It is sync-only: it cannot claim completion, assert acceptance, attach completion evidence, or carry executor runtime telemetry.
+
 Evaluation and reevaluation also cannot self-certify newly attached support artifacts. If a caller sends review notes, handoff artifacts, or other non-execution artifacts already marked `verification_status=verified`, Harness downgrades the artifact back to `unverified`, strips it from validated evidence, and forces canonical verification to re-attest it before it counts. Caller-claimed provenance such as `github/api` or `harness/manual_review` is still caller input, not trust for support artifacts. Canonical GitHub-backed code-artifact overlays remain a separate path for normalized external sync.
 
 ## Governed Reconciliation
@@ -157,6 +159,7 @@ See:
 - Canonical mutation surfaces:
 - `POST /tasks`
 - `POST /tasks/<task_id>/reevaluate`
+- `POST /sync/github`
 - Completion-claim interception helper (delegates into canonical reevaluation semantics):
   - `POST /tasks/<task_id>/completion-claims`
 - `POST /tasks` is an intake/planning submission path. It may create only fresh task truth, not pre-executed completion truth.

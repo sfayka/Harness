@@ -6,11 +6,13 @@ This document is the source-of-truth API usage guide for execution agents and do
 
 - `POST /tasks`: submit a new canonical task payload
 - `POST /tasks/<task_id>/reevaluate`: submit new facts, artifacts, or review decisions for an existing task
+- `POST /sync/github`: submit a GitHub-shaped sync payload for an existing task and let Harness translate it into canonical reevaluation input
 - `POST /ingress/manual`: submit a manually initiated task and let Harness intake assign a canonical `task_id` when one is not provided
 - `POST /ingress/linear`: submit a Linear-shaped work item that is normalized into canonical Harness task input
 - `POST /ingress/openclaw`: submit an OpenClaw-shaped ingress payload that is normalized into canonical `TaskEnvelope` submission
 
 For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritative mutation path.
+`POST /sync/github` is a thin convenience wrapper only. It must delegate back into canonical reevaluation semantics; it is not a separate truth path.
 
 ## Canonical Inspection Paths
 
@@ -90,6 +92,17 @@ Those overlays are merged into `request.task_envelope` before evaluation for new
 For `POST /tasks/<task_id>/reevaluate`, only canonical reevaluation fields are allowed for persisted mutation. Use `request.new_artifacts` instead of `request.linked_artifacts`, and do not send `request.task_envelope`, `request.task_status`, or `request.assigned_executor`. Those submission-style fields are rejected so callers cannot pretend a stored task was updated when Harness ignored the payload.
 
 `POST /tasks/<task_id>/reevaluate` is not an executor proof-ingestion shortcut. It may attach support artifacts such as review notes, progress artifacts, or handoff artifacts, and it may carry fact-only repository artifacts from external sync, but it must not combine repository execution artifacts with `runtime_facts`. If a caller needs to report executor-side runtime telemetry plus new PR/commit/branch/changed-file proof for an existing task, use `POST /tasks/<task_id>/completion-claims` so Harness can bind the artifacts to an execution attempt and enforce executor contract validation.
+
+`POST /sync/github` exists for the specific case where an external sync process has observed GitHub state and wants Harness to ingest that reality without hand-assembling a canonical reevaluation body. It accepts a GitHub-shaped payload plus `task_id`, derives normalized `external_facts.github_facts`, and may attach trusted `github/api` branch, commit, and pull-request artifacts through the canonical reevaluation path. It must not carry:
+
+- `runtime_facts`
+- `claimed_completion=true`
+- `acceptance_criteria_satisfied=true`
+- `completion_evidence`
+- `review_request` or `review_decision`
+- caller-supplied canonical `new_artifacts` or `external_facts`
+
+That wrapper is for artifact synchronization only. Completion claims, acceptance assertions, and executor telemetry still belong to `POST /tasks/<task_id>/completion-claims`.
 
 Like completion claims, evaluation overlays and reevaluation do not trust caller-submitted `verification_status=verified` on support artifacts. If a caller attaches review notes, handoff artifacts, or other non-execution artifacts already marked verified, Harness downgrades those artifacts back to `unverified`, strips them from validated evidence, and requires canonical verification to earn that trust again. Claimed provenance such as `github/api` sync or `harness/manual_review|verification` does not change that for support artifacts when it arrives through a public API request. Canonical GitHub-backed code-artifact overlays remain allowed for normalized external synchronization paths.
 
