@@ -9,6 +9,8 @@ from typing import Any, Callable
 from modules.read_model import HarnessReadModelService
 from modules.store import HarnessStore, build_harness_store
 
+_CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
+
 
 def _parse_iso_timestamp(value: str | None) -> datetime:
     if not value:
@@ -105,6 +107,37 @@ class HarnessSupervisionService:
             if isinstance(execution_summary.get("latest_attempt_validation"), dict)
             else {}
         )
+        evidence_summary = task.get("evidence_summary") if isinstance(task.get("evidence_summary"), dict) else {}
+        artifact_type_counts = (
+            evidence_summary.get("artifact_type_counts")
+            if isinstance(evidence_summary.get("artifact_type_counts"), dict)
+            else {}
+        )
+        completion_evidence = (
+            evidence_summary.get("completion_evidence")
+            if isinstance(evidence_summary.get("completion_evidence"), dict)
+            else {}
+        )
+        required_artifact_types = {
+            str(item).strip().lower()
+            for item in completion_evidence.get("required_artifact_types") or []
+            if isinstance(item, str) and item.strip()
+        }
+        latest_artifact_references = (
+            execution_summary.get("latest_artifact_references")
+            if isinstance(execution_summary.get("latest_artifact_references"), list)
+            else []
+        )
+        has_syncable_execution_refs = any(
+            isinstance(reference, dict)
+            and str(reference.get("artifact_type") or "").strip().lower() in _CODE_EXECUTION_ARTIFACT_TYPES
+            for reference in latest_artifact_references
+        )
+        missing_task_artifact_types = {
+            artifact_type
+            for artifact_type in required_artifact_types.intersection(_CODE_EXECUTION_ARTIFACT_TYPES)
+            if int(artifact_type_counts.get(artifact_type) or 0) <= 0
+        }
 
         if current_status == "in_review" or str(review_summary.get("status") or "none") == "requested":
             return (
@@ -125,6 +158,21 @@ class HarnessSupervisionService:
                 "invalid_execution_attempt",
                 "request_fresh_proof_or_rework",
                 "Latest execution attempt failed the current-run proof contract.",
+                False,
+            )
+        if (
+            current_status in {"assigned", "blocked"}
+            and str(clarification_summary.get("status") or "none") != "required"
+            and str(review_summary.get("status") or "none") != "requested"
+            and str(latest_attempt_validation.get("status") or "") == "valid"
+            and str(completion_evidence.get("status") or "") != "satisfied"
+            and bool(missing_task_artifact_types)
+            and has_syncable_execution_refs
+        ):
+            return (
+                "github_sync_required",
+                "sync_github_artifacts",
+                "Task has valid current-run execution proof, but canonical GitHub artifacts have not been reconciled yet.",
                 False,
             )
         if bool(execution_summary.get("retry_eligible")) or str(failure_summary.get("state") or "") == "retryable":
@@ -150,8 +198,9 @@ class HarnessSupervisionService:
             "review_required": 0,
             "clarification_required": 1,
             "invalid_execution_attempt": 2,
-            "retryable_failure": 3,
-            "stale_active_task": 4,
+            "github_sync_required": 3,
+            "retryable_failure": 4,
+            "stale_active_task": 5,
         }
         queue: list[dict[str, Any]] = []
         for read_model in self.read_model_service.list_task_read_models():

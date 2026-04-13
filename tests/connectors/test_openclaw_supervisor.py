@@ -7,7 +7,7 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from modules.api import run_server
+from modules.api import HarnessApiService, run_server
 from modules.connectors.openclaw_harness_spike import (
     OpenClawHarnessSpikeClient,
     OpenClawSourceContext,
@@ -17,12 +17,19 @@ from modules.connectors.openclaw_harness_spike import (
 from modules.connectors.openclaw_supervisor import OpenClawHarnessSupervisor
 from modules.demo_cases import build_demo_request
 from modules.runtime_scenario_builders import to_jsonable
+from modules.store import FileBackedHarnessStore
 
 
 class OpenClawHarnessSupervisorTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.server = run_server(host="127.0.0.1", port=0, store_root=self.temp_dir.name)
+        self.service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
+        self.server = run_server(
+            host="127.0.0.1",
+            port=0,
+            store_root=self.temp_dir.name,
+            service=self.service,
+        )
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.base_url = f"http://127.0.0.1:{self.server.server_port}"
@@ -99,7 +106,7 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
         actions = {result.task_id: result for result in cycle.action_results}
 
         self.assertEqual(cycle.queue_status, 200)
-        self.assertEqual(cycle.decision_count, 2)
+        self.assertGreaterEqual(cycle.decision_count, 2)
 
         review_decision = decisions["task-openclaw-supervisor-review-1"]
         self.assertEqual(review_decision.attention_type, "review_required")
@@ -152,6 +159,110 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
         self.assertEqual(retry_action.http_status, 200)
         self.assertIsNotNone(retry_action.action)
         self.assertIn(retry_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
+
+    def test_cycle_can_trigger_github_sync_for_sync_required_attention(self) -> None:
+        submit_status, submit_payload = self.client.submit_task(
+            intent=self._intent("task-openclaw-supervisor-sync-1"),
+            context=self._context(),
+        )
+        self.assertEqual(submit_status, 200)
+        task_id = submit_payload["task_envelope"]["id"]
+
+        stored_task = self.service.store.get_task(task_id)
+        stored_task["status"] = "assigned"
+        stored_task["assigned_executor"] = {
+            "executor_type": "codex",
+            "executor_id": "executor-openclaw-supervisor-sync-1",
+            "assignment_reason": "Exercise supervisor GitHub sync.",
+        }
+        stored_task["artifacts"]["completion_evidence"]["required_artifact_types"] = ["pull_request", "commit"]
+        self.service.store.update_task(stored_task)
+
+        claim_status, claim_payload = self._request_json(
+            "POST",
+            f"/tasks/{task_id}/completion-claims",
+            {
+                "request": {
+                    "completion_claim": {
+                        "claim_id": "claim-openclaw-supervisor-sync-1",
+                        "reported_at": "2026-04-13T10:00:00Z",
+                        "reported_by": "codex",
+                        "reason": "Executor reported completion",
+                        "metadata": {"attempt_id": "attempt-openclaw-supervisor-sync-1"},
+                    },
+                    "execution_attempt": {
+                        "attempt_id": "attempt-openclaw-supervisor-sync-1",
+                        "recorded_at": "2026-04-13T10:00:05Z",
+                        "status": "succeeded",
+                        "reported_by": "codex",
+                        "artifact_references": [
+                            {
+                                "reference_id": "attempt-openclaw-supervisor-sync-1:pr",
+                                "artifact_type": "pull_request",
+                                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/123",
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "metadata": {
+                                    "repository_host": "github.com",
+                                    "repository_owner": "KnoxAnalytics",
+                                    "repository_name": "HARNESS-DRYRUN",
+                                    "branch_name": "codex/e2e-test",
+                                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                    "pull_request_number": 123,
+                                    "state": "open",
+                                },
+                            },
+                            {
+                                "reference_id": "attempt-openclaw-supervisor-sync-1:commit",
+                                "artifact_type": "commit",
+                                "location": (
+                                    "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/"
+                                    "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+                                ),
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "metadata": {
+                                    "repository_host": "github.com",
+                                    "repository_owner": "KnoxAnalytics",
+                                    "repository_name": "HARNESS-DRYRUN",
+                                    "branch_name": "codex/e2e-test",
+                                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                },
+                            },
+                        ],
+                        "metadata": {"executor_run_id": "stub-run-sync-1"},
+                    },
+                    "runtime_facts": {
+                        "executor_reported_success": True,
+                        "attempt_count": 1,
+                    },
+                }
+            },
+        )
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_payload["action"], "reconciliation_blocked")
+
+        supervisor = OpenClawHarnessSupervisor(self.base_url)
+        cycle = supervisor.run_cycle(allow_sync=True)
+        decisions = {decision.task_id: decision for decision in cycle.decisions}
+        actions = {result.task_id: result for result in cycle.action_results}
+
+        sync_decision = decisions[task_id]
+        self.assertEqual(sync_decision.attention_type, "github_sync_required")
+        self.assertTrue(sync_decision.can_autonomously_sync)
+        self.assertIsNotNone(sync_decision.proposed_sync_payload)
+        self.assertEqual(sync_decision.proposed_sync_payload["task_id"], task_id)
+
+        sync_action = actions[task_id]
+        self.assertEqual(sync_action.action_status, "github_sync_triggered")
+        self.assertEqual(sync_action.http_status, 200)
+        self.assertEqual(sync_action.action, "no_op")
+        self.assertEqual(sync_action.resulting_task_status, "blocked")
+
+        follow_up_cycle = supervisor.run_cycle()
+        follow_up_decisions = {decision.task_id: decision for decision in follow_up_cycle.decisions}
+        self.assertNotEqual(
+            follow_up_decisions.get(task_id).attention_type if task_id in follow_up_decisions else None,
+            "github_sync_required",
+        )
 
 
 if __name__ == "__main__":

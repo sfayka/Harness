@@ -30,6 +30,7 @@ Queue entries are derived from canonical read-model and timeline truth and curre
 - `review_required`
 - `clarification_required`
 - `invalid_execution_attempt`
+- `github_sync_required`
 - `retryable_failure`
 - `stale_active_task`
 
@@ -39,6 +40,7 @@ The repository now includes a thin example supervisor loop in [`modules/connecto
 
 - polls `GET /supervision/queue`
 - enriches queue entries with canonical inspection surfaces
+- may trigger `POST /sync/github` when the queue shows `github_sync_required` and the latest persisted execution attempt already carries enough repository proof to construct a bounded sync payload
 - optionally triggers `POST /tasks/<task_id>/dispatch` for bounded redispatch when the queue recommends `retry_or_redispatch` and the current canonical task state remains dispatchable
 
 `POST /tasks` is an intake/planning creation path, not a completion-reporting path. A brand-new task may include objective, planning, support artifacts, coordination metadata, and clarification blockers, but it must not arrive with claimed completion, acceptance assertions, runtime facts, validated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle state already attached.
