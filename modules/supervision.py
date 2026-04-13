@@ -138,6 +138,10 @@ class HarnessSupervisionService:
             for artifact_type in required_artifact_types.intersection(_CODE_EXECUTION_ARTIFACT_TYPES)
             if int(artifact_type_counts.get(artifact_type) or 0) <= 0
         }
+        completion_evidence_satisfied = (
+            str(completion_evidence.get("status") or "") == "satisfied"
+            and not bool(missing_task_artifact_types)
+        )
 
         if current_status == "in_review" or str(review_summary.get("status") or "none") == "requested":
             return (
@@ -165,7 +169,7 @@ class HarnessSupervisionService:
             and str(clarification_summary.get("status") or "none") != "required"
             and str(review_summary.get("status") or "none") != "requested"
             and str(latest_attempt_validation.get("status") or "") == "valid"
-            and str(completion_evidence.get("status") or "") != "satisfied"
+            and not completion_evidence_satisfied
             and bool(missing_task_artifact_types)
             and has_syncable_execution_refs
         ):
