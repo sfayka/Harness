@@ -131,6 +131,25 @@ This keeps the contract aligned with Harness intent:
 
 The default local dispatch path still uses the stub executor unless a real Codex Cloud runtime client is injected. That is intentional. The adapter boundary is now real and test-covered, while live runtime transport remains a separate follow-on integration step.
 
+## Controlled Autonomous Dry Run
+
+Harness now also carries a controlled local dry run at [`modules/autonomous_dryrun.py`](../../modules/autonomous_dryrun.py), covered by [`tests/test_autonomous_dryrun.py`](../../tests/test_autonomous_dryrun.py).
+
+That dry run is intentionally narrow and honest. It does not pretend that executor success alone closes the task. Instead it exercises the real control-plane sequence:
+
+- create a retryable task through canonical `POST /evaluate`
+- let the OpenClaw-style supervision loop notice the retryable blocked state and trigger redispatch
+- let the Codex Cloud adapter enforce current-run proof on the redispatched execution attempt
+- run a follow-up canonical reevaluation that simulates GitHub-backed changed-file synchronization before final completion is accepted
+
+This is important for Harness intent:
+
+- executor output still remains advisory
+- current-run repository proof is validated at dispatch/completion-claim time
+- final completion still depends on canonical artifact ingestion and reevaluation
+
+The dry run is not a replacement for live runtime transport or live GitHub synchronization. It is a deterministic local proof that the supervision, execution-proof, and post-dispatch reevaluation surfaces cooperate correctly enough for autonomous-flow testing.
+
 ## Known Failure Mode
 
 The previously observed failure mode was:

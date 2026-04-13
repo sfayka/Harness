@@ -81,16 +81,23 @@ class CodexCloudExecutorAdapterTests(unittest.TestCase):
                         "type": "branch",
                         "id": "branch-1",
                         "external_id": "codex/task-codex-cloud-1",
+                        "head_commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                     },
                     {
                         "type": "commit",
                         "id": "commit-1",
                         "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                        "url": "https://github.com/sfayka/Harness/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                     },
                     {
                         "type": "pull_request",
                         "id": "pr-1",
                         "url": "https://github.com/sfayka/Harness/pull/999",
+                        "number": 999,
+                        "state": "open",
+                        "merged": False,
+                        "branch_name": "codex/task-codex-cloud-1",
+                        "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
                     },
                 ],
                 "completion": {
@@ -118,6 +125,13 @@ class CodexCloudExecutorAdapterTests(unittest.TestCase):
         self.assertEqual(output.events[-1].event_type.value, "execution_succeeded")
         self.assertTrue(output.events[-1].advisory_completion.reported_complete)
         self.assertEqual(len(output.artifact_references), 3)
+        branch_ref, commit_ref, pr_ref = output.artifact_references
+        self.assertEqual(branch_ref.metadata["branch_name"], "codex/task-codex-cloud-1")
+        self.assertEqual(branch_ref.metadata["head_commit_sha"], "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705")
+        self.assertEqual(commit_ref.metadata["repository_owner"], "sfayka")
+        self.assertEqual(commit_ref.metadata["repository_name"], "Harness")
+        self.assertEqual(pr_ref.metadata["pull_request_state"], "open")
+        self.assertEqual(pr_ref.metadata["pull_request_number"], 999)
         self.assertEqual(output.metadata["adapter"], "codex-cloud")
         self.assertTrue(output.metadata["preflight_passed"])
 
