@@ -14,6 +14,7 @@ from urllib.request import Request, urlopen
 from modules.adapters.codex_cloud import CodexCloudExecutorAdapter, CodexCloudRuntimeClient
 from modules.api import HarnessApiService, run_server
 from modules.connectors.openclaw_supervisor import OpenClawHarnessSupervisor
+from modules.reconciliation_runtime import ReconciliationFailureType, build_default_reconciliation_registry
 from modules.runtime_scenario_builders import (
     build_create_task_payload,
     build_completion_evidence,
@@ -22,6 +23,7 @@ from modules.runtime_scenario_builders import (
     build_linked_artifacts,
     build_linear_facts,
 )
+from modules.supervision import HarnessSupervisionService
 from modules.store import FileBackedHarnessStore
 
 
@@ -103,6 +105,38 @@ class SampleCodexCloudRuntimeClient:
         }
 
 
+class _NoCreatePullRequestGateway:
+    """Deterministic gateway stub that preserves missing-PR review behavior."""
+
+    def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
+        del owner, repo, branch_name
+        return True
+
+    def branch_head_commit_sha(self, *, owner: str, repo: str, branch_name: str) -> str | None:
+        del owner, repo, branch_name
+        return "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705"
+
+    def commit_exists(self, *, owner: str, repo: str, commit_sha: str) -> bool:
+        del owner, repo, commit_sha
+        return True
+
+    def default_branch(self, *, owner: str, repo: str) -> str | None:
+        del owner, repo
+        return "main"
+
+    def find_pull_requests_by_branch(self, *, owner: str, repo: str, branch_name: str) -> tuple:
+        del owner, repo, branch_name
+        return ()
+
+    def find_pull_requests_by_commit(self, *, owner: str, repo: str, commit_sha: str) -> tuple:
+        del owner, repo, commit_sha
+        return ()
+
+    def create_pull_request(self, *, owner: str, repo: str, title: str, body: str, head: str, base: str):
+        del owner, repo, title, body, head, base
+        raise RuntimeError("PR creation intentionally disabled for deterministic dry runs")
+
+
 def _request_json(base_url: str, method: str, path: str, payload: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
     data = None
     headers: dict[str, str] = {}
@@ -133,6 +167,21 @@ def _find_queue_entry(queue_payload: dict[str, Any], *, task_id: str) -> dict[st
         ),
         None,
     )
+
+
+def _registry_with_no_create_pull_request_gateway():
+    registry = build_default_reconciliation_registry()
+    missing_pr_handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    missing_commit_handler = registry.get(ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION)
+    registry.register(
+        ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+        missing_pr_handler.__class__(github=_NoCreatePullRequestGateway()),
+    )
+    registry.register(
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+        missing_commit_handler.__class__(github=_NoCreatePullRequestGateway()),
+    )
+    return registry
 
 
 def _retryable_creation_payload(task_id: str) -> dict[str, Any]:
@@ -207,6 +256,28 @@ def _github_sync_payload(task_id: str) -> dict[str, Any]:
             ],
         },
     }
+
+
+def _seed_stale_assigned_task(service: HarnessApiService, *, task_id: str) -> None:
+    stored_task = service.store.get_task(task_id)
+    stored_task["status"] = "assigned"
+    stored_task["assigned_executor"] = {
+        "executor_type": "codex",
+        "executor_id": f"executor-{task_id}",
+        "assignment_reason": "Controlled stale-task autonomy dry run.",
+    }
+    stored_task["artifacts"]["completion_evidence"] = {
+        "policy": "deferred",
+        "status": "deferred",
+        "required_artifact_types": ["pull_request", "commit", "changed_file"],
+        "validated_artifact_ids": [],
+        "validation_method": "deferred",
+        "validated_at": None,
+        "validator": None,
+        "notes": None,
+    }
+    stored_task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+    service.store.update_task(stored_task)
 
 
 def run_retryable_codex_supervision_dry_run(
@@ -305,8 +376,96 @@ def run_retryable_codex_supervision_dry_run(
             thread.join(timeout=2)
 
 
+def run_stale_codex_supervision_dry_run(
+    *,
+    runtime_client: CodexCloudRuntimeClient | None = None,
+    task_id: str = "autonomous-dryrun-stale-1",
+) -> AutonomousDryRunResult:
+    """Run a controlled local dry run that exercises stale-task redispatch and review escalation."""
+
+    resolved_runtime_client = runtime_client or SampleCodexCloudRuntimeClient()
+    with tempfile.TemporaryDirectory() as temp_dir:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(temp_dir),
+            reconciliation_registry=_registry_with_no_create_pull_request_gateway(),
+            executor_adapters={
+                "codex": CodexCloudExecutorAdapter(runtime_client=resolved_runtime_client),
+            },
+        )
+        service.supervision_service = HarnessSupervisionService(
+            store=service.store,
+            now_provider=lambda: "2026-04-16T12:00:00Z",
+        )
+        server = run_server(host="127.0.0.1", port=0, service=service)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base_url = f"http://127.0.0.1:{server.server_port}"
+            create_status, create_payload = _request_json(
+                base_url,
+                "POST",
+                "/tasks",
+                build_create_task_payload(task_id),
+            )
+            if create_status >= 400:
+                raise RuntimeError(f"Autonomous dry run create failed: {create_payload}")
+
+            _seed_stale_assigned_task(service, task_id=task_id)
+            initial_task_status, initial_task_payload = _request_json(base_url, "GET", f"/tasks/{task_id}")
+            initial_queue_status, initial_queue_payload = _request_json(base_url, "GET", "/supervision/queue")
+            if initial_task_status >= 400 or initial_queue_status >= 400:
+                raise RuntimeError("Autonomous dry run initial stale inspection failed")
+            initial_queue_entry = _find_queue_entry(initial_queue_payload, task_id=task_id)
+
+            supervisor = OpenClawHarnessSupervisor(base_url)
+            cycle = supervisor.run_cycle(allow_redispatch=True, executor="codex")
+
+            task_status, task_payload = _request_json(base_url, "GET", f"/tasks/{task_id}")
+            final_queue_status, final_queue_payload = _request_json(base_url, "GET", "/supervision/queue")
+            if task_status >= 400 or final_queue_status >= 400:
+                raise RuntimeError("Autonomous dry run final stale inspection failed")
+            final_queue_entry = _find_queue_entry(final_queue_payload, task_id=task_id)
+
+            return AutonomousDryRunResult(
+                task_id=task_id,
+                create_status=create_status,
+                initial_task_status=(
+                    str((initial_task_payload.get("task") or {}).get("status"))
+                    if isinstance(initial_task_payload.get("task"), dict)
+                    and (initial_task_payload.get("task") or {}).get("status") is not None
+                    else None
+                ),
+                initial_supervision_queue_status=initial_queue_status,
+                initial_supervision_attention_type=(
+                    str(initial_queue_entry.get("attention_type"))
+                    if isinstance(initial_queue_entry, dict) and initial_queue_entry.get("attention_type") is not None
+                    else None
+                ),
+                supervisor_queue_status=cycle.queue_status,
+                supervisor_decision_count=cycle.decision_count,
+                supervisor_action_statuses=tuple(item.action_status for item in cycle.action_results),
+                final_task_status=(
+                    str((task_payload.get("task") or {}).get("status"))
+                    if isinstance(task_payload.get("task"), dict) and (task_payload.get("task") or {}).get("status") is not None
+                    else None
+                ),
+                final_supervision_queue_status=final_queue_status,
+                final_supervision_attention_type=(
+                    str(final_queue_entry.get("attention_type"))
+                    if isinstance(final_queue_entry, dict) and final_queue_entry.get("attention_type") is not None
+                    else None
+                ),
+                sample_runtime=bool(getattr(resolved_runtime_client, "sample_runtime", False)),
+            )
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+
 __all__ = [
     "AutonomousDryRunResult",
     "SampleCodexCloudRuntimeClient",
     "run_retryable_codex_supervision_dry_run",
+    "run_stale_codex_supervision_dry_run",
 ]

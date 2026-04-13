@@ -67,6 +67,39 @@ class _SuccessfulCodexCloudRuntimeClient:
 
 
 class AutonomousDryRunTests(unittest.TestCase):
+    def test_stale_codex_supervision_dry_run_escalates_to_review_required(self) -> None:
+        result = autonomous_dryrun.run_stale_codex_supervision_dry_run(
+            runtime_client=SampleCodexCloudRuntimeClient(),
+            task_id="autonomous-dryrun-stale-1",
+        )
+
+        self.assertEqual(result.create_status, 200)
+        self.assertEqual(result.initial_task_status, "assigned")
+        self.assertEqual(result.initial_supervision_queue_status, 200)
+        self.assertEqual(result.initial_supervision_attention_type, "stale_active_task")
+        self.assertEqual(result.supervisor_queue_status, 200)
+        self.assertEqual(result.supervisor_decision_count, 1)
+        self.assertEqual(result.supervisor_action_statuses, ("redispatch_triggered",))
+        self.assertEqual(result.final_task_status, "in_review")
+        self.assertEqual(result.final_supervision_queue_status, 200)
+        self.assertEqual(result.final_supervision_attention_type, "review_required")
+        self.assertTrue(result.sample_runtime)
+
+    def test_stale_codex_supervision_dry_run_stops_before_github_sync(self) -> None:
+        with patch(
+            "modules.autonomous_dryrun._request_json",
+            wraps=autonomous_dryrun._request_json,
+        ) as request_json:
+            result = autonomous_dryrun.run_stale_codex_supervision_dry_run(
+                runtime_client=SampleCodexCloudRuntimeClient(),
+                task_id="autonomous-dryrun-stale-sync-1",
+            )
+
+        request_pairs = [(call.args[1], call.args[2]) for call in request_json.call_args_list]
+
+        self.assertEqual(result.final_supervision_attention_type, "review_required")
+        self.assertNotIn(("POST", "/sync/github"), request_pairs)
+
     def test_retryable_codex_supervision_dry_run_uses_github_sync_endpoint(self) -> None:
         with patch(
             "modules.autonomous_dryrun._request_json",
