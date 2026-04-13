@@ -64,10 +64,20 @@ class OpenClawHarnessSupervisor:
         self.client = OpenClawHarnessSpikeClient(base_url)
 
     def _can_autonomously_dispatch(self, entry: dict[str, Any]) -> bool:
+        attention_type = str(entry.get("attention_type") or "")
+        suggested_action = str(entry.get("suggested_action") or "")
+        dispatchable_attention = (
+            (attention_type == "retryable_failure" and suggested_action == "retry_or_redispatch")
+            or (attention_type == "stale_active_task" and suggested_action == "investigate_staleness")
+        )
+        dispatchable_statuses = {"dispatch_ready", "assigned"} if attention_type == "stale_active_task" else {
+            "dispatch_ready",
+            "assigned",
+            "blocked",
+        }
         return (
-            str(entry.get("attention_type") or "") == "retryable_failure"
-            and str(entry.get("suggested_action") or "") == "retry_or_redispatch"
-            and str(entry.get("current_status") or "") in {"dispatch_ready", "assigned", "blocked"}
+            dispatchable_attention
+            and str(entry.get("current_status") or "") in dispatchable_statuses
             and str(entry.get("clarification_status") or "") != "required"
             and str(entry.get("review_status") or "") != "requested"
         )
