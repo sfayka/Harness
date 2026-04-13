@@ -140,7 +140,7 @@ That dry run is intentionally narrow and honest. It does not pretend that execut
 - create a retryable task through canonical `POST /evaluate`
 - let the OpenClaw-style supervision loop notice the retryable blocked state and trigger redispatch
 - let the Codex Cloud adapter enforce current-run proof on the redispatched execution attempt
-- run a follow-up canonical reevaluation that simulates GitHub-backed changed-file synchronization before final completion is accepted
+- run a follow-up `POST /sync/github` bridge call that simulates GitHub-backed changed-file synchronization before final completion is accepted
 
 This is important for Harness intent:
 
@@ -148,7 +148,7 @@ This is important for Harness intent:
 - current-run repository proof is validated at dispatch/completion-claim time
 - final completion still depends on canonical artifact ingestion and reevaluation
 
-The dry run is not a replacement for live runtime transport or live GitHub synchronization. It is a deterministic local proof that the supervision, execution-proof, and post-dispatch reevaluation surfaces cooperate correctly enough for autonomous-flow testing.
+The dry run is not a replacement for live runtime transport or live GitHub synchronization. It is a deterministic local proof that the supervision, execution-proof, and post-dispatch GitHub sync/reevaluation surfaces cooperate correctly enough for autonomous-flow testing.
 
 ## Known Failure Mode
 

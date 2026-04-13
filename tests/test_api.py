@@ -5781,10 +5781,10 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history_payload["evaluations"]), 2)
         artifacts = payload["task_envelope"]["artifacts"]["items"]
-        self.assertEqual([artifact["type"] for artifact in artifacts], ["branch", "commit", "pull_request"])
+        self.assertEqual([artifact["type"] for artifact in artifacts], ["branch", "commit", "pull_request", "changed_file"])
         self.assertTrue(all(artifact["verification_status"] == "verified" for artifact in artifacts))
         self.assertEqual(
-            task_payload["task"]["artifacts"]["items"][2]["changed_files"][0]["path"],
+            task_payload["task"]["artifacts"]["items"][3]["changed_files"][0]["path"],
             "modules/api.py",
         )
         self.assertEqual(

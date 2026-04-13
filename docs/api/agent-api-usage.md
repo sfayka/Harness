@@ -93,7 +93,7 @@ For `POST /tasks/<task_id>/reevaluate`, only canonical reevaluation fields are a
 
 `POST /tasks/<task_id>/reevaluate` is not an executor proof-ingestion shortcut. It may attach support artifacts such as review notes, progress artifacts, or handoff artifacts, and it may carry fact-only repository artifacts from external sync, but it must not combine repository execution artifacts with `runtime_facts`. If a caller needs to report executor-side runtime telemetry plus new PR/commit/branch/changed-file proof for an existing task, use `POST /tasks/<task_id>/completion-claims` so Harness can bind the artifacts to an execution attempt and enforce executor contract validation.
 
-`POST /sync/github` exists for the specific case where an external sync process has observed GitHub state and wants Harness to ingest that reality without hand-assembling a canonical reevaluation body. It accepts a GitHub-shaped payload plus `task_id`, derives normalized `external_facts.github_facts`, and may attach trusted `github/api` branch, commit, and pull-request artifacts through the canonical reevaluation path. It must not carry:
+`POST /sync/github` exists for the specific case where an external sync process has observed GitHub state and wants Harness to ingest that reality without hand-assembling a canonical reevaluation body. It accepts a GitHub-shaped payload plus `task_id`, derives normalized `external_facts.github_facts`, and may attach trusted `github/api` branch, commit, pull-request, and changed-file artifacts through the canonical reevaluation path. It must not carry:
 
 - `runtime_facts`
 - `claimed_completion=true`
@@ -103,6 +103,8 @@ For `POST /tasks/<task_id>/reevaluate`, only canonical reevaluation fields are a
 - caller-supplied canonical `new_artifacts` or `external_facts`
 
 That wrapper is for artifact synchronization only. Completion claims, acceptance assertions, and executor telemetry still belong to `POST /tasks/<task_id>/completion-claims`.
+
+If Harness already has an unresolved advisory completion claim and successful execution attempt recorded for that task, the sync bridge may resume that persisted completion evaluation context and advance `completion_evidence.validated_artifact_ids` from the newly trusted synced artifacts. That resumption is Harness-derived state, not caller authority.
 
 Like completion claims, evaluation overlays and reevaluation do not trust caller-submitted `verification_status=verified` on support artifacts. If a caller attaches review notes, handoff artifacts, or other non-execution artifacts already marked verified, Harness downgrades those artifacts back to `unverified`, strips them from validated evidence, and requires canonical verification to earn that trust again. Claimed provenance such as `github/api` sync or `harness/manual_review|verification` does not change that for support artifacts when it arrives through a public API request. Canonical GitHub-backed code-artifact overlays remain allowed for normalized external synchronization paths.
 
