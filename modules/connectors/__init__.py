@@ -10,6 +10,10 @@ from .github_facts import (
     translate_github_pull_request,
     translate_github_repository,
 )
+from .github_sync import (
+    GitHubSyncInputError,
+    translate_github_sync_reevaluation_payload,
+)
 from .github_artifact_validation import (
     GitHubArtifactLookup,
     GitHubArtifactValidationError,
@@ -63,6 +67,7 @@ from .openclaw_supervisor import (
 
 __all__ = [
     "GitHubConnectorInputError",
+    "GitHubSyncInputError",
     "GitHubArtifactLookup",
     "GitHubArtifactValidationError",
     "GitHubArtifactValidationIssue",
@@ -97,6 +102,7 @@ __all__ = [
     "translate_github_commit",
     "translate_github_pull_request",
     "translate_github_repository",
+    "translate_github_sync_reevaluation_payload",
     "translate_linear_facts",
     "translate_manual_submission_payload",
     "translate_openclaw_submission_payload",

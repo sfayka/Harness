@@ -22,12 +22,14 @@ from modules.adapters.executor_adapter import (
 )
 from modules.connectors import (
     GitHubConnectorInputError,
+    GitHubSyncInputError,
     LinearConnectorInputError,
     LinearIngressInputError,
     ManualIngressInputError,
     OpenClawIngressInputError,
     translate_openclaw_submission_payload,
     translate_github_artifact_facts,
+    translate_github_sync_reevaluation_payload,
     translate_linear_facts,
     translate_linear_submission_payload,
     translate_manual_submission_payload,
@@ -3673,6 +3675,17 @@ class HarnessApiService:
 
         return self.submit(canonical_payload)
 
+    def submit_github_sync(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            canonical_payload = translate_github_sync_reevaluation_payload(payload)
+        except (GitHubSyncInputError, ValueError) as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        return self.reevaluate(canonical_payload["task_id"], {"request": canonical_payload["request"]})
+
     def evaluate(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             request = parse_evaluation_request(payload)
@@ -4253,7 +4266,14 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         path_components = _task_path_components(self.path)
         request_path = urlparse(self.path).path
 
-        if request_path not in {"/evaluate", "/tasks", "/ingress/linear", "/ingress/manual", "/ingress/openclaw"} and not (
+        if request_path not in {
+            "/evaluate",
+            "/tasks",
+            "/ingress/linear",
+            "/ingress/manual",
+            "/ingress/openclaw",
+            "/sync/github",
+        } and not (
             len(path_components) == 3
             and path_components[0] == "tasks"
             and path_components[2] in {"reevaluate", "completion-claims", "dispatch"}
@@ -4278,6 +4298,8 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             status, response_payload = service.submit_manual_ingress(payload)
         elif request_path == "/ingress/openclaw":
             status, response_payload = service.submit_openclaw_ingress(payload)
+        elif request_path == "/sync/github":
+            status, response_payload = service.submit_github_sync(payload)
         elif request_path == "/evaluate":
             status, response_payload = service.evaluate(payload)
         elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "completion-claims":
