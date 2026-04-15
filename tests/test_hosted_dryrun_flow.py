@@ -18,6 +18,7 @@ from modules.hosted_dryrun_flow import (
     build_linear_ingress_payload,
     _build_ssl_context,
     ensure_expected_file_present,
+    ensure_pull_request_matches_session,
     parse_github_pull_request_url,
     summarize_pull_request_review_decision,
 )
@@ -144,6 +145,26 @@ class HostedDryRunFlowTests(unittest.TestCase):
                 ),
                 expected_path="docs/dry-run-proof.md",
             )
+
+    def test_pull_request_match_rejects_reserved_work_branch(self) -> None:
+        reserved_branch_pr = GitHubPullRequestSnapshot(
+            owner=self.pull_request.owner,
+            repo=self.pull_request.repo,
+            number=self.pull_request.number,
+            url=self.pull_request.url,
+            state=self.pull_request.state,
+            merged=self.pull_request.merged,
+            branch_name="work",
+            base_branch=self.pull_request.base_branch,
+            commit_sha=self.pull_request.commit_sha,
+            repository_node_id=self.pull_request.repository_node_id,
+            review_decision=self.pull_request.review_decision,
+        )
+
+        with self.assertRaises(DryRunFlowError) as raised:
+            ensure_pull_request_matches_session(self.session, reserved_branch_pr)
+
+        self.assertIn("reserved", str(raised.exception))
 
     def test_review_decision_summary_prefers_changes_requested(self) -> None:
         reviews = [

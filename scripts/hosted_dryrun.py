@@ -29,6 +29,7 @@ from modules.hosted_dryrun_flow import (
     build_operator_summary,
     ensure_directory,
     ensure_expected_file_present,
+    ensure_pull_request_matches_session,
     fetch_github_pull_request_bundle,
     fetch_linear_issue,
     fetch_task_inspection,
@@ -138,10 +139,7 @@ def _cmd_finish(args: argparse.Namespace) -> int:
         github_token=github_token,
         pr_url=args.pr_url,
     )
-    if pull_request.owner != session.github_owner or pull_request.repo != session.github_repo:
-        raise DryRunFlowError(
-            f"PR repository {pull_request.owner}/{pull_request.repo} does not match expected {session.github_owner}/{session.github_repo}"
-        )
+    ensure_pull_request_matches_session(session, pull_request)
     ensure_expected_file_present(changed_files, expected_path=session.target_file)
 
     claim_result = post_completion_claim(client, session=session, pull_request=pull_request, commit=commit)
