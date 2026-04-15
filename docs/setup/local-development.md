@@ -56,15 +56,19 @@ pnpm build
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-`backend.server` now auto-loads repo-root `.env.local` during native local startup. For the reset verifier slice, put these there:
+`backend.server` now auto-loads repo-root `.env.local` during native local startup. It also loads `config/openclaw/.env.local` when present so local OpenClaw config and state paths do not need to be duplicated into the shell environment.
+
+For the reset verifier slice, put these in repo-root `.env.local`:
 
 - `GITHUB_TOKEN`
 - `LINEAR_API_KEY`
-- `OPENCLAW_BASE_URL`
+- optional `OPENCLAW_BASE_URL`
 - optional `OPENCLAW_REPAIR_ENDPOINT`
 - optional `HARNESS_RESET_POLL_SECONDS`
 
 `HARNESS_RESET_POLL_SECONDS` controls how long Harness waits before `/reset/tick` asks OpenClaw to retry a contract already in `retrying`. The production default is `900` seconds. For deterministic local test loops, set it to `0`.
+
+When `config/openclaw/.env.local` provides `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, the reset verifier prefers local OpenClaw CLI dispatch over the HTTP callback. `OPENCLAW_BASE_URL` and `OPENCLAW_REPAIR_ENDPOINT` remain the fallback for remote OpenClaw receivers.
 
 To run the same backend against Postgres instead of the file-backed store:
 

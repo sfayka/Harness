@@ -269,9 +269,11 @@ Reset-slice verifier environment variables:
 - `LINEAR_API_KEY`
   - Used by the reset verifier to move Linear issues and leave canonical Harness comments
 - `OPENCLAW_BASE_URL`
-  - Used by the reset verifier to request OpenClaw repair when proof is invalid but retryable
+  - Optional HTTP fallback used when the reset verifier requests OpenClaw repair through a remote callback endpoint
 - `OPENCLAW_REPAIR_ENDPOINT`
   - Optional override for the OpenClaw repair callback path
+
+For native local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
 
 Relevant supporting files:
 
@@ -298,7 +300,7 @@ Run the backend with the file store:
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-`backend.server` now auto-loads repo-root `.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and `OPENCLAW_BASE_URL` without manual shell export steps.
+`backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned OpenClaw config/state paths without manual shell export steps.
 
 Run the backend with Postgres:
 

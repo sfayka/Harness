@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import socket
+import tempfile
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from modules.reset.openclaw_client import OpenClawRepairClient
 
@@ -41,6 +43,7 @@ class OpenClawRepairClientTests(unittest.TestCase):
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.client = OpenClawRepairClient(
+            transport="http",
             base_url=f"http://127.0.0.1:{self.port}",
             repair_endpoint="/repair",
         )
@@ -68,6 +71,66 @@ class OpenClawRepairClientTests(unittest.TestCase):
                 "contract_id": "contract-1",
             },
         )
+
+    def test_cli_transport_invokes_local_openclaw_agent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            capture_path = temp_path / "capture.json"
+            cli_path = temp_path / "openclaw"
+            cli_path.write_text(
+                "\n".join(
+                    [
+                        "#!/usr/bin/env python3",
+                        "import json",
+                        "import os",
+                        "import sys",
+                        f"capture_path = {str(capture_path)!r}",
+                        "with open(capture_path, 'w', encoding='utf-8') as handle:",
+                        "    json.dump({'argv': sys.argv[1:], 'env': {",
+                        "        'OPENCLAW_CONFIG_PATH': os.environ.get('OPENCLAW_CONFIG_PATH'),",
+                        "        'OPENCLAW_STATE_DIR': os.environ.get('OPENCLAW_STATE_DIR'),",
+                        "    }}, handle)",
+                        "print(json.dumps({'status': 'queued'}))",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            cli_path.chmod(0o755)
+
+            client = OpenClawRepairClient(
+                transport="cli",
+                cli_bin=str(cli_path),
+                config_path="/tmp/openclaw.local.json5",
+                state_dir="/tmp/openclaw-state",
+                agent_id="harness-local",
+                timeout_seconds=7.0,
+            )
+
+            response = client.request_repair(
+                "KNO-999",
+                reason="commit sha does not exist in the expected repository",
+                contract_id="contract-1",
+            )
+
+            captured = json.loads(capture_path.read_text(encoding="utf-8"))
+            self.assertEqual(response, {"status": "queued"})
+            self.assertEqual(
+                captured["argv"][:8],
+                [
+                    "agent",
+                    "--local",
+                    "--agent",
+                    "harness-local",
+                    "--session-id",
+                    "harness-repair-kno-999",
+                    "--message",
+                    "Harness rejected completion for Linear issue KNO-999.\nHarness contract id: contract-1.\nVerification failure: commit sha does not exist in the expected repository.\nRe-dispatch work in OpenClaw, use the issue's existing repo and branch context, and do not treat the task as complete until there is a real repository, branch, commit SHA, and PR URL.",
+                ],
+            )
+            self.assertEqual(captured["argv"][8:], ["--json", "--timeout", "7"])
+            self.assertEqual(captured["env"]["OPENCLAW_CONFIG_PATH"], "/tmp/openclaw.local.json5")
+            self.assertEqual(captured["env"]["OPENCLAW_STATE_DIR"], "/tmp/openclaw-state")
 
 
 if __name__ == "__main__":

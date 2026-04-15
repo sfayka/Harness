@@ -121,11 +121,14 @@ The template keeps the local surface intentionally small:
 - `gateway.mode: "local"`
 - `gateway.bind: "loopback"`
 - `gateway.auth.mode: "none"`
+- `agents.defaults.model.primary: "openai-codex/gpt-5.4"`
 - one explicit local agent
 - workspace path pointed at the local Harness repo
 - `skipBootstrap: true` to avoid implicit workspace bootstrap behavior during early setup work
 
 That gives us a deterministic local base without prematurely choosing channels, daemon install, or production auth.
+
+The default model is intentionally set to `openai-codex/gpt-5.4` so a machine already authenticated through Codex OAuth can run embedded local agent turns without adding a separate `OPENAI_API_KEY`.
 
 ## Validation Commands
 
