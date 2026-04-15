@@ -9,7 +9,8 @@
     "api": {
       "entrypoint": "backend/server.py",
       "framework": "fastapi",
-      "routePrefix": "/backend"
+      "routePrefix": "/backend",
+      "includeFiles": ["modules/**", "schemas/**", "sql/postgres/**"]
     }
   }
 }
