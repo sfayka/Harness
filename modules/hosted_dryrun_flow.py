@@ -196,6 +196,11 @@ def task_id_for_issue(issue_identifier: str, *, at: datetime | None = None) -> s
     return f"dryrun-{slug}-{compact_utc(at or now_utc())}"
 
 
+def task_branch_for_issue(issue_identifier: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", issue_identifier.strip().lower()).strip("-")
+    return f"codex/dryrun-{slug}"
+
+
 def ensure_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
@@ -336,6 +341,7 @@ def build_linear_ingress_payload(
 
 
 def build_codex_cloud_prompt(session: DryRunSession) -> str:
+    task_branch = task_branch_for_issue(session.linear_issue_identifier)
     return f"""You are executing one real dry-run task for Harness.
 
 Hard requirements:
@@ -345,6 +351,22 @@ Hard requirements:
   3. `cat .codex-bootstrap-proof`
 - If preflight is wrong or incomplete, stop and report `BLOCKED`.
 - Work only in repository `{session.github_owner}/{session.github_repo}`.
+
+After preflight, before any edits or other commands, you must create a fresh task branch from {session.base_branch} using exactly these commands:
+
+git fetch origin --prune
+git checkout {session.base_branch}
+git pull --ff-only origin {session.base_branch}
+git checkout -b {task_branch}
+git branch --show-current
+git status --short
+
+Branch rules:
+- If any branch-setup command fails, print `BLOCKED` and stop.
+- No file edits, commits, pushes, or PR creation may occur before branch setup succeeds.
+- The run is invalid if the final PR head branch is `work` or any branch that does not start with `codex/`.
+
+Task requirements:
 - Make exactly one small change: create or update `{session.target_file}`.
 - Use this exact commit message: `{session.commit_message}`
 - Open a PR against `{session.base_branch}`.
@@ -360,11 +382,17 @@ File content requirements for `{session.target_file}`:
 - Include the Linear issue `{session.linear_issue_identifier}`
 - State that this file exists to prove the dry-run produced a real artifact
 
+Final output requirements:
 When you finish, print only these final proof lines in exactly this format:
 Repository: {session.github_owner}/{session.github_repo}
 Branch: <branch-name>
 Commit SHA: <40-char-sha>
 PR URL: <https://github.com/.../pull/...>
+
+Validity rules:
+- Final proof is invalid unless `Branch:` is `{task_branch}`
+- Final proof is invalid unless the PR base branch is `{session.base_branch}`
+- Final proof is invalid unless all four proof lines are present exactly once
 """
 
 
