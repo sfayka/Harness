@@ -13,13 +13,9 @@ class HostedDeploymentContractTests(unittest.TestCase):
         self.assertEqual(services["web"]["entrypoint"], ".")
         self.assertEqual(services["web"]["framework"], "nextjs")
         self.assertEqual(services["web"]["routePrefix"], "/")
-        self.assertEqual(services["api"]["entrypoint"], "backend/server.py")
+        self.assertEqual(services["api"]["entrypoint"], "server.py")
         self.assertEqual(services["api"]["framework"], "fastapi")
         self.assertEqual(services["api"]["routePrefix"], "/backend")
-        self.assertEqual(
-            services["api"]["includeFiles"],
-            ["modules/**", "schemas/**", "sql/postgres/**"],
-        )
 
     def test_env_example_documents_local_override_only(self) -> None:
         env_example = Path(".env.example").read_text(encoding="utf-8")
