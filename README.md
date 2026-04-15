@@ -4,6 +4,27 @@ Harness is a control plane and reliability layer for AI-assisted work.
 
 It does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
 
+## Reset Slice
+
+The repo now also carries a narrower reset-oriented path alongside the broader TaskEnvelope control plane.
+
+That reset slice is the current fastest path to something operationally useful:
+
+- OpenClaw owns intake, PRD generation, decomposition, Linear issue creation, and Codex dispatch.
+- Harness owns verification contracts, GitHub proof validation, retry budgeting, and Linear truth updates.
+- Linear is the operator UI for V1.
+- GitHub is the proof source for code-bearing completion.
+
+The reset routes live under:
+
+- `POST /reset/contracts`
+- `GET /reset/contracts`
+- `GET /reset/contracts/<contract_id>`
+- `POST /reset/contracts/<contract_id>/claims`
+- `POST /reset/tick`
+
+These routes intentionally coexist with the older TaskEnvelope routes so the narrower verifier path can ship without first deleting the broader control-plane code.
+
 ## What Harness Is
 
 - A Python control-plane backend that evaluates canonical `TaskEnvelope` submissions.
@@ -241,6 +262,17 @@ Backend storage environment variables:
   - Auto-injected when a Vercel Blob store is connected to the project
   - Not required for canonical task state today; Postgres remains the source of truth
 
+Reset-slice verifier environment variables:
+
+- `GITHUB_TOKEN`
+  - Used by the reset verifier to validate branch, commit SHA, and PR proof against GitHub
+- `LINEAR_API_KEY`
+  - Used by the reset verifier to move Linear issues and leave canonical Harness comments
+- `OPENCLAW_BASE_URL`
+  - Used by the reset verifier to request OpenClaw repair when proof is invalid but retryable
+- `OPENCLAW_REPAIR_ENDPOINT`
+  - Optional override for the OpenClaw repair callback path
+
 Relevant supporting files:
 
 - [`.env.example`](.env.example)
@@ -265,6 +297,8 @@ Run the backend with the file store:
 ```bash
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
+
+`backend.server` now auto-loads repo-root `.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and `OPENCLAW_BASE_URL` without manual shell export steps.
 
 Run the backend with Postgres:
 
@@ -302,6 +336,16 @@ Run the frontend:
 ```bash
 pnpm dev
 ```
+
+### Reset-Slice Smoke Path
+
+Once the backend is running and `.env.local` contains `GITHUB_TOKEN`, `LINEAR_API_KEY`, and `OPENCLAW_BASE_URL`, the narrow verifier path is available through:
+
+- `POST /reset/contracts`
+- `POST /reset/contracts/<contract_id>/claims`
+- `POST /reset/tick`
+
+Use this path when you want Harness to verify GitHub proof for a Linear issue and push canonical truth back into Linear without depending on the dashboard.
 
 ## Test Execution
 

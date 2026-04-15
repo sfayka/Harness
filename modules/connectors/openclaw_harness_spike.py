@@ -223,6 +223,21 @@ class OpenClawHarnessSpikeClient:
     def dispatch_task(self, task_id: str, *, payload: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
         return self._request_json("POST", f"/tasks/{task_id}/dispatch", payload or {})
 
+    def register_reset_contract(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", "/reset/contracts", payload)
+
+    def list_reset_contracts(self) -> tuple[int, dict[str, Any]]:
+        return self._request_json("GET", "/reset/contracts")
+
+    def get_reset_contract(self, contract_id: str) -> tuple[int, dict[str, Any]]:
+        return self._request_json("GET", f"/reset/contracts/{contract_id}")
+
+    def submit_reset_claim(self, contract_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", f"/reset/contracts/{contract_id}/claims", payload)
+
+    def tick_reset(self) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", "/reset/tick", {})
+
 
 def _demo_review_note_artifact() -> dict[str, Any]:
     return {

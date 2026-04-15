@@ -56,6 +56,13 @@ pnpm build
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
+`backend.server` now auto-loads repo-root `.env.local` during native local startup. For the reset verifier slice, put these there:
+
+- `GITHUB_TOKEN`
+- `LINEAR_API_KEY`
+- `OPENCLAW_BASE_URL`
+- optional `OPENCLAW_REPAIR_ENDPOINT`
+
 To run the same backend against Postgres instead of the file-backed store:
 
 ```bash
@@ -73,6 +80,23 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 The backend defaults to `http://127.0.0.1:8000` in the local runbook above. Hosted deployments use the Vercel `api` service rather than a separate Render process.
+
+### Reset Verifier Endpoints
+
+The narrow verifier slice is exposed alongside the older TaskEnvelope routes:
+
+- `POST /reset/contracts`
+- `GET /reset/contracts`
+- `GET /reset/contracts/<contract_id>`
+- `POST /reset/contracts/<contract_id>/claims`
+- `POST /reset/tick`
+
+Use this path when you want Harness to:
+
+- register a Linear issue verification contract
+- verify GitHub proof for a claimed completion
+- trigger OpenClaw repair on invalid proof
+- escalate to `In Review` after the retry budget is exhausted
 
 ### Run The Dashboard
 

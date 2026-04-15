@@ -6,7 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from modules.api import HarnessApiService
+from modules.local_env import load_repo_root_env
+from modules.reset.service import ResetVerificationService
 from modules.store import HarnessStore
+
+load_repo_root_env()
 
 
 def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
@@ -14,8 +18,18 @@ def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
     return JSONResponse(status_code=int(status_code), content=payload)
 
 
-def create_app(*, store: HarnessStore | None = None) -> FastAPI:
+def _build_reset_service(store: HarnessStore | None) -> ResetVerificationService:
+    root_dir = getattr(store, "root_dir", None) if store is not None else None
+    return ResetVerificationService.from_env(root_dir=root_dir)
+
+
+def create_app(
+    *,
+    store: HarnessStore | None = None,
+    reset_service: ResetVerificationService | None = None,
+) -> FastAPI:
     service = HarnessApiService(store=store)
+    reset_verifier = reset_service or _build_reset_service(store)
     app = FastAPI(title="Harness API", version="0.1.0")
 
     @app.get("/health")
@@ -90,6 +104,28 @@ def create_app(*, store: HarnessStore | None = None) -> FastAPI:
     async def evaluate(request: Request) -> JSONResponse:
         payload = await request.json()
         return _json_response(service.evaluate(payload))
+
+    @app.post("/reset/contracts")
+    async def register_reset_contract(request: Request) -> JSONResponse:
+        payload = await request.json()
+        return _json_response(reset_verifier.register_contract_http(payload))
+
+    @app.get("/reset/contracts")
+    def list_reset_contracts() -> JSONResponse:
+        return _json_response(reset_verifier.list_contracts_http())
+
+    @app.get("/reset/contracts/{contract_id}")
+    def get_reset_contract(contract_id: str) -> JSONResponse:
+        return _json_response(reset_verifier.get_contract_http(contract_id))
+
+    @app.post("/reset/contracts/{contract_id}/claims")
+    async def submit_reset_claim(contract_id: str, request: Request) -> JSONResponse:
+        payload = await request.json()
+        return _json_response(reset_verifier.submit_claim_http(contract_id, payload))
+
+    @app.post("/reset/tick")
+    def run_reset_tick() -> JSONResponse:
+        return _json_response(reset_verifier.tick_http())
 
     return app
 
