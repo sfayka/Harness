@@ -15,15 +15,22 @@ class LinearClientError(ValueError):
 class LinearResetClient:
     """Minimal Linear client that updates issue state and writes Harness comments."""
 
-    def __init__(self, *, api_key: str | None = None, timeout_seconds: float = 10.0) -> None:
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        api_url: str = "https://api.linear.app/graphql",
+        timeout_seconds: float = 10.0,
+    ) -> None:
         self.api_key = api_key or os.getenv("LINEAR_API_KEY")
+        self.api_url = api_url
         self.timeout_seconds = timeout_seconds
 
     def _graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
         if not self.api_key:
             raise LinearClientError("LINEAR_API_KEY is required")
         req = request.Request(
-            "https://api.linear.app/graphql",
+            self.api_url,
             data=json.dumps({"query": query, "variables": variables}).encode("utf-8"),
             headers={"Content-Type": "application/json", "Authorization": self.api_key},
         )
@@ -91,7 +98,7 @@ class LinearResetClient:
               }
             }
             """
-            self._graphql(update_mutation, {"id": issue_ref, "input": {"stateId": state_id}})
+            self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
 
         comment_body = f"Harness status: {harness_status}\n\n{comment}"
         comment_mutation = """
