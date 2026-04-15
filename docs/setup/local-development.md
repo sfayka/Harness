@@ -98,6 +98,24 @@ Use this path when you want Harness to:
 - trigger OpenClaw repair on invalid proof
 - escalate to `In Review` after the retry budget is exhausted
 
+### Reset Verifier Dry Runs
+
+The repo now includes deterministic local dry runs for the reset verifier slice:
+
+```bash
+python3 -m modules.reset_dryrun success
+python3 -m modules.reset_dryrun review
+```
+
+These commands:
+
+- start a temporary local FastAPI app
+- hit the `/reset/*` routes through the thin OpenClaw-style HTTP client
+- avoid mutating real Linear or GitHub state
+- prove the two operator-critical paths:
+  - retryable invalid proof that later verifies successfully
+  - retryable invalid proof that exhausts retries and lands in `In Review`
+
 ### Run The Dashboard
 
 ```bash

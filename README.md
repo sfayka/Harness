@@ -347,6 +347,18 @@ Once the backend is running and `.env.local` contains `GITHUB_TOKEN`, `LINEAR_AP
 
 Use this path when you want Harness to verify GitHub proof for a Linear issue and push canonical truth back into Linear without depending on the dashboard.
 
+For a deterministic local proof of the new slice without touching real Linear or GitHub state, run:
+
+```bash
+python3 -m modules.reset_dryrun success
+python3 -m modules.reset_dryrun review
+```
+
+These dry runs start a temporary local FastAPI app, exercise the `/reset/*` routes over HTTP, and prove the two core paths:
+
+- invalid proof followed by successful repair and verified completion
+- invalid proof that exhausts the retry budget and escalates to `In Review`
+
 ## Test Execution
 
 Install backend and frontend dependencies first:
