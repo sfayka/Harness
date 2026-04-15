@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import ssl
+import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from modules.hosted_dryrun_flow import (
     DryRunFlowError,
@@ -12,6 +16,7 @@ from modules.hosted_dryrun_flow import (
     build_completion_claim_request,
     build_github_sync_request,
     build_linear_ingress_payload,
+    _build_ssl_context,
     ensure_expected_file_present,
     parse_github_pull_request_url,
     summarize_pull_request_review_decision,
@@ -156,3 +161,26 @@ class HostedDryRunFlowTests(unittest.TestCase):
             ),
             "approved",
         )
+
+    def test_ssl_context_uses_certifi_when_available(self) -> None:
+        sentinel = ssl.create_default_context()
+        with (
+            patch.dict(sys.modules, {"certifi": SimpleNamespace(where=lambda: "/tmp/certifi.pem")}),
+            patch("modules.hosted_dryrun_flow.ssl.create_default_context", return_value=sentinel) as factory,
+        ):
+            context = _build_ssl_context()
+
+        self.assertIs(context, sentinel)
+        self.assertEqual(factory.call_args_list[-1].kwargs, {"cafile": "/tmp/certifi.pem"})
+        self.assertEqual(factory.call_count, 2)
+
+    def test_ssl_context_falls_back_to_default_store_without_certifi(self) -> None:
+        sentinel = ssl.create_default_context()
+        with (
+            patch.dict(sys.modules, {"certifi": None}),
+            patch("modules.hosted_dryrun_flow.ssl.create_default_context", return_value=sentinel) as factory,
+        ):
+            context = _build_ssl_context()
+
+        self.assertIs(context, sentinel)
+        factory.assert_called_once_with()

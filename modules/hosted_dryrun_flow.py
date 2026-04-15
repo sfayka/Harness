@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+import ssl
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -134,6 +135,7 @@ class JsonHttpClient:
 
     def __init__(self, *, timeout_seconds: float = 20.0) -> None:
         self.timeout_seconds = timeout_seconds
+        self.ssl_context = _build_ssl_context()
 
     def request_json(
         self,
@@ -151,7 +153,7 @@ class JsonHttpClient:
 
         req = request.Request(url, headers=final_headers, data=data, method=method)
         try:
-            with request.urlopen(req, timeout=self.timeout_seconds) as response:
+            with request.urlopen(req, timeout=self.timeout_seconds, context=self.ssl_context) as response:
                 raw = response.read().decode("utf-8")
                 parsed = json.loads(raw) if raw else {}
                 return RequestResult(status=response.status, payload=parsed)
@@ -164,6 +166,16 @@ class JsonHttpClient:
             finally:
                 http_error.close()
             return RequestResult(status=http_error.code, payload=parsed)
+
+
+def _build_ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    try:
+        import certifi  # type: ignore
+    except ImportError:
+        return context
+
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 def now_utc() -> datetime:
