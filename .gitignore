@@ -52,6 +52,7 @@ tmp/
 temp/
 *.log
 runs/
+.harness-dryruns/
 
 # Node / frontend
 node_modules/

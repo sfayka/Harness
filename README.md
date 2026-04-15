@@ -248,6 +248,7 @@ Relevant supporting files:
 - [`docs/setup/local-development.md`](docs/setup/local-development.md)
 - [`docs/setup/openclaw-local.md`](docs/setup/openclaw-local.md)
 - [`docs/setup/vercel-neon.md`](docs/setup/vercel-neon.md)
+- [`docs/demo/hosted-dryrun-operator-flow.md`](docs/demo/hosted-dryrun-operator-flow.md)
 
 ## Local Development
 
