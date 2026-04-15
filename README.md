@@ -232,10 +232,13 @@ Backend storage environment variables:
 - `HARNESS_STORE_BACKEND`
   - Supported values: `file`, `postgres`
   - Default in [`.env.example`](.env.example): `file`
-- `DATABASE_URL`
-  - Required when `HARNESS_STORE_BACKEND=postgres`
-  - Expected to be a Postgres connection string
-  - Used for Neon/Postgres in the hosted deployment
+- Postgres connection string
+  - Harness resolves this in order from `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, then `POSTGRES_URL_NO_SSL`
+  - `DATABASE_URL` remains the explicit portable override
+  - Vercel-managed Neon deployments should normally work from the injected `POSTGRES_URL` without any extra remapping
+- `BLOB_READ_WRITE_TOKEN`
+  - Auto-injected when a Vercel Blob store is connected to the project
+  - Not required for canonical task state today; Postgres remains the source of truth
 
 Relevant supporting files:
 
@@ -266,6 +269,14 @@ Run the backend with Postgres:
 ```bash
 export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
+```
+
+For a local environment pulled from a Vercel-managed Neon project, `POSTGRES_URL` also works without additional remapping:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export POSTGRES_URL=postgresql://...
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 

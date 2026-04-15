@@ -63,6 +63,15 @@ export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
+
+If you pull environment variables from a Vercel-managed Neon project, `POSTGRES_URL` also works directly:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export POSTGRES_URL=postgresql://...
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
+```
+
 The backend defaults to `http://127.0.0.1:8000` in the local runbook above. Hosted deployments use the Vercel `api` service rather than a separate Render process.
 
 ### Run The Dashboard

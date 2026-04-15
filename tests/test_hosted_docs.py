@@ -10,6 +10,7 @@ class HostedDocsTests(unittest.TestCase):
 
         self.assertIn("Vercel Services", readme)
         self.assertIn("Neon", readme)
+        self.assertIn("BLOB_READ_WRITE_TOKEN", readme)
         self.assertNotIn("Render + Supabase Deployment", readme)
 
     def test_vercel_neon_runbook_exists_and_render_supabase_runbook_is_removed(self) -> None:

@@ -24,6 +24,14 @@ except ImportError:  # pragma: no cover - exercised when postgres backend is req
 
 TaskEnvelope = dict[str, object]
 
+POSTGRES_DATABASE_URL_ENV_VARS = (
+    "DATABASE_URL",
+    "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL_NO_SSL",
+)
+
 
 class StoreError(ValueError):
     """Base error for Harness persistence operations."""
@@ -227,6 +235,18 @@ def _parse_iso_timestamp(value: str | None) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
 
 
+def resolve_postgres_database_url(database_url: str | None = None) -> str:
+    """Resolve a Postgres connection string from explicit input or supported env vars."""
+
+    if database_url is not None and database_url.strip():
+        return database_url
+    for env_var in POSTGRES_DATABASE_URL_ENV_VARS:
+        value = os.environ.get(env_var)
+        if value and value.strip():
+            return value
+    return ""
+
+
 class PostgresHarnessStore(HarnessStore):
     """Postgres-backed store for canonical tasks and append-only evaluation history."""
 
@@ -234,7 +254,11 @@ class PostgresHarnessStore(HarnessStore):
         if psycopg is None or Jsonb is None or UniqueViolation is None:
             raise StoreError("psycopg is required for HARNESS_STORE_BACKEND=postgres")
         if not database_url.strip():
-            raise StoreError("DATABASE_URL is required for HARNESS_STORE_BACKEND=postgres")
+            supported_envs = ", ".join(POSTGRES_DATABASE_URL_ENV_VARS)
+            raise StoreError(
+                "A Postgres connection string is required for HARNESS_STORE_BACKEND=postgres "
+                f"(checked: {supported_envs})"
+            )
         self.database_url = database_url
 
     def _connect(self):
@@ -439,7 +463,7 @@ def build_harness_store(
         resolved_store_root = Path(store_root or os.environ.get("HARNESS_STORE_ROOT") or ".harness-store")
         return FileBackedHarnessStore(resolved_store_root)
     if backend == "postgres":
-        resolved_database_url = database_url or os.environ.get("DATABASE_URL") or ""
+        resolved_database_url = resolve_postgres_database_url(database_url)
         return PostgresHarnessStore(resolved_database_url)
     raise StoreError(f"Unsupported HARNESS_STORE_BACKEND {backend!r}; expected 'file' or 'postgres'")
 
@@ -451,9 +475,11 @@ __all__ = [
     "FileBackedHarnessStore",
     "HarnessStore",
     "PostgresHarnessStore",
+    "POSTGRES_DATABASE_URL_ENV_VARS",
     "StoreError",
     "TaskEnvelopeAlreadyExistsError",
     "TaskEnvelopeNotFoundError",
     "TaskEnvelopeStore",
     "build_harness_store",
+    "resolve_postgres_database_url",
 ]

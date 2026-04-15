@@ -4,14 +4,18 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from modules.demo_cases import build_demo_request
 from modules.evaluation import evaluate_task_case
 from modules.store import (
     FileBackedHarnessStore,
     PostgresHarnessStore,
+    StoreError,
     TaskEnvelopeAlreadyExistsError,
     TaskEnvelopeNotFoundError,
+    build_harness_store,
+    resolve_postgres_database_url,
 )
 
 
@@ -129,6 +133,70 @@ class FileBackedHarnessStoreTests(HarnessStoreContractTests, unittest.TestCase):
 
         self.assertTrue(task_path.exists())
         self.assertTrue(evaluation_path.exists())
+
+
+class PostgresDatabaseUrlResolutionTests(unittest.TestCase):
+    def test_prefers_explicit_database_url_argument(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"DATABASE_URL": "postgresql://env-primary", "POSTGRES_URL": "postgresql://env-vercel"},
+            clear=False,
+        ):
+            resolved = resolve_postgres_database_url("postgresql://explicit")
+
+        self.assertEqual(resolved, "postgresql://explicit")
+
+    def test_prefers_database_url_over_vercel_injected_variants(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "DATABASE_URL": "postgresql://env-primary",
+                "POSTGRES_URL": "postgresql://env-vercel",
+                "POSTGRES_URL_NON_POOLING": "postgresql://env-direct",
+            },
+            clear=False,
+        ):
+            resolved = resolve_postgres_database_url()
+
+        self.assertEqual(resolved, "postgresql://env-primary")
+
+    def test_uses_vercel_postgres_url_when_database_url_is_absent(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"POSTGRES_URL": "postgresql://env-vercel"},
+            clear=True,
+        ):
+            resolved = resolve_postgres_database_url()
+
+        self.assertEqual(resolved, "postgresql://env-vercel")
+
+    def test_falls_back_to_non_pooling_variant(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"POSTGRES_URL_NON_POOLING": "postgresql://env-direct"},
+            clear=True,
+        ):
+            resolved = resolve_postgres_database_url()
+
+        self.assertEqual(resolved, "postgresql://env-direct")
+
+    def test_build_harness_store_accepts_vercel_postgres_envs(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"HARNESS_STORE_BACKEND": "postgres", "POSTGRES_URL": "postgresql://env-vercel"},
+            clear=True,
+        ):
+            store = build_harness_store()
+
+        self.assertIsInstance(store, PostgresHarnessStore)
+        self.assertEqual(store.database_url, "postgresql://env-vercel")
+
+    def test_postgres_backend_error_lists_supported_environment_variables(self) -> None:
+        with self.assertRaises(StoreError) as context:
+            PostgresHarnessStore("")
+
+        self.assertIn("DATABASE_URL", str(context.exception))
+        self.assertIn("POSTGRES_URL", str(context.exception))
 
 
 @unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres store tests")

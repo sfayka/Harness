@@ -22,4 +22,5 @@ class HostedDeploymentContractTests(unittest.TestCase):
 
         self.assertIn("HARNESS_API_BASE_URL=http://127.0.0.1:8000", env_example)
         self.assertIn("Hosted Vercel deployments derive the backend route automatically", env_example)
-        self.assertIn("DATABASE_URL is injected by the Neon + Vercel integration", env_example)
+        self.assertIn("POSTGRES_URL", env_example)
+        self.assertIn("BLOB_READ_WRITE_TOKEN", env_example)

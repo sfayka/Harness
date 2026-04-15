@@ -5,6 +5,7 @@ Use this mode when Harness should run as one Vercel project with:
 - a `web` service for the Next.js dashboard
 - an `api` service for the Python backend
 - Neon-backed Postgres injected through Vercel
+- optional Vercel Blob storage for future file/object surfaces
 
 This is the default hosted deployment path for Harness.
 
@@ -26,14 +27,24 @@ The Vercel project is declared in [`vercel.json`](../../vercel.json) with:
 Set these environment variables for the backend service:
 
 - `HARNESS_STORE_BACKEND=postgres`
-- `DATABASE_URL=<provided by the Neon + Vercel integration>`
+- `POSTGRES_URL=<provided by the Neon + Vercel integration>`
+
+Harness resolves the database connection string in this order:
+
+- `DATABASE_URL`
+- `POSTGRES_URL`
+- `POSTGRES_URL_NON_POOLING`
+- `POSTGRES_PRISMA_URL`
+- `POSTGRES_URL_NO_SSL`
+
+For a Vercel-managed Neon project, the normal hosted path is to leave `DATABASE_URL` unset and let the injected `POSTGRES_URL` win automatically.
 
 Leave `HARNESS_STORE_ROOT` unset in hosted mode.
 
 Apply the schema before first real use:
 
 ```bash
-psql "$DATABASE_URL" -f sql/postgres/001_harness_store.sql
+psql "$POSTGRES_URL" -f sql/postgres/001_harness_store.sql
 ```
 
 The backend health endpoint remains:
@@ -71,3 +82,9 @@ Harness canonical state remains in Postgres:
 - timeline inputs
 
 Vercel Blob is optional in this slice. Only use it for real file-like hosted outputs if a concrete persistence surface needs it. Do not move canonical task truth out of Postgres.
+
+When a Blob store is connected through Vercel, the platform injects:
+
+- `BLOB_READ_WRITE_TOKEN`
+
+Do not add Blob-specific application wiring until a concrete artifact surface actually needs object storage.

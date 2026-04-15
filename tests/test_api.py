@@ -1041,7 +1041,7 @@ class HarnessApiCliTests(unittest.TestCase):
             os.environ,
             {
                 "HARNESS_STORE_BACKEND": "postgres",
-                "DATABASE_URL": POSTGRES_TEST_DATABASE_URL or "",
+                "POSTGRES_URL": POSTGRES_TEST_DATABASE_URL or "",
             },
             clear=False,
         ):
