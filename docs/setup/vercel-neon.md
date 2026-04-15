@@ -70,7 +70,7 @@ The dashboard derives the backend route automatically from:
 - `VERCEL_URL`
 - the backend route prefix `/backend`
 
-`HARNESS_API_BASE_URL` remains available as a local-development override only.
+`HARNESS_API_BASE_URL` remains available as a local-development override only. Hosted Vercel deployments prefer the same-project `/backend` route even if an older external override is still present in project settings.
 
 ## Storage Notes
 
