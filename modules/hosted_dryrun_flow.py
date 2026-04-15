@@ -31,6 +31,7 @@ DEFAULT_BASE_BRANCH = "main"
 DEFAULT_TARGET_FILE = "docs/dry-run-proof.md"
 DEFAULT_COMMIT_MESSAGE = "docs: add dry run proof"
 DEFAULT_LABELS = ("linear", "dryrun", "codex-cloud")
+RESERVED_BRANCH_NAMES = frozenset({"work"})
 LINEAR_API_URL = "https://api.linear.app/graphql"
 GITHUB_API_URL = "https://api.github.com"
 
@@ -490,6 +491,29 @@ def ensure_expected_file_present(
         raise DryRunFlowError(f"Expected changed file {expected_path!r} was not present in the PR")
 
 
+def ensure_pull_request_matches_session(
+    session: DryRunSession,
+    pull_request: GitHubPullRequestSnapshot,
+) -> None:
+    expected_repository = f"{session.github_owner}/{session.github_repo}"
+    observed_repository = f"{pull_request.owner}/{pull_request.repo}"
+    if observed_repository != expected_repository:
+        raise DryRunFlowError(
+            f"PR repository {observed_repository} does not match expected {expected_repository}"
+        )
+
+    if pull_request.base_branch != session.base_branch:
+        raise DryRunFlowError(
+            f"PR base branch {pull_request.base_branch!r} does not match expected {session.base_branch!r}"
+        )
+
+    normalized_branch_name = pull_request.branch_name.strip().lower()
+    if normalized_branch_name in RESERVED_BRANCH_NAMES:
+        raise DryRunFlowError(
+            f"PR head branch {pull_request.branch_name!r} is reserved and cannot be used as dry-run proof."
+        )
+
+
 def build_completion_claim_request(
     session: DryRunSession,
     pull_request: GitHubPullRequestSnapshot,
@@ -792,6 +816,7 @@ __all__ = [
     "compact_utc",
     "ensure_directory",
     "ensure_expected_file_present",
+    "ensure_pull_request_matches_session",
     "fetch_github_pull_request_bundle",
     "fetch_linear_issue",
     "fetch_task_inspection",
