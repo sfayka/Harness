@@ -17,13 +17,13 @@ Use this flow when you want one repeatable demo that shows:
 1. Reset prior demo state:
 
 ```bash
-python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
+python3 -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
 ```
 
 2. Start the Harness API against the demo store:
 
 ```bash
-python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
+HARNESS_STORE_ROOT=.demo-store python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 3. Start the dashboard in a separate terminal:
@@ -43,7 +43,7 @@ HARNESS_API_BASE_URL=http://127.0.0.1:8000
 4. Seed the canonical walkthrough scenarios:
 
 ```bash
-python -m modules.demo_walkthrough seed \
+python3 -m modules.demo_walkthrough seed \
   --base-url http://127.0.0.1:8000 \
   --dashboard-url http://127.0.0.1:3000 \
   --output-dir demo-output/walkthrough
