@@ -11,6 +11,13 @@ This migration must preserve Harness's control-plane boundaries:
 - agent claims remain advisory only
 - deployment changes must not weaken evidence, reconciliation, or lifecycle enforcement
 
+This migration is also explicitly an operations-simplification project:
+
+- reduce always-on hosting cost where possible
+- reduce the number of platforms and billing surfaces the operator must manage
+- reduce the number of environment variables and deployment modes that can drift out of sync
+- make hosted Harness easier to bring up for testing and end-to-end use without hours of configuration debugging
+
 ## Problem
 
 The current hosted shape is operationally split:
@@ -25,6 +32,10 @@ That posture creates three concrete issues:
 1. It does not match the target operating model of a single Vercel-hosted project.
 2. It leaves stale environment assumptions in place, especially around `HARNESS_API_BASE_URL=http://127.0.0.1:8000`.
 3. It makes hosted execution and agent environments more fragile than they need to be because the deployment contract is split across products and older setup guidance.
+
+There is also a fourth issue driving this migration:
+
+4. Supabase's billing and hosted-runtime posture is a poor fit for the operator's goal of paying primarily for actual usage rather than carrying unnecessary always-on cost and operational overhead.
 
 ## Current Repo Reality
 
@@ -48,6 +59,7 @@ This migration includes:
 3. updating hosted deployment docs and environment contracts
 4. removing hosted-path assumptions that point to `127.0.0.1`
 5. introducing Vercel Blob only where hosted file/object storage is genuinely needed
+6. reducing hosted configuration sprawl so Harness has one clear default hosted shape rather than several competing deployment stories
 
 ## Out Of Scope
 
@@ -75,6 +87,23 @@ Relevant platform references:
 - [Vercel Blob](https://vercel.com/docs/vercel-blob)
 - [Neon branching introduction](https://neon.com/branching/introduction)
 
+## Operator Intent
+
+The design and implementation plan should be optimized around the following operator intent:
+
+1. move away from Supabase because the current pricing/runtime posture is a poor fit relative to Neon
+2. consolidate to a single Vercel project when possible to reduce management and billing complexity
+3. make Harness easy to stand up in one place for real testing and end-to-end use
+4. minimize the number of systems, providers, and moving parts the operator must keep track of
+5. make the hosted setup boring and predictable so agents are less likely to get trapped in environment-variable and deployment troubleshooting loops
+
+This intent means the migration should prioritize:
+
+- fewer platforms over theoretically flexible multi-provider posture
+- one clear hosted path over several partially supported hosted paths
+- explicit defaults over highly customizable but brittle configuration
+- operational simplicity over clever deployment topology
+
 ## Recommended Approach
 
 Use a single Vercel project with:
@@ -90,6 +119,8 @@ This is the recommended approach because it:
 - preserves the current backend/frontend boundary inside one deployment contract
 - avoids an unnecessary backend rewrite during an infrastructure migration
 - keeps canonical task truth in Postgres where it belongs
+- simplifies provider management and billing into a much smaller operational surface
+- creates one obvious hosted deployment story instead of Vercel-plus-separate-backend drift
 
 ## Rejected Alternatives
 
@@ -159,9 +190,13 @@ Principle:
 - local mode may use loopback
 - hosted mode must never depend on loopback assumptions
 
+Hosted configuration should be deliberately minimal. The default hosted deployment should prefer a very small set of stable variables with obvious responsibility, rather than a large matrix of optional settings that can drift across environments.
+
 ### Database Configuration
 
 Hosted database configuration should continue to center on `DATABASE_URL`, but the source of that value becomes the Vercel-attached Neon integration rather than Supabase or manually managed external setup.
+
+The implementation plan should treat "fewer required env vars" as an explicit success criterion, not a side benefit.
 
 ## Migration Boundaries
 
@@ -173,6 +208,8 @@ The migration should be intentionally narrow:
 
 If backend runtime changes become necessary to satisfy Vercel service execution, they should be implemented as minimal hosting adapters rather than semantic changes to Harness logic.
 
+The migration should also remove unnecessary deployment choices where possible. If there are multiple old hosted paths in docs or bootstrap flows, the implementation should converge them toward one preferred hosted story unless a secondary path is still clearly required.
+
 ## Rollout Plan
 
 ### Stage A: Deployment Contract Cleanup
@@ -180,18 +217,21 @@ If backend runtime changes become necessary to satisfy Vercel service execution,
 - remove old hosted-path docs centered on Render + Supabase
 - update README and setup docs to describe the new default hosted path
 - fix examples and bootstrap guidance that incorrectly imply hosted loopback
+- identify and remove stale or redundant hosted env knobs where they are no longer needed
 
 ### Stage B: Single-Project Vercel Support
 
 - define the frontend and backend service layout
 - wire hosted frontend proxying to the backend service
 - preserve current local development behavior
+- make the hosted path the obvious default rather than one option among many
 
 ### Stage C: Neon Validation
 
 - validate schema bootstrap against Neon
 - confirm health/readiness behavior remains correct
 - verify backend tests still pass with Postgres-backed storage
+- verify the database setup story is simple enough that a future agent is unlikely to misconfigure it
 
 ### Stage D: Blob Adoption
 
@@ -218,6 +258,7 @@ Mitigation:
 
 - make local and hosted env contracts explicit
 - document which variables are loopback-only and which are hosted-only
+- aggressively remove configuration branches that no longer provide real value
 
 ### 3. Blob Overreach
 
@@ -238,6 +279,16 @@ Mitigation:
 - preserve submission and reevaluation routes
 - verify tests across backend and frontend surfaces before any completion claim
 
+### 5. Simplicity Drift
+
+It is easy for a migration plan to claim simplification while quietly preserving most of the old complexity under new names.
+
+Mitigation:
+
+- explicitly count and reduce hosted configuration inputs
+- prefer one default hosted deployment path
+- remove legacy docs and setup branches rather than merely adding a new preferred section beside them
+
 ## Success Criteria
 
 1. Harness is deployed as a single Vercel project with separate frontend and backend services.
@@ -250,6 +301,11 @@ Mitigation:
    - `python -m unittest discover -s tests`
    - `pnpm lint`
    - `pnpm build`
+8. The hosted deployment path is materially simpler than the current state:
+   - fewer providers
+   - fewer required env variables
+   - one clear default setup path in docs
+9. Harness is easier to bring up for end-to-end testing without bespoke troubleshooting across separate hosting providers.
 
 ## Implementation Notes For The Follow-On Plan
 
