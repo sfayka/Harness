@@ -176,31 +176,24 @@ See:
   - `file` for local JSON-backed development.
   - `postgres` for durable hosted state.
 - Postgres storage is implemented in [`modules/store.py`](modules/store.py) and bootstrapped with [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql).
-- Current hosted deployment uses Supabase as plain Postgres. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
+- The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
 
-## Hosted System
+## Hosted Deployment Target
 
-These URLs were verified against the live deployment on March 28, 2026.
+Harness now prefers a single hosted project on Vercel Services.
 
-- Frontend: [https://harness-mzus2ext1-sean-fays-projects.vercel.app/](https://harness-mzus2ext1-sean-fays-projects.vercel.app/)
-- Backend: [https://harness-qeav.onrender.com](https://harness-qeav.onrender.com)
-- Health: [https://harness-qeav.onrender.com/health](https://harness-qeav.onrender.com/health)
+Default hosted shape:
 
-Current live health payload fields:
+- `web` service for the Next.js dashboard
+- `api` service for the Python backend
+- Neon-backed Postgres provided through Vercel
+- optional Vercel Blob only for real file-like hosted outputs
 
-- `status`
-- `store_backend`
-- `database_configured`
-- `database_host`
-- `database_schema_ready`
+The hosted backend health endpoint is expected at:
 
-The current hosted health response reports:
+- `GET /backend/health`
 
-- `status: "ok"`
-- `store_backend: "postgres"`
-- `database_configured: true`
-- `database_host: "aws-0-us-west-2.pooler.supabase.com"`
-- `database_schema_ready: true`
+The dashboard derives its backend route automatically from the Vercel deployment URL and the `/backend` route prefix. Hosted deployments should not require a manually configured `HARNESS_API_BASE_URL` when both services live inside the same Vercel project.
 
 ## Key Views And Routes
 
@@ -232,17 +225,20 @@ Required frontend environment variable:
 
 - `HARNESS_API_BASE_URL`
   - Local example: `http://127.0.0.1:8000`
-  - Hosted example: `https://harness-qeav.onrender.com`
+  - Hosted use: local override only; same-project Vercel deployments derive the backend route automatically
 
 Backend storage environment variables:
 
 - `HARNESS_STORE_BACKEND`
   - Supported values: `file`, `postgres`
   - Default in [`.env.example`](.env.example): `file`
-- `DATABASE_URL`
-  - Required when `HARNESS_STORE_BACKEND=postgres`
-  - Expected to be a Postgres connection string
-  - Used for Supabase/Postgres in the hosted deployment
+- Postgres connection string
+  - Harness resolves this in order from `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, then `POSTGRES_URL_NO_SSL`
+  - `DATABASE_URL` remains the explicit portable override
+  - Vercel-managed Neon deployments should normally work from the injected `POSTGRES_URL` without any extra remapping
+- `BLOB_READ_WRITE_TOKEN`
+  - Auto-injected when a Vercel Blob store is connected to the project
+  - Not required for canonical task state today; Postgres remains the source of truth
 
 Relevant supporting files:
 
@@ -250,22 +246,22 @@ Relevant supporting files:
 - [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql)
 - [`docs/setup/local-development.md`](docs/setup/local-development.md)
 - [`docs/setup/openclaw-local.md`](docs/setup/openclaw-local.md)
-- [`docs/setup/render-supabase.md`](docs/setup/render-supabase.md)
+- [`docs/setup/vercel-neon.md`](docs/setup/vercel-neon.md)
 
 ## Local Development
 
 Backend setup:
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
-Harness and Codex Cloud assume system Python is available as `python`. Do not assume or require a `.venv`.
+Codex Cloud assumes system Python is available as `python`. On local machines where only `python3` is available, use `python3` for local commands. Do not assume or require a `.venv`.
 
 Run the backend with the file store:
 
 ```bash
-python -m modules.api --store-root .harness-store
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 Run the backend with Postgres:
@@ -273,7 +269,15 @@ Run the backend with Postgres:
 ```bash
 export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
-python -m modules.api
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
+```
+
+For a local environment pulled from a Vercel-managed Neon project, `POSTGRES_URL` also works without additional remapping:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export POSTGRES_URL=postgresql://...
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 The API binds to `0.0.0.0` by default and honors `PORT` when set. Local default access is `http://127.0.0.1:8000`.
@@ -302,20 +306,20 @@ pnpm dev
 Install backend and frontend dependencies first:
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 pnpm install --frozen-lockfile
 ```
 
 Run only the dedicated end-to-end runtime scenario suite:
 
 ```bash
-python -m unittest discover -s tests/e2e -p 'test_*.py'
+python3 -m unittest discover -s tests/e2e -p 'test_*.py'
 ```
 
 Run the full Python test suite:
 
 ```bash
-python -m unittest discover -s tests
+python3 -m unittest discover -s tests
 ```
 
 Run the controlled autonomous dry run that exercises:

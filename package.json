@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test:frontend": "tsx --test tests/frontend/**/*.test.ts"
   },
   "dependencies": {
     "next": "^16",
@@ -25,6 +26,7 @@
     "tailwindcss": "^4",
     "@tailwindcss/postcss": "^4",
     "eslint": "^9.23.0",
-    "eslint-config-next": "^16.2.1"
+    "eslint-config-next": "^16.2.1",
+    "tsx": "^4.20.0"
   }
 }

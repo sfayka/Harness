@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const rawBaseUrl = process.env.HARNESS_API_BASE_URL?.trim() ?? "";
+import { resolveHarnessApiBaseUrl } from "@/lib/harness-api-base";
 
 function getBaseUrl(): string | null {
-  if (!rawBaseUrl) {
-    return null;
-  }
-  return rawBaseUrl.replace(/\/$/, "");
+  return resolveHarnessApiBaseUrl({
+    HARNESS_API_BASE_URL: process.env.HARNESS_API_BASE_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+  });
 }
 
 export async function GET(
@@ -18,7 +17,7 @@ export async function GET(
     return NextResponse.json(
       {
         error:
-          "HARNESS_API_BASE_URL is not configured for this frontend deployment.",
+          "Harness API base URL could not be resolved. Set HARNESS_API_BASE_URL locally or deploy behind Vercel Services.",
       },
       { status: 503 },
     );

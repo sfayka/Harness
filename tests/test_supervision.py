@@ -4,7 +4,9 @@ import os
 import tempfile
 import unittest
 from copy import deepcopy
+from pathlib import Path
 from unittest.mock import patch
+import json
 
 from modules.api import HarnessApiService
 from modules.store import FileBackedHarnessStore
@@ -146,6 +148,13 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         }
         stored_task["timestamps"]["updated_at"] = "2026-04-01T08:00:00Z"
         self.store.update_task(stored_task)
+
+        evaluation_records = self.store.list_evaluation_records(task_id)
+        self.assertEqual(len(evaluation_records), 1)
+        evaluation_path = Path(self.temp_dir.name) / "evaluations" / task_id / f"{evaluation_records[0].evaluation_id}.json"
+        evaluation_payload = json.loads(evaluation_path.read_text(encoding="utf-8"))
+        evaluation_payload["recorded_at"] = "2026-04-01T08:00:00Z"
+        evaluation_path.write_text(json.dumps(evaluation_payload, indent=2, sort_keys=True), encoding="utf-8")
 
         queue = self._queue_by_task_id()
 

@@ -13,21 +13,21 @@ This guide covers the practical local and container runbook for Harness.
 ### Backend Setup
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
-Harness and Codex Cloud assume system Python is available as `python`. Do not assume or require a `.venv`.
+Codex Cloud assumes system Python is available as `python`. On local machines where only `python3` is present, use `python3` for local commands. Do not assume or require a `.venv`.
 
 Run the dedicated runtime scenario suite:
 
 ```bash
-python -m unittest discover -s tests/e2e -p 'test_*.py'
+python3 -m unittest discover -s tests/e2e -p 'test_*.py'
 ```
 
 Run the full backend test suite:
 
 ```bash
-python -m unittest discover -s tests
+python3 -m unittest discover -s tests
 ```
 
 ### Frontend Setup
@@ -53,17 +53,26 @@ pnpm build
 ### Run The API
 
 ```bash
-python -m modules.api --store-root .harness-store
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-To run the same backend against Supabase Postgres instead of the file-backed store:
+To run the same backend against Postgres instead of the file-backed store:
 
 ```bash
 export HARNESS_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
-python -m modules.api
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
-The API defaults to binding `0.0.0.0` and will honor the `PORT` environment variable when one is provided by a host such as Render. For local development, access it through `http://127.0.0.1:8000`.
+
+If you pull environment variables from a Vercel-managed Neon project, `POSTGRES_URL` also works directly:
+
+```bash
+export HARNESS_STORE_BACKEND=postgres
+export POSTGRES_URL=postgresql://...
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
+```
+
+The backend defaults to `http://127.0.0.1:8000` in the local runbook above. Hosted deployments use the Vercel `api` service rather than a separate Render process.
 
 ### Run The Dashboard
 
@@ -80,7 +89,7 @@ The dashboard is read-only and depends on the canonical inspection APIs:
 ### One-Command Demo Bootstrap
 
 ```bash
-python -m modules.demo_bootstrap
+python3 -m modules.demo_bootstrap
 ```
 
 That command prepares demo state, starts local services, seeds deterministic tasks, and prints direct URLs for operator walkthroughs.
@@ -90,13 +99,13 @@ That command prepares demo state, starts local services, seeds deterministic tas
 Reset:
 
 ```bash
-python -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
+python3 -m modules.demo_walkthrough reset --store-root .demo-store --output-dir demo-output/walkthrough
 ```
 
 Start API:
 
 ```bash
-python -m modules.api --host 127.0.0.1 --port 8000 --store-root .demo-store
+HARNESS_STORE_ROOT=.demo-store python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 Start dashboard:
@@ -108,7 +117,7 @@ pnpm dev
 Seed walkthrough tasks:
 
 ```bash
-python -m modules.demo_walkthrough seed \
+python3 -m modules.demo_walkthrough seed \
   --base-url http://127.0.0.1:8000 \
   --dashboard-url http://127.0.0.1:3000 \
   --output-dir demo-output/walkthrough
@@ -149,14 +158,20 @@ Use Docker mode when you want a reproducible demo or clean onboarding environmen
 
 ## Vercel Preview / Hosted Frontend
 
-Vercel is frontend-only for this repo. It hosts the Next.js dashboard and requires a reachable backend URL through `HARNESS_API_BASE_URL`.
+Harness now prefers a single-project hosted deployment on Vercel `Services`.
 
-The backend remains a separate Harness process and is not deployed by `vercel.json`.
+That hosted shape is:
 
-For durable hosted state behind the Vercel dashboard, deploy the Python backend separately on Render, set `HARNESS_STORE_BACKEND=postgres`, set `DATABASE_URL` to the Supabase Postgres connection string, and apply [`sql/postgres/001_harness_store.sql`](../../sql/postgres/001_harness_store.sql) before first start.
+- dashboard served by the `web` service
+- backend served by the `api` service
+- Postgres provided by Neon through Vercel
+
+See [`docs/setup/vercel-neon.md`](vercel-neon.md) for the default hosted runbook.
 
 ## Local Vs Hosted Behavior
 
-Local and hosted frontend deployments both depend on a reachable Harness backend through `HARNESS_API_BASE_URL`.
+Local frontend development can still use `HARNESS_API_BASE_URL` as an explicit override.
 
-If the backend is unreachable or `HARNESS_API_BASE_URL` is missing, the current frontend shows an error from the proxy route instead of silently substituting sample data.
+Hosted deployments running behind the same Vercel project derive the backend route automatically from the deployment URL and the `/backend` route prefix.
+
+If the backend is unreachable or the route cannot be derived, the frontend shows an explicit proxy error instead of silently substituting sample data.
