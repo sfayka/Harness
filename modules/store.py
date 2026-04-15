@@ -247,6 +247,16 @@ def resolve_postgres_database_url(database_url: str | None = None) -> str:
     return ""
 
 
+def _is_vercel_runtime() -> bool:
+    return any(
+        (
+            os.environ.get("VERCEL_URL"),
+            os.environ.get("VERCEL_ENV"),
+            os.environ.get("VERCEL_REGION"),
+        )
+    )
+
+
 class PostgresHarnessStore(HarnessStore):
     """Postgres-backed store for canonical tasks and append-only evaluation history."""
 
@@ -458,12 +468,21 @@ def build_harness_store(
 ) -> HarnessStore:
     """Construct the configured persistence backend for the API process."""
 
-    backend = (store_backend or os.environ.get("HARNESS_STORE_BACKEND") or "file").strip().lower()
+    resolved_database_url = resolve_postgres_database_url(database_url)
+    configured_backend = (store_backend or os.environ.get("HARNESS_STORE_BACKEND") or "").strip().lower()
+    if configured_backend:
+        backend = configured_backend
+    elif database_url and database_url.strip():
+        backend = "postgres"
+    elif _is_vercel_runtime() and resolved_database_url:
+        backend = "postgres"
+    else:
+        backend = "file"
+
     if backend == "file":
         resolved_store_root = Path(store_root or os.environ.get("HARNESS_STORE_ROOT") or ".harness-store")
         return FileBackedHarnessStore(resolved_store_root)
     if backend == "postgres":
-        resolved_database_url = resolve_postgres_database_url(database_url)
         return PostgresHarnessStore(resolved_database_url)
     raise StoreError(f"Unsupported HARNESS_STORE_BACKEND {backend!r}; expected 'file' or 'postgres'")
 

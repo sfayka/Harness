@@ -191,6 +191,27 @@ class PostgresDatabaseUrlResolutionTests(unittest.TestCase):
         self.assertIsInstance(store, PostgresHarnessStore)
         self.assertEqual(store.database_url, "postgresql://env-vercel")
 
+    def test_build_harness_store_defaults_to_postgres_in_vercel_when_database_url_is_available(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "VERCEL_URL": "harness-preview.vercel.app",
+                "POSTGRES_URL": "postgresql://env-vercel",
+            },
+            clear=True,
+        ):
+            store = build_harness_store()
+
+        self.assertIsInstance(store, PostgresHarnessStore)
+        self.assertEqual(store.database_url, "postgresql://env-vercel")
+
+    def test_build_harness_store_defaults_to_postgres_when_explicit_database_url_is_passed(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            store = build_harness_store(database_url="postgresql://explicit")
+
+        self.assertIsInstance(store, PostgresHarnessStore)
+        self.assertEqual(store.database_url, "postgresql://explicit")
+
     def test_postgres_backend_error_lists_supported_environment_variables(self) -> None:
         with self.assertRaises(StoreError) as context:
             PostgresHarnessStore("")

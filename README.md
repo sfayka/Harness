@@ -225,13 +225,14 @@ Required frontend environment variable:
 
 - `HARNESS_API_BASE_URL`
   - Local example: `http://127.0.0.1:8000`
-  - Hosted use: local override only; same-project Vercel deployments derive the backend route automatically
+  - Hosted use: local override only; same-project Vercel deployments always derive the backend route automatically and ignore stale hosted overrides
 
 Backend storage environment variables:
 
 - `HARNESS_STORE_BACKEND`
   - Supported values: `file`, `postgres`
   - Default in [`.env.example`](.env.example): `file`
+  - Hosted Vercel deployments auto-select `postgres` when managed Postgres connection variables are present
 - Postgres connection string
   - Harness resolves this in order from `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, then `POSTGRES_URL_NO_SSL`
   - `DATABASE_URL` remains the explicit portable override

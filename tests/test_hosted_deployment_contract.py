@@ -24,3 +24,9 @@ class HostedDeploymentContractTests(unittest.TestCase):
         self.assertIn("Hosted Vercel deployments derive the backend route automatically", env_example)
         self.assertIn("POSTGRES_URL", env_example)
         self.assertIn("BLOB_READ_WRITE_TOKEN", env_example)
+
+    def test_backend_requirements_are_declared_inline_for_vercel_python_builds(self) -> None:
+        backend_requirements = Path("backend/requirements.txt").read_text(encoding="utf-8")
+
+        self.assertNotIn("-r ../requirements.txt", backend_requirements)
+        self.assertIn("fastapi==0.115.12", backend_requirements)

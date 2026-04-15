@@ -80,3 +80,4 @@ config/openclaw/openclaw.local.json5
 .docker-demo-output/
 *.pid
 *.seed
+.vercel
