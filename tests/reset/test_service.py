@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 
 from modules.reset.contracts import ResetCompletionClaim, ResetVerificationContract
 from modules.reset.service import ResetVerificationService
@@ -119,6 +120,7 @@ class ResetVerificationServiceTests(unittest.TestCase):
                     ("retryable_invalid_proof", "still wrong"),
                 ),
                 openclaw_client=openclaw,
+                retry_cooldown_seconds=0,
             )
             contract = ResetVerificationContract(
                 contract_id="contract-1",
@@ -147,3 +149,42 @@ class ResetVerificationServiceTests(unittest.TestCase):
             self.assertEqual(linear.actions[-1][1], "In Review")
             self.assertEqual(linear.actions[-1][2], "needs_review")
 
+    def test_tick_waits_for_retry_cooldown_before_dispatching_again(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store = FileBackedResetStore(temp_dir)
+            linear = FakeLinearClient()
+            openclaw = FakeOpenClawClient()
+            requested_at = datetime(2026, 4, 15, 12, 0, tzinfo=timezone.utc)
+            service = ResetVerificationService(
+                store=store,
+                linear_client=linear,
+                verifier=FakeVerifier(("retryable_invalid_proof", "still wrong")),
+                openclaw_client=openclaw,
+                now_provider=lambda: requested_at + timedelta(seconds=60),
+                retry_cooldown_seconds=300,
+            )
+            contract = ResetVerificationContract(
+                contract_id="contract-1",
+                linear_issue_id="KNO-999",
+                repository_owner="sfayka",
+                repository_name="Harness",
+                branch_ref="codex/reset-verifier-v1",
+                harness_status="retrying",
+                latest_claim=ResetCompletionClaim(
+                    repository_owner="sfayka",
+                    repository_name="Harness",
+                    branch_name="codex/reset-verifier-v1",
+                    commit_sha="bad",
+                    pull_request_number=42,
+                ),
+                retry_count=1,
+                last_repair_requested_at=requested_at.isoformat().replace("+00:00", "Z"),
+            )
+            store.create_contract(contract)
+
+            tick_results = service.tick()
+
+            self.assertEqual(len(tick_results), 1)
+            self.assertEqual(tick_results[0].status, "cooldown_wait")
+            self.assertEqual(openclaw.repairs, [])
+            self.assertEqual(linear.actions, [])

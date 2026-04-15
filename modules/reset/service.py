@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,12 @@ def _coerce_float(value: str | None, *, default: float) -> float:
         return default
 
 
+def _parse_iso_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
 @dataclass(frozen=True)
 class ResetTickResult:
     contract_id: str
@@ -43,12 +50,14 @@ class ResetVerificationService:
         linear_client: Any,
         verifier: ResetGitHubVerifier,
         openclaw_client: Any,
+        now_provider: Any | None = None,
         retry_cooldown_seconds: float = 900.0,
     ) -> None:
         self.store = store
         self.linear_client = linear_client
         self.verifier = verifier
         self.openclaw_client = openclaw_client
+        self.now_provider = now_provider or (lambda: datetime.now(timezone.utc))
         self.retry_cooldown_seconds = retry_cooldown_seconds
 
     @classmethod
@@ -60,6 +69,7 @@ class ResetVerificationService:
             linear_client=LinearResetClient(),
             verifier=ResetGitHubVerifier(),
             openclaw_client=OpenClawRepairClient(),
+            now_provider=None,
             retry_cooldown_seconds=cooldown,
         )
 
@@ -99,6 +109,16 @@ class ResetVerificationService:
                 continue
             if contract.harness_status not in {"verifying", "retrying", "running"}:
                 continue
+            if self._within_retry_cooldown(contract):
+                outcomes.append(
+                    ResetTickResult(
+                        contract_id=contract.contract_id,
+                        action="cooldown_wait",
+                        status="cooldown_wait",
+                        reason="retry cooldown window is still active",
+                    )
+                )
+                continue
 
             evaluation = self._evaluate_claim(contract, contract.latest_claim)
             verdict = evaluation["verdict"]
@@ -136,6 +156,15 @@ class ResetVerificationService:
                 )
             )
         return tuple(outcomes)
+
+    def _within_retry_cooldown(self, contract: ResetVerificationContract) -> bool:
+        if contract.harness_status != "retrying" or self.retry_cooldown_seconds <= 0:
+            return False
+        last_requested = _parse_iso_timestamp(contract.last_repair_requested_at)
+        if last_requested is None:
+            return False
+        elapsed = (self.now_provider() - last_requested).total_seconds()
+        return elapsed < self.retry_cooldown_seconds
 
     def _evaluate_claim(
         self, contract: ResetVerificationContract, claim: ResetCompletionClaim

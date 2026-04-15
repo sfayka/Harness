@@ -87,7 +87,7 @@ def _free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def _start_reset_server(temp_dir: str):
+def _start_reset_server(temp_dir: str, *, retry_cooldown_seconds: float = 900.0):
     linear = _FakeLinearClient()
     openclaw = _FakeOpenClawClient()
     app = create_app(
@@ -97,6 +97,7 @@ def _start_reset_server(temp_dir: str):
             linear_client=linear,
             verifier=_ShaDrivenVerifier(),
             openclaw_client=openclaw,
+            retry_cooldown_seconds=retry_cooldown_seconds,
         ),
     )
     port = _free_port()
@@ -164,7 +165,10 @@ def run_reset_success_dry_run(*, contract_id: str = "reset-dryrun-success-1") ->
 
 def run_reset_review_dry_run(*, contract_id: str = "reset-dryrun-review-1") -> ResetDryRunResult:
     with tempfile.TemporaryDirectory() as temp_dir:
-        server, thread, port, linear, openclaw = _start_reset_server(temp_dir)
+        server, thread, port, linear, openclaw = _start_reset_server(
+            temp_dir,
+            retry_cooldown_seconds=0,
+        )
         try:
             client = OpenClawHarnessSpikeClient(f"http://127.0.0.1:{port}")
             register_status, _ = client.register_reset_contract(

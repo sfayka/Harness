@@ -62,6 +62,9 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 - `LINEAR_API_KEY`
 - `OPENCLAW_BASE_URL`
 - optional `OPENCLAW_REPAIR_ENDPOINT`
+- optional `HARNESS_RESET_POLL_SECONDS`
+
+`HARNESS_RESET_POLL_SECONDS` controls how long Harness waits before `/reset/tick` asks OpenClaw to retry a contract already in `retrying`. The production default is `900` seconds. For deterministic local test loops, set it to `0`.
 
 To run the same backend against Postgres instead of the file-backed store:
 
