@@ -8,7 +8,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from modules.reset.openclaw_client import OpenClawRepairClient
+from modules.reset.openclaw_client import OpenClawRepairClient, OpenClawRepairClientError
 
 
 def _free_port() -> int:
@@ -131,6 +131,42 @@ class OpenClawRepairClientTests(unittest.TestCase):
             self.assertEqual(captured["argv"][8:], ["--json", "--timeout", "7"])
             self.assertEqual(captured["env"]["OPENCLAW_CONFIG_PATH"], "/tmp/openclaw.local.json5")
             self.assertEqual(captured["env"]["OPENCLAW_STATE_DIR"], "/tmp/openclaw-state")
+
+    def test_cli_transport_rejects_structured_error_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            cli_path = temp_path / "openclaw"
+            cli_path.write_text(
+                "\n".join(
+                    [
+                        "#!/usr/bin/env python3",
+                        "import json",
+                        "print('[agents/auth-profiles] synced openai-codex credentials from external cli')",
+                        "print(json.dumps({",
+                        "    'payloads': [{'text': '⚠️ API rate limit reached. Please try again later.'}],",
+                        "    'meta': {'stopReason': 'error'}",
+                        "}, indent=2))",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            cli_path.chmod(0o755)
+            client = OpenClawRepairClient(
+                transport="cli",
+                cli_bin=str(cli_path),
+                agent_id="harness-local",
+                timeout_seconds=7.0,
+            )
+
+            with self.assertRaises(OpenClawRepairClientError) as raised:
+                client.request_repair(
+                    "KNO-999",
+                    reason="commit sha does not exist in the expected repository",
+                    contract_id="contract-1",
+                )
+
+            self.assertIn("API rate limit reached", str(raised.exception))
 
 
 if __name__ == "__main__":
