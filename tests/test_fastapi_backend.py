@@ -10,7 +10,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from backend.server import create_app
-from modules.local_env import load_local_env_file
+from modules.local_env import load_local_env_file, load_native_local_env
 from modules.reset.service import ResetVerificationService
 from modules.reset.store import FileBackedResetStore
 from modules.store import FileBackedHarnessStore
@@ -32,6 +32,26 @@ class LocalEnvLoaderTests(unittest.TestCase):
                 self.assertEqual(os.environ["FIRST"], "one")
                 self.assertEqual(os.environ["SECOND"], "existing")
                 self.assertEqual(os.environ["THIRD"], "three")
+
+    def test_native_loader_includes_openclaw_local_env_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir)
+            (repo_root / ".env.local").write_text("FIRST=one\nOPENCLAW_GATEWAY_PORT=1111\n", encoding="utf-8")
+            (repo_root / "config" / "openclaw").mkdir(parents=True, exist_ok=True)
+            (repo_root / "config" / "openclaw" / ".env.local").write_text(
+                "OPENCLAW_CONFIG_PATH=/tmp/openclaw.local.json5\nOPENCLAW_GATEWAY_PORT=2222\n",
+                encoding="utf-8",
+            )
+
+            with patch.dict(os.environ, {}, clear=True):
+                loaded = load_native_local_env(repo_root=repo_root)
+                self.assertEqual(
+                    loaded,
+                    ("FIRST", "OPENCLAW_GATEWAY_PORT", "OPENCLAW_CONFIG_PATH"),
+                )
+                self.assertEqual(os.environ["FIRST"], "one")
+                self.assertEqual(os.environ["OPENCLAW_GATEWAY_PORT"], "1111")
+                self.assertEqual(os.environ["OPENCLAW_CONFIG_PATH"], "/tmp/openclaw.local.json5")
 
 
 class FastApiBackendTests(unittest.TestCase):

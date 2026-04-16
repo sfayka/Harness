@@ -6,11 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from modules.api import HarnessApiService
-from modules.local_env import load_repo_root_env
+from modules.local_env import load_native_local_env
 from modules.reset.service import ResetVerificationService
 from modules.store import HarnessStore
 
-load_repo_root_env()
+load_native_local_env()
 
 
 def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:

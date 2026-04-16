@@ -50,4 +50,24 @@ def load_repo_root_env(*, override: bool = False) -> tuple[str, ...]:
     return load_local_env_file(repo_root / ".env.local", override=override)
 
 
-__all__ = ["load_local_env_file", "load_repo_root_env"]
+def load_native_local_env(
+    *,
+    repo_root: str | Path | None = None,
+    override: bool = False,
+) -> tuple[str, ...]:
+    """Load local Harness env files used during native development.
+
+    The repo root remains the primary local env surface. When an OpenClaw local
+    config exists under `config/openclaw/.env.local`, load that too so the backend
+    can discover the repo-owned OpenClaw config and state paths without requiring
+    duplicate exports in the operator shell.
+    """
+
+    resolved_root = Path(repo_root) if repo_root is not None else Path(__file__).resolve().parents[1]
+    loaded: list[str] = []
+    loaded.extend(load_local_env_file(resolved_root / ".env.local", override=override))
+    loaded.extend(load_local_env_file(resolved_root / "config" / "openclaw" / ".env.local", override=override))
+    return tuple(loaded)
+
+
+__all__ = ["load_local_env_file", "load_native_local_env", "load_repo_root_env"]

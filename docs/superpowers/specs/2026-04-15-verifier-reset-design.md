@@ -73,7 +73,8 @@ This workflow exists specifically to catch false completion claims such as:
 - file-backed persistence for reset-specific verification contracts
 - GitHub REST validation of repo, branch, commit SHA, and PR
 - Linear updates for workflow state and Harness substatus
-- OpenClaw repair callback endpoint invocation
+- local OpenClaw repair dispatch through the OpenClaw CLI when repo-owned local config is present
+- HTTP repair callback support as a fallback for remote OpenClaw receivers
 - bounded retry budget
 - deterministic supervision tick for active issues
 - focused tests around the new verifier path
@@ -196,10 +197,11 @@ Required local secrets and endpoints:
 
 - `GITHUB_TOKEN`
 - `LINEAR_API_KEY`
-- `OPENCLAW_BASE_URL`
 
 Optional local config:
 
+- `OPENCLAW_BASE_URL`
+- `OPENCLAW_REPAIR_ENDPOINT`
 - `HARNESS_STORE_BACKEND=file`
 - `HARNESS_STORE_ROOT`
 - `HARNESS_RESET_POLL_SECONDS`
@@ -207,6 +209,10 @@ Optional local config:
 - `LINEAR_TEAM_ID` or other workflow mapping helpers if required by the issue update path
 
 The backend should automatically load repo-root `.env.local` in local development so operators and agents do not need to keep exporting variables manually.
+
+When `config/openclaw/.env.local` exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness should prefer local `openclaw agent --local` dispatch for repair requests. The HTTP callback fields remain the fallback for remote or gateway-exposed OpenClaw receivers.
+
+The repo-owned OpenClaw local template should default the agent model to `openai-codex/gpt-5.4` so Codex OAuth can be used directly without requiring a separate `OPENAI_API_KEY`.
 
 ## API Surface
 
