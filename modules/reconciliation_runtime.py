@@ -882,6 +882,16 @@ def _current_execution_attempt_pull_request_reference(
     return None
 
 
+def _current_attempt_pull_request_reference_visibility_missing(attempt: dict[str, Any]) -> bool:
+    details = attempt.get("details")
+    if not isinstance(details, dict):
+        return False
+    reference = details.get("current_execution_attempt_pull_request_reference")
+    if not isinstance(reference, dict):
+        return False
+    return reference.get("found") is True and reference.get("persisted_found") is False
+
+
 def _execution_attempt_count(task_envelope: TaskEnvelope) -> int:
     execution_metadata = ((task_envelope.get("observability") or {}).get("execution_metadata") or {})
     attempts = execution_metadata.get("execution_attempts") or []
@@ -1679,6 +1689,15 @@ class MissingPrAfterExecutionHandler:
                             f"GitHub branch {code_context.branch_name!r} was not found in "
                             f"{code_context.repository_owner}/{code_context.repository_name}"
                         )
+                    if _current_attempt_pull_request_reference_visibility_missing(attempt):
+                        attempt["details"]["final_decision"] = {
+                            "result": "blocked_retryable_failure",
+                            "reason": "current_attempt_pull_request_reference_not_visible",
+                        }
+                        raise RetryableReconciliationRuntimeError(
+                            "GitHub could not re-read the current execution attempt pull request "
+                            "from persisted API state; repository visibility or authentication may be unavailable"
+                        )
                     raise TerminalReconciliationRuntimeError(
                         f"GitHub branch {code_context.branch_name!r} was not found in "
                         f"{code_context.repository_owner}/{code_context.repository_name}"
@@ -1713,6 +1732,15 @@ class MissingPrAfterExecutionHandler:
                 )
                 attempt["details"]["commit_exists"] = commit_exists
                 if not commit_exists:
+                    if _current_attempt_pull_request_reference_visibility_missing(attempt):
+                        attempt["details"]["final_decision"] = {
+                            "result": "blocked_retryable_failure",
+                            "reason": "current_attempt_pull_request_reference_not_visible",
+                        }
+                        raise RetryableReconciliationRuntimeError(
+                            "GitHub could not re-read the current execution attempt pull request "
+                            "from persisted API state; repository visibility or authentication may be unavailable"
+                        )
                     raise TerminalReconciliationRuntimeError(
                         f"GitHub commit {code_context.commit_sha!r} was not found in "
                         f"{code_context.repository_owner}/{code_context.repository_name}"
@@ -1725,6 +1753,15 @@ class MissingPrAfterExecutionHandler:
                 )
 
                 if pull_request is None:
+                    if _current_attempt_pull_request_reference_visibility_missing(attempt):
+                        attempt["details"]["final_decision"] = {
+                            "result": "blocked_retryable_failure",
+                            "reason": "current_attempt_pull_request_reference_not_visible",
+                        }
+                        raise RetryableReconciliationRuntimeError(
+                            "GitHub could not re-read the current execution attempt pull request "
+                            "from persisted API state; repository visibility or authentication may be unavailable"
+                        )
                     base_branch = code_context.base_branch or self.github.default_branch(
                         owner=code_context.repository_owner,
                         repo=code_context.repository_name,

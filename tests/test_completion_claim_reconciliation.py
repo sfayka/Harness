@@ -498,6 +498,53 @@ def _remove_commit_context(payload: dict) -> dict:
     return payload
 
 
+def _with_current_attempt_pr_reference(
+    payload: dict,
+    *,
+    claim_id: str,
+    number: int = 21,
+    branch_name: str = "codex/e2e-test",
+    commit_sha: str = "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+    repository_owner: str = "KnoxAnalytics",
+    repository_name: str = "HARNESS-DRYRUN",
+) -> dict:
+    request = payload["request"]
+    request["execution_attempt"]["artifact_references"] = [
+        {
+            "reference_id": f"{claim_id}:attempt:commit",
+            "artifact_type": "commit",
+            "location": (
+                f"https://github.com/{repository_owner}/{repository_name}/commit/{commit_sha}"
+            ),
+            "commit_sha": commit_sha,
+            "metadata": {
+                "repository_host": "github.com",
+                "repository_owner": repository_owner,
+                "repository_name": repository_name,
+                "branch_name": branch_name,
+                "commit_sha": commit_sha,
+            },
+        },
+        {
+            "reference_id": f"{claim_id}:attempt:pr",
+            "artifact_type": "pull_request",
+            "location": f"https://github.com/{repository_owner}/{repository_name}/pull/{number}",
+            "commit_sha": commit_sha,
+            "metadata": {
+                "repository_host": "github.com",
+                "repository_owner": repository_owner,
+                "repository_name": repository_name,
+                "branch_name": branch_name,
+                "commit_sha": commit_sha,
+                "pull_request_url": f"https://github.com/{repository_owner}/{repository_name}/pull/{number}",
+                "pull_request_state": "open",
+                "pull_request_number": number,
+            },
+        },
+    ]
+    return payload
+
+
 def _prepare_branch_only_reconciliation_task(task: dict) -> dict:
     task["artifacts"]["items"] = []
     task["artifacts"]["completion_evidence"] = {
@@ -1116,6 +1163,76 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertEqual(payload["reconciliation_attempt"]["details"]["error_disposition"], "blocked_retryable")
         self.assertEqual(stored_status, 200)
         self.assertEqual(stored_payload["task"]["status"], "blocked")
+
+    def test_submit_completion_claim_blocks_when_current_attempt_pr_reference_cannot_be_re_read(self) -> None:
+        gateway = _FakeGitHubGateway(
+            branch_exists=False,
+            commit_exists=False,
+            persisted_created_pr=None,
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _prepare_branch_only_reconciliation_task(
+            _task_envelope(task_id="task-pr-reconcile-current-attempt-pr-not-visible")
+        )
+        service.store.create_task(task)
+
+        payload = _with_current_attempt_pr_reference(
+            _completion_claim_payload("claim-current-attempt-pr-not-visible"),
+            claim_id="claim-current-attempt-pr-not-visible",
+        )
+        status, response = service.submit_completion_claim(task["id"], payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "reconciliation_blocked")
+        self.assertEqual(response["task_envelope"]["status"], "blocked")
+        self.assertFalse(response["requires_review"])
+        attempt = response["reconciliation_attempt"]
+        self.assertEqual(attempt["details"]["error_disposition"], "blocked_retryable")
+        self.assertEqual(
+            attempt["details"]["final_decision"]["reason"],
+            "current_attempt_pull_request_reference_not_visible",
+        )
+        self.assertTrue(attempt["details"]["pull_request_lookup"]["searched_by_reference"])
+        self.assertFalse(attempt["details"]["pull_request_lookup"]["searched_by_branch"])
+        self.assertFalse(attempt["details"]["pull_request_lookup"]["searched_by_commit"])
+        self.assertTrue(attempt["details"]["current_execution_attempt_pull_request_reference"]["found"])
+        self.assertFalse(attempt["details"]["current_execution_attempt_pull_request_reference"]["persisted_found"])
+        self.assertEqual(gateway.create_calls, 0)
+
+    def test_submit_completion_claim_does_not_create_new_pr_when_current_attempt_pr_reference_is_unreadable(self) -> None:
+        gateway = _FakeGitHubGateway(
+            existing_branch_prs=(),
+            existing_commit_prs=(),
+            persisted_created_pr=None,
+        )
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_gateway(gateway),
+        )
+        task = _prepare_branch_only_reconciliation_task(
+            _task_envelope(task_id="task-pr-reconcile-current-attempt-pr-no-duplicate")
+        )
+        service.store.create_task(task)
+
+        payload = _with_current_attempt_pr_reference(
+            _completion_claim_payload("claim-current-attempt-pr-no-duplicate"),
+            claim_id="claim-current-attempt-pr-no-duplicate",
+        )
+        status, response = service.submit_completion_claim(task["id"], payload)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(response["action"], "reconciliation_blocked")
+        self.assertEqual(response["task_envelope"]["status"], "blocked")
+        attempt = response["reconciliation_attempt"]
+        self.assertEqual(attempt["details"]["error_disposition"], "blocked_retryable")
+        self.assertEqual(
+            attempt["details"]["final_decision"]["reason"],
+            "current_attempt_pull_request_reference_not_visible",
+        )
+        self.assertEqual(gateway.create_calls, 0)
 
     def test_submit_completion_claim_moves_task_to_blocked_for_retryable_provider_failure(self) -> None:
         gateway = _FakeGitHubGateway(
