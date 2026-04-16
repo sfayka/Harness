@@ -3,7 +3,11 @@ from __future__ import annotations
 import tempfile
 import unittest
 
-from modules.api import HarnessApiService, _requires_missing_pr_reconciliation, parse_completion_claim_request
+from modules.api import (
+    HarnessApiService,
+    _requires_missing_pr_reconciliation,
+    parse_completion_claim_request,
+)
 from modules.reconciliation_runtime import (
     GitHubPullRequestRecord,
     ReconciliationFailureType,

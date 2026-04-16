@@ -7,6 +7,7 @@ import re
 import tempfile
 import threading
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -276,8 +277,21 @@ def _seed_stale_assigned_task(service: HarnessApiService, *, task_id: str) -> No
         "validator": None,
         "notes": None,
     }
+    stored_task["timestamps"]["created_at"] = "2026-04-01T10:03:00Z"
     stored_task["timestamps"]["updated_at"] = "2026-04-01T10:03:00Z"
+    timeline = stored_task.get("timeline")
+    if isinstance(timeline, list):
+        for event in timeline:
+            if isinstance(event, dict):
+                event["occurred_at"] = "2026-04-01T10:03:00Z"
     service.store.update_task(stored_task)
+    if isinstance(service.store, FileBackedHarnessStore):
+        evaluation_records = service.store.list_evaluation_records(task_id)
+        for record in evaluation_records:
+            evaluation_path = Path(service.store.root_dir) / "evaluations" / task_id / f"{record.evaluation_id}.json"
+            evaluation_payload = json.loads(evaluation_path.read_text(encoding="utf-8"))
+            evaluation_payload["recorded_at"] = "2026-04-01T10:03:00Z"
+            evaluation_path.write_text(json.dumps(evaluation_payload, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def run_retryable_codex_supervision_dry_run(

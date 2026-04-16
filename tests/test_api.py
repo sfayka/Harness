@@ -211,6 +211,10 @@ class _NoCreatePullRequestGateway:
         del owner, repo, title, body, head, base
         raise RuntimeError("PR creation intentionally disabled for deterministic tests")
 
+    def get_pull_request(self, *, owner: str, repo: str, number: int):
+        del owner, repo, number
+        return None
+
 
 class _CurrentRunPullRequestGateway(_NoCreatePullRequestGateway):
     """Deterministic gateway stub that exposes one valid current-run PR."""
@@ -242,6 +246,12 @@ class _CurrentRunPullRequestGateway(_NoCreatePullRequestGateway):
         if commit_sha == "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705":
             return (self._record(),)
         return ()
+
+    def get_pull_request(self, *, owner: str, repo: str, number: int):
+        del owner, repo
+        if number == 2:
+            return self._record()
+        return None
 
 
 class _TransientMissingBranchGateway(_NoCreatePullRequestGateway):
@@ -3494,6 +3504,112 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(claim_response["accepted_completion"])
         latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
         self.assertEqual(latest_attempt["metadata"]["attempt_validation"]["status"], "valid")
+
+    def test_service_completion_claim_uses_current_attempt_proof_before_reconciliation(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_current_run_pull_request_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        task_envelope = deepcopy(payload["request"]["task_envelope"])
+        task_envelope["id"] = "task-current-attempt-proof-1"
+        task_envelope["title"] = "Current attempt proof avoids unnecessary reconciliation"
+        task_envelope["description"] = (
+            "A real current-run PR URL and commit SHA from the completion claim should suppress "
+            "missing_pr_after_execution and missing_commit_after_execution."
+        )
+        task_envelope["artifacts"]["items"] = []
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request", "commit"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    "completion_claim": {
+                        "claim_id": "claim-current-attempt-proof-1",
+                        "reported_at": "2026-04-16T20:37:07Z",
+                        "reported_by": "hermes",
+                        "reason": "Hermes completed the dry-run task and reported real GitHub proof.",
+                        "metadata": {"attempt_id": "attempt-current-attempt-proof-1"},
+                    },
+                    "execution_attempt": {
+                        "attempt_id": "attempt-current-attempt-proof-1",
+                        "recorded_at": "2026-04-16T20:37:07Z",
+                        "status": "succeeded",
+                        "reported_by": "hermes",
+                        "artifact_references": [
+                            {
+                                "reference_id": "attempt-current-attempt-proof-1:commit",
+                                "artifact_type": "commit",
+                                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "metadata": {
+                                    "repository_host": "github.com",
+                                    "repository_owner": "KnoxAnalytics",
+                                    "repository_name": "HARNESS-DRYRUN",
+                                    "branch_name": "codex/e2e-test",
+                                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                },
+                            },
+                            {
+                                "reference_id": "attempt-current-attempt-proof-1:pr",
+                                "artifact_type": "pull_request",
+                                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "metadata": {
+                                    "repository_host": "github.com",
+                                    "repository_owner": "KnoxAnalytics",
+                                    "repository_name": "HARNESS-DRYRUN",
+                                    "branch_name": "codex/e2e-test",
+                                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                    "pull_request_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                                    "pull_request_number": 2,
+                                    "pull_request_state": "open",
+                                },
+                            },
+                        ],
+                        "metadata": {"executor_run_id": "hermes:attempt-current-attempt-proof-1"},
+                    },
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {"executor_reported_success": True, "attempt_count": 1},
+                    "external_facts": {
+                        "expected_code_context": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "base_branch": "main",
+                        }
+                    },
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "transition_applied")
+        self.assertTrue(claim_response["accepted_completion"])
+        self.assertEqual(claim_response["task_envelope"]["status"], "completed")
+        self.assertNotIn("reconciliation_attempt", claim_response)
+        latest_attempt = claim_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        context = latest_attempt["metadata"]["attempt_validation"]["context_observations"]
+        self.assertFalse(context["has_valid_current_run_pull_request_artifact"])
+        self.assertFalse(context["has_valid_current_run_commit_artifact"])
+        self.assertEqual(
+            [attempt["failure_type"] for attempt in claim_response["task_envelope"]["reconciliation"]["attempts"][-2:]],
+            ["missing_pr_after_execution", "missing_commit_after_execution"],
+        )
 
     def test_service_completion_claim_reconciliation_sets_required_policy_when_artifact_evidence_becomes_satisfied(self) -> None:
         service = HarnessApiService(
