@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -68,7 +69,7 @@ class ResetVerificationService:
 
     @classmethod
     def from_env(cls, *, root_dir: str | Path | None = None) -> "ResetVerificationService":
-        resolved_root = Path(root_dir or os.environ.get("HARNESS_STORE_ROOT") or ".harness-store")
+        resolved_root = _resolve_reset_store_root(root_dir=root_dir)
         cooldown = _coerce_float(os.environ.get("HARNESS_RESET_POLL_SECONDS"), default=900.0)
         claim_timeout = _coerce_float(os.environ.get("HARNESS_RESET_CLAIM_TIMEOUT_SECONDS"), default=900.0)
         return cls(
@@ -282,7 +283,6 @@ class ResetVerificationService:
             "reason": verdict.reason,
             "contract": updated.asdict(),
         }
-
     def _mark_verified(
         self,
         contract: ResetVerificationContract,
@@ -398,6 +398,24 @@ class ResetVerificationService:
                 for result in results
             ]
         }
+
+
+def _resolve_reset_store_root(*, root_dir: str | Path | None = None) -> Path:
+    if root_dir is not None:
+        return Path(root_dir)
+
+    explicit_reset_root = os.environ.get("HARNESS_RESET_STORE_ROOT")
+    if explicit_reset_root:
+        return Path(explicit_reset_root)
+
+    shared_root = os.environ.get("HARNESS_STORE_ROOT")
+    if shared_root:
+        return Path(shared_root)
+
+    if any((os.environ.get("VERCEL_URL"), os.environ.get("VERCEL_ENV"), os.environ.get("VERCEL_REGION"))):
+        return Path(tempfile.gettempdir()) / "harness-reset"
+
+    return Path(".harness-store")
 
 
 __all__ = ["ResetTickResult", "ResetVerificationService"]

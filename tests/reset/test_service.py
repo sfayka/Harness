@@ -3,6 +3,8 @@ from __future__ import annotations
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from unittest.mock import patch
 
 from modules.reset.contracts import ResetCompletionClaim, ResetVerificationContract
 from modules.reset.service import ResetVerificationService
@@ -35,6 +37,26 @@ class FakeVerifier:
 
 
 class ResetVerificationServiceTests(unittest.TestCase):
+    def test_from_env_prefers_explicit_reset_store_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.dict(
+                "os.environ",
+                {
+                    "HARNESS_RESET_STORE_ROOT": temp_dir,
+                    "HARNESS_STORE_ROOT": "ignored-shared-root",
+                },
+                clear=False,
+            ):
+                service = ResetVerificationService.from_env()
+
+            self.assertEqual(service.store.root_dir, Path(temp_dir))
+
+    def test_from_env_uses_tmp_root_in_vercel_runtime_without_explicit_override(self) -> None:
+        with patch.dict("os.environ", {"VERCEL_URL": "harness-umber.vercel.app"}, clear=True):
+            service = ResetVerificationService.from_env()
+
+        self.assertEqual(service.store.root_dir, Path(tempfile.gettempdir()) / "harness-reset")
+
     def test_invalid_proof_requests_repair_and_keeps_issue_in_progress(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             store = FileBackedResetStore(temp_dir)
