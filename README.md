@@ -25,6 +25,8 @@ The reset routes live under:
 
 These routes intentionally coexist with the older TaskEnvelope routes so the narrower verifier path can ship without first deleting the broader control-plane code.
 
+In hosted Vercel runtimes, the reset slice is not allowed to take the whole backend down if its file-backed store cannot be created. Canonical task APIs must still boot. The hosted fallback now uses writable temp storage for the reset slice, and if even that cannot be created, `/reset/*` fails explicitly instead of crashing `/backend/health` and `/backend/tasks` during import.
+
 ## What Harness Is
 
 - A Python control-plane backend that evaluates canonical `TaskEnvelope` submissions.
@@ -41,6 +43,8 @@ On the inspection side, Harness now also exposes a canonical supervision queue a
 On the execution side, Harness now also contains a real Codex Cloud adapter boundary in addition to the stub dispatch path. That adapter projects canonical dispatch input into a Codex Cloud request shape and enforces the repo/bootstrap preflight contract before it will emit a successful advisory completion signal. Live runtime transport is still a separate integration step, but the proof gate is now encoded at the adapter boundary instead of left to convention.
 
 The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
+
+If you are introducing a new ingress such as Hermes, target the canonical `POST /tasks` contract first. The `/ingress/manual`, `/ingress/linear`, and `/ingress/openclaw` routes are translator helpers for those specific payload families, not the universal ingress contract. The source-of-truth ingress shape, prohibited initial-submission fields, and a copyable planning-only example now live in [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md) under `Ingress Client Contract`.
 
 That same boundary now applies to the canonical `POST /tasks` and one-shot new-task `POST /evaluate` paths as well. A brand-new task may carry intent, planning state, support artifacts, and clarification blockers, but it may not arrive already carrying execution truth. If a caller tries to create a new task with claimed completion, runtime facts, prevalidated completion evidence, execution attempts, advisory completion claims, reconciliation history, assignment truth, or runtime/terminal lifecycle truth, Harness rejects the request as invalid input instead of storing a polluted task snapshot. Even when initial support artifacts are allowed, Harness strips any caller-submitted `verification_status=verified` before persisting the task so new work cannot begin with pre-certified artifact truth.
 

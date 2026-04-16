@@ -113,6 +113,18 @@ class FastApiBackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("store_backend", response.json())
 
+    def test_backend_stays_healthy_when_reset_startup_is_unavailable(self) -> None:
+        with patch("backend.server.ResetVerificationService.from_env", side_effect=OSError("read-only file system")):
+            client = TestClient(create_app(store=self.store))
+
+        health = client.get("/health")
+        reset_contracts = client.get("/reset/contracts")
+
+        self.assertEqual(health.status_code, 200)
+        self.assertEqual(reset_contracts.status_code, 503)
+        self.assertEqual(reset_contracts.json()["status"], "unavailable")
+        self.assertIn("read-only file system", reset_contracts.json()["reason"])
+
     def test_submit_and_read_model_round_trip_through_fastapi_adapter(self) -> None:
         created = self.client.post(
             "/tasks",

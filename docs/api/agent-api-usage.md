@@ -49,6 +49,176 @@ Fresh task creation also cannot inject assignment truth. Do not send `request.as
 
 Ingress adapters are intake/planning surfaces, not execution-reporting surfaces. `POST /ingress/manual`, `POST /ingress/linear`, and `POST /ingress/openclaw` must not be used to claim completion, assert acceptance, submit executor runtime facts, or attach repository execution artifacts as proof. Those inputs belong to dispatch, completion-claim, and reevaluation paths where Harness can verify them mechanically.
 
+## Ingress Client Contract
+
+If you are building a new ingress client such as Hermes, do not start from `/ingress/manual` just because it is easy to hit. The `/ingress/*` routes are source-specific translators. They exist for callers that already have manual-, Linear-, or OpenClaw-shaped payloads.
+
+For a new ingress that wants to speak Harness directly, the stable contract is:
+
+- `POST /tasks` for new planning/intake submissions
+- `POST /tasks/<task_id>/reevaluate` for later fact, artifact, clarification, or review updates
+- `GET /tasks/<task_id>/read-model` and `GET /tasks/<task_id>/timeline` for canonical inspection
+
+On hosted Vercel deployments, the same canonical backend path is exposed under the `/backend` prefix. In other words, a hosted caller should normally target `POST /backend/tasks`, not the frontend route and not a convenience ingress wrapper.
+
+### What An Ingress Client Should Send
+
+For a planning-only new task, send:
+
+- `request.acceptance_criteria_satisfied=false`
+- `request.claimed_completion=false`
+- `request.external_facts={}`
+- `request.task_envelope` with canonical task identity, origin, planning status, timestamps, objective, acceptance criteria, deferred completion evidence, and any ingress-specific metadata under `task_envelope.extensions.<ingress_name>`
+
+Use `task_envelope.origin` for canonical provenance:
+
+- `source_system`: the ingress system name such as `hermes`
+- `source_type`: normally `ingress_request`
+- `source_id`: the ingress-side message or request identifier
+- `ingress_id`: the ingress-side conversation or submission identifier
+- `ingress_name`: human-readable ingress name such as `Hermes`
+- `requested_by`: operator identity when known
+
+Use `task_envelope.extensions` for ingress-local metadata that should survive ingestion without becoming canonical policy truth.
+
+### What An Ingress Client Must Not Send On Initial Submission
+
+Do not send any of the following on a fresh `POST /tasks` request:
+
+- runtime or terminal lifecycle states such as `executing`, `reconciling`, `completed`, `failed`, or `canceled`
+- `request.claimed_completion=true`
+- `request.acceptance_criteria_satisfied=true`
+- `request.runtime_facts`
+- satisfied or validated completion evidence
+- execution attempts or advisory completion claims
+- PR, commit, branch, or changed-file proof
+- assignment truth meant to imply the task is already actively dispatched
+
+If the ingress needs to report completion, runtime telemetry, repository proof, or executor-side artifacts later, that belongs to dispatch, completion-claim, sync, or reevaluation paths after the task already exists.
+
+### Planning-Only Example
+
+This is a canonical planning-only payload for a generic ingress client. Replace `{{now_iso}}` and `{{run_id}}` before sending.
+
+```json
+{
+  "request": {
+    "acceptance_criteria_satisfied": false,
+    "claimed_completion": false,
+    "external_facts": {},
+    "task_envelope": {
+      "id": "task-{{run_id}}",
+      "title": "Hermes ingress validation",
+      "description": "Submit a planning-only ingress task through the canonical Harness API boundary.",
+      "origin": {
+        "source_system": "hermes",
+        "source_type": "ingress_request",
+        "source_id": "telegram:7762711117:{{run_id}}",
+        "ingress_id": "{{run_id}}",
+        "ingress_name": "Hermes",
+        "requested_by": "Sean Fay via Hermes"
+      },
+      "status": "planned",
+      "timestamps": {
+        "created_at": "{{now_iso}}",
+        "updated_at": "{{now_iso}}",
+        "completed_at": null
+      },
+      "status_history": [],
+      "objective": {
+        "summary": "Validate that a generic ingress client can submit work into Harness through the canonical task contract while remaining ingress-only.",
+        "deliverable_type": "planning_validation",
+        "success_signal": "Harness accepts the task, preserves ingress provenance, and exposes canonical read-model and timeline surfaces without any completion proof."
+      },
+      "constraints": [
+        {
+          "label": "mode",
+          "value": "planning-only"
+        },
+        {
+          "label": "executor_boundary",
+          "value": "Ingress client only, not executor"
+        }
+      ],
+      "acceptance_criteria": [
+        {
+          "id": "ac-1",
+          "description": "Task is created through POST /tasks as a planning-only canonical submission.",
+          "required": true
+        },
+        {
+          "id": "ac-2",
+          "description": "Canonical inspection surfaces expose the stored task, read-model, and timeline.",
+          "required": true
+        },
+        {
+          "id": "ac-3",
+          "description": "Ingress provenance remains visible in canonical task origin and extensions metadata.",
+          "required": true
+        }
+      ],
+      "parent_task_id": null,
+      "child_task_ids": [],
+      "dependencies": [],
+      "assigned_executor": null,
+      "required_capabilities": [],
+      "priority": "normal",
+      "artifacts": {
+        "completion_evidence": {
+          "notes": null,
+          "policy": "deferred",
+          "required_artifact_types": [],
+          "status": "deferred",
+          "validated_artifact_ids": [],
+          "validated_at": null,
+          "validation_method": "deferred",
+          "validator": null
+        },
+        "items": []
+      },
+      "observability": {
+        "errors": [],
+        "execution_metadata": {
+          "schema_required_deferred_fields": [
+            "parent_task_id",
+            "child_task_ids",
+            "dependencies",
+            "assigned_executor",
+            "required_capabilities",
+            "priority",
+            "artifacts.items",
+            "artifacts.completion_evidence",
+            "observability"
+          ]
+        },
+        "retries": {
+          "attempt_count": 0,
+          "last_retry_at": null,
+          "max_attempts": 0
+        }
+      },
+      "extensions": {
+        "hermes": {
+          "agent_id": "hermes",
+          "platform": "telegram",
+          "channel": "dm:Sean Fay",
+          "conversation_id": "{{run_id}}",
+          "message_id": "{{run_id}}",
+          "user_id": "telegram:7762711117",
+          "submitted_at": "{{now_iso}}",
+          "purpose": "planning-only ingress validation"
+        }
+      }
+    }
+  }
+}
+```
+
+If that task is accepted, the ingress client should treat these as the canonical follow-up inspection surfaces:
+
+- `GET /tasks/task-{{run_id}}/read-model`
+- `GET /tasks/task-{{run_id}}/timeline`
+
 ### Completion Claim Interception Helper
 
 - `POST /tasks/<task_id>/completion-claims` is an executor-facing helper for advisory completion claims.
