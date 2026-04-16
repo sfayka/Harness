@@ -132,12 +132,14 @@ This is a canonical planning-only payload for a generic ingress client. Replace 
       },
       "constraints": [
         {
-          "label": "mode",
-          "value": "planning-only"
+          "type": "mode",
+          "description": "Planning-only ingress validation.",
+          "required": true
         },
         {
-          "label": "executor_boundary",
-          "value": "Ingress client only, not executor"
+          "type": "executor_boundary",
+          "description": "Ingress client only, not executor.",
+          "required": true
         }
       ],
       "acceptance_criteria": [

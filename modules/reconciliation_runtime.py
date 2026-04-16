@@ -1514,6 +1514,23 @@ class MissingPrAfterExecutionHandler:
             )
             attempt["details"]["branch_exists"] = branch_exists
             if not branch_exists:
+                commit_exists = None
+                if code_context.commit_sha.strip():
+                    commit_exists = self.github.commit_exists(
+                        owner=code_context.repository_owner,
+                        repo=code_context.repository_name,
+                        commit_sha=code_context.commit_sha,
+                    )
+                    attempt["details"]["commit_exists"] = commit_exists
+                if commit_exists:
+                    attempt["details"]["final_decision"] = {
+                        "result": "blocked_retryable_failure",
+                        "reason": "branch_visibility_pending_with_current_commit",
+                    }
+                    raise RetryableReconciliationRuntimeError(
+                        f"GitHub branch {code_context.branch_name!r} was not found in "
+                        f"{code_context.repository_owner}/{code_context.repository_name}"
+                    )
                 raise TerminalReconciliationRuntimeError(
                     f"GitHub branch {code_context.branch_name!r} was not found in "
                     f"{code_context.repository_owner}/{code_context.repository_name}"

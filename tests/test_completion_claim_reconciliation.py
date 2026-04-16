@@ -1088,7 +1088,7 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         self.assertIn("attempt_linkage", candidate["validation"]["matched_by"])
         self.assertIn("completion_claim_linkage", candidate["validation"]["matched_by"])
 
-    def test_submit_completion_claim_moves_task_to_in_review_when_reconciliation_fails(self) -> None:
+    def test_submit_completion_claim_blocks_when_branch_visibility_is_missing_but_commit_exists(self) -> None:
         gateway = _FakeGitHubGateway(branch_exists=False)
         service = HarnessApiService(
             store=FileBackedHarnessStore(self.temp_dir.name),
@@ -1101,15 +1101,17 @@ class CompletionClaimReconciliationTests(unittest.TestCase):
         stored_status, stored_payload = service.get_task(task["id"])
 
         self.assertEqual(status, 200)
-        self.assertEqual(payload["action"], "reconciliation_terminal_failed")
-        self.assertEqual(payload["task_envelope"]["status"], "failed")
+        self.assertEqual(payload["action"], "reconciliation_blocked")
+        self.assertEqual(payload["task_envelope"]["status"], "blocked")
         self.assertFalse(payload["requires_review"])
         self.assertEqual(payload["task_envelope"]["reconciliation"]["status"], "failed")
         self.assertEqual(payload["task_envelope"]["reconciliation"]["active_failure_type"], "missing_pr_after_execution")
         self.assertEqual(payload["task_envelope"]["status_history"][-2]["to_status"], "reconciling")
-        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "failed")
+        self.assertEqual(payload["task_envelope"]["status_history"][-1]["to_status"], "blocked")
+        self.assertEqual(payload["reconciliation_attempt"]["details"]["commit_exists"], True)
+        self.assertEqual(payload["reconciliation_attempt"]["details"]["error_disposition"], "blocked_retryable")
         self.assertEqual(stored_status, 200)
-        self.assertEqual(stored_payload["task"]["status"], "failed")
+        self.assertEqual(stored_payload["task"]["status"], "blocked")
 
     def test_submit_completion_claim_moves_task_to_blocked_for_retryable_provider_failure(self) -> None:
         gateway = _FakeGitHubGateway(
