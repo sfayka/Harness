@@ -59,6 +59,7 @@ class ResetGitHubVerifierTests(unittest.TestCase):
             branch_name="codex/reset-verifier-v1",
             commit_sha="wrong",
             pull_request_number=42,
+            pull_request_url="https://github.com/sfayka/Harness/pull/42",
         )
 
         self.assertEqual(verdict.status, "retryable_invalid_proof")
@@ -76,8 +77,24 @@ class ResetGitHubVerifierTests(unittest.TestCase):
             branch_name="codex/reset-verifier-v1",
             commit_sha="abc123",
             pull_request_number=42,
+            pull_request_url="https://github.com/sfayka/Harness/pull/42",
         )
 
         self.assertEqual(verdict.status, "retryable_invalid_proof")
         self.assertIn("branch", verdict.reason)
 
+    def test_rejects_missing_pull_request_url_even_when_number_exists(self) -> None:
+        verifier = ResetGitHubVerifier(client=FakeGitHubClient())
+
+        verdict = verifier.verify(
+            expected_owner="sfayka",
+            expected_repo="Harness",
+            expected_branch="codex/reset-verifier-v1",
+            branch_name="codex/reset-verifier-v1",
+            commit_sha="abc123",
+            pull_request_number=42,
+            pull_request_url=None,
+        )
+
+        self.assertEqual(verdict.status, "retryable_invalid_proof")
+        self.assertIn("url", verdict.reason)
