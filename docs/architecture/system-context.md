@@ -24,6 +24,7 @@ Stated another way:
 ## Context Diagram
 
 The Mermaid source for the diagram lives in [system-context.mmd](system-context.mmd).
+An editable Excalidraw version also lives in [system-context.excalidraw](system-context.excalidraw) for visual learners and future refinement.
 
 ```mermaid
 flowchart LR
