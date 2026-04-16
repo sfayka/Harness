@@ -803,6 +803,85 @@ def _current_execution_attempt(task_envelope: TaskEnvelope) -> dict[str, Any] | 
     return _latest_recorded_execution_attempt(attempts)
 
 
+def _current_execution_attempt_pull_request_reference(
+    task_envelope: TaskEnvelope,
+    *,
+    code_context: ReconciliationCodeContext,
+) -> dict[str, Any] | None:
+    attempt = _current_execution_attempt(task_envelope)
+    if not isinstance(attempt, dict):
+        return None
+
+    artifact_references = attempt.get("artifact_references")
+    if not isinstance(artifact_references, list):
+        return None
+
+    for artifact_reference in artifact_references:
+        if not isinstance(artifact_reference, dict):
+            continue
+        if _normalize_sha(artifact_reference.get("artifact_type")) != "pull_request":
+            continue
+
+        metadata = artifact_reference.get("metadata") if isinstance(artifact_reference.get("metadata"), dict) else {}
+        location = _normalize_sha(artifact_reference.get("location"))
+        explicit_url = _normalize_sha(metadata.get("pull_request_url")) or _normalize_sha(metadata.get("url"))
+        candidate_url = location
+        parsed_location = _parse_github_location(location) if location is not None else None
+        if parsed_location is None or parsed_location[2] != "pull":
+            candidate_url = explicit_url
+            parsed_location = _parse_github_location(candidate_url) if candidate_url is not None else None
+        if parsed_location is None or parsed_location[2] != "pull" or not parsed_location[3].isdigit():
+            continue
+
+        owner, repo, _, raw_identifier = parsed_location
+        if owner != code_context.repository_owner or repo != code_context.repository_name:
+            continue
+
+        branch_name = (
+            _normalize_sha(metadata.get("branch_name"))
+            or _normalize_sha(metadata.get("head_branch"))
+            or _normalize_sha(metadata.get("branch"))
+        )
+        if branch_name is not None:
+            if branch_name != code_context.branch_name:
+                continue
+            if branch_name.casefold() in _RESERVED_SHARED_BRANCH_NAMES:
+                continue
+
+        commit_sha = (
+            _normalize_sha(artifact_reference.get("commit_sha"))
+            or _normalize_sha(metadata.get("commit_sha"))
+            or _normalize_sha(metadata.get("head_commit_sha"))
+            or _normalize_sha(metadata.get("head_sha"))
+            or _normalize_sha(metadata.get("sha"))
+        )
+        if code_context.commit_sha and commit_sha and commit_sha != code_context.commit_sha:
+            continue
+
+        raw_number = metadata.get("pull_request_number")
+        if raw_number is None:
+            raw_number = metadata.get("number")
+        parsed_number = int(raw_identifier)
+        if raw_number is not None and raw_number != parsed_number:
+            continue
+
+        state = _normalize_sha(metadata.get("pull_request_state")) or _normalize_sha(metadata.get("state"))
+        if state is not None and state.strip().lower() != "open":
+            continue
+        if metadata.get("merged") is True:
+            continue
+
+        return {
+            "reference_id": _normalize_sha(artifact_reference.get("reference_id")),
+            "url": candidate_url,
+            "number": parsed_number,
+            "branch_name": branch_name,
+            "commit_sha": commit_sha,
+        }
+
+    return None
+
+
 def _execution_attempt_count(task_envelope: TaskEnvelope) -> int:
     execution_metadata = ((task_envelope.get("observability") or {}).get("execution_metadata") or {})
     attempts = execution_metadata.get("execution_attempts") or []
@@ -1486,6 +1565,7 @@ class MissingPrAfterExecutionHandler:
                 "pull_request_lookup": {
                     "searched_by_branch": False,
                     "searched_by_commit": False,
+                    "searched_by_reference": False,
                     "found": False,
                     "source": None,
                     "number": None,
@@ -1495,6 +1575,13 @@ class MissingPrAfterExecutionHandler:
                     "ambiguous": False,
                 },
                 "pull_request_candidates": [],
+                "current_execution_attempt_pull_request_reference": {
+                    "found": False,
+                    "reference_id": None,
+                    "number": None,
+                    "url": None,
+                    "persisted_found": None,
+                },
                 "created_pull_request": False,
                 "created_pull_request_revalidated": False,
                 "error_disposition": None,
@@ -1507,185 +1594,246 @@ class MissingPrAfterExecutionHandler:
         }
 
         try:
-            branch_exists = self.github.branch_exists(
-                owner=code_context.repository_owner,
-                repo=code_context.repository_name,
-                branch_name=code_context.branch_name,
-            )
-            attempt["details"]["branch_exists"] = branch_exists
-            if not branch_exists:
-                commit_exists = None
-                if code_context.commit_sha.strip():
-                    commit_exists = self.github.commit_exists(
-                        owner=code_context.repository_owner,
-                        repo=code_context.repository_name,
-                        commit_sha=code_context.commit_sha,
-                    )
-                    attempt["details"]["commit_exists"] = commit_exists
-                if commit_exists:
-                    attempt["details"]["final_decision"] = {
-                        "result": "blocked_retryable_failure",
-                        "reason": "branch_visibility_pending_with_current_commit",
-                    }
-                    raise RetryableReconciliationRuntimeError(
-                        f"GitHub branch {code_context.branch_name!r} was not found in "
-                        f"{code_context.repository_owner}/{code_context.repository_name}"
-                    )
-                raise TerminalReconciliationRuntimeError(
-                    f"GitHub branch {code_context.branch_name!r} was not found in "
-                    f"{code_context.repository_owner}/{code_context.repository_name}"
-                )
+            pull_request = None
+            source = None
 
-            if not code_context.commit_sha.strip():
-                branch_head_commit_sha = self.github.branch_head_commit_sha(
-                    owner=code_context.repository_owner,
-                    repo=code_context.repository_name,
-                    branch_name=code_context.branch_name,
-                )
-                attempt["details"]["branch_head_commit_sha"] = branch_head_commit_sha
-                if not branch_head_commit_sha:
-                    raise TerminalReconciliationRuntimeError(
-                        "Commit SHA is required for missing_pr_after_execution reconciliation and "
-                        "could not be resolved from the branch head"
-                    )
-                code_context = ReconciliationCodeContext(
-                    repository_host=code_context.repository_host,
-                    repository_owner=code_context.repository_owner,
-                    repository_name=code_context.repository_name,
-                    branch_name=code_context.branch_name,
-                    base_branch=code_context.base_branch,
-                    commit_sha=branch_head_commit_sha,
-                )
-                attempt["details"]["commit_sha"] = branch_head_commit_sha
-
-            commit_exists = self.github.commit_exists(
-                owner=code_context.repository_owner,
-                repo=code_context.repository_name,
-                commit_sha=code_context.commit_sha,
-            )
-            attempt["details"]["commit_exists"] = commit_exists
-            if not commit_exists:
-                raise TerminalReconciliationRuntimeError(
-                    f"GitHub commit {code_context.commit_sha!r} was not found in "
-                    f"{code_context.repository_owner}/{code_context.repository_name}"
-                )
-
-            pull_request = self._select_existing_pull_request(
-                task_envelope=context.task_envelope,
+            current_attempt_reference = _current_execution_attempt_pull_request_reference(
+                context.task_envelope,
                 code_context=code_context,
-                attempt=attempt,
             )
-
-            if pull_request is None:
-                base_branch = code_context.base_branch or self.github.default_branch(
-                    owner=code_context.repository_owner,
-                    repo=code_context.repository_name,
-                )
-                if not base_branch:
-                    raise ReconciliationRuntimeError(
-                        f"Unable to resolve a base branch for {code_context.repository_owner}/{code_context.repository_name}"
-                    )
-                pull_request = self.github.create_pull_request(
-                    owner=code_context.repository_owner,
-                    repo=code_context.repository_name,
-                    title=_created_pull_request_title(context.task_envelope),
-                    body=_created_pull_request_body(
-                        context.task_envelope,
-                        code_context=code_context,
-                    ),
-                    head=code_context.branch_name,
-                    base=base_branch,
-                )
-                source = "created"
-                attempt["details"]["created_pull_request"] = True
-                created_sources = {"created_response"}
-                created_accepted, created_reasons, created_matched_by, created_task_linkage, created_run_linkage, created_linkage_policy = self._validate_candidate(
-                    pull_request,
-                    code_context=code_context,
-                    task_envelope=context.task_envelope,
-                    sources=created_sources,
-                )
-                attempt["details"]["pull_request_candidates"].append(
-                    self._candidate_details(
-                        pull_request,
-                        sources=created_sources,
-                        accepted=created_accepted,
-                        reasons=created_reasons,
-                        matched_by=created_matched_by,
-                        task_linkage=created_task_linkage,
-                        run_linkage=created_run_linkage,
-                        linkage_policy=created_linkage_policy,
-                        code_context=code_context,
-                    )
-                )
-                attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
-                if not created_accepted:
-                    attempt["details"]["final_decision"] = {
-                        "result": "created_candidate_rejected",
-                        "reason": "created_pull_request_failed_validation",
-                    }
-                    raise ReconciliationRuntimeError(
-                        "Created pull request did not satisfy current-run validation policy"
-                    )
+            if current_attempt_reference is not None:
+                attempt["details"]["current_execution_attempt_pull_request_reference"] = {
+                    "found": True,
+                    "reference_id": current_attempt_reference.get("reference_id"),
+                    "number": current_attempt_reference.get("number"),
+                    "url": current_attempt_reference.get("url"),
+                    "persisted_found": False,
+                }
+                attempt["details"]["pull_request_lookup"]["searched_by_reference"] = True
                 persisted_pull_request = self.github.get_pull_request(
                     owner=code_context.repository_owner,
                     repo=code_context.repository_name,
-                    number=pull_request.number,
+                    number=int(current_attempt_reference["number"]),
                 )
-                if persisted_pull_request is None:
-                    attempt["details"]["final_decision"] = {
-                        "result": "created_pull_request_revalidation_failed",
-                        "reason": "created_pull_request_not_visible_after_create",
-                    }
-                    raise ReconciliationRuntimeError(
-                        "Created pull request could not be revalidated from persisted GitHub state"
-                    )
-                persisted_sources = {"created_persisted"}
-                persisted_accepted, persisted_reasons, persisted_matched_by, persisted_task_linkage, persisted_run_linkage, persisted_linkage_policy = self._validate_candidate(
-                    persisted_pull_request,
-                    code_context=code_context,
-                    task_envelope=context.task_envelope,
-                    sources=persisted_sources,
-                )
-                attempt["details"]["pull_request_candidates"].append(
-                    self._candidate_details(
+                if persisted_pull_request is not None:
+                    attempt["details"]["current_execution_attempt_pull_request_reference"]["persisted_found"] = True
+                    reference_sources = {"execution_attempt_reference"}
+                    (
+                        reference_accepted,
+                        reference_reasons,
+                        reference_matched_by,
+                        reference_task_linkage,
+                        reference_run_linkage,
+                        reference_linkage_policy,
+                    ) = self._validate_candidate(
                         persisted_pull_request,
-                        sources=persisted_sources,
-                        accepted=persisted_accepted,
-                        reasons=persisted_reasons,
-                        matched_by=persisted_matched_by,
-                        task_linkage=persisted_task_linkage,
-                        run_linkage=persisted_run_linkage,
-                        linkage_policy=persisted_linkage_policy,
                         code_context=code_context,
+                        task_envelope=context.task_envelope,
+                        sources=reference_sources,
                     )
-                )
-                attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
-                if not persisted_accepted:
-                    attempt["details"]["final_decision"] = {
-                        "result": "created_pull_request_revalidation_failed",
-                        "reason": "persisted_pull_request_failed_validation",
-                    }
-                    raise ReconciliationRuntimeError(
-                        "Created pull request did not satisfy current-run validation policy after read-back"
+                    attempt["details"]["pull_request_candidates"].append(
+                        self._candidate_details(
+                            persisted_pull_request,
+                            sources=reference_sources,
+                            accepted=reference_accepted,
+                            reasons=reference_reasons,
+                            matched_by=reference_matched_by,
+                            task_linkage=reference_task_linkage,
+                            run_linkage=reference_run_linkage,
+                            linkage_policy=reference_linkage_policy,
+                            code_context=code_context,
+                        )
                     )
-                attempt["details"]["created_pull_request_revalidated"] = True
-                attempt["details"]["pull_request_lookup"]["valid_candidate_count"] += 1
-                attempt["details"]["final_decision"] = {
-                    "result": "created_new",
-                    "reason": "no_valid_existing_candidate",
-                }
-                pull_request = persisted_pull_request
-                code_context = ReconciliationCodeContext(
-                    repository_host=code_context.repository_host,
-                    repository_owner=code_context.repository_owner,
-                    repository_name=code_context.repository_name,
+                    attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
+                    if reference_accepted:
+                        attempt["details"]["pull_request_lookup"]["valid_candidate_count"] += 1
+                        attempt["details"]["final_decision"] = {
+                            "result": "attached_existing",
+                            "reason": "execution_attempt_pull_request_reference_validated",
+                        }
+                        pull_request = persisted_pull_request
+                        source = "execution_attempt_reference"
+
+            if pull_request is None:
+                branch_exists = self.github.branch_exists(
+                    owner=code_context.repository_owner,
+                    repo=code_context.repository_name,
                     branch_name=code_context.branch_name,
-                    base_branch=base_branch,
+                )
+                attempt["details"]["branch_exists"] = branch_exists
+                if not branch_exists:
+                    commit_exists = None
+                    if code_context.commit_sha.strip():
+                        commit_exists = self.github.commit_exists(
+                            owner=code_context.repository_owner,
+                            repo=code_context.repository_name,
+                            commit_sha=code_context.commit_sha,
+                        )
+                        attempt["details"]["commit_exists"] = commit_exists
+                    if commit_exists:
+                        attempt["details"]["final_decision"] = {
+                            "result": "blocked_retryable_failure",
+                            "reason": "branch_visibility_pending_with_current_commit",
+                        }
+                        raise RetryableReconciliationRuntimeError(
+                            f"GitHub branch {code_context.branch_name!r} was not found in "
+                            f"{code_context.repository_owner}/{code_context.repository_name}"
+                        )
+                    raise TerminalReconciliationRuntimeError(
+                        f"GitHub branch {code_context.branch_name!r} was not found in "
+                        f"{code_context.repository_owner}/{code_context.repository_name}"
+                    )
+
+                if not code_context.commit_sha.strip():
+                    branch_head_commit_sha = self.github.branch_head_commit_sha(
+                        owner=code_context.repository_owner,
+                        repo=code_context.repository_name,
+                        branch_name=code_context.branch_name,
+                    )
+                    attempt["details"]["branch_head_commit_sha"] = branch_head_commit_sha
+                    if not branch_head_commit_sha:
+                        raise TerminalReconciliationRuntimeError(
+                            "Commit SHA is required for missing_pr_after_execution reconciliation and "
+                            "could not be resolved from the branch head"
+                        )
+                    code_context = ReconciliationCodeContext(
+                        repository_host=code_context.repository_host,
+                        repository_owner=code_context.repository_owner,
+                        repository_name=code_context.repository_name,
+                        branch_name=code_context.branch_name,
+                        base_branch=code_context.base_branch,
+                        commit_sha=branch_head_commit_sha,
+                    )
+                    attempt["details"]["commit_sha"] = branch_head_commit_sha
+
+                commit_exists = self.github.commit_exists(
+                    owner=code_context.repository_owner,
+                    repo=code_context.repository_name,
                     commit_sha=code_context.commit_sha,
                 )
-            else:
-                source = "existing"
+                attempt["details"]["commit_exists"] = commit_exists
+                if not commit_exists:
+                    raise TerminalReconciliationRuntimeError(
+                        f"GitHub commit {code_context.commit_sha!r} was not found in "
+                        f"{code_context.repository_owner}/{code_context.repository_name}"
+                    )
+
+                pull_request = self._select_existing_pull_request(
+                    task_envelope=context.task_envelope,
+                    code_context=code_context,
+                    attempt=attempt,
+                )
+
+                if pull_request is None:
+                    base_branch = code_context.base_branch or self.github.default_branch(
+                        owner=code_context.repository_owner,
+                        repo=code_context.repository_name,
+                    )
+                    if not base_branch:
+                        raise ReconciliationRuntimeError(
+                            f"Unable to resolve a base branch for {code_context.repository_owner}/{code_context.repository_name}"
+                        )
+                    pull_request = self.github.create_pull_request(
+                        owner=code_context.repository_owner,
+                        repo=code_context.repository_name,
+                        title=_created_pull_request_title(context.task_envelope),
+                        body=_created_pull_request_body(
+                            context.task_envelope,
+                            code_context=code_context,
+                        ),
+                        head=code_context.branch_name,
+                        base=base_branch,
+                    )
+                    source = "created"
+                    attempt["details"]["created_pull_request"] = True
+                    created_sources = {"created_response"}
+                    created_accepted, created_reasons, created_matched_by, created_task_linkage, created_run_linkage, created_linkage_policy = self._validate_candidate(
+                        pull_request,
+                        code_context=code_context,
+                        task_envelope=context.task_envelope,
+                        sources=created_sources,
+                    )
+                    attempt["details"]["pull_request_candidates"].append(
+                        self._candidate_details(
+                            pull_request,
+                            sources=created_sources,
+                            accepted=created_accepted,
+                            reasons=created_reasons,
+                            matched_by=created_matched_by,
+                            task_linkage=created_task_linkage,
+                            run_linkage=created_run_linkage,
+                            linkage_policy=created_linkage_policy,
+                            code_context=code_context,
+                        )
+                    )
+                    attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
+                    if not created_accepted:
+                        attempt["details"]["final_decision"] = {
+                            "result": "created_candidate_rejected",
+                            "reason": "created_pull_request_failed_validation",
+                        }
+                        raise ReconciliationRuntimeError(
+                            "Created pull request did not satisfy current-run validation policy"
+                        )
+                    persisted_pull_request = self.github.get_pull_request(
+                        owner=code_context.repository_owner,
+                        repo=code_context.repository_name,
+                        number=pull_request.number,
+                    )
+                    if persisted_pull_request is None:
+                        attempt["details"]["final_decision"] = {
+                            "result": "created_pull_request_revalidation_failed",
+                            "reason": "created_pull_request_not_visible_after_create",
+                        }
+                        raise ReconciliationRuntimeError(
+                            "Created pull request could not be revalidated from persisted GitHub state"
+                        )
+                    persisted_sources = {"created_persisted"}
+                    persisted_accepted, persisted_reasons, persisted_matched_by, persisted_task_linkage, persisted_run_linkage, persisted_linkage_policy = self._validate_candidate(
+                        persisted_pull_request,
+                        code_context=code_context,
+                        task_envelope=context.task_envelope,
+                        sources=persisted_sources,
+                    )
+                    attempt["details"]["pull_request_candidates"].append(
+                        self._candidate_details(
+                            persisted_pull_request,
+                            sources=persisted_sources,
+                            accepted=persisted_accepted,
+                            reasons=persisted_reasons,
+                            matched_by=persisted_matched_by,
+                            task_linkage=persisted_task_linkage,
+                            run_linkage=persisted_run_linkage,
+                            linkage_policy=persisted_linkage_policy,
+                            code_context=code_context,
+                        )
+                    )
+                    attempt["details"]["pull_request_lookup"]["candidate_count"] += 1
+                    if not persisted_accepted:
+                        attempt["details"]["final_decision"] = {
+                            "result": "created_pull_request_revalidation_failed",
+                            "reason": "persisted_pull_request_failed_validation",
+                        }
+                        raise ReconciliationRuntimeError(
+                            "Created pull request did not satisfy current-run validation policy after read-back"
+                        )
+                    attempt["details"]["created_pull_request_revalidated"] = True
+                    attempt["details"]["pull_request_lookup"]["valid_candidate_count"] += 1
+                    attempt["details"]["final_decision"] = {
+                        "result": "created_new",
+                        "reason": "no_valid_existing_candidate",
+                    }
+                    pull_request = persisted_pull_request
+                    code_context = ReconciliationCodeContext(
+                        repository_host=code_context.repository_host,
+                        repository_owner=code_context.repository_owner,
+                        repository_name=code_context.repository_name,
+                        branch_name=code_context.branch_name,
+                        base_branch=base_branch,
+                        commit_sha=code_context.commit_sha,
+                    )
+                else:
+                    source = "existing"
 
             attempt["details"]["pull_request_lookup"]["found"] = True
             attempt["details"]["pull_request_lookup"]["source"] = source

@@ -2483,6 +2483,10 @@ def _validate_execution_attempt(
         request.task_envelope,
         external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
     )
+    has_valid_current_run_commit_artifact = task_has_valid_current_run_commit_artifact(
+        request.task_envelope,
+        external_facts=_to_jsonable(request.external_facts) if request.external_facts is not None else None,
+    )
     commit_resolution_pending = bool(
         repository_values
         and branch_values
@@ -2620,6 +2624,7 @@ def _validate_execution_attempt(
             "used_task_artifact_fallback": used_task_artifact_fallback,
             "commit_resolution_pending": commit_resolution_pending,
             "has_valid_current_run_pull_request_artifact": has_valid_current_run_pr_artifact,
+            "has_valid_current_run_commit_artifact": has_valid_current_run_commit_artifact,
         },
         "pull_request_observations": deepcopy(pull_request_observations),
         "rule_failures": deepcopy(rule_failures),

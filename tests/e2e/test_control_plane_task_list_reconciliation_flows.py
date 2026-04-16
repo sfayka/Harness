@@ -114,7 +114,7 @@ class ControlPlaneTaskListReconciliationFlowTests(RuntimeApiTestCase):
             attempt_id="attempt-list-reconciliation-blocked-1",
         )
 
-        self.set_reconciliation_registry(failure_registry(FailureGateway(branch_exists=False)))
+        self.set_reconciliation_registry(_registry_with_gateway(_FakeGitHubGateway(branch_exists=False, commit_exists=False)))
         failed = self.create_task_scenario(
             build_create_task_payload(
                 "e2e-list-reconciliation-failed",
