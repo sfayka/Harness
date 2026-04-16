@@ -203,12 +203,12 @@ class ControlPlaneFailureFlowTests(RuntimeApiTestCase):
             "reserved_shared_branch",
         )
 
-    def test_missing_pr_reconciliation_terminal_failure_is_visible_across_surfaces(self) -> None:
+    def test_missing_pr_reconciliation_blocked_state_is_visible_across_surfaces_when_branch_visibility_lags(self) -> None:
         self.set_reconciliation_registry(_registry_with_gateway(_FakeGitHubGateway(branch_exists=False)))
         scenario = self.create_task_scenario(
             build_create_task_payload(
-                "e2e-failure-missing-pr-terminal",
-                title="Missing PR reconciliation terminal failure remains visible",
+                "e2e-failure-missing-pr-blocked-branch-lag",
+                title="Missing PR reconciliation blocked state remains visible when branch visibility lags",
             )
         )
         self._mark_task_assigned(scenario.task_id, executor_id="executor-reconcile-terminal-1")
@@ -224,14 +224,16 @@ class ControlPlaneFailureFlowTests(RuntimeApiTestCase):
             )
         )
 
-        self.assertEqual(claimed.response["action"], "reconciliation_terminal_failed")
-        self.assertEqual(claimed.task["status"], "failed")
+        self.assertEqual(claimed.response["action"], "reconciliation_blocked")
+        self.assertEqual(claimed.task["status"], "blocked")
         self.assertEqual(claimed.task["reconciliation"]["status"], "failed")
         self.assertEqual(claimed.response["reconciliation_attempt"]["failure_type"], "missing_pr_after_execution")
-        self.assertEqual(claimed.read_model["task"]["current_status"], "failed")
+        self.assertEqual(claimed.response["reconciliation_attempt"]["details"]["commit_exists"], True)
+        self.assertEqual(claimed.response["reconciliation_attempt"]["details"]["error_disposition"], "blocked_retryable")
+        self.assertEqual(claimed.read_model["task"]["current_status"], "blocked")
         status_changes = [event for event in claimed.timeline["timeline"] if event["event_type"] == "status_transition"]
         self.assertTrue(any(event["details"]["to_status"] == "reconciling" for event in status_changes))
-        self.assertTrue(any(event["details"]["to_status"] == "failed" for event in status_changes))
+        self.assertTrue(any(event["details"]["to_status"] == "blocked" for event in status_changes))
 
     def test_missing_pr_reconciliation_retryable_block_is_visible_across_surfaces(self) -> None:
         self.set_reconciliation_registry(

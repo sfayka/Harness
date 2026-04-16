@@ -244,6 +244,14 @@ class _CurrentRunPullRequestGateway(_NoCreatePullRequestGateway):
         return ()
 
 
+class _TransientMissingBranchGateway(_NoCreatePullRequestGateway):
+    """Gateway stub that simulates a transient branch visibility miss."""
+
+    def branch_exists(self, *, owner: str, repo: str, branch_name: str) -> bool:
+        del owner, repo, branch_name
+        return False
+
+
 class _OutOfOrderDispatchAdapter:
     """Adapter stub that returns valid events in non-chronological sequence."""
 
@@ -361,6 +369,21 @@ def _registry_with_current_run_pull_request_gateway():
     registry.register(
         ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
         missing_commit_handler.__class__(github=_CurrentRunPullRequestGateway()),
+    )
+    return registry
+
+
+def _registry_with_transient_missing_branch_gateway():
+    registry = build_default_reconciliation_registry()
+    missing_pr_handler = registry.get(ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION)
+    missing_commit_handler = registry.get(ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION)
+    registry.register(
+        ReconciliationFailureType.MISSING_PR_AFTER_EXECUTION,
+        missing_pr_handler.__class__(github=_TransientMissingBranchGateway()),
+    )
+    registry.register(
+        ReconciliationFailureType.MISSING_COMMIT_AFTER_EXECUTION,
+        missing_commit_handler.__class__(github=_TransientMissingBranchGateway()),
     )
     return registry
 
@@ -6087,6 +6110,98 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(evidence["policy"], "required")
         self.assertEqual(evidence["status"], "satisfied")
         self.assertEqual(evidence["validation_method"], "external_reconciliation")
+
+    def test_api_github_sync_recovers_after_transient_missing_branch_on_completion_claim(self) -> None:
+        service = HarnessApiService(
+            store=FileBackedHarnessStore(self.temp_dir.name),
+            reconciliation_registry=_registry_with_transient_missing_branch_gateway(),
+        )
+        payload = _manual_happy_path_overlay_payload()
+        task_envelope = deepcopy(payload["request"]["task_envelope"])
+        task_envelope["id"] = "task-api-github-sync-transient-branch-1"
+        task_envelope["title"] = "GitHub sync resumes after transient branch miss"
+        task_envelope["description"] = (
+            "A branch visibility miss during completion claim reconciliation should not permanently fail "
+            "a task that canonical GitHub sync can immediately prove."
+        )
+        task_envelope["artifacts"]["items"] = []
+        task_envelope["artifacts"]["completion_evidence"] = {
+            "policy": "deferred",
+            "status": "deferred",
+            "required_artifact_types": ["pull_request", "commit"],
+            "validated_artifact_ids": [],
+            "validation_method": "deferred",
+            "validated_at": None,
+            "validator": None,
+            "notes": None,
+        }
+        submit_status, submit_response = service.submit({"request": {"task_envelope": task_envelope}})
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    "completion_claim": {
+                        "claim_id": "claim-api-github-sync-transient-branch-1",
+                        "reported_at": "2026-04-13T10:00:00Z",
+                        "reported_by": "codex",
+                        "reason": "Executor reported completion pending GitHub reconciliation.",
+                        "metadata": {"attempt_id": "attempt-api-github-sync-transient-branch-1"},
+                    },
+                    "execution_attempt": {
+                        "attempt_id": "attempt-api-github-sync-transient-branch-1",
+                        "recorded_at": "2026-04-13T10:00:05Z",
+                        "status": "succeeded",
+                        "reported_by": "codex",
+                        "artifact_references": [
+                            {
+                                "reference_id": "attempt-api-github-sync-transient-branch-1:commit",
+                                "artifact_type": "commit",
+                                "location": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/commit/8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                "metadata": {
+                                    "repository_host": "github.com",
+                                    "repository_owner": "KnoxAnalytics",
+                                    "repository_name": "HARNESS-DRYRUN",
+                                    "branch_name": "codex/e2e-test",
+                                    "commit_sha": "8a32c6f29d34bbdb80b5ec0b5a97415f8e66e705",
+                                },
+                            }
+                        ],
+                        "metadata": {
+                            "executor_run_id": "stub-run-sync-transient-branch-1",
+                            "pull_request_url": "https://github.com/KnoxAnalytics/HARNESS-DRYRUN/pull/2",
+                        },
+                    },
+                    "external_facts": {
+                        "expected_code_context": {
+                            "repository_host": "github.com",
+                            "repository_owner": "KnoxAnalytics",
+                            "repository_name": "HARNESS-DRYRUN",
+                            "branch_name": "codex/e2e-test",
+                            "base_branch": "main",
+                        }
+                    },
+                    "acceptance_criteria_satisfied": True,
+                    "runtime_facts": {
+                        "executor_reported_success": True,
+                        "attempt_count": 1,
+                        "latest_attempt_outcome": "completed",
+                    },
+                }
+            },
+        )
+        sync_status, sync_response = service.submit_github_sync(_github_sync_payload(task_id=task_id))
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 200)
+        self.assertEqual(claim_response["action"], "reconciliation_blocked")
+        self.assertEqual(claim_response["task_envelope"]["status"], "blocked")
+        self.assertEqual(sync_status, 200)
+        self.assertEqual(sync_response["action"], "transition_applied")
+        self.assertTrue(sync_response["accepted_completion"])
+        self.assertEqual(sync_response["task_envelope"]["status"], "completed")
 
     def test_api_exposes_supervision_queue_endpoint(self) -> None:
         create_status, create_payload = self._post_json("/evaluate", _request_payload("review_required"))
