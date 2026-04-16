@@ -151,6 +151,7 @@ class FastApiBackendTests(unittest.TestCase):
                 "branch_name": "codex/reset-verifier-v1",
                 "commit_sha": "abc123",
                 "pull_request_number": 42,
+                "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
             },
         )
         self.assertEqual(claimed.status_code, 200)

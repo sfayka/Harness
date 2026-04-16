@@ -64,6 +64,7 @@ class ResetVerificationServiceTests(unittest.TestCase):
                     branch_name="codex/reset-verifier-v1",
                     commit_sha="bad",
                     pull_request_number=42,
+                    pull_request_url="https://github.com/sfayka/Harness/pull/42",
                 ),
             )
 
@@ -99,6 +100,7 @@ class ResetVerificationServiceTests(unittest.TestCase):
                     branch_name="codex/reset-verifier-v1",
                     commit_sha="abc123",
                     pull_request_number=42,
+                    pull_request_url="https://github.com/sfayka/Harness/pull/42",
                 ),
             )
 
@@ -138,6 +140,7 @@ class ResetVerificationServiceTests(unittest.TestCase):
                     branch_name="codex/reset-verifier-v1",
                     commit_sha="bad",
                     pull_request_number=42,
+                    pull_request_url="https://github.com/sfayka/Harness/pull/42",
                 ),
             )
 
@@ -176,6 +179,7 @@ class ResetVerificationServiceTests(unittest.TestCase):
                     branch_name="codex/reset-verifier-v1",
                     commit_sha="bad",
                     pull_request_number=42,
+                    pull_request_url="https://github.com/sfayka/Harness/pull/42",
                 ),
                 retry_count=1,
                 last_repair_requested_at=requested_at.isoformat().replace("+00:00", "Z"),
@@ -188,3 +192,86 @@ class ResetVerificationServiceTests(unittest.TestCase):
             self.assertEqual(tick_results[0].status, "cooldown_wait")
             self.assertEqual(openclaw.repairs, [])
             self.assertEqual(linear.actions, [])
+
+    def test_tick_requests_repair_when_no_claim_arrives_before_timeout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store = FileBackedResetStore(temp_dir)
+            linear = FakeLinearClient()
+            openclaw = FakeOpenClawClient()
+            service = ResetVerificationService(
+                store=store,
+                linear_client=linear,
+                verifier=FakeVerifier(("retryable_invalid_proof", "unused")),
+                openclaw_client=openclaw,
+                now_provider=lambda: datetime(2026, 4, 15, 12, 5, tzinfo=timezone.utc),
+                retry_cooldown_seconds=0,
+                claim_timeout_seconds=60,
+            )
+            contract = ResetVerificationContract(
+                contract_id="contract-1",
+                linear_issue_id="KNO-999",
+                repository_owner="sfayka",
+                repository_name="Harness",
+                branch_ref="codex/reset-verifier-v1",
+                created_at="2026-04-15T12:00:00Z",
+                updated_at="2026-04-15T12:00:00Z",
+                last_activity_at="2026-04-15T12:00:00Z",
+            )
+            service.register_contract(contract)
+
+            tick_results = service.tick()
+            updated = service.get_contract("contract-1")
+
+            self.assertEqual(len(tick_results), 1)
+            self.assertEqual(tick_results[0].status, "retryable_invalid_proof")
+            self.assertEqual(updated.harness_status, "retrying")
+            self.assertEqual(updated.retry_count, 1)
+            self.assertEqual(
+                [event.kind for event in updated.event_log][-1],
+                "repair_requested",
+            )
+            self.assertEqual(openclaw.repairs[0][0], "KNO-999")
+            self.assertIn("no completion claim", openclaw.repairs[0][1])
+            self.assertEqual(linear.actions[-1][1], "In Progress")
+            self.assertEqual(linear.actions[-1][2], "retrying")
+
+    def test_tick_escalates_to_review_when_claim_timeout_retries_are_spent(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store = FileBackedResetStore(temp_dir)
+            linear = FakeLinearClient()
+            openclaw = FakeOpenClawClient()
+            service = ResetVerificationService(
+                store=store,
+                linear_client=linear,
+                verifier=FakeVerifier(("retryable_invalid_proof", "unused")),
+                openclaw_client=openclaw,
+                now_provider=lambda: datetime(2026, 4, 15, 12, 5, tzinfo=timezone.utc),
+                retry_cooldown_seconds=0,
+                claim_timeout_seconds=60,
+            )
+            contract = ResetVerificationContract(
+                contract_id="contract-1",
+                linear_issue_id="KNO-999",
+                repository_owner="sfayka",
+                repository_name="Harness",
+                branch_ref="codex/reset-verifier-v1",
+                retry_count=2,
+                retry_budget=2,
+                harness_status="retrying",
+                created_at="2026-04-15T12:00:00Z",
+                updated_at="2026-04-15T12:00:00Z",
+                last_activity_at="2026-04-15T12:00:00Z",
+                last_repair_requested_at="2026-04-15T12:01:00Z",
+            )
+            store.create_contract(contract)
+
+            tick_results = service.tick()
+            updated = service.get_contract("contract-1")
+
+            self.assertEqual(len(tick_results), 1)
+            self.assertEqual(tick_results[0].status, "needs_review")
+            self.assertEqual(updated.harness_status, "needs_review")
+            self.assertEqual(updated.latest_verdict, "needs_review")
+            self.assertEqual(openclaw.repairs, [])
+            self.assertEqual(linear.actions[-1][1], "In Review")
+            self.assertEqual(linear.actions[-1][2], "needs_review")

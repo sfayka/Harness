@@ -133,6 +133,7 @@ def run_reset_success_dry_run(*, contract_id: str = "reset-dryrun-success-1") ->
                     "branch_name": "codex/reset-verifier-v1",
                     "commit_sha": "bad-sha",
                     "pull_request_number": 42,
+                    "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
                 },
             )
             final_claim_status, final_claim_payload = client.submit_reset_claim(
@@ -143,6 +144,7 @@ def run_reset_success_dry_run(*, contract_id: str = "reset-dryrun-success-1") ->
                     "branch_name": "codex/reset-verifier-v1",
                     "commit_sha": "good-sha",
                     "pull_request_number": 42,
+                    "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
                 },
             )
             return ResetDryRunResult(
@@ -188,6 +190,7 @@ def run_reset_review_dry_run(*, contract_id: str = "reset-dryrun-review-1") -> R
                     "branch_name": "codex/reset-verifier-v1",
                     "commit_sha": "bad-sha",
                     "pull_request_number": 42,
+                    "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
                 },
             )
             tick_statuses: list[int] = []

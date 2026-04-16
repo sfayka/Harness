@@ -123,6 +123,22 @@ These commands:
   - retryable invalid proof that later verifies successfully
   - retryable invalid proof that exhausts retries and lands in `In Review`
 
+### Live Reset Smoke
+
+The repo also includes a gated live smoke for Set 2 of the reset redesign:
+
+```bash
+HARNESS_RUN_LIVE_RESET_TESTS=1 python3 -m unittest tests.test_reset_live_smoke -v
+```
+
+That live smoke:
+
+- creates throwaway issues in the real Linear `HARNESS-DRYRUN` project
+- creates real branches, commits, and pull requests in `sfayka/HARNESS-DRYRUN`
+- runs the happy path first
+- then runs real GitHub-backed unhappy paths for missing PR linkage and wrong SHA review escalation
+- keeps OpenClaw simulated so the only live systems are Harness, Linear, and GitHub
+
 ### Run The Dashboard
 
 ```bash

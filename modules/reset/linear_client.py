@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 from typing import Any
 from urllib import error, request
 
@@ -25,6 +26,7 @@ class LinearResetClient:
         self.api_key = api_key or os.getenv("LINEAR_API_KEY")
         self.api_url = api_url
         self.timeout_seconds = timeout_seconds
+        self.ssl_context = _build_ssl_context()
 
     def _graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
         if not self.api_key:
@@ -35,7 +37,7 @@ class LinearResetClient:
             headers={"Content-Type": "application/json", "Authorization": self.api_key},
         )
         try:
-            with request.urlopen(req, timeout=self.timeout_seconds) as response:
+            with request.urlopen(req, timeout=self.timeout_seconds, context=self.ssl_context) as response:
                 payload = json.loads(response.read().decode("utf-8"))
         except error.HTTPError as http_error:
             raise LinearClientError(f"Linear request failed: HTTP {http_error.code}") from http_error
@@ -116,6 +118,15 @@ class LinearResetClient:
             "state": state,
             "harness_status": harness_status,
         }
+
+
+def _build_ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    try:
+        import certifi  # type: ignore
+    except ImportError:
+        return context
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 __all__ = ["LinearClientError", "LinearResetClient"]

@@ -49,10 +49,8 @@ class ResetCompletionClaim:
         object.__setattr__(self, "repository_name", _require_text(self.repository_name, field_name="repository_name"))
         object.__setattr__(self, "branch_name", _require_text(self.branch_name, field_name="branch_name"))
         object.__setattr__(self, "commit_sha", _require_text(self.commit_sha, field_name="commit_sha"))
-        if self.pull_request_number is None and not (self.pull_request_url or "").strip():
-            raise ResetVerificationContractError(
-                "pull_request_number or pull_request_url is required"
-            )
+        if not (self.pull_request_url or "").strip():
+            raise ResetVerificationContractError("pull_request_url is required")
 
     def asdict(self) -> dict[str, Any]:
         return asdict(self)
@@ -77,8 +75,10 @@ class ResetVerificationContract:
     latest_reason: str | None = None
     created_at: str = field(default_factory=_utc_now)
     updated_at: str = field(default_factory=_utc_now)
+    last_activity_at: str | None = None
     last_repair_requested_at: str | None = None
     last_verified_at: str | None = None
+    claim_timeout_seconds: int | None = None
     event_log: tuple[ResetEvent, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
@@ -91,6 +91,8 @@ class ResetVerificationContract:
             raise ResetVerificationContractError("retry_budget must be at least 1")
         if self.retry_count < 0:
             raise ResetVerificationContractError("retry_count must be non-negative")
+        if self.claim_timeout_seconds is not None and self.claim_timeout_seconds < 1:
+            raise ResetVerificationContractError("claim_timeout_seconds must be at least 1 when provided")
 
     def branch_matches(self, branch_name: str) -> bool:
         normalized = branch_name.strip()
@@ -124,8 +126,10 @@ class ResetVerificationContract:
             "latest_reason": self.latest_reason,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "last_activity_at": self.last_activity_at,
             "last_repair_requested_at": self.last_repair_requested_at,
             "last_verified_at": self.last_verified_at,
+            "claim_timeout_seconds": self.claim_timeout_seconds,
             "event_log": [asdict(event) for event in self.event_log],
         }
 
@@ -153,12 +157,18 @@ class ResetVerificationContract:
             latest_reason=str(payload["latest_reason"]) if payload.get("latest_reason") is not None else None,
             created_at=str(payload.get("created_at") or _utc_now()),
             updated_at=str(payload.get("updated_at") or _utc_now()),
+            last_activity_at=str(payload["last_activity_at"]) if payload.get("last_activity_at") is not None else None,
             last_repair_requested_at=(
                 str(payload["last_repair_requested_at"])
                 if payload.get("last_repair_requested_at") is not None
                 else None
             ),
             last_verified_at=str(payload["last_verified_at"]) if payload.get("last_verified_at") is not None else None,
+            claim_timeout_seconds=(
+                int(payload["claim_timeout_seconds"])
+                if payload.get("claim_timeout_seconds") is not None
+                else None
+            ),
             event_log=tuple(
                 item if isinstance(item, ResetEvent) else ResetEvent(**item)
                 for item in event_log

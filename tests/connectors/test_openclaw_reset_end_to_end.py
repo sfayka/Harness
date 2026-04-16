@@ -118,6 +118,7 @@ class OpenClawResetEndToEndTests(unittest.TestCase):
                     "branch_name": "codex/reset-verifier-v1",
                     "commit_sha": "bad-sha",
                     "pull_request_number": 42,
+                    "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
                 },
             )
             fetch_after_invalid_status, fetch_after_invalid_payload = client.get_reset_contract("contract-recovery")
@@ -150,6 +151,7 @@ class OpenClawResetEndToEndTests(unittest.TestCase):
                     "branch_name": "codex/reset-verifier-v1",
                     "commit_sha": "good-sha",
                     "pull_request_number": 42,
+                    "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
                 },
             )
             fetch_after_verified_status, fetch_after_verified_payload = client.get_reset_contract("contract-recovery")
@@ -197,6 +199,7 @@ class OpenClawResetEndToEndTests(unittest.TestCase):
                     "branch_name": "codex/reset-verifier-v1",
                     "commit_sha": "bad-sha",
                     "pull_request_number": 42,
+                    "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
                 },
             )
             first_tick_status, first_tick_payload = client.tick_reset()

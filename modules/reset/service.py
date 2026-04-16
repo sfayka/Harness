@@ -32,6 +32,10 @@ def _parse_iso_timestamp(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
 
 
+def _isoformat_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 @dataclass(frozen=True)
 class ResetTickResult:
     contract_id: str
@@ -52,6 +56,7 @@ class ResetVerificationService:
         openclaw_client: Any,
         now_provider: Any | None = None,
         retry_cooldown_seconds: float = 900.0,
+        claim_timeout_seconds: float = 900.0,
     ) -> None:
         self.store = store
         self.linear_client = linear_client
@@ -59,11 +64,13 @@ class ResetVerificationService:
         self.openclaw_client = openclaw_client
         self.now_provider = now_provider or (lambda: datetime.now(timezone.utc))
         self.retry_cooldown_seconds = retry_cooldown_seconds
+        self.claim_timeout_seconds = claim_timeout_seconds
 
     @classmethod
     def from_env(cls, *, root_dir: str | Path | None = None) -> "ResetVerificationService":
         resolved_root = Path(root_dir or os.environ.get("HARNESS_STORE_ROOT") or ".harness-store")
         cooldown = _coerce_float(os.environ.get("HARNESS_RESET_POLL_SECONDS"), default=900.0)
+        claim_timeout = _coerce_float(os.environ.get("HARNESS_RESET_CLAIM_TIMEOUT_SECONDS"), default=900.0)
         return cls(
             store=FileBackedResetStore(resolved_root),
             linear_client=LinearResetClient(),
@@ -71,11 +78,16 @@ class ResetVerificationService:
             openclaw_client=OpenClawRepairClient(),
             now_provider=None,
             retry_cooldown_seconds=cooldown,
+            claim_timeout_seconds=claim_timeout,
         )
 
     def register_contract(self, contract: ResetVerificationContract) -> ResetVerificationContract:
+        activity_timestamp = contract.last_activity_at or contract.created_at
         created = self.store.create_contract(
-            contract.append_event(kind="contract_registered", message="Harness verification contract registered.")
+            contract.updated(last_activity_at=activity_timestamp).append_event(
+                kind="contract_registered",
+                message="Harness verification contract registered.",
+            )
         )
         self.linear_client.update_issue(
             created.linear_issue_id,
@@ -95,6 +107,7 @@ class ResetVerificationService:
         contract = self.store.get_contract(contract_id).updated(
             latest_claim=claim,
             harness_status="verifying",
+            last_activity_at=claim.claimed_at,
         ).append_event(
             kind="completion_claim_received",
             message=f"Completion claim received for {claim.repository_owner}/{claim.repository_name}@{claim.branch_name}.",
@@ -105,8 +118,6 @@ class ResetVerificationService:
     def tick(self) -> tuple[ResetTickResult, ...]:
         outcomes: list[ResetTickResult] = []
         for contract in self.store.list_contracts():
-            if contract.latest_claim is None:
-                continue
             if contract.harness_status not in {"verifying", "retrying", "running"}:
                 continue
             if self._within_retry_cooldown(contract):
@@ -116,6 +127,32 @@ class ResetVerificationService:
                         action="cooldown_wait",
                         status="cooldown_wait",
                         reason="retry cooldown window is still active",
+                    )
+                )
+                continue
+            if contract.latest_claim is None:
+                timeout_reason = self._claim_timeout_reason(contract)
+                if timeout_reason is None:
+                    continue
+                if contract.retry_count >= contract.retry_budget:
+                    updated = self._mark_in_review(contract, timeout_reason)
+                    outcomes.append(
+                        ResetTickResult(
+                            contract_id=updated.contract_id,
+                            action="escalated",
+                            status="needs_review",
+                            reason=timeout_reason,
+                        )
+                    )
+                    continue
+
+                updated = self._dispatch_repair(contract, timeout_reason)
+                outcomes.append(
+                    ResetTickResult(
+                        contract_id=updated.contract_id,
+                        action="repair_requested",
+                        status="retryable_invalid_proof",
+                        reason=timeout_reason,
                     )
                 )
                 continue
@@ -166,6 +203,25 @@ class ResetVerificationService:
         elapsed = (self.now_provider() - last_requested).total_seconds()
         return elapsed < self.retry_cooldown_seconds
 
+    def _now_iso(self) -> str:
+        return _isoformat_utc(self.now_provider())
+
+    def _claim_timeout_reason(self, contract: ResetVerificationContract) -> str | None:
+        timeout_seconds = (
+            float(contract.claim_timeout_seconds)
+            if contract.claim_timeout_seconds is not None
+            else self.claim_timeout_seconds
+        )
+        if timeout_seconds <= 0:
+            return None
+        last_activity = _parse_iso_timestamp(contract.last_activity_at or contract.created_at)
+        if last_activity is None:
+            return None
+        elapsed = (self.now_provider() - last_activity).total_seconds()
+        if elapsed < timeout_seconds:
+            return None
+        return "no completion claim arrived before the supervision timeout"
+
     def _evaluate_claim(
         self, contract: ResetVerificationContract, claim: ResetCompletionClaim
     ) -> dict[str, Any]:
@@ -211,12 +267,15 @@ class ResetVerificationService:
         if allow_repair_dispatch:
             updated = self._dispatch_repair(contract, verdict.reason)
         else:
+            timestamp = self._now_iso()
             updated = self.store.update_contract(
                 contract.updated(
                     latest_verdict="retryable_invalid_proof",
                     latest_reason=verdict.reason,
                     harness_status="proof_invalid",
-                ).append_event(kind="verification_failed", message=verdict.reason)
+                    last_activity_at=timestamp,
+                    updated_at=timestamp,
+                ).append_event(kind="verification_failed", message=verdict.reason, timestamp=timestamp)
             )
         return {
             "status": "retryable_invalid_proof",
@@ -236,6 +295,7 @@ class ResetVerificationService:
             latest_reason=verdict.reason,
             harness_status="verified",
             last_verified_at=claim.claimed_at,
+            last_activity_at=claim.claimed_at,
         ).append_event(kind="verified", message=verdict.reason, timestamp=claim.claimed_at)
         self.store.update_contract(updated)
         self.linear_client.update_issue(
@@ -248,6 +308,7 @@ class ResetVerificationService:
 
     def _dispatch_repair(self, contract: ResetVerificationContract, reason: str) -> ResetVerificationContract:
         next_retry_count = contract.retry_count + 1
+        timestamp = self._now_iso()
         self.openclaw_client.request_repair(
             contract.linear_issue_id,
             reason=reason,
@@ -258,10 +319,16 @@ class ResetVerificationService:
             latest_verdict="retryable_invalid_proof",
             latest_reason=reason,
             harness_status="retrying",
+            last_activity_at=timestamp,
+            updated_at=timestamp,
         )
-        updated = updated.updated(last_repair_requested_at=updated.updated_at).append_event(
+        updated = updated.updated(
+            last_repair_requested_at=updated.updated_at,
+            last_activity_at=updated.updated_at,
+        ).append_event(
             kind="repair_requested",
             message=reason,
+            timestamp=timestamp,
         )
         self.store.update_contract(updated)
         self.linear_client.update_issue(
@@ -273,11 +340,14 @@ class ResetVerificationService:
         return updated
 
     def _mark_in_review(self, contract: ResetVerificationContract, reason: str) -> ResetVerificationContract:
+        timestamp = self._now_iso()
         updated = contract.updated(
             latest_verdict="needs_review",
             latest_reason=reason,
             harness_status="needs_review",
-        ).append_event(kind="review_required", message=reason)
+            last_activity_at=timestamp,
+            updated_at=timestamp,
+        ).append_event(kind="review_required", message=reason, timestamp=timestamp)
         self.store.update_contract(updated)
         self.linear_client.update_issue(
             updated.linear_issue_id,
