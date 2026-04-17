@@ -25,7 +25,7 @@ The reset routes live under:
 
 These routes intentionally coexist with the older TaskEnvelope routes so the narrower verifier path can ship without first deleting the broader control-plane code.
 
-In hosted Vercel runtimes, the reset slice is not allowed to take the whole backend down if its file-backed store cannot be created. Canonical task APIs must still boot. The hosted fallback now uses writable temp storage for the reset slice, and if even that cannot be created, `/reset/*` fails explicitly instead of crashing `/backend/health` and `/backend/tasks` during import.
+In hosted Vercel runtimes, the reset slice is not allowed to take the whole backend down during startup. When Postgres is available, `/reset/*` now persists contracts there so multi-request verification survives cold starts. If no database URL is available, the fallback remains writable temp storage, and if even that cannot be created, `/reset/*` fails explicitly instead of crashing `/backend/health` and `/backend/tasks` during import.
 
 ## What Harness Is
 

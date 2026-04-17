@@ -41,13 +41,19 @@ For a Vercel-managed Neon project, the normal hosted path is to leave `DATABASE_
 
 Leave `HARNESS_STORE_ROOT` unset in hosted mode.
 
-Reset-slice storage is different from canonical task storage. The reset verifier still uses a local file-backed store today. In hosted Vercel runtimes, the application filesystem is read-only outside writable temp space, so the reset slice now defaults to:
+Reset-slice storage is different from canonical task storage. In hosted Vercel runtimes, the reset verifier now prefers Postgres-backed contract storage, with temp filesystem fallback only when no database URL is available:
+
+- Postgres-backed `reset_contracts` storage when `POSTGRES_URL` or another supported database URL is available
+
+That is now the default hosted path. `/reset/*` contracts survive across requests the same way the canonical task store does.
+
+If the hosted runtime does not have a database URL, the reset slice falls back to:
 
 - `HARNESS_RESET_STORE_ROOT=/tmp/harness-reset`
 
 That keeps `/backend/health`, `/backend/tasks`, and the canonical task API healthy instead of crashing the whole service at import time.
 
-That path is writable on Vercel but not durable across cold starts. Do not treat it as canonical hosted persistence.
+That temp path is writable on Vercel but not durable across cold starts. Do not treat it as canonical hosted persistence.
 
 If even the reset temp root cannot be created, `/reset/*` now fails explicitly with `503` instead of taking down the whole backend.
 
