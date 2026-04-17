@@ -7,6 +7,7 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest.mock import patch
 
 from modules.reset.openclaw_client import OpenClawRepairClient, OpenClawRepairClientError
 
@@ -99,6 +100,35 @@ class OpenClawRepairClientTests(unittest.TestCase):
             _OpenClawHandler.calls[0]["headers"].get("Authorization"),
             "Bearer repair-secret",
         )
+
+    def test_request_repair_uses_configured_ssl_context_for_https_callbacks(self) -> None:
+        client = OpenClawRepairClient(
+            transport="http",
+            base_url="https://example.com",
+            repair_endpoint="/repair",
+        )
+
+        class _Response:
+            status = 200
+
+            def read(self) -> bytes:
+                return b'{"status":"accepted"}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+        with patch("modules.reset.openclaw_client.request.urlopen", return_value=_Response()) as mocked_urlopen:
+            response = client.request_repair(
+                "KNO-999",
+                reason="commit sha does not exist in the expected repository",
+                contract_id="contract-1",
+            )
+
+        self.assertEqual(response["status"], "accepted")
+        self.assertEqual(mocked_urlopen.call_args.kwargs["context"], client.ssl_context)
 
     def test_cli_transport_invokes_local_openclaw_agent(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

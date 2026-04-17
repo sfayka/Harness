@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import subprocess
 from typing import Any
 from urllib import error, request
@@ -76,6 +77,7 @@ class OpenClawRepairClient:
         self.session_prefix = (session_prefix or os.getenv("OPENCLAW_REPAIR_SESSION_PREFIX") or "harness-repair").strip()
         self.timeout_seconds = timeout_seconds
         self.transport = transport or os.getenv("OPENCLAW_REPAIR_TRANSPORT") or self._default_transport()
+        self.ssl_context = _build_ssl_context()
 
     def request_repair(self, issue_id: str, *, reason: str, contract_id: str | None = None) -> dict[str, Any]:
         if self.transport == "cli":
@@ -104,7 +106,7 @@ class OpenClawRepairClient:
             method="POST",
         )
         try:
-            with request.urlopen(req, timeout=self.timeout_seconds) as response:
+            with request.urlopen(req, timeout=self.timeout_seconds, context=self.ssl_context) as response:
                 raw_body = response.read().decode("utf-8")
                 return json.loads(raw_body) if raw_body else {"status": "ok"}
         except error.HTTPError as http_error:
@@ -162,6 +164,15 @@ class OpenClawRepairClient:
             detail = payloads[0].get("text") if payloads and isinstance(payloads[0], dict) else "agent run failed"
             raise OpenClawRepairClientError(f"OpenClaw CLI repair dispatch failed: {detail}")
         return payload
+
+
+def _build_ssl_context() -> ssl.SSLContext:
+    context = ssl.create_default_context()
+    try:
+        import certifi  # type: ignore
+    except ImportError:
+        return context
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 __all__ = ["OpenClawRepairClient", "OpenClawRepairClientError"]
