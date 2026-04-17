@@ -20,6 +20,7 @@ class _LinearHandler(BaseHTTPRequestHandler):
     issue_update_success = True
     comment_create_success = True
     apply_state_change = True
+    issue_update_apply_sequence: list[bool] = []
     current_state_id = "state-in-progress"
     current_state_name = "In Progress"
     current_state_type = "started"
@@ -30,6 +31,7 @@ class _LinearHandler(BaseHTTPRequestHandler):
         cls.issue_update_success = True
         cls.comment_create_success = True
         cls.apply_state_change = True
+        cls.issue_update_apply_sequence = []
         cls.current_state_id = "state-in-progress"
         cls.current_state_name = "In Progress"
         cls.current_state_type = "started"
@@ -75,7 +77,12 @@ class _LinearHandler(BaseHTTPRequestHandler):
             }
         elif "mutation UpdateIssue" in query:
             state_id = payload["variables"]["input"]["stateId"]
-            if _LinearHandler.issue_update_success and _LinearHandler.apply_state_change:
+            should_apply_state = (
+                _LinearHandler.issue_update_apply_sequence.pop(0)
+                if _LinearHandler.issue_update_apply_sequence
+                else _LinearHandler.apply_state_change
+            )
+            if _LinearHandler.issue_update_success and should_apply_state:
                 state_lookup = {
                     "state-in-progress": ("state-in-progress", "In Progress", "started"),
                     "state-review": ("state-review", "In Review", "started"),
@@ -113,6 +120,8 @@ class LinearResetClientTests(unittest.TestCase):
         self.client = LinearResetClient(
             api_key="linear-test-token",
             api_url=f"http://127.0.0.1:{self.port}/graphql",
+            state_confirmation_attempts=2,
+            state_confirmation_delay_seconds=0,
         )
 
     def tearDown(self) -> None:
@@ -180,6 +189,20 @@ class LinearResetClientTests(unittest.TestCase):
                 harness_status="needs_review",
                 comment="state readback mismatch",
             )
+
+    def test_retries_state_transition_when_first_confirmation_misses(self) -> None:
+        _LinearHandler.issue_update_apply_sequence = [False, True]
+
+        result = self.client.update_issue(
+            "KNO-999",
+            state="In Review",
+            harness_status="needs_review",
+            comment="retry state transition",
+        )
+
+        self.assertEqual(result["state"], "In Review")
+        update_calls = [call for call in _LinearHandler.calls if "mutation UpdateIssue" in call["query"]]
+        self.assertEqual(len(update_calls), 2)
 
 
 if __name__ == "__main__":
