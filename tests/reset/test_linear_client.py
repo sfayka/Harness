@@ -21,6 +21,7 @@ class _LinearHandler(BaseHTTPRequestHandler):
     comment_create_success = True
     apply_state_change = True
     issue_update_apply_sequence: list[bool] = []
+    comment_reset_state_to_in_progress = False
     current_state_id = "state-in-progress"
     current_state_name = "In Progress"
     current_state_type = "started"
@@ -32,6 +33,7 @@ class _LinearHandler(BaseHTTPRequestHandler):
         cls.comment_create_success = True
         cls.apply_state_change = True
         cls.issue_update_apply_sequence = []
+        cls.comment_reset_state_to_in_progress = False
         cls.current_state_id = "state-in-progress"
         cls.current_state_name = "In Progress"
         cls.current_state_type = "started"
@@ -95,6 +97,10 @@ class _LinearHandler(BaseHTTPRequestHandler):
                 ) = state_lookup[state_id]
             response = {"data": {"issueUpdate": {"success": _LinearHandler.issue_update_success}}}
         elif "mutation CreateComment" in query:
+            if _LinearHandler.comment_create_success and _LinearHandler.comment_reset_state_to_in_progress:
+                _LinearHandler.current_state_id = "state-in-progress"
+                _LinearHandler.current_state_name = "In Progress"
+                _LinearHandler.current_state_type = "started"
             response = {"data": {"commentCreate": {"success": _LinearHandler.comment_create_success}}}
         else:
             response = {"errors": [{"message": "unexpected query"}]}
@@ -139,14 +145,15 @@ class LinearResetClientTests(unittest.TestCase):
 
         self.assertEqual(result["issue_id"], "uuid-123")
         self.assertEqual(result["state"], "Done")
-        self.assertEqual(len(_LinearHandler.calls), 4)
-        issue_query, update_mutation, state_readback_query, comment_mutation = _LinearHandler.calls
+        self.assertEqual(len(_LinearHandler.calls), 5)
+        issue_query, update_mutation, state_readback_query, comment_mutation, final_state_query = _LinearHandler.calls
         self.assertEqual(issue_query["headers"]["Authorization"], "linear-test-token")
         self.assertEqual(update_mutation["variables"]["id"], "uuid-123")
         self.assertEqual(update_mutation["variables"]["input"]["stateId"], "state-done")
         self.assertIn("query IssueContext", state_readback_query["query"])
         self.assertEqual(comment_mutation["variables"]["input"]["issueId"], "uuid-123")
         self.assertIn("Harness status: verified", comment_mutation["variables"]["input"]["body"])
+        self.assertIn("query IssueContext", final_state_query["query"])
 
     def test_raises_when_requested_state_is_missing(self) -> None:
         with self.assertRaises(LinearClientError):
@@ -198,6 +205,20 @@ class LinearResetClientTests(unittest.TestCase):
             state="In Review",
             harness_status="needs_review",
             comment="retry state transition",
+        )
+
+        self.assertEqual(result["state"], "In Review")
+        update_calls = [call for call in _LinearHandler.calls if "mutation UpdateIssue" in call["query"]]
+        self.assertEqual(len(update_calls), 2)
+
+    def test_reapplies_state_when_post_comment_verification_detects_drift(self) -> None:
+        _LinearHandler.comment_reset_state_to_in_progress = True
+
+        result = self.client.update_issue(
+            "KNO-999",
+            state="In Review",
+            harness_status="needs_review",
+            comment="post-comment drift",
         )
 
         self.assertEqual(result["state"], "In Review")
