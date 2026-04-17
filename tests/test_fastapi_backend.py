@@ -173,3 +173,67 @@ class FastApiBackendTests(unittest.TestCase):
         ticked = self.client.post("/reset/tick")
         self.assertEqual(ticked.status_code, 200)
         self.assertEqual(ticked.json()["results"], [])
+
+    def test_reset_claim_invalid_proof_returns_review_instead_of_bad_request_when_repair_dispatch_fails(self) -> None:
+        class _FailingVerifier:
+            def verify(inner_self, **_: object):
+                return type(
+                    "Verdict",
+                    (),
+                    {"status": "retryable_invalid_proof", "reason": "wrong sha", "details": None},
+                )()
+
+        class _FailingOpenClawClient:
+            def request_repair(
+                inner_self,
+                issue_id: str,
+                *,
+                reason: str,
+                contract_id: str | None = None,
+            ) -> None:
+                raise ValueError("OpenClaw repair callback failed: connection refused")
+
+        reset_service = ResetVerificationService(
+            store=FileBackedResetStore(self.temp_dir.name),
+            linear_client=type(
+                "_FakeLinearClient",
+                (),
+                {
+                    "update_issue": lambda inner_self, issue_id, *, state, harness_status, comment: self.linear_actions.append(
+                        (issue_id, state, harness_status, comment)
+                    )
+                },
+            )(),
+            verifier=_FailingVerifier(),
+            openclaw_client=_FailingOpenClawClient(),
+        )
+        client = TestClient(create_app(store=self.store, reset_service=reset_service))
+
+        created = client.post(
+            "/reset/contracts",
+            json={
+                "contract_id": "contract-1",
+                "linear_issue_id": "KNO-999",
+                "repository_owner": "sfayka",
+                "repository_name": "Harness",
+                "branch_ref": "codex/reset-verifier-v1",
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+
+        claimed = client.post(
+            "/reset/contracts/contract-1/claims",
+            json={
+                "repository_owner": "sfayka",
+                "repository_name": "Harness",
+                "branch_name": "codex/reset-verifier-v1",
+                "commit_sha": "bad",
+                "pull_request_number": 42,
+                "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
+            },
+        )
+
+        self.assertEqual(claimed.status_code, 200)
+        self.assertEqual(claimed.json()["status"], "needs_review")
+        self.assertEqual(self.linear_actions[-1][1], "In Review")
+        self.assertEqual(self.linear_actions[-1][2], "needs_review")

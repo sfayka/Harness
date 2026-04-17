@@ -11,7 +11,7 @@ from typing import Any
 from .contracts import ResetCompletionClaim, ResetVerificationContract
 from .github_verifier import ResetGitHubVerdict, ResetGitHubVerifier
 from .linear_client import LinearResetClient
-from .openclaw_client import OpenClawRepairClient
+from .openclaw_client import OpenClawRepairClient, OpenClawRepairClientError
 from .store import (
     ResetContractAlreadyExistsError,
     ResetContractNotFoundError,
@@ -146,13 +146,22 @@ class ResetVerificationService:
                     )
                     continue
 
-                updated = self._dispatch_repair(contract, timeout_reason)
+                try:
+                    updated = self._dispatch_repair(contract, timeout_reason)
+                    outcome_status = "retryable_invalid_proof"
+                    outcome_action = "repair_requested"
+                    outcome_reason = timeout_reason
+                except (OpenClawRepairClientError, ValueError) as error:
+                    outcome_reason = self._repair_dispatch_failure_reason(timeout_reason, error)
+                    updated = self._mark_in_review(contract, outcome_reason)
+                    outcome_status = "needs_review"
+                    outcome_action = "escalated"
                 outcomes.append(
                     ResetTickResult(
                         contract_id=updated.contract_id,
-                        action="repair_requested",
-                        status="retryable_invalid_proof",
-                        reason=timeout_reason,
+                        action=outcome_action,
+                        status=outcome_status,
+                        reason=outcome_reason,
                     )
                 )
                 continue
@@ -183,13 +192,22 @@ class ResetVerificationService:
                 )
                 continue
 
-            updated = self._dispatch_repair(contract, verdict.reason)
+            try:
+                updated = self._dispatch_repair(contract, verdict.reason)
+                outcome_status = "retryable_invalid_proof"
+                outcome_action = "repair_requested"
+                outcome_reason = verdict.reason
+            except (OpenClawRepairClientError, ValueError) as error:
+                outcome_reason = self._repair_dispatch_failure_reason(verdict.reason, error)
+                updated = self._mark_in_review(contract, outcome_reason)
+                outcome_status = "needs_review"
+                outcome_action = "escalated"
             outcomes.append(
                 ResetTickResult(
                     contract_id=updated.contract_id,
-                    action="repair_requested",
-                    status="retryable_invalid_proof",
-                    reason=verdict.reason,
+                    action=outcome_action,
+                    status=outcome_status,
+                    reason=outcome_reason,
                 )
             )
         return tuple(outcomes)
@@ -265,7 +283,16 @@ class ResetVerificationService:
             }
 
         if allow_repair_dispatch:
-            updated = self._dispatch_repair(contract, verdict.reason)
+            try:
+                updated = self._dispatch_repair(contract, verdict.reason)
+            except (OpenClawRepairClientError, ValueError) as error:
+                effective_reason = self._repair_dispatch_failure_reason(verdict.reason, error)
+                updated = self._mark_in_review(contract, effective_reason)
+                return {
+                    "status": "needs_review",
+                    "reason": effective_reason,
+                    "contract": updated.asdict(),
+                }
         else:
             timestamp = self._now_iso()
             updated = self.store.update_contract(
@@ -337,6 +364,10 @@ class ResetVerificationService:
             comment=reason,
         )
         return updated
+
+    def _repair_dispatch_failure_reason(self, reason: str, error: ValueError) -> str:
+        detail = str(error).strip() or "unknown repair dispatch failure"
+        return f"{reason}; repair dispatch failed: {detail}"
 
     def _mark_in_review(self, contract: ResetVerificationContract, reason: str) -> ResetVerificationContract:
         timestamp = self._now_iso()
