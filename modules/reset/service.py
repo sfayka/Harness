@@ -10,7 +10,7 @@ from typing import Any
 
 from .contracts import ResetCompletionClaim, ResetVerificationContract
 from .github_verifier import ResetGitHubVerdict, ResetGitHubVerifier
-from .linear_client import LinearResetClient
+from .linear_client import LinearClientError, LinearResetClient
 from .openclaw_client import OpenClawRepairClient, OpenClawRepairClientError
 from .store import (
     ResetContractAlreadyExistsError,
@@ -89,13 +89,12 @@ class ResetVerificationService:
                 message="Harness verification contract registered.",
             )
         )
-        self.linear_client.update_issue(
-            created.linear_issue_id,
+        return self._sync_linear_writeback(
+            created,
             state="In Progress",
             harness_status="running",
             comment="Harness verification contract registered.",
         )
-        return created
 
     def list_contracts(self) -> tuple[ResetVerificationContract, ...]:
         return self.store.list_contracts()
@@ -309,6 +308,7 @@ class ResetVerificationService:
             "reason": verdict.reason,
             "contract": updated.asdict(),
         }
+
     def _mark_verified(
         self,
         contract: ResetVerificationContract,
@@ -324,13 +324,12 @@ class ResetVerificationService:
             last_activity_at=claim.claimed_at,
         ).append_event(kind="verified", message=verdict.reason, timestamp=claim.claimed_at)
         self.store.update_contract(updated)
-        self.linear_client.update_issue(
-            updated.linear_issue_id,
+        return self._sync_linear_writeback(
+            contract=updated,
             state="Done",
             harness_status="verified",
             comment=verdict.reason,
         )
-        return updated
 
     def _dispatch_repair(self, contract: ResetVerificationContract, reason: str) -> ResetVerificationContract:
         next_retry_count = contract.retry_count + 1
@@ -357,13 +356,12 @@ class ResetVerificationService:
             timestamp=timestamp,
         )
         self.store.update_contract(updated)
-        self.linear_client.update_issue(
-            updated.linear_issue_id,
+        return self._sync_linear_writeback(
             state="In Progress",
+            contract=updated,
             harness_status="retrying",
             comment=reason,
         )
-        return updated
 
     def _repair_dispatch_failure_reason(self, reason: str, error: ValueError) -> str:
         detail = str(error).strip() or "unknown repair dispatch failure"
@@ -379,13 +377,40 @@ class ResetVerificationService:
             updated_at=timestamp,
         ).append_event(kind="review_required", message=reason, timestamp=timestamp)
         self.store.update_contract(updated)
-        self.linear_client.update_issue(
-            updated.linear_issue_id,
+        return self._sync_linear_writeback(
+            contract=updated,
             state="In Review",
             harness_status="needs_review",
             comment=reason,
         )
-        return updated
+
+    def _sync_linear_writeback(
+        self,
+        contract: ResetVerificationContract,
+        *,
+        state: str | None,
+        harness_status: str,
+        comment: str,
+    ) -> ResetVerificationContract:
+        try:
+            self.linear_client.update_issue(
+                contract.linear_issue_id,
+                state=state,
+                harness_status=harness_status,
+                comment=comment,
+            )
+        except LinearClientError as error:
+            timestamp = self._now_iso()
+            updated = contract.updated(
+                last_activity_at=timestamp,
+                updated_at=timestamp,
+            ).append_event(
+                kind="linear_writeback_failed",
+                message=str(error),
+                timestamp=timestamp,
+            )
+            return self.store.update_contract(updated)
+        return contract
 
     def register_contract_http(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:

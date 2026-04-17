@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from backend.server import create_app
 from modules.local_env import load_local_env_file, load_native_local_env
+from modules.reset.linear_client import LinearClientError
 from modules.reset.service import ResetVerificationService
 from modules.reset.store import FileBackedResetStore
 from modules.store import FileBackedHarnessStore
@@ -237,3 +238,66 @@ class FastApiBackendTests(unittest.TestCase):
         self.assertEqual(claimed.json()["status"], "needs_review")
         self.assertEqual(self.linear_actions[-1][1], "In Review")
         self.assertEqual(self.linear_actions[-1][2], "needs_review")
+
+    def test_reset_claim_verified_done_still_returns_success_when_linear_writeback_fails(self) -> None:
+        class _VerifiedVerifier:
+            def verify(inner_self, **_: object):
+                return type(
+                    "Verdict",
+                    (),
+                    {"status": "verified_done", "reason": "github proof verified", "details": None},
+                )()
+
+        class _FailingLinearClient:
+            def update_issue(
+                inner_self,
+                issue_id: str,
+                *,
+                state: str | None,
+                harness_status: str,
+                comment: str,
+            ) -> None:
+                raise LinearClientError("Linear issueUpdate did not succeed")
+
+        reset_service = ResetVerificationService(
+            store=FileBackedResetStore(self.temp_dir.name),
+            linear_client=_FailingLinearClient(),
+            verifier=_VerifiedVerifier(),
+            openclaw_client=type(
+                "_FakeOpenClawClient",
+                (),
+                {"request_repair": lambda inner_self, issue_id, *, reason, contract_id=None: None},
+            )(),
+        )
+        client = TestClient(create_app(store=self.store, reset_service=reset_service))
+
+        created = client.post(
+            "/reset/contracts",
+            json={
+                "contract_id": "contract-1",
+                "linear_issue_id": "KNO-999",
+                "repository_owner": "sfayka",
+                "repository_name": "Harness",
+                "branch_ref": "codex/reset-verifier-v1",
+            },
+        )
+        self.assertEqual(created.status_code, 201)
+
+        claimed = client.post(
+            "/reset/contracts/contract-1/claims",
+            json={
+                "repository_owner": "sfayka",
+                "repository_name": "Harness",
+                "branch_name": "codex/reset-verifier-v1",
+                "commit_sha": "abc123",
+                "pull_request_number": 42,
+                "pull_request_url": "https://github.com/sfayka/Harness/pull/42",
+            },
+        )
+
+        self.assertEqual(claimed.status_code, 200)
+        self.assertEqual(claimed.json()["status"], "verified_done")
+        self.assertEqual(
+            claimed.json()["contract"]["event_log"][-1]["kind"],
+            "linear_writeback_failed",
+        )

@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from modules.reset.contracts import ResetCompletionClaim, ResetVerificationContract
+from modules.reset.linear_client import LinearClientError
 from modules.reset.service import ResetVerificationService
 from modules.reset.store import PostgresResetStore
 from modules.reset.store import FileBackedResetStore
@@ -18,6 +19,11 @@ class FakeLinearClient:
 
     def update_issue(self, issue_id: str, *, state: str | None, harness_status: str, comment: str) -> None:
         self.actions.append((issue_id, state, harness_status, comment))
+
+
+class FailingLinearClient:
+    def update_issue(self, issue_id: str, *, state: str | None, harness_status: str, comment: str) -> None:
+        raise LinearClientError("Linear issueUpdate did not succeed")
 
 
 class FakeOpenClawClient:
@@ -190,6 +196,43 @@ class ResetVerificationServiceTests(unittest.TestCase):
             self.assertEqual(result["status"], "verified_done")
             self.assertEqual(linear.actions[-1][1], "Done")
             self.assertEqual(linear.actions[-1][2], "verified")
+
+    def test_verified_claim_preserves_contract_and_records_event_when_linear_writeback_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store = FileBackedResetStore(temp_dir)
+            service = ResetVerificationService(
+                store=store,
+                linear_client=FailingLinearClient(),
+                verifier=FakeVerifier(("verified_done", "github proof verified")),
+                openclaw_client=FakeOpenClawClient(),
+            )
+            contract = ResetVerificationContract(
+                contract_id="contract-1",
+                linear_issue_id="KNO-999",
+                repository_owner="sfayka",
+                repository_name="Harness",
+                branch_ref="codex/reset-verifier-v1",
+            )
+            service.register_contract(contract)
+
+            result = service.submit_claim(
+                "contract-1",
+                ResetCompletionClaim(
+                    repository_owner="sfayka",
+                    repository_name="Harness",
+                    branch_name="codex/reset-verifier-v1",
+                    commit_sha="abc123",
+                    pull_request_number=42,
+                    pull_request_url="https://github.com/sfayka/Harness/pull/42",
+                ),
+            )
+            updated = service.get_contract("contract-1")
+
+            self.assertEqual(result["status"], "verified_done")
+            self.assertEqual(updated.harness_status, "verified")
+            self.assertEqual(updated.latest_verdict, "verified_done")
+            self.assertEqual(updated.event_log[-1].kind, "linear_writeback_failed")
+            self.assertIn("Linear issueUpdate did not succeed", updated.event_log[-1].message)
 
     def test_tick_escalates_to_review_after_retry_budget_is_spent(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
