@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import ssl
+import time
 from typing import Any
 from urllib import error, request
 
@@ -22,10 +23,14 @@ class LinearResetClient:
         api_key: str | None = None,
         api_url: str = "https://api.linear.app/graphql",
         timeout_seconds: float = 10.0,
+        state_confirmation_attempts: int = 2,
+        state_confirmation_delay_seconds: float = 0.5,
     ) -> None:
         self.api_key = api_key or os.getenv("LINEAR_API_KEY")
         self.api_url = api_url
         self.timeout_seconds = timeout_seconds
+        self.state_confirmation_attempts = max(1, int(state_confirmation_attempts))
+        self.state_confirmation_delay_seconds = max(0.0, float(state_confirmation_delay_seconds))
         self.ssl_context = _build_ssl_context()
 
     def _graphql(self, query: str, variables: dict[str, Any]) -> dict[str, Any]:
@@ -106,11 +111,17 @@ class LinearResetClient:
               }
             }
             """
-            update_result = self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
-            self._require_mutation_success(update_result, "issueUpdate")
-            issue = self._get_issue_context(issue_id)
-            current_state_name = str(((issue.get("state") or {}).get("name")) or "")
-            if current_state_name.lower() != state.lower():
+            current_state_name = ""
+            for attempt_index in range(self.state_confirmation_attempts):
+                update_result = self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
+                self._require_mutation_success(update_result, "issueUpdate")
+                issue = self._get_issue_context(issue_id)
+                current_state_name = str(((issue.get("state") or {}).get("name")) or "")
+                if current_state_name.lower() == state.lower():
+                    break
+                if attempt_index + 1 < self.state_confirmation_attempts:
+                    time.sleep(self.state_confirmation_delay_seconds)
+            else:
                 raise LinearClientError(
                     f"Linear issue state did not update to {state!r}; current state is {current_state_name!r}"
                 )
