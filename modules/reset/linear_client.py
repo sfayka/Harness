@@ -98,33 +98,43 @@ class LinearResetClient:
         if not isinstance(mutation, dict) or mutation.get("success") is not True:
             raise LinearClientError(f"Linear {mutation_name} did not succeed")
 
+    def _confirm_issue_state(self, issue_id: str, desired_state_name: str) -> dict[str, Any]:
+        issue = self._get_issue_context(issue_id)
+        current_state_name = str(((issue.get("state") or {}).get("name")) or "")
+        if current_state_name.lower() != desired_state_name.lower():
+            raise LinearClientError(
+                f"Linear issue state did not update to {desired_state_name!r}; current state is {current_state_name!r}"
+            )
+        return issue
+
+    def _set_state_with_confirmation(self, issue_id: str, state_id: str, desired_state_name: str) -> dict[str, Any]:
+        update_mutation = """
+        mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
+          issueUpdate(id: $id, input: $input) {
+            success
+          }
+        }
+        """
+        last_error: LinearClientError | None = None
+        for attempt_index in range(self.state_confirmation_attempts):
+            update_result = self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
+            self._require_mutation_success(update_result, "issueUpdate")
+            try:
+                return self._confirm_issue_state(issue_id, desired_state_name)
+            except LinearClientError as error:
+                last_error = error
+                if attempt_index + 1 < self.state_confirmation_attempts:
+                    time.sleep(self.state_confirmation_delay_seconds)
+        assert last_error is not None
+        raise last_error
+
     def update_issue(self, issue_ref: str, *, state: str | None, harness_status: str, comment: str) -> dict[str, Any]:
         issue = self._get_issue_context(issue_ref)
         issue_id = str(issue["id"])
 
         if state:
             state_id = self._state_id_for_name(issue, state)
-            update_mutation = """
-            mutation UpdateIssue($id: String!, $input: IssueUpdateInput!) {
-              issueUpdate(id: $id, input: $input) {
-                success
-              }
-            }
-            """
-            current_state_name = ""
-            for attempt_index in range(self.state_confirmation_attempts):
-                update_result = self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
-                self._require_mutation_success(update_result, "issueUpdate")
-                issue = self._get_issue_context(issue_id)
-                current_state_name = str(((issue.get("state") or {}).get("name")) or "")
-                if current_state_name.lower() == state.lower():
-                    break
-                if attempt_index + 1 < self.state_confirmation_attempts:
-                    time.sleep(self.state_confirmation_delay_seconds)
-            else:
-                raise LinearClientError(
-                    f"Linear issue state did not update to {state!r}; current state is {current_state_name!r}"
-                )
+            issue = self._set_state_with_confirmation(issue_id, state_id, state)
 
         comment_body = f"Harness status: {harness_status}\n\n{comment}"
         comment_mutation = """
@@ -136,6 +146,11 @@ class LinearResetClient:
         """
         comment_result = self._graphql(comment_mutation, {"input": {"issueId": issue_id, "body": comment_body}})
         self._require_mutation_success(comment_result, "commentCreate")
+        if state:
+            try:
+                issue = self._confirm_issue_state(issue_id, state)
+            except LinearClientError:
+                issue = self._set_state_with_confirmation(issue_id, state_id, state)
         return {
             "issue_id": issue_id,
             "issue_identifier": issue["identifier"],
