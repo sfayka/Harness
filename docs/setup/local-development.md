@@ -64,11 +64,14 @@ For the reset verifier slice, put these in repo-root `.env.local`:
 - `LINEAR_API_KEY`
 - optional `OPENCLAW_BASE_URL`
 - optional `OPENCLAW_REPAIR_ENDPOINT`
+- optional `OPENCLAW_REPAIR_BEARER_TOKEN`
 - optional `HARNESS_RESET_POLL_SECONDS`
 
 `HARNESS_RESET_POLL_SECONDS` controls how long Harness waits before `/reset/tick` asks OpenClaw to retry a contract already in `retrying`. The production default is `900` seconds. For deterministic local test loops, set it to `0`.
 
 When `config/openclaw/.env.local` provides `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, the reset verifier prefers local OpenClaw CLI dispatch over the HTTP callback. `OPENCLAW_BASE_URL` and `OPENCLAW_REPAIR_ENDPOINT` remain the fallback for remote OpenClaw receivers.
+
+If the remote repair receiver is bearer-protected, set `OPENCLAW_REPAIR_BEARER_TOKEN`. Harness will send it as `Authorization: Bearer <token>` on the HTTP repair callback path.
 
 That loopback-style fallback is only appropriate for native local development. Do not copy `OPENCLAW_BASE_URL=http://127.0.0.1:...` into hosted Vercel environments, because the reset verifier will not be able to reach your laptop from a serverless runtime.
 

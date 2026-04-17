@@ -58,6 +58,7 @@ class OpenClawRepairClient:
         transport: str | None = None,
         base_url: str | None = None,
         repair_endpoint: str | None = None,
+        bearer_token: str | None = None,
         cli_bin: str | None = None,
         config_path: str | None = None,
         state_dir: str | None = None,
@@ -67,6 +68,7 @@ class OpenClawRepairClient:
     ) -> None:
         self.base_url = (base_url or os.getenv("OPENCLAW_BASE_URL") or "").rstrip("/")
         self.repair_endpoint = repair_endpoint or os.getenv("OPENCLAW_REPAIR_ENDPOINT") or "/repair"
+        self.bearer_token = bearer_token or os.getenv("OPENCLAW_REPAIR_BEARER_TOKEN")
         self.cli_bin = cli_bin or os.getenv("OPENCLAW_BIN") or "openclaw"
         self.config_path = config_path or os.getenv("OPENCLAW_CONFIG_PATH")
         self.state_dir = state_dir or os.getenv("OPENCLAW_STATE_DIR")
@@ -92,10 +94,13 @@ class OpenClawRepairClient:
             raise OpenClawRepairClientError("OPENCLAW_BASE_URL is required")
         url = f"{self.base_url}{self.repair_endpoint}"
         payload = {"linear_issue_id": issue_id, "reason": reason, "contract_id": contract_id}
+        headers = {"Content-Type": "application/json"}
+        if self.bearer_token:
+            headers["Authorization"] = f"Bearer {self.bearer_token}"
         req = request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         try:
