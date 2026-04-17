@@ -52,6 +52,61 @@ class ResetStoreResolutionTests(unittest.TestCase):
         self.assertIsInstance(store, FileBackedResetStore)
 
 
+class _RecordingCursor:
+    def __init__(self) -> None:
+        self.statements: list[str] = []
+        self.rowcount = 1
+
+    def execute(self, sql: str, params=None) -> None:  # noqa: ANN001
+        self.statements.append(" ".join(sql.split()))
+
+    def fetchone(self):  # noqa: ANN201
+        return None
+
+    def fetchall(self):  # noqa: ANN201
+        return []
+
+    def __enter__(self) -> "_RecordingCursor":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+        return None
+
+
+class _RecordingConnection:
+    def __init__(self, cursor: _RecordingCursor) -> None:
+        self._cursor = cursor
+
+    def cursor(self) -> _RecordingCursor:
+        return self._cursor
+
+    def __enter__(self) -> "_RecordingConnection":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:  # noqa: ANN001
+        return None
+
+
+class PostgresResetStoreSchemaBootstrapTests(unittest.TestCase):
+    def test_create_contract_bootstraps_reset_schema_before_insert(self) -> None:
+        store = PostgresResetStore("postgresql://example")
+        cursor = _RecordingCursor()
+        contract = ResetVerificationContract(
+            contract_id="contract-bootstrap",
+            linear_issue_id="KNO-999",
+            repository_owner="sfayka",
+            repository_name="Harness",
+            branch_ref="codex/reset-verifier-v1",
+        )
+
+        with patch.object(store, "_connect", return_value=_RecordingConnection(cursor)):
+            store.create_contract(contract)
+
+        self.assertGreaterEqual(len(cursor.statements), 2)
+        self.assertIn("CREATE TABLE IF NOT EXISTS reset_contracts", cursor.statements[0])
+        self.assertIn("INSERT INTO reset_contracts", cursor.statements[-1])
+
+
 class ResetStoreContractTests:
     store = None
 

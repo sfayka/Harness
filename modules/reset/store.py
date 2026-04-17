@@ -21,6 +21,23 @@ except ImportError:  # pragma: no cover - exercised when postgres backend is req
     Jsonb = None
 
 
+RESET_CONTRACTS_SCHEMA_STATEMENTS = (
+    """
+    CREATE TABLE IF NOT EXISTS reset_contracts (
+        contract_id TEXT PRIMARY KEY,
+        linear_issue_id TEXT NOT NULL,
+        contract_json JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_reset_contracts_updated_at_desc
+        ON reset_contracts (updated_at DESC)
+    """,
+)
+
+
 class ResetContractNotFoundError(ValueError):
     """Raised when a reset verifier contract is missing."""
 
@@ -98,10 +115,16 @@ class PostgresResetStore(ResetStore):
     def _connect(self):
         return psycopg.connect(self.database_url)
 
+    def _ensure_schema(self, connection: Any) -> None:
+        with connection.cursor() as cursor:
+            for statement in RESET_CONTRACTS_SCHEMA_STATEMENTS:
+                cursor.execute(statement)
+
     def create_contract(self, contract: ResetVerificationContract) -> ResetVerificationContract:
         contract_payload = cast(dict[str, Any], contract.asdict())
         try:
             with self._connect() as connection:
+                self._ensure_schema(connection)
                 with connection.cursor() as cursor:
                     cursor.execute(
                         """
@@ -128,6 +151,7 @@ class PostgresResetStore(ResetStore):
 
     def get_contract(self, contract_id: str) -> ResetVerificationContract:
         with self._connect() as connection:
+            self._ensure_schema(connection)
             with connection.cursor() as cursor:
                 cursor.execute(
                     "SELECT contract_json FROM reset_contracts WHERE contract_id = %s",
@@ -141,6 +165,7 @@ class PostgresResetStore(ResetStore):
     def update_contract(self, contract: ResetVerificationContract) -> ResetVerificationContract:
         contract_payload = cast(dict[str, Any], contract.asdict())
         with self._connect() as connection:
+            self._ensure_schema(connection)
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
@@ -163,6 +188,7 @@ class PostgresResetStore(ResetStore):
 
     def list_contracts(self) -> tuple[ResetVerificationContract, ...]:
         with self._connect() as connection:
+            self._ensure_schema(connection)
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
