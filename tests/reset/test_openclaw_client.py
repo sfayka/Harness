@@ -23,7 +23,13 @@ class _OpenClawHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         body = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode("utf-8")
         payload = json.loads(body)
-        _OpenClawHandler.calls.append({"path": self.path, "payload": payload})
+        _OpenClawHandler.calls.append(
+            {
+                "path": self.path,
+                "payload": payload,
+                "headers": dict(self.headers.items()),
+            }
+        )
         encoded = json.dumps({"status": "accepted"}).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -70,6 +76,28 @@ class OpenClawRepairClientTests(unittest.TestCase):
                 "reason": "commit sha does not exist in the expected repository",
                 "contract_id": "contract-1",
             },
+        )
+        self.assertNotIn("Authorization", _OpenClawHandler.calls[0]["headers"])
+
+    def test_request_repair_sends_bearer_token_when_configured(self) -> None:
+        client = OpenClawRepairClient(
+            transport="http",
+            base_url=f"http://127.0.0.1:{self.port}",
+            repair_endpoint="/repair",
+            bearer_token="repair-secret",
+        )
+
+        response = client.request_repair(
+            "KNO-999",
+            reason="commit sha does not exist in the expected repository",
+            contract_id="contract-1",
+        )
+
+        self.assertEqual(response["status"], "accepted")
+        self.assertEqual(len(_OpenClawHandler.calls), 1)
+        self.assertEqual(
+            _OpenClawHandler.calls[0]["headers"].get("Authorization"),
+            "Bearer repair-secret",
         )
 
     def test_cli_transport_invokes_local_openclaw_agent(self) -> None:

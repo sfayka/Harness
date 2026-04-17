@@ -277,6 +277,9 @@ Reset-slice verifier environment variables:
   - In hosted Vercel runtimes this must be a remote-reachable OpenClaw receiver, not `127.0.0.1`, `localhost`, or another loopback/private-only address
 - `OPENCLAW_REPAIR_ENDPOINT`
   - Optional override for the OpenClaw repair callback path
+- `OPENCLAW_REPAIR_BEARER_TOKEN`
+  - Optional bearer token for authenticated HTTP repair receivers
+  - When set, Harness sends `Authorization: Bearer <token>` on hosted repair callbacks
 
 If the reset verifier rejects a claim and the repair callback itself cannot be delivered, Harness now preserves the failed claim, moves the contract into `needs_review`, and updates Linear to `In Review` instead of returning a transport-shaped false negative that leaves the contract looking untouched.
 

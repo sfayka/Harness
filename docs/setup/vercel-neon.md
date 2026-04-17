@@ -67,6 +67,8 @@ The reset verifier now also bootstraps its own `reset_contracts` table on first 
 
 For hosted repair dispatch, set `OPENCLAW_BASE_URL` to a real remote receiver that the Vercel runtime can reach. Do not reuse a local development value like `http://127.0.0.1:18789`, because that only points back at the serverless container itself.
 
+If that remote receiver requires bearer authentication, also set `OPENCLAW_REPAIR_BEARER_TOKEN`. Hosted Harness will include it as `Authorization: Bearer <token>` on the repair callback request.
+
 If Harness rejects a completion claim and the OpenClaw repair callback is unreachable, the reset verifier now records the failed claim, moves the contract to `needs_review`, and updates Linear to `In Review`. It no longer returns a transport-only `400` that leaves the contract looking idle.
 
 The backend health endpoint remains:
