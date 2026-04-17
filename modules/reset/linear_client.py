@@ -87,6 +87,12 @@ class LinearResetClient:
                 return str(state["id"])
         raise LinearClientError(f"Linear team state {desired_state_name!r} is not available on issue team")
 
+    @staticmethod
+    def _require_mutation_success(payload: dict[str, Any], mutation_name: str) -> None:
+        mutation = payload.get(mutation_name)
+        if not isinstance(mutation, dict) or mutation.get("success") is not True:
+            raise LinearClientError(f"Linear {mutation_name} did not succeed")
+
     def update_issue(self, issue_ref: str, *, state: str | None, harness_status: str, comment: str) -> dict[str, Any]:
         issue = self._get_issue_context(issue_ref)
         issue_id = str(issue["id"])
@@ -100,7 +106,14 @@ class LinearResetClient:
               }
             }
             """
-            self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
+            update_result = self._graphql(update_mutation, {"id": issue_id, "input": {"stateId": state_id}})
+            self._require_mutation_success(update_result, "issueUpdate")
+            issue = self._get_issue_context(issue_id)
+            current_state_name = str(((issue.get("state") or {}).get("name")) or "")
+            if current_state_name.lower() != state.lower():
+                raise LinearClientError(
+                    f"Linear issue state did not update to {state!r}; current state is {current_state_name!r}"
+                )
 
         comment_body = f"Harness status: {harness_status}\n\n{comment}"
         comment_mutation = """
@@ -110,7 +123,8 @@ class LinearResetClient:
           }
         }
         """
-        self._graphql(comment_mutation, {"input": {"issueId": issue_id, "body": comment_body}})
+        comment_result = self._graphql(comment_mutation, {"input": {"issueId": issue_id, "body": comment_body}})
+        self._require_mutation_success(comment_result, "commentCreate")
         return {
             "issue_id": issue_id,
             "issue_identifier": issue["identifier"],

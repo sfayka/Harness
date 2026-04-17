@@ -17,6 +17,22 @@ def _free_port() -> int:
 
 class _LinearHandler(BaseHTTPRequestHandler):
     calls: list[dict] = []
+    issue_update_success = True
+    comment_create_success = True
+    apply_state_change = True
+    current_state_id = "state-in-progress"
+    current_state_name = "In Progress"
+    current_state_type = "started"
+
+    @classmethod
+    def reset(cls) -> None:
+        cls.calls = []
+        cls.issue_update_success = True
+        cls.comment_create_success = True
+        cls.apply_state_change = True
+        cls.current_state_id = "state-in-progress"
+        cls.current_state_name = "In Progress"
+        cls.current_state_type = "started"
 
     def do_POST(self) -> None:  # noqa: N802
         body = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode("utf-8")
@@ -38,7 +54,11 @@ class _LinearHandler(BaseHTTPRequestHandler):
                         "identifier": "KNO-999",
                         "url": "https://linear.app/knoxanalytics/issue/KNO-999/example",
                         "title": "Example",
-                        "state": {"id": "state-in-progress", "name": "In Progress", "type": "started"},
+                        "state": {
+                            "id": _LinearHandler.current_state_id,
+                            "name": _LinearHandler.current_state_name,
+                            "type": _LinearHandler.current_state_type,
+                        },
                         "team": {
                             "id": "team-1",
                             "name": "Knoxanalytics",
@@ -54,9 +74,21 @@ class _LinearHandler(BaseHTTPRequestHandler):
                 }
             }
         elif "mutation UpdateIssue" in query:
-            response = {"data": {"issueUpdate": {"success": True}}}
+            state_id = payload["variables"]["input"]["stateId"]
+            if _LinearHandler.issue_update_success and _LinearHandler.apply_state_change:
+                state_lookup = {
+                    "state-in-progress": ("state-in-progress", "In Progress", "started"),
+                    "state-review": ("state-review", "In Review", "started"),
+                    "state-done": ("state-done", "Done", "completed"),
+                }
+                (
+                    _LinearHandler.current_state_id,
+                    _LinearHandler.current_state_name,
+                    _LinearHandler.current_state_type,
+                ) = state_lookup[state_id]
+            response = {"data": {"issueUpdate": {"success": _LinearHandler.issue_update_success}}}
         elif "mutation CreateComment" in query:
-            response = {"data": {"commentCreate": {"success": True}}}
+            response = {"data": {"commentCreate": {"success": _LinearHandler.comment_create_success}}}
         else:
             response = {"errors": [{"message": "unexpected query"}]}
 
@@ -73,7 +105,7 @@ class _LinearHandler(BaseHTTPRequestHandler):
 
 class LinearResetClientTests(unittest.TestCase):
     def setUp(self) -> None:
-        _LinearHandler.calls = []
+        _LinearHandler.reset()
         self.port = _free_port()
         self.server = ThreadingHTTPServer(("127.0.0.1", self.port), _LinearHandler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -98,11 +130,12 @@ class LinearResetClientTests(unittest.TestCase):
 
         self.assertEqual(result["issue_id"], "uuid-123")
         self.assertEqual(result["state"], "Done")
-        self.assertEqual(len(_LinearHandler.calls), 3)
-        issue_query, update_mutation, comment_mutation = _LinearHandler.calls
+        self.assertEqual(len(_LinearHandler.calls), 4)
+        issue_query, update_mutation, state_readback_query, comment_mutation = _LinearHandler.calls
         self.assertEqual(issue_query["headers"]["Authorization"], "linear-test-token")
         self.assertEqual(update_mutation["variables"]["id"], "uuid-123")
         self.assertEqual(update_mutation["variables"]["input"]["stateId"], "state-done")
+        self.assertIn("query IssueContext", state_readback_query["query"])
         self.assertEqual(comment_mutation["variables"]["input"]["issueId"], "uuid-123")
         self.assertIn("Harness status: verified", comment_mutation["variables"]["input"]["body"])
 
@@ -113,6 +146,39 @@ class LinearResetClientTests(unittest.TestCase):
                 state="Blocked",
                 harness_status="retrying",
                 comment="missing state",
+            )
+
+    def test_raises_when_issue_update_reports_unsuccessful_mutation(self) -> None:
+        _LinearHandler.issue_update_success = False
+
+        with self.assertRaises(LinearClientError):
+            self.client.update_issue(
+                "KNO-999",
+                state="In Review",
+                harness_status="needs_review",
+                comment="state update failed",
+            )
+
+    def test_raises_when_comment_create_reports_unsuccessful_mutation(self) -> None:
+        _LinearHandler.comment_create_success = False
+
+        with self.assertRaises(LinearClientError):
+            self.client.update_issue(
+                "KNO-999",
+                state="In Review",
+                harness_status="needs_review",
+                comment="comment failed",
+            )
+
+    def test_raises_when_state_readback_does_not_match_requested_state(self) -> None:
+        _LinearHandler.apply_state_change = False
+
+        with self.assertRaises(LinearClientError):
+            self.client.update_issue(
+                "KNO-999",
+                state="In Review",
+                harness_status="needs_review",
+                comment="state readback mismatch",
             )
 
 
