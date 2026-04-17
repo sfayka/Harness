@@ -70,6 +70,8 @@ For the reset verifier slice, put these in repo-root `.env.local`:
 
 When `config/openclaw/.env.local` provides `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, the reset verifier prefers local OpenClaw CLI dispatch over the HTTP callback. `OPENCLAW_BASE_URL` and `OPENCLAW_REPAIR_ENDPOINT` remain the fallback for remote OpenClaw receivers.
 
+That loopback-style fallback is only appropriate for native local development. Do not copy `OPENCLAW_BASE_URL=http://127.0.0.1:...` into hosted Vercel environments, because the reset verifier will not be able to reach your laptop from a serverless runtime.
+
 To run the same backend against Postgres instead of the file-backed store:
 
 ```bash

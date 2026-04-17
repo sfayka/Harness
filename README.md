@@ -274,8 +274,11 @@ Reset-slice verifier environment variables:
   - Used by the reset verifier to move Linear issues and leave canonical Harness comments
 - `OPENCLAW_BASE_URL`
   - Optional HTTP fallback used when the reset verifier requests OpenClaw repair through a remote callback endpoint
+  - In hosted Vercel runtimes this must be a remote-reachable OpenClaw receiver, not `127.0.0.1`, `localhost`, or another loopback/private-only address
 - `OPENCLAW_REPAIR_ENDPOINT`
   - Optional override for the OpenClaw repair callback path
+
+If the reset verifier rejects a claim and the repair callback itself cannot be delivered, Harness now preserves the failed claim, moves the contract into `needs_review`, and updates Linear to `In Review` instead of returning a transport-shaped false negative that leaves the contract looking untouched.
 
 For native local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
 
