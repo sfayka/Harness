@@ -63,6 +63,8 @@ Apply the schema before first real use:
 psql "$POSTGRES_URL" -f sql/postgres/001_harness_store.sql
 ```
 
+The reset verifier now also bootstraps its own `reset_contracts` table on first Postgres access if that slice has not been migrated yet. That protects hosted `/backend/reset/*` routes from failing with opaque `500` errors when the canonical task schema exists but the reset slice has not been applied yet.
+
 The backend health endpoint remains:
 
 - `GET /backend/health`
