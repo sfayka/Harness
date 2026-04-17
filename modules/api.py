@@ -1942,7 +1942,15 @@ def _github_sync_completion_evidence_update(
         if _normalized_string(item) is not None
     ]
     if not required_types:
-        return None
+        latest_claim = _latest_advisory_completion_claim(stored_task)
+        latest_attempt = _execution_attempt_for_completion_claim(
+            stored_task,
+            completion_claim=latest_claim,
+        )
+        if _task_requires_code_execution(stored_task, external_facts=None, attempt=latest_attempt):
+            required_types = ["pull_request", "commit"]
+        else:
+            return None
 
     existing_validated_ids = [
         str(item)
@@ -1991,6 +1999,7 @@ def _github_sync_completion_evidence_update(
 
     return {
         "policy": "required",
+        "required_artifact_types": required_types,
         "validated_artifact_ids": merged_validated_ids,
         "validation_method": "external_reconciliation",
         "validated_at": _iso_now(),
@@ -2037,6 +2046,23 @@ def _is_successful_execution_attempt(attempt: dict[str, Any] | None) -> bool:
     return status in {"completed", "succeeded", "success"}
 
 
+def _execution_attempt_signals_code_execution(attempt: dict[str, Any] | None) -> bool:
+    if not isinstance(attempt, dict):
+        return False
+
+    artifact_references = attempt.get("artifact_references")
+    if not isinstance(artifact_references, list):
+        return False
+
+    for artifact_reference in artifact_references:
+        if not isinstance(artifact_reference, dict):
+            continue
+        artifact_type = _normalized_string(artifact_reference.get("artifact_type"))
+        if artifact_type in _CODE_EXECUTION_ARTIFACT_TYPES:
+            return True
+    return False
+
+
 def _task_requires_code_execution(
     task_envelope: dict[str, Any],
     *,
@@ -2055,6 +2081,9 @@ def _task_requires_code_execution(
     if external_facts is not None and (
         external_facts.expected_code_context is not None or external_facts.github_facts is not None
     ):
+        return True
+
+    if _execution_attempt_signals_code_execution(attempt):
         return True
 
     executor_type = _executor_hint_from_task(task_envelope)
