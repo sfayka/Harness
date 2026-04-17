@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 from modules.reset.contracts import ResetCompletionClaim, ResetVerificationContract
 from modules.reset.service import ResetVerificationService
+from modules.reset.store import PostgresResetStore
 from modules.reset.store import FileBackedResetStore
 
 
@@ -37,6 +38,20 @@ class FakeVerifier:
 
 
 class ResetVerificationServiceTests(unittest.TestCase):
+    def test_from_env_uses_postgres_reset_store_in_vercel_runtime_when_database_url_is_available(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "VERCEL_URL": "harness-preview.vercel.app",
+                "POSTGRES_URL": "postgresql://env-vercel",
+            },
+            clear=True,
+        ):
+            service = ResetVerificationService.from_env()
+
+        self.assertIsInstance(service.store, PostgresResetStore)
+        self.assertEqual(service.store.database_url, "postgresql://env-vercel")
+
     def test_from_env_prefers_explicit_reset_store_root(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.dict(
@@ -55,7 +70,7 @@ class ResetVerificationServiceTests(unittest.TestCase):
         with patch.dict("os.environ", {"VERCEL_URL": "harness-umber.vercel.app"}, clear=True):
             service = ResetVerificationService.from_env()
 
-        self.assertEqual(service.store.root_dir, Path(tempfile.gettempdir()) / "harness-reset")
+        self.assertEqual(service.store.root_dir, Path("/tmp/harness-reset"))
 
     def test_invalid_proof_requests_repair_and_keeps_issue_in_progress(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

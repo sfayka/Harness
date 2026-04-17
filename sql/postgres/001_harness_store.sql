@@ -18,3 +18,14 @@ CREATE TABLE IF NOT EXISTS evaluation_records (
 
 CREATE INDEX IF NOT EXISTS idx_evaluation_records_task_recorded_at
     ON evaluation_records (task_id, recorded_at);
+
+CREATE TABLE IF NOT EXISTS reset_contracts (
+    contract_id TEXT PRIMARY KEY,
+    linear_issue_id TEXT NOT NULL,
+    contract_json JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_reset_contracts_updated_at_desc
+    ON reset_contracts (updated_at DESC);
