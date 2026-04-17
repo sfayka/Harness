@@ -149,6 +149,8 @@ class LinearResetClient:
         if state:
             try:
                 issue = self._confirm_issue_state(issue_id, state)
+                time.sleep(self.state_confirmation_delay_seconds)
+                issue = self._confirm_issue_state(issue_id, state)
             except LinearClientError:
                 issue = self._set_state_with_confirmation(issue_id, state_id, state)
         return {
