@@ -8,7 +8,7 @@ Define the top-level system model before implementation so future modules do not
 
 Harness sits underneath the user-facing and agent-facing work surface as the system that enforces correctness.
 
-- OpenClaw is the ingress layer.
+- A desktop agent client such as OpenClaw, Hermes, or a future equivalent is the ingress layer.
 - Linear is the human-and-agent work surface and the source of truth for structured work.
 - Harness is the control plane and reliability layer beneath that work surface.
 - GitHub is the source of truth for code artifacts such as pull requests and commits.
@@ -28,7 +28,7 @@ An editable Excalidraw version also lives in [system-context.excalidraw](system-
 
 ```mermaid
 flowchart LR
-    U["User"] --> O["OpenClaw\nIngress and clarification"]
+    U["User"] --> O["Desktop Agent Client\nIngress and clarification"]
     O --> L["Linear\nWork surface and structured work source of truth"]
     L --> H["Harness\nControl plane and reliability layer"]
     H --> G["GitHub\nArtifact evidence source of truth"]
@@ -41,7 +41,7 @@ flowchart LR
 
 ## Responsibilities By System
 
-### OpenClaw
+### Desktop Agent Client
 
 - collects user intent
 - asks follow-up questions when intent is ambiguous
@@ -88,7 +88,7 @@ flowchart LR
 
 ## Boundary Rules
 
-- OpenClaw does not become the durable orchestrator.
+- Desktop agent clients do not become the durable orchestrator.
 - Harness does not become the user interface.
 - Linear owns work coordination and structured work records, not completion enforcement semantics.
 - GitHub owns artifact evidence records, not lifecycle policy.

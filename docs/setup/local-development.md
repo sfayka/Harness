@@ -56,7 +56,7 @@ pnpm build
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-`backend.server` now auto-loads repo-root `.env.local` during native local startup. It also loads `config/openclaw/.env.local` when present so local OpenClaw config and state paths do not need to be duplicated into the shell environment.
+`backend.server` now auto-loads repo-root `.env.local` during native local startup. It also loads `config/openclaw/.env.local` when present so the current repo-owned desktop-agent config and state paths do not need to be duplicated into the shell environment.
 
 For the reset verifier slice, put these in repo-root `.env.local`:
 
@@ -67,9 +67,11 @@ For the reset verifier slice, put these in repo-root `.env.local`:
 - optional `OPENCLAW_REPAIR_BEARER_TOKEN`
 - optional `HARNESS_RESET_POLL_SECONDS`
 
-`HARNESS_RESET_POLL_SECONDS` controls how long Harness waits before `/reset/tick` asks OpenClaw to retry a contract already in `retrying`. The production default is `900` seconds. For deterministic local test loops, set it to `0`.
+The `OPENCLAW_*` names remain because the current repair receiver adapter in the repo is OpenClaw-shaped. They are operational names, not the architectural boundary.
 
-When `config/openclaw/.env.local` provides `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, the reset verifier prefers local OpenClaw CLI dispatch over the HTTP callback. `OPENCLAW_BASE_URL` and `OPENCLAW_REPAIR_ENDPOINT` remain the fallback for remote OpenClaw receivers.
+`HARNESS_RESET_POLL_SECONDS` controls how long Harness waits before `/reset/tick` asks the configured repair receiver to retry a contract already in `retrying`. The production default is `900` seconds. For deterministic local test loops, set it to `0`.
+
+When `config/openclaw/.env.local` provides `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, the reset verifier prefers the current repo-owned OpenClaw CLI dispatch over the HTTP callback. `OPENCLAW_BASE_URL` and `OPENCLAW_REPAIR_ENDPOINT` remain the fallback for remote repair receivers.
 
 If the remote repair receiver is bearer-protected, set `OPENCLAW_REPAIR_BEARER_TOKEN`. Harness will send it as `Authorization: Bearer <token>` on the HTTP repair callback path.
 
@@ -107,7 +109,7 @@ Use this path when you want Harness to:
 
 - register a Linear issue verification contract
 - verify GitHub proof for a claimed completion
-- trigger OpenClaw repair on invalid proof
+- trigger repair dispatch on invalid proof
 - escalate to `In Review` after the retry budget is exhausted
 
 ### Reset Verifier Dry Runs
@@ -122,7 +124,7 @@ python3 -m modules.reset_dryrun review
 These commands:
 
 - start a temporary local FastAPI app
-- hit the `/reset/*` routes through the thin OpenClaw-style HTTP client
+- hit the `/reset/*` routes through the current thin desktop-agent HTTP client implementation
 - avoid mutating real Linear or GitHub state
 - prove the two operator-critical paths:
   - retryable invalid proof that later verifies successfully
@@ -142,7 +144,21 @@ That live smoke:
 - creates real branches, commits, and pull requests in `sfayka/HARNESS-DRYRUN`
 - runs the happy path first
 - then runs real GitHub-backed unhappy paths for missing PR linkage and wrong SHA review escalation
-- keeps OpenClaw simulated so the only live systems are Harness, Linear, and GitHub
+- keeps the desktop-agent repair side simulated so the only live systems are Harness, Linear, and GitHub
+
+### Next Reset Verifier Test Steps
+
+The next staged test sequence is documented in:
+
+- [`docs/superpowers/plans/2026-04-18-reset-verifier-next-test-steps.md`](../superpowers/plans/2026-04-18-reset-verifier-next-test-steps.md)
+
+That plan moves in five stages:
+
+- deterministic local reset baseline
+- local live smoke against Linear and GitHub
+- hosted callback reachability proof
+- hosted end-to-end remote repair proof
+- generic desktop-agent contract smoke through canonical `/tasks` and `/supervision/queue`
 
 ### Run The Dashboard
 

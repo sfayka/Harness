@@ -21,7 +21,7 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - `GET /tasks/<task_id>/evaluations`: append-only evaluation history
 - `GET /tasks/<task_id>/read-model`: canonical current-truth projection for one task
 - `GET /tasks/<task_id>/timeline`: canonical ordered audit timeline for one task
-- `GET /supervision/queue`: canonical attention queue for autonomous supervisors such as OpenClaw
+- `GET /supervision/queue`: canonical attention queue for autonomous supervisors such as OpenClaw, Hermes, or a future desktop agent client
 
 `GET /supervision/queue` is projection-only. It does not create work, mutate task state, or authorize follow-up actions. It exists so an ingress-side supervisor can poll Harness for the tasks that currently need intervention without rebuilding policy client-side from raw task payloads.
 
@@ -34,9 +34,9 @@ Queue entries are derived from canonical read-model and timeline truth and curre
 - `retryable_failure`
 - `stale_active_task`
 
-OpenClaw or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, dispatch, completion-claim, or reevaluation paths.
+OpenClaw, Hermes, or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, dispatch, completion-claim, or reevaluation paths.
 
-The repository now includes a thin example supervisor loop in [`modules/connectors/openclaw_supervisor.py`](../../modules/connectors/openclaw_supervisor.py). That client does not mutate review, clarification, or proof decisions on its own. It only:
+The repository now includes a thin example supervisor loop in [`modules/connectors/openclaw_supervisor.py`](../../modules/connectors/openclaw_supervisor.py). That file is the current concrete OpenClaw-shaped example, not an architectural requirement. It does not mutate review, clarification, or proof decisions on its own. It only:
 
 - polls `GET /supervision/queue`
 - enriches queue entries with canonical inspection surfaces
@@ -51,7 +51,7 @@ Ingress adapters are intake/planning surfaces, not execution-reporting surfaces.
 
 ## Ingress Client Contract
 
-If you are building a new ingress client such as Hermes, do not start from `/ingress/manual` just because it is easy to hit. The `/ingress/*` routes are source-specific translators. They exist for callers that already have manual-, Linear-, or OpenClaw-shaped payloads.
+If you are building or swapping a direct ingress client such as Hermes, OpenClaw, or a future equivalent, do not start from `/ingress/manual` just because it is easy to hit. The `/ingress/*` routes are source-specific translators. They exist for callers that already have manual-, Linear-, or OpenClaw-shaped payloads.
 
 For a new ingress that wants to speak Harness directly, the stable contract is:
 
@@ -98,7 +98,7 @@ If the ingress needs to report completion, runtime telemetry, repository proof, 
 
 ### Planning-Only Example
 
-This is a canonical planning-only payload for a generic ingress client. Replace `{{now_iso}}` and `{{run_id}}` before sending.
+This is a canonical planning-only payload for a generic ingress client. It uses Hermes as the example name only. Replace `{{now_iso}}`, `{{run_id}}`, and the client-specific metadata before sending.
 
 ```json
 {

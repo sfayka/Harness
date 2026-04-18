@@ -1,8 +1,10 @@
 # OpenClaw Local Bootstrap
 
+This document covers one concrete local client implementation. Harness is not architecturally tied to OpenClaw. Hermes or a future desktop agent client can fill the same ingress or supervision role as long as it speaks the canonical Harness boundaries. This file keeps the OpenClaw name because the current repo-owned scripts, config template, and local bootstrap path are OpenClaw-specific.
+
 This document defines a local-first, deterministic OpenClaw bring-up path for Harness.
 
-The goal is not broad Harness ↔ OpenClaw integration yet. The goal is a reproducible macOS-oriented install and config scaffold that avoids interactive onboarding, keeps config explicit, and gives future adapter work a stable base.
+The goal is not broad Harness ↔ OpenClaw integration yet. The goal is a reproducible macOS-oriented install and config scaffold for one current client implementation that avoids interactive onboarding, keeps config explicit, and gives future adapter work a stable base.
 
 ## Why Local-First
 
