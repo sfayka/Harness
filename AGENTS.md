@@ -202,6 +202,26 @@ For inspection:
 
 Do not add separate frontend-only truth sources for evidence, verification, reconciliation, or lifecycle summaries.
 
+## Workflow Discipline For Harness Changes
+
+Use structured plan, review, QA, security, and shipping discipline in this repo, but do not turn workflow tooling into a replacement control plane.
+
+When working in this repo:
+
+- shape vague or mixed product/implementation changes before coding
+- do engineering review before significant backend, contract, evaluator, read-model, or integration work
+- do code review before claiming a change is ready
+- use systematic root-cause debugging for failed validations, unexpected behavior, or policy mismatches
+- do real dashboard/browser verification when frontend behavior changes
+- do explicit security review when the change touches trust boundaries, auth, ingress, reconciliation, or evidence-handling paths
+- only ship after the repo-specific validation in this file has passed
+
+Keep the role split intact:
+- workflow tooling helps with planning, review, QA, and shipping discipline
+- Harness still owns task truth, lifecycle correctness, verification, and reconciliation semantics
+
+Do not use workflow language as justification to weaken Harness invariants or to replace canonical API/read-model/timeline surfaces.
+
 ## Required Validation Before Claiming Work Complete
 
 At minimum, run the validation that matches your change:
