@@ -202,25 +202,25 @@ For inspection:
 
 Do not add separate frontend-only truth sources for evidence, verification, reconciliation, or lifecycle summaries.
 
-## GStack Workflow For Harness Changes
+## Workflow Discipline For Harness Changes
 
-Harness should use GStack as workflow discipline, not as a replacement control plane.
+Use structured plan, review, QA, security, and shipping discipline in this repo, but do not turn workflow tooling into a replacement control plane.
 
 When working in this repo:
 
-- use `gstack-office-hours` or `gstack-autoplan` when the requested change is still vague, broad, or mixes product and implementation questions
-- use `gstack-plan-eng-review` before significant backend, contract, evaluator, read-model, or integration work
-- use `gstack-review` before claiming a code change is ready
-- use `gstack-investigate` for debugging, unexpected behavior, failed validations, or policy mismatches
-- use `gstack-qa` for real dashboard/browser verification when frontend behavior changes
-- use `gstack-cso` when the change touches trust boundaries, auth, ingress, reconciliation, or evidence-handling paths
-- use `gstack-ship` only after the repo-specific validation in this file has passed
+- shape vague or mixed product/implementation changes before coding
+- do engineering review before significant backend, contract, evaluator, read-model, or integration work
+- do code review before claiming a change is ready
+- use systematic root-cause debugging for failed validations, unexpected behavior, or policy mismatches
+- do real dashboard/browser verification when frontend behavior changes
+- do explicit security review when the change touches trust boundaries, auth, ingress, reconciliation, or evidence-handling paths
+- only ship after the repo-specific validation in this file has passed
 
 Keep the role split intact:
-- GStack helps with planning, review, QA, and shipping discipline
+- workflow tooling helps with planning, review, QA, and shipping discipline
 - Harness still owns task truth, lifecycle correctness, verification, and reconciliation semantics
 
-Do not use GStack workflow language as justification to weaken Harness invariants or to replace canonical API/read-model/timeline surfaces.
+Do not use workflow language as justification to weaken Harness invariants or to replace canonical API/read-model/timeline surfaces.
 
 ## Required Validation Before Claiming Work Complete
 
