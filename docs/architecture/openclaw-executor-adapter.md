@@ -1,40 +1,42 @@
-# OpenClaw Executor Adapter
+# Desktop Agent Executor Adapter (OpenClaw Example)
 
 ## Purpose
 
-Define the future adapter boundary that would allow Harness to use OpenClaw as an execution engine while keeping lifecycle truth, verification, and completion enforcement inside Harness.
+Define the future adapter boundary that would allow Harness to use a desktop agent client as an execution engine while keeping lifecycle truth, verification, and completion enforcement inside Harness.
 
-This document is planning-only. It does not add a working OpenClaw execution integration.
+This document is planning-only. It does not add a working execution integration.
+
+The file keeps its existing OpenClaw-oriented path because the current spike and local adapter work in this repo are OpenClaw-shaped. The architectural constraints here are meant to apply equally to Hermes or a future desktop agent client.
 
 ## Scope
 
 This architecture definition is limited to:
 
-- executor-side boundary definition for a future OpenClaw adapter
+- executor-side boundary definition for a future desktop-agent adapter, using OpenClaw as the current concrete example
 - separation between ingress/client behavior and executor behavior
 - explicit constraints that preserve Harness as lifecycle and completion authority
 
 ## Why It Exists
 
-The repository already contains an ingress-side OpenClaw spike proving that OpenClaw can act as a thin client against Harness's public API.
+The repository already contains an ingress-side OpenClaw spike proving that one desktop agent client can act as a thin client against Harness's public API.
 
 A future executor adapter is a different concern:
 
 - ingress answers how work enters Harness
-- executor adaptation answers how assigned work could later be executed by OpenClaw
+- executor adaptation answers how assigned work could later be executed by a desktop agent client
 
 Keeping those concerns separate protects the core design:
 
 - Harness remains the control plane
-- OpenClaw remains replaceable
+- the desktop agent client remains replaceable
 - completion remains evidence-backed instead of executor-declared
 
 ## Responsibilities
 
-The future OpenClaw executor adapter should own only execution-boundary concerns such as:
+The future desktop-agent executor adapter should own only execution-boundary concerns such as:
 
-- mapping canonical assigned-task data into an OpenClaw execution request
-- translating OpenClaw runtime events into canonical execution facts
+- mapping canonical assigned-task data into a client-specific execution request
+- translating client runtime events into canonical execution facts
 - normalizing produced artifacts, outputs, and trace references
 - returning completion claims to Harness for verification instead of accepting them directly
 - preserving provenance needed for audit and reevaluation
@@ -56,15 +58,15 @@ The adapter must not:
 This architecture definition explicitly does **not** include:
 
 - implementing OpenClaw API wiring
-- implementing a production-ready OpenClaw runtime integration
-- making OpenClaw the source of lifecycle truth, completion truth, or policy decisions
+- implementing a production-ready desktop-agent runtime integration
+- making any desktop agent client the source of lifecycle truth, completion truth, or policy decisions
 
 ## Inputs
 
 Expected adapter inputs:
 
 - canonical `TaskEnvelope` data for a task in an execution-ready state
-- assignment metadata identifying OpenClaw as the selected executor
+- assignment metadata identifying the selected client or executor
 - execution attempt context from Harness runtime or dispatch layers
 - constraints, acceptance criteria, artifact expectations, and provenance metadata
 
@@ -83,7 +85,7 @@ The adapter output is execution telemetry and artifact references, not trusted c
 
 ### TaskEnvelope
 
-`TaskEnvelope` remains canonical. The adapter may project a subset into an OpenClaw request, but OpenClaw-specific request shape must not become the source of truth.
+`TaskEnvelope` remains canonical. The adapter may project a subset into a client-specific request, but that request shape must not become the source of truth.
 
 ### Lifecycle States
 
@@ -95,7 +97,7 @@ The adapter is a likely producer of normalized execution-trace references. Those
 
 ### Artifacts And Proof Of Completion
 
-Artifacts produced through OpenClaw remain subject to Harness verification, reconciliation, and manual review rules. An OpenClaw success report is advisory only.
+Artifacts produced through a desktop agent client remain subject to Harness verification, reconciliation, and manual review rules. A client success report is advisory only.
 
 ## Relationship To The Existing OpenClaw Spike
 
@@ -108,21 +110,21 @@ This future adapter would be separate and executor-facing. It should not reuse t
 To preserve executor replaceability:
 
 - Harness-facing adapter APIs should remain executor-generic instead of OpenClaw-specific.
-- OpenClaw-specific request/response details should stay inside adapter translation code.
+- client-specific request/response details should stay inside adapter translation code.
 - Control-plane policies (evaluation outcomes, lifecycle transitions, review gates, reconciliation) must remain in Harness modules.
-- Any future executor can implement the same canonical adapter contract without changing TaskEnvelope semantics.
+- Any future desktop agent client or executor can implement the same canonical adapter contract without changing TaskEnvelope semantics.
 
 ## Future Implementation Notes
 
-- Define a stable executor-adapter contract before any OpenClaw API wiring.
+- Define a stable executor-adapter contract before any client-specific API wiring.
 - Intercept completion claims and route them through canonical Harness verification rather than accepting executor status as terminal truth.
-- Keep OpenClaw payload mapping explicit so executor-specific fields stay outside control-plane contracts.
+- Keep client-specific payload mapping explicit so executor-specific fields stay outside control-plane contracts.
 - Preserve replaceability by keeping the adapter contract generic enough for other executors.
 - Treat execution traces and artifact references as first-class outputs from the adapter boundary.
 
 ## Boundary Summary
 
-OpenClaw may become a future execution backend.
+A desktop agent client such as OpenClaw or Hermes may become a future execution backend.
 
 Harness still owns truth.
 

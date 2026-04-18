@@ -10,10 +10,12 @@ The repo now also carries a narrower reset-oriented path alongside the broader T
 
 That reset slice is the current fastest path to something operationally useful:
 
-- OpenClaw owns intake, PRD generation, decomposition, Linear issue creation, and Codex dispatch.
+- A desktop agent client such as OpenClaw, Hermes, or a future equivalent owns intake, PRD generation, decomposition, Linear issue creation, and Codex dispatch.
 - Harness owns verification contracts, GitHub proof validation, retry budgeting, and Linear truth updates.
 - Linear is the operator UI for V1.
 - GitHub is the proof source for code-bearing completion.
+
+The current repo still carries OpenClaw-shaped adapter names, routes, config templates, and environment variables for the repair path. Treat those names as the current concrete implementation, not as an architectural requirement.
 
 The reset routes live under:
 
@@ -32,23 +34,23 @@ In hosted Vercel runtimes, the reset slice is not allowed to take the whole back
 - A Python control-plane backend that evaluates canonical `TaskEnvelope` submissions.
 - A read-only Next.js dashboard over canonical inspection APIs.
 - A persistence layer for task snapshots and append-only evaluation history.
-- A thin integration boundary around Linear/manual/OpenClaw ingress and GitHub/Linear fact inputs.
+- A thin integration boundary around Linear/manual/client-specific ingress adapters and GitHub/Linear fact inputs.
 - An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
-OpenClaw ingress is also intentionally narrow. It can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If OpenClaw wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If OpenClaw also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
+Client-specific ingress adapters are also intentionally narrow. The repo currently includes an OpenClaw-shaped ingress translator, but the same restriction applies to Hermes or any future desktop agent client: it can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If a client wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If it also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
-On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only projection for OpenClaw-style supervisors: it surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, waiting on canonical GitHub sync, or stale. It does not authorize actions on its own and it does not replace canonical reevaluation, dispatch, completion-claim, or GitHub sync paths.
+On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only projection for desktop-agent supervisors such as OpenClaw, Hermes, or a future equivalent. It surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, waiting on canonical GitHub sync, or stale. It does not authorize actions on its own and it does not replace canonical reevaluation, dispatch, completion-claim, or GitHub sync paths.
 
 On the execution side, Harness now also contains a real Codex Cloud adapter boundary in addition to the stub dispatch path. That adapter projects canonical dispatch input into a Codex Cloud request shape and enforces the repo/bootstrap preflight contract before it will emit a successful advisory completion signal. Live runtime transport is still a separate integration step, but the proof gate is now encoded at the adapter boundary instead of left to convention.
 
 The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
 
-If you are introducing a new ingress such as Hermes, target the canonical `POST /tasks` contract first. The `/ingress/manual`, `/ingress/linear`, and `/ingress/openclaw` routes are translator helpers for those specific payload families, not the universal ingress contract. The source-of-truth ingress shape, prohibited initial-submission fields, and a copyable planning-only example now live in [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md) under `Ingress Client Contract`.
+If you are introducing or swapping a desktop agent client such as Hermes, OpenClaw, or a future equivalent, target the canonical `POST /tasks` contract first. The `/ingress/manual`, `/ingress/linear`, and `/ingress/openclaw` routes are translator helpers for those specific payload families, not the universal ingress contract. The source-of-truth ingress shape, prohibited initial-submission fields, and a copyable planning-only example now live in [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md) under `Ingress Client Contract`.
 
 That same boundary now applies to the canonical `POST /tasks` and one-shot new-task `POST /evaluate` paths as well. A brand-new task may carry intent, planning state, support artifacts, and clarification blockers, but it may not arrive already carrying execution truth. If a caller tries to create a new task with claimed completion, runtime facts, prevalidated completion evidence, execution attempts, advisory completion claims, reconciliation history, assignment truth, or runtime/terminal lifecycle truth, Harness rejects the request as invalid input instead of storing a polluted task snapshot. Even when initial support artifacts are allowed, Harness strips any caller-submitted `verification_status=verified` before persisting the task so new work cannot begin with pre-certified artifact truth.
 
-That clarification rule also now applies across canonical submission, not just the OpenClaw adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`. When later reevaluation clears those required inputs, Harness now resumes the task back to that recorded lifecycle target. If the target is `dispatch_ready`, it immediately runs the same automatic-dispatch policy used after ingestion so “ready next” turns into a real execution attempt instead of a passive label. If the target is `assigned`, Harness restores the active assignment instead of leaving the task blocked behind a resolved clarification.
+That clarification rule also now applies across canonical submission, not just the current OpenClaw-named adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`. When later reevaluation clears those required inputs, Harness now resumes the task back to that recorded lifecycle target. If the target is `dispatch_ready`, it immediately runs the same automatic-dispatch policy used after ingestion so “ready next” turns into a real execution attempt instead of a passive label. If the target is `assigned`, Harness restores the active assignment instead of leaving the task blocked behind a resolved clarification.
 Harness also keeps new-task submission separate from persisted-task mutation. `POST /evaluate` may still evaluate a stored task, but it cannot mutate stored lifecycle, assignment, artifact, or completion-evidence truth through submission-style overlays. Existing tasks must use `POST /tasks/<task_id>/reevaluate` for persisted updates.
 That same fail-closed rule now applies to the persisted-task helpers themselves. `POST /tasks/<task_id>/reevaluate` and `POST /tasks/<task_id>/completion-claims` reject submission-style mutation fields such as `task_envelope`, `task_status`, `assigned_executor`, and `linked_artifacts` instead of silently ignoring them.
 Generic reevaluation is also no longer allowed to combine executor runtime telemetry with repository execution artifacts such as PRs, commits, branches, or changed-file proofs. If a caller is reporting executor-side execution evidence, it must use `POST /tasks/<task_id>/completion-claims`, where Harness records the execution attempt and applies executor-side contract validation before completion can proceed. Fact-only reevaluation can still attach externally synchronized repository artifacts without pretending they came from a fresh executor run.
@@ -147,7 +149,7 @@ These proofs are specific to `missing_pr_after_execution`. They do not claim tha
 The repository also carries planning-only scaffolds for two future capabilities:
 
 - the Harness Evolution Engine (HEE), an advisory subsystem for diagnosing recurring failures and proposing reviewed improvements
-- an OpenClaw executor adapter, a future execution boundary that would keep completion truth, verification, and lifecycle enforcement inside Harness
+- a replaceable desktop-agent executor adapter, with the current concrete example documented in the OpenClaw-shaped adapter note below
 
 See:
 
@@ -273,17 +275,19 @@ Reset-slice verifier environment variables:
 - `LINEAR_API_KEY`
   - Used by the reset verifier to move Linear issues and leave canonical Harness comments
 - `OPENCLAW_BASE_URL`
-  - Optional HTTP fallback used when the reset verifier requests OpenClaw repair through a remote callback endpoint
-  - In hosted Vercel runtimes this must be a remote-reachable OpenClaw receiver, not `127.0.0.1`, `localhost`, or another loopback/private-only address
+  - Optional HTTP fallback used when the reset verifier requests repair through the current OpenClaw-shaped remote callback adapter
+  - In hosted Vercel runtimes this must be a remote-reachable repair receiver, not `127.0.0.1`, `localhost`, or another loopback/private-only address
 - `OPENCLAW_REPAIR_ENDPOINT`
-  - Optional override for the OpenClaw repair callback path
+  - Optional override for the current OpenClaw-shaped repair callback path
 - `OPENCLAW_REPAIR_BEARER_TOKEN`
   - Optional bearer token for authenticated HTTP repair receivers
   - When set, Harness sends `Authorization: Bearer <token>` on hosted repair callbacks
 
 If the reset verifier rejects a claim and the repair callback itself cannot be delivered, Harness now preserves the failed claim, moves the contract into `needs_review`, and updates Linear to `In Review` instead of returning a transport-shaped false negative that leaves the contract looking untouched.
 
-For native local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
+The `OPENCLAW_*` variable names remain because the current repo-owned repair receiver adapter is OpenClaw-specific today. They should be treated as implementation details, not as the architectural boundary.
+
+For native local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the current repo-owned OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
 
 Relevant supporting files:
 
@@ -310,7 +314,7 @@ Run the backend with the file store:
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-`backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned OpenClaw config/state paths without manual shell export steps.
+`backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
 Run the backend with Postgres:
 
