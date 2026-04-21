@@ -53,6 +53,7 @@ temp/
 *.log
 runs/
 .harness-dryruns/
+.superpowers/
 
 # Node / frontend
 node_modules/
