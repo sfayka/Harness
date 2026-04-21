@@ -4,12 +4,19 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any, Iterator, Protocol, cast
 
 from .contracts import ResetVerificationContract
-from modules.store import POSTGRES_DATABASE_URL_ENV_VARS, StoreError, resolve_postgres_database_url
+from modules.store import (
+    POSTGRES_DATABASE_URL_ENV_VARS,
+    StoreError,
+    resolve_postgres_database_url,
+    resolve_sqlite_database_path,
+)
 
 try:
     import psycopg
@@ -34,6 +41,21 @@ RESET_CONTRACTS_SCHEMA_STATEMENTS = (
     """
     CREATE INDEX IF NOT EXISTS idx_reset_contracts_updated_at_desc
         ON reset_contracts (updated_at DESC)
+    """,
+)
+SQLITE_RESET_CONTRACTS_SCHEMA_STATEMENTS = (
+    """
+    CREATE TABLE IF NOT EXISTS reset_contracts (
+        contract_id TEXT PRIMARY KEY,
+        linear_issue_id TEXT NOT NULL,
+        contract_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_reset_contracts_updated_at_desc
+        ON reset_contracts (updated_at DESC, contract_id DESC)
     """,
 )
 
@@ -201,6 +223,130 @@ class PostgresResetStore(ResetStore):
         return tuple(ResetVerificationContract.from_dict(cast(dict[str, Any], row[0])) for row in rows)
 
 
+class SQLiteResetStore(ResetStore):
+    """SQLite-backed store for reset verifier contracts."""
+
+    def __init__(self, database_path: str | Path) -> None:
+        if not str(database_path).strip():
+            raise StoreError("A SQLite database path is required for HARNESS_RESET_STORE_BACKEND=sqlite")
+        self.database_path = Path(database_path).expanduser()
+        try:
+            self.database_path.parent.mkdir(parents=True, exist_ok=True)
+            self._ensure_schema()
+        except sqlite3.Error as error:
+            raise StoreError(
+                f"SQLite reset store at {self.database_path} could not be opened or migrated: {error}"
+            ) from error
+        except OSError as error:
+            raise StoreError(
+                f"SQLite reset store directory for {self.database_path} could not be prepared: {error}"
+            ) from error
+
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        connection = sqlite3.connect(str(self.database_path))
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute("PRAGMA journal_mode = WAL")
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def _ensure_schema(self) -> None:
+        with self._connect() as connection:
+            for statement in SQLITE_RESET_CONTRACTS_SCHEMA_STATEMENTS:
+                connection.execute(statement)
+
+    def schema_ready(self) -> bool:
+        try:
+            with self._connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT name
+                    FROM sqlite_master
+                    WHERE type = 'table' AND name = 'reset_contracts'
+                    """
+                ).fetchone()
+        except sqlite3.Error:
+            return False
+        return row is not None
+
+    def create_contract(self, contract: ResetVerificationContract) -> ResetVerificationContract:
+        contract_payload = json.dumps(contract.asdict(), sort_keys=True, separators=(",", ":"))
+        try:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO reset_contracts (
+                        contract_id,
+                        linear_issue_id,
+                        contract_json,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        contract.contract_id,
+                        contract.linear_issue_id,
+                        contract_payload,
+                        contract.created_at,
+                        contract.updated_at,
+                    ),
+                )
+        except sqlite3.IntegrityError as error:
+            raise ResetContractAlreadyExistsError(f"contract {contract.contract_id!r} already exists") from error
+        return contract
+
+    def get_contract(self, contract_id: str) -> ResetVerificationContract:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT contract_json FROM reset_contracts WHERE contract_id = ?",
+                (contract_id,),
+            ).fetchone()
+        if row is None:
+            raise ResetContractNotFoundError(f"contract {contract_id!r} was not found")
+        return ResetVerificationContract.from_dict(json.loads(str(row["contract_json"])))
+
+    def update_contract(self, contract: ResetVerificationContract) -> ResetVerificationContract:
+        contract_payload = json.dumps(contract.asdict(), sort_keys=True, separators=(",", ":"))
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE reset_contracts
+                SET linear_issue_id = ?,
+                    contract_json = ?,
+                    updated_at = ?
+                WHERE contract_id = ?
+                """,
+                (
+                    contract.linear_issue_id,
+                    contract_payload,
+                    contract.updated_at,
+                    contract.contract_id,
+                ),
+            )
+            if cursor.rowcount == 0:
+                raise ResetContractNotFoundError(f"contract {contract.contract_id!r} was not found")
+        return contract
+
+    def list_contracts(self) -> tuple[ResetVerificationContract, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT contract_json
+                FROM reset_contracts
+                ORDER BY updated_at DESC, contract_id DESC
+                """
+            ).fetchall()
+        return tuple(ResetVerificationContract.from_dict(json.loads(str(row["contract_json"]))) for row in rows)
+
+
 def _parse_iso_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
 
@@ -241,6 +387,9 @@ def build_reset_store(
 
     if backend == "postgres":
         return PostgresResetStore(resolved_database_url)
+    if backend == "sqlite":
+        explicit_reset_root = store_root or os.environ.get("HARNESS_RESET_STORE_ROOT")
+        return SQLiteResetStore(resolve_sqlite_database_path(store_root=explicit_reset_root))
 
     explicit_reset_root = store_root or os.environ.get("HARNESS_RESET_STORE_ROOT")
     if explicit_reset_root:
@@ -260,6 +409,7 @@ __all__ = [
     "build_reset_store",
     "FileBackedResetStore",
     "PostgresResetStore",
+    "SQLiteResetStore",
     "ResetContractAlreadyExistsError",
     "ResetContractNotFoundError",
     "ResetStore",

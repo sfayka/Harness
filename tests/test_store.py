@@ -11,11 +11,13 @@ from modules.evaluation import evaluate_task_case
 from modules.store import (
     FileBackedHarnessStore,
     PostgresHarnessStore,
+    SQLiteHarnessStore,
     StoreError,
     TaskEnvelopeAlreadyExistsError,
     TaskEnvelopeNotFoundError,
     build_harness_store,
     resolve_postgres_database_url,
+    resolve_sqlite_database_path,
 )
 
 
@@ -135,6 +137,62 @@ class FileBackedHarnessStoreTests(HarnessStoreContractTests, unittest.TestCase):
         self.assertTrue(evaluation_path.exists())
 
 
+class SQLiteHarnessStoreTests(HarnessStoreContractTests, unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.database_path = Path(self.temp_dir.name) / "harness.db"
+        self.store = SQLiteHarnessStore(self.database_path)
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def test_creates_sqlite_database_with_schema_version(self) -> None:
+        self.assertTrue(self.database_path.exists())
+        self.assertTrue(self.store.schema_ready())
+
+    def test_persists_across_store_restarts(self) -> None:
+        request = build_demo_request("accepted_completion")
+        result = evaluate_task_case(request)
+
+        self.store.put_task(request.task_envelope)
+        self.store.put_evaluation_record(
+            request=request,
+            result=result,
+            evaluation_id="eval-sqlite-restart",
+            recorded_at="2026-03-24T21:15:00Z",
+        )
+
+        restarted = SQLiteHarnessStore(self.database_path)
+
+        self.assertEqual(restarted.get_task(request.task_envelope["id"])["id"], request.task_envelope["id"])
+        self.assertEqual(
+            restarted.list_evaluation_records(request.task_envelope["id"])[0].evaluation_id,
+            "eval-sqlite-restart",
+        )
+
+    def test_rejects_evaluation_record_for_missing_task(self) -> None:
+        request = build_demo_request("accepted_completion")
+        result = evaluate_task_case(request)
+
+        with self.assertRaises(TaskEnvelopeNotFoundError):
+            self.store.put_evaluation_record(
+                request=request,
+                result=result,
+                evaluation_id="eval-missing-task",
+                recorded_at="2026-03-24T21:00:00Z",
+            )
+
+    def test_corrupt_database_raises_operator_readable_store_error(self) -> None:
+        corrupt_path = Path(self.temp_dir.name) / "corrupt.db"
+        corrupt_path.write_text("not a sqlite database", encoding="utf-8")
+
+        with self.assertRaises(StoreError) as context:
+            SQLiteHarnessStore(corrupt_path)
+
+        self.assertIn("SQLite store", str(context.exception))
+        self.assertIn(str(corrupt_path), str(context.exception))
+
+
 class PostgresDatabaseUrlResolutionTests(unittest.TestCase):
     def test_prefers_explicit_database_url_argument(self) -> None:
         with patch.dict(
@@ -218,6 +276,58 @@ class PostgresDatabaseUrlResolutionTests(unittest.TestCase):
 
         self.assertIn("DATABASE_URL", str(context.exception))
         self.assertIn("POSTGRES_URL", str(context.exception))
+
+
+class SQLiteDatabasePathResolutionTests(unittest.TestCase):
+    def test_prefers_explicit_database_path_argument(self) -> None:
+        with patch.dict(os.environ, {"HARNESS_SQLITE_PATH": "/env/harness.db"}, clear=False):
+            resolved = resolve_sqlite_database_path("/explicit/harness.db")
+
+        self.assertEqual(resolved, Path("/explicit/harness.db"))
+
+    def test_uses_harness_sqlite_path_environment_variable(self) -> None:
+        with patch.dict(os.environ, {"HARNESS_SQLITE_PATH": "/env/harness.db"}, clear=True):
+            resolved = resolve_sqlite_database_path()
+
+        self.assertEqual(resolved, Path("/env/harness.db"))
+
+    def test_uses_store_root_when_no_explicit_sqlite_path_is_set(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            resolved = resolve_sqlite_database_path(store_root="/tmp/harness-store")
+
+        self.assertEqual(resolved, Path("/tmp/harness-store/harness.db"))
+
+    def test_defaults_to_application_support_on_macos(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            resolved = resolve_sqlite_database_path(platform_name="darwin", home="/Users/sean")
+
+        self.assertEqual(resolved, Path("/Users/sean/Library/Application Support/Harness/harness.db"))
+
+    def test_defaults_to_xdg_data_home_on_linux(self) -> None:
+        with patch.dict(os.environ, {"XDG_DATA_HOME": "/tmp/xdg-data"}, clear=True):
+            resolved = resolve_sqlite_database_path(platform_name="linux", home="/Users/sean")
+
+        self.assertEqual(resolved, Path("/tmp/xdg-data/harness/harness.db"))
+
+    def test_defaults_to_local_share_on_linux_without_xdg_data_home(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            resolved = resolve_sqlite_database_path(platform_name="linux", home="/Users/sean")
+
+        self.assertEqual(resolved, Path("/Users/sean/.local/share/harness/harness.db"))
+
+    def test_build_harness_store_accepts_sqlite_backend_from_environment(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        database_path = str(Path(temp_dir.name) / "harness.db")
+        with patch.dict(
+            os.environ,
+            {"HARNESS_STORE_BACKEND": "sqlite", "HARNESS_SQLITE_PATH": database_path},
+            clear=True,
+        ):
+            store = build_harness_store()
+
+        self.assertIsInstance(store, SQLiteHarnessStore)
+        self.assertEqual(store.database_path, Path(database_path))
 
 
 @unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres store tests")

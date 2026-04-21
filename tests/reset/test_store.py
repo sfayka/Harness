@@ -12,6 +12,7 @@ from modules.reset.store import (
     PostgresResetStore,
     ResetContractAlreadyExistsError,
     ResetContractNotFoundError,
+    SQLiteResetStore,
     build_reset_store,
 )
 
@@ -50,6 +51,23 @@ class ResetStoreResolutionTests(unittest.TestCase):
             store = build_reset_store(store_root="/tmp/harness-reset-test")
 
         self.assertIsInstance(store, FileBackedResetStore)
+
+    def test_build_reset_store_honors_sqlite_backend(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        database_path = str(Path(temp_dir.name) / "harness.db")
+        with patch.dict(
+            os.environ,
+            {
+                "HARNESS_RESET_STORE_BACKEND": "sqlite",
+                "HARNESS_SQLITE_PATH": database_path,
+            },
+            clear=True,
+        ):
+            store = build_reset_store()
+
+        self.assertIsInstance(store, SQLiteResetStore)
+        self.assertEqual(store.database_path, Path(database_path))
 
 
 class _RecordingCursor:
@@ -206,6 +224,25 @@ class FileBackedResetStoreTests(ResetStoreContractTests, unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
+
+
+class SQLiteResetStoreTests(ResetStoreContractTests, unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.database_path = Path(self.temp_dir.name) / "harness.db"
+        self.store = SQLiteResetStore(self.database_path)
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+
+    def test_persists_contracts_across_store_restarts(self) -> None:
+        contract = self._sample_contract()
+
+        self.store.create_contract(contract)
+        restarted = SQLiteResetStore(self.database_path)
+
+        self.assertEqual(restarted.get_contract(contract.contract_id).contract_id, contract.contract_id)
+        self.assertTrue(restarted.schema_ready())
 
 
 @unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres reset store tests")
