@@ -21,6 +21,17 @@ ExecutionTraceRecord
   task_id: string
   attempt_id: string
   attempt_sequence: integer
+  trace_segment_id: string
+  continuity_group_id: string
+  segment_sequence: integer
+  segment_kind: execution | replay | retry | resume | compaction | handoff | review_annotation
+  derived_from: TraceContinuityRef[]
+  supersedes: TraceContinuityRef[]
+  compacted_from: TraceContinuityRef[]
+  handoff_from: TraceContinuityRef[]
+  reviewed_from: TraceContinuityRef[]
+  context_snapshot_ref: ContextSnapshotRef?
+  handoff_artifact_refs: ArtifactRef[]
   event_time: timestamp
   event_type: string
   event_status: started | checkpoint | completed | failed | cancelled | timed_out
@@ -37,6 +48,17 @@ ExecutionTraceRecord
   source_record_id: string
   ingest_time: timestamp
   schema_version: string
+
+TraceContinuityRef
+  ref_type: trace_segment | trace_record | artifact | attempt | review_decision
+  ref_id: string
+  relationship: derived_from | supersedes | compacted_from | handoff_from | reviewed_from
+
+ContextSnapshotRef
+  snapshot_id: string
+  source_system: string
+  source_record_id: string
+  captured_at: timestamp
 ```
 
 ## Scope Requirements
@@ -60,11 +82,28 @@ Task-scoped summaries may be derived from attempt traces, but must:
 - keep failed/cancelled/timed-out attempts visible
 - avoid collapsing contradictory attempt outcomes into a single success claim
 
+### Continuity Requirements (required)
+
+Trace records must preserve execution lineage across replay, retry, resume, compaction, handoff, and manual review.
+
+Continuity records must:
+
+- assign each contiguous execution context a stable `trace_segment_id`
+- group related segments with `continuity_group_id`
+- preserve segment order with `segment_sequence`
+- distinguish normal execution from replay, retry, resume, compaction, handoff, and review annotation
+- explicitly link source records through `derived_from`, `supersedes`, `compacted_from`, `handoff_from`, or `reviewed_from`
+- preserve the context snapshot or handoff artifact the executor actually received when available
+- represent missing lineage as unresolved provenance rather than dropping it
+
 ## Provenance And Linkage Requirements
 
 Trace records must remain linkable to canonical control-plane records:
 
 - `TaskEnvelope` identity (`task_id`)
+- execution attempts (`attempt_id`)
+- trace segments (`trace_segment_id`)
+- continuity groups (`continuity_group_id`)
 - evaluation history entries (by explicit reference)
 - timeline events (via `timeline_ref` when available)
 - artifact and evidence records used for verification
@@ -76,6 +115,8 @@ Missing linkage should be represented as explicit unresolved provenance, not sil
 
 - Trace events are descriptive execution facts, not completion decisions.
 - A terminal `completed` trace status does not authorize lifecycle transition by itself.
+- A complete continuity chain does not prove the task outcome is correct.
+- Compacted summaries and handoff artifacts are support context unless verification policy explicitly accepts them as evidence.
 - Verification/reconciliation outcomes remain the trusted completion authority.
 - Trace ingestion or analysis failures must not bypass policy enforcement.
 
@@ -91,3 +132,10 @@ Missing linkage should be represented as explicit unresolved provenance, not sil
 - whether `event_type` should be normalized by a shared enum in v1
 - whether actor identity should support structured resolver metadata beyond `actor_id`
 - what retention windows should apply for full-fidelity trace events versus compacted summaries
+- whether continuity groups should span only one task or support explicit cross-task lineage for future delegated workflows
+
+## Related Documents
+
+- `docs/architecture/trace-continuity.md`
+- `docs/architecture/runtime-execution-contract.md`
+- `docs/architecture/artifact-and-completion-evidence.md`

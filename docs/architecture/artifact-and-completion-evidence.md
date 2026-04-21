@@ -259,8 +259,12 @@ For long-running artifacts, `metadata` should carry structured continuity detail
 - progress counters or checklist summaries for `progress_artifact`
 - plan scope, decomposition revision, or feature list identifiers for `plan_artifact`
 - previous session identifiers, next executor identifiers, or resume instructions for `handoff_artifact`
+- `trace_segment_id` and `continuity_group_id` when the artifact is part of replay, resume, compaction, handoff, or review lineage
+- explicit source references such as `compacted_from`, `handoff_from`, or `reviewed_from` when the artifact summarizes or supersedes earlier context
 
 Harness stores these as auditable task artifacts, but keeps the metadata executor-neutral and substrate-neutral.
+
+Continuity metadata improves inspection and review. It does not promote progress, plan, compacted-summary, or handoff artifacts into completion evidence unless a later explicit evidence policy says so.
 
 ## Completion Evidence
 

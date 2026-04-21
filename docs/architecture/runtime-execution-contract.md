@@ -175,6 +175,21 @@ This distinction matters because:
 
 Runtime reporting should preserve attempt-scoped records without collapsing them into a single task-level story.
 
+## Trace Continuity
+
+The runtime should preserve trace continuity without turning trace data into completion authority.
+
+A task may span retries, resumes, compacted context, executor handoffs, and manual-review follow-up. Those events should remain reconstructable through stable trace segment and continuity identifiers rather than flattened into one success or failure log.
+
+Runtime reporting should preserve:
+
+- `trace_segment_id` for each contiguous execution context
+- `continuity_group_id` for related segments that an operator should inspect together
+- the context snapshot or handoff artifact the executor actually received
+- explicit relationships such as replay, retry, resume, compaction, handoff, and review follow-up
+
+Trace continuity answers what context was used and how it changed over time. Verification and reconciliation still answer whether the produced outcome is trustworthy enough to accept.
+
 ## Execution Event Semantics
 
 Runtime events must be explicit and reviewable.
@@ -453,6 +468,22 @@ Retry policy is not invented by the runtime.
 
 The runtime applies the policy given by Harness core or higher-level orchestration rules.
 
+## Budget Governance
+
+The runtime may observe budget consumption, but it does not invent budget policy.
+
+Budget facts should be attributed to the most specific scope available:
+
+- task
+- attempt
+- executor
+- trace segment
+- tool or integration class
+
+Soft threshold crossings should be reported as auditable warnings or alerts. Hard cap crossings should stop automatic continuation according to policy, for example by pausing execution, blocking retry, or escalating to manual review.
+
+Budget exhaustion is a continuation-governance fact. It does not prove the work is correct, incorrect, complete, or incomplete by itself.
+
 ## Stall And Timeout Semantics
 
 Stalls and timeouts must be treated as first-class runtime findings.
@@ -542,6 +573,8 @@ At minimum, the control plane should preserve:
 - execution start timestamp
 - last progress timestamp
 - emitted execution events
+- trace segment and continuity group references when available
+- budget threshold events when budget policy is active
 - attached outputs and artifacts
 - failure, stall, timeout, and retry records
 - the source that reported each significant execution fact
@@ -553,3 +586,9 @@ The goal is that a reviewer can answer:
 - whether the attempt stalled, failed, or succeeded
 - what outputs or artifacts were produced
 - why a retry or redispatch happened later
+
+## Related Documents
+
+- [Trace Continuity Model](trace-continuity.md)
+- [Execution Budget Model](execution-budget-model.md)
+- [Artifact And Completion Evidence](artifact-and-completion-evidence.md)

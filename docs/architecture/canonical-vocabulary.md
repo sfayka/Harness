@@ -10,7 +10,7 @@ Define the words Harness will use consistently so documentation and implementati
 
 The user-facing entry point that receives requests, asks clarifying questions, and hands validated work into Harness.
 
-For this architecture, OpenClaw is the ingress.
+For this architecture, a desktop agent client such as OpenClaw, Hermes, or a future equivalent may act as ingress. Harness should stay tied to the role, not to one client implementation.
 
 ### Harness
 
@@ -59,6 +59,26 @@ The decision that a specific executor type or executor instance owns a task.
 ### Execution Event
 
 A progress, result, failure, or heartbeat message emitted by an executor and consumed by Harness.
+
+### Trace Segment
+
+One contiguous execution-context span inside an attempt. A new segment usually starts after replay, retry, resume, compaction, handoff, or manual-review follow-up.
+
+### Trace Continuity
+
+The lineage model that preserves how trace segments, context snapshots, compacted summaries, handoff artifacts, attempts, and review decisions relate over time.
+
+Trace continuity is inspection truth, not completion truth.
+
+### Execution Budget
+
+The policy and ledger model that records authorized and consumed spend, runtime, retry count, fan-out, and tool-use limits for delegated execution.
+
+Budget governance controls continuation. It does not decide completion.
+
+### Local Eval Harness
+
+A local-first regression harness for skills and delegated workflows. It compares reproducible fixture runs against baselines and links results back to canonical Harness surfaces when present.
 
 ### Verification
 

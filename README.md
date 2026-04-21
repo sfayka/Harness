@@ -146,14 +146,20 @@ These proofs are specific to `missing_pr_after_execution`. They do not claim tha
 
 ## Planned Capabilities
 
-The repository also carries planning-only scaffolds for two future capabilities:
+The repository also carries planning-only scaffolds for future capabilities:
 
 - the Harness Evolution Engine (HEE), an advisory subsystem for diagnosing recurring failures and proposing reviewed improvements
 - a replaceable desktop-agent executor adapter, with the current concrete example documented in the OpenClaw-shaped adapter note below
+- trace continuity across replay, retry, resume, compaction, handoff, and review
+- execution budget governance for spend, runtime, retry, fan-out, and tool-use caps
+- a local eval harness for skills and delegated workflows
 
 See:
 
 - [`docs/architecture/harness-evolution-engine.md`](docs/architecture/harness-evolution-engine.md)
+- [`docs/architecture/trace-continuity.md`](docs/architecture/trace-continuity.md)
+- [`docs/architecture/execution-budget-model.md`](docs/architecture/execution-budget-model.md)
+- [`docs/architecture/local-eval-harness.md`](docs/architecture/local-eval-harness.md)
 - [`docs/architecture/openclaw-executor-adapter.md`](docs/architecture/openclaw-executor-adapter.md)
 - [`docs/architecture/completion-interception-and-artifact-validation-boundary.md`](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
 
