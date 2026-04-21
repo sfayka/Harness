@@ -77,6 +77,18 @@ If the remote repair receiver is bearer-protected, set `OPENCLAW_REPAIR_BEARER_T
 
 That loopback-style fallback is only appropriate for native local development. Do not copy `OPENCLAW_BASE_URL=http://127.0.0.1:...` into hosted Vercel environments, because the reset verifier will not be able to reach your laptop from a serverless runtime.
 
+To run the backend against SQLite local persistence:
+
+```bash
+export HARNESS_STORE_BACKEND=sqlite
+export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
+```
+
+SQLite mode is the intended persistence base for the self-contained local app. It creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in one local database.
+
+If `HARNESS_SQLITE_PATH` is unset, Harness uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
+
 To run the same backend against Postgres instead of the file-backed store:
 
 ```bash

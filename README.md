@@ -207,8 +207,10 @@ See:
 - Store selection is controlled by `HARNESS_STORE_BACKEND`.
 - Supported backends:
   - `file` for local JSON-backed development.
+  - `sqlite` for durable local app state without Docker or hosted services.
   - `postgres` for durable hosted state.
 - Postgres storage is implemented in [`modules/store.py`](modules/store.py) and bootstrapped with [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql).
+- SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
 - The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
 
 ## Hosted Deployment Target
@@ -263,9 +265,15 @@ Required frontend environment variable:
 Backend storage environment variables:
 
 - `HARNESS_STORE_BACKEND`
-  - Supported values: `file`, `postgres`
+  - Supported values: `file`, `sqlite`, `postgres`
   - Default in [`.env.example`](.env.example): `file`
+  - Self-contained local app mode should use `sqlite`
   - Hosted Vercel deployments auto-select `postgres` when managed Postgres connection variables are present
+- `HARNESS_SQLITE_PATH`
+  - Optional explicit SQLite database file path when `HARNESS_STORE_BACKEND=sqlite`
+  - macOS local app default: `~/Library/Application Support/Harness/harness.db`
+  - Linux default: `$XDG_DATA_HOME/harness/harness.db`, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset
+  - If `HARNESS_STORE_ROOT` is set and `HARNESS_SQLITE_PATH` is not, Harness uses `<HARNESS_STORE_ROOT>/harness.db`
 - Postgres connection string
   - Harness resolves this in order from `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, then `POSTGRES_URL_NO_SSL`
   - `DATABASE_URL` remains the explicit portable override
@@ -319,6 +327,16 @@ Run the backend with the file store:
 ```bash
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
+
+Run the backend with SQLite local persistence:
+
+```bash
+export HARNESS_STORE_BACKEND=sqlite
+export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
+```
+
+SQLite mode creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in the local database. This is the intended persistence base for the self-contained local app.
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 

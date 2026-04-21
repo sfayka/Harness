@@ -76,6 +76,7 @@ from modules.store import (
     EvaluationRecord,
     HarnessStore,
     PostgresHarnessStore,
+    SQLiteHarnessStore,
     TaskEnvelopeAlreadyExistsError,
     TaskEnvelopeNotFoundError,
     build_harness_store,
@@ -3150,17 +3151,32 @@ class HarnessApiService:
             "store_backend": "postgres",
             "database_configured": True,
             "database_host": _parse_database_host(store.database_url),
+            "database_path": None,
+            "database_schema_ready": schema_ready,
+        }
+
+    def _build_sqlite_health_payload(self, store: SQLiteHarnessStore) -> dict[str, Any]:
+        schema_ready = store.schema_ready()
+        return {
+            "status": "ok" if schema_ready else "degraded",
+            "store_backend": "sqlite",
+            "database_configured": True,
+            "database_host": None,
+            "database_path": str(store.database_path),
             "database_schema_ready": schema_ready,
         }
 
     def health(self) -> tuple[int, dict[str, Any]]:
         if isinstance(self.store, PostgresHarnessStore):
             return HTTPStatus.OK, self._build_postgres_health_payload(self.store)
+        if isinstance(self.store, SQLiteHarnessStore):
+            return HTTPStatus.OK, self._build_sqlite_health_payload(self.store)
         return HTTPStatus.OK, {
             "status": "ok",
             "store_backend": "file",
             "database_configured": False,
             "database_host": None,
+            "database_path": None,
             "database_schema_ready": None,
         }
 

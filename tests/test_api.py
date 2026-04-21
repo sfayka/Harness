@@ -8,6 +8,7 @@ import unittest
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 from enum import Enum
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -44,7 +45,7 @@ from modules.contracts.task_envelope_review import (
 )
 from modules.demo_cases import build_demo_request
 from modules.intake import create_task_envelope
-from modules.store import FileBackedHarnessStore, PostgresHarnessStore
+from modules.store import FileBackedHarnessStore, PostgresHarnessStore, SQLiteHarnessStore
 from tests.e2e.scenario_builders import build_review_decision_from_request
 
 
@@ -1067,6 +1068,21 @@ class HarnessApiCliTests(unittest.TestCase):
             service = HarnessApiService()
 
         self.assertIsInstance(service.store, FileBackedHarnessStore)
+
+    def test_service_uses_sqlite_store_backend_from_environment(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        database_path = str(Path(temp_dir.name) / "harness.db")
+
+        with patch.dict(
+            os.environ,
+            {"HARNESS_STORE_BACKEND": "sqlite", "HARNESS_SQLITE_PATH": database_path},
+            clear=True,
+        ):
+            service = HarnessApiService()
+
+        self.assertIsInstance(service.store, SQLiteHarnessStore)
+        self.assertEqual(service.store.database_path, Path(database_path))
 
     @unittest.skipUnless(POSTGRES_TEST_DATABASE_URL, "HARNESS_TEST_DATABASE_URL is required for Postgres startup selection test")
     def test_service_uses_postgres_store_backend_from_environment(self) -> None:
@@ -5264,7 +5280,24 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(payload["store_backend"], "file")
         self.assertFalse(payload["database_configured"])
         self.assertIsNone(payload["database_host"])
+        self.assertIsNone(payload["database_path"])
         self.assertIsNone(payload["database_schema_ready"])
+
+    def test_health_reports_sqlite_schema_ready(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        store = SQLiteHarnessStore(Path(temp_dir.name) / "harness.db")
+        service = HarnessApiService(store=store)
+
+        status, payload = service.health()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["store_backend"], "sqlite")
+        self.assertTrue(payload["database_configured"])
+        self.assertIsNone(payload["database_host"])
+        self.assertEqual(payload["database_path"], str(store.database_path))
+        self.assertTrue(payload["database_schema_ready"])
 
     def test_health_reports_postgres_schema_ready_without_exposing_credentials(self) -> None:
         store = PostgresHarnessStore("postgresql://worker:super-secret@db.internal.example:5432/harness")
@@ -5278,6 +5311,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(payload["store_backend"], "postgres")
         self.assertTrue(payload["database_configured"])
         self.assertEqual(payload["database_host"], "db.internal.example")
+        self.assertIsNone(payload["database_path"])
         self.assertTrue(payload["database_schema_ready"])
         self.assertNotIn("super-secret", json.dumps(payload))
         self.assertNotIn("worker", json.dumps(payload))
@@ -5294,6 +5328,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(payload["store_backend"], "postgres")
         self.assertTrue(payload["database_configured"])
         self.assertEqual(payload["database_host"], "db.internal.example")
+        self.assertIsNone(payload["database_path"])
         self.assertFalse(payload["database_schema_ready"])
 
     def test_health_reports_postgres_schema_not_ready_when_database_is_unreachable(self) -> None:
@@ -5308,6 +5343,7 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(payload["store_backend"], "postgres")
         self.assertTrue(payload["database_configured"])
         self.assertEqual(payload["database_host"], "db.internal.example")
+        self.assertIsNone(payload["database_path"])
         self.assertFalse(payload["database_schema_ready"])
 
     def test_service_retries_retryable_transient_failure_with_bounded_budget(self) -> None:
@@ -5430,6 +5466,7 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(payload["store_backend"], "file")
         self.assertFalse(payload["database_configured"])
         self.assertIsNone(payload["database_host"])
+        self.assertIsNone(payload["database_path"])
         self.assertIsNone(payload["database_schema_ready"])
 
     def test_api_submit_accepts_new_task_and_persists_initial_result(self) -> None:
