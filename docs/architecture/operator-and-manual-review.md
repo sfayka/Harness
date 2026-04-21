@@ -44,6 +44,7 @@ Initial trigger classes include:
 - reconciliation reveals contradictory external facts
 - clarification is deadlocked or cannot be resolved automatically
 - runtime behavior is anomalous enough that automatic retry or reassignment is not obviously safe
+- execution budget thresholds make automatic continuation unsafe or no longer authorized
 - an authorized operator explicitly escalates the task
 
 ### Verification-Driven Review
@@ -78,6 +79,15 @@ Manual review is appropriate when:
 - capability mismatch or execution behavior suggests the current path is no longer trustworthy
 - automatic redispatch or failure would be too risky without human judgment
 
+### Budget Thresholds
+
+Manual review is appropriate when:
+
+- a hard execution budget cap has been crossed
+- retry, fan-out, runtime, or tool-use budget is exhausted
+- missing budget telemetry is itself policy-blocking
+- an operator must decide whether to authorize more spend, reduce scope, reroute execution, or stop the task
+
 ### Explicit Operator Escalation
 
 An authorized operator may escalate a task into manual review when:
@@ -96,6 +106,8 @@ At minimum, the reviewer should be presented with:
 - artifact and completion evidence state
 - reconciliation results and mismatch categories
 - runtime facts and attempt history
+- trace continuity and handoff context when relevant
+- active budget policy, consumed budget, threshold crossings, and allowed continuation choices
 - clarification state when relevant
 - prior review and override history
 
@@ -136,6 +148,25 @@ The reviewer should see:
 - stalls, timeouts, cancellations, and retries
 - relevant outputs or execution logs when needed
 
+### Trace Continuity
+
+The reviewer should see:
+
+- trace segments inspected by the review
+- continuity group for related replay, retry, resume, compaction, and handoff events
+- context snapshots or handoff artifacts used by the current executor
+- unresolved lineage or missing provenance when present
+
+### Budget State
+
+The reviewer should see:
+
+- active budget policy and scope
+- consumed budget by dimension
+- soft and hard threshold crossings
+- actions already taken because of those crossings
+- whether automatic continuation is still allowed
+
 ### Prior Review History
 
 The reviewer should see:
@@ -161,6 +192,7 @@ Initial allowed outcomes include:
 - authorize redispatch
 - authorize re-plan
 - authorize retry
+- authorize budget continuation when policy permits it
 - cancel the task when policy and operator authority allow it
 
 ### Accept Completion
@@ -231,6 +263,21 @@ Typical lifecycle consequence:
 
 These are authorization outcomes. The corresponding module still owns the actual transition mechanics.
 
+### Authorize Budget Continuation
+
+Allowed when:
+
+- policy permits human authorization after a budget threshold
+- the reviewer determines that continued execution is justified
+- the new limit, scope reduction, or execution constraint is recorded explicitly
+
+Typical lifecycle consequence:
+
+- remain in the current non-terminal lifecycle state
+- resume, retry, or redispatch only through the normal owning module
+
+Budget continuation does not accept completion. It only allows more work under an explicit policy decision.
+
 ## Disallowed Reviewer Actions
 
 Reviewers must not:
@@ -260,6 +307,7 @@ At minimum, a review record should include:
 - chosen outcome
 - reasoning summary
 - resulting authorized lifecycle consequence
+- budget continuation terms when the decision authorizes more spend, time, retry, or tool use
 - whether the decision supersedes an earlier review
 
 ### Reviewer Identity
@@ -348,6 +396,12 @@ Verification and manual review are related but distinct.
 
 Manual review should therefore be understood as an explicit escalation path from verification, reconciliation, clarification, runtime anomaly handling, or operator oversight.
 
+## Review Versus Budget Governance
+
+Budget governance controls whether automatic execution may continue.
+
+Manual review may authorize additional spend, runtime, retry, or tool use when policy allows it, but that decision does not decide completion. The task still needs normal verification, reconciliation, or explicit completion acceptance through review.
+
 ## Review Versus Operator Override
 
 Not every operator action is the same as a review outcome.
@@ -385,3 +439,9 @@ The goal is that a reviewer of the system can answer:
 - whether the intervention stayed within policy
 - what evidence or contradiction drove the decision
 - how the review changed the task's lifecycle
+
+## Related Documents
+
+- [Trace Continuity Model](trace-continuity.md)
+- [Execution Budget Model](execution-budget-model.md)
+- [Runtime Execution Contract](runtime-execution-contract.md)

@@ -58,6 +58,9 @@ HEE may consume only canonical records or explicit derived snapshots from:
 - verification, evidence, and reconciliation summaries
 - artifact metadata and completion-proof references
 - execution trace summaries
+- trace continuity records and compacted/handoff lineage
+- execution budget summaries and threshold events
+- local eval run summaries and regression classifications
 - manual review decisions and reviewer notes
 
 ### Required Input Semantics
@@ -111,6 +114,24 @@ Timeline remains canonical audit surface for task progression. HEE may reference
 Execution traces are descriptive evidence of what happened during attempts. HEE may use them for diagnosis but they never become authoritative completion proof by themselves.
 
 Trace minimum-field expectations for future HEE inputs are defined in `modules/evolution/contracts/execution-trace-requirements.contract.md`
+
+Trace continuity expectations for replay, retry, resume, compaction, handoff, and review linkage are defined in `docs/architecture/trace-continuity.md`.
+
+### Execution Budgets
+
+Execution budget records are governance facts about spend, runtime, retry, fan-out, and expensive tool use.
+
+HEE may use budget records to detect workflow regressions or runaway execution patterns, but budget records do not decide task correctness or completion.
+
+Budget planning expectations are defined in `docs/architecture/execution-budget-model.md` and `modules/evolution/contracts/execution-budget.contract.md`.
+
+### Local Eval Results
+
+Local eval results are quality and regression signals for skills and delegated workflows.
+
+HEE may compare local eval trends with historical Harness outcomes. Local eval verdicts remain advisory and must not mutate canonical task lifecycle.
+
+The local eval harness model is defined in `docs/architecture/local-eval-harness.md`.
 
 Failure diagnosis shape and taxonomy expectations are defined in:
 
