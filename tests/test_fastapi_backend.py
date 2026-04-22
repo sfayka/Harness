@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import tempfile
 import unittest
 from copy import deepcopy
@@ -113,6 +114,29 @@ class FastApiBackendTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("store_backend", response.json())
+
+    def test_runtime_status_route_returns_app_shell_contract(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "HARNESS_RUNTIME_MODE": "local-app",
+                "HARNESS_RUNTIME_BASE_URL": "http://127.0.0.1:8765",
+                "HARNESS_RUNTIME_CONFIG_PATH": "/tmp/harness/config.json",
+                "HARNESS_RUNTIME_DATA_DIR": "/tmp/harness",
+                "HARNESS_RUNTIME_LOG_PATH": "/tmp/harness.log",
+            },
+            clear=False,
+        ):
+            client = TestClient(create_app(store=self.store, reset_service=self.reset_service))
+            response = client.get("/runtime/status")
+
+        payload = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["mode"], "local-app")
+        self.assertEqual(payload["api_base_url"], "http://127.0.0.1:8765")
+        self.assertEqual(payload["store_backend"], "file")
+        self.assertEqual(payload["paths"]["config_path"], "/tmp/harness/config.json")
+        self.assertNotIn("TOKEN", json.dumps(payload))
 
     def test_backend_stays_healthy_when_reset_startup_is_unavailable(self) -> None:
         with patch("backend.server.ResetVerificationService.from_env", side_effect=OSError("read-only file system")):

@@ -189,6 +189,7 @@ See:
   - `GET /tasks/<task_id>/read-model`
   - `GET /tasks/<task_id>/timeline`
   - `GET /supervision/queue`
+  - `GET /runtime/status`
 - Canonical mutation surfaces:
 - `POST /tasks`
 - `POST /tasks/<task_id>/reevaluate`
@@ -212,6 +213,7 @@ See:
 - Postgres storage is implemented in [`modules/store.py`](modules/store.py) and bootstrapped with [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql).
 - SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
 - The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
+- The local app runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
 
 ## Hosted Deployment Target
 
@@ -245,6 +247,7 @@ Backend inspection routes:
 - `GET /tasks/<task_id>/read-model`: canonical detail surface for current task truth.
 - `GET /tasks/<task_id>/timeline`: canonical audit timeline.
 - `GET /supervision/queue`: canonical autonomous-supervision triage surface.
+- `GET /runtime/status`: local app runtime status envelope for menu-bar polling.
 
 For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
 
@@ -337,6 +340,18 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 SQLite mode creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in the local database. This is the intended persistence base for the self-contained local app.
+
+Run the local app runtime contract from a repo checkout:
+
+```bash
+python3 -m modules.local_runtime --json init
+python3 -m modules.local_runtime --json status
+python3 -m modules.local_runtime serve
+python3 -m modules.local_runtime --json doctor
+python3 -m modules.local_runtime stop
+```
+
+Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness open`, and `harness stop`. The runtime stores config, SQLite state, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
