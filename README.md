@@ -388,6 +388,14 @@ python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
 
 Default onboarding only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
+The native macOS app shell starts under [`apps/macos/HarnessApp`](apps/macos/HarnessApp). It is a SwiftPM menu-bar app that reads runtime/task state through the local CLI and API contracts, not through direct SQLite access. Build and launch development builds with:
+
+```bash
+./script/build_and_run.sh
+```
+
+See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md).
+
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
 Run the backend with Postgres:
