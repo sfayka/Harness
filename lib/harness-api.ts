@@ -8,6 +8,39 @@ import type {
 } from "@/lib/types";
 
 const proxyBasePath = "/api/harness";
+const localStaticApiBasePath = "";
+
+declare global {
+  interface Window {
+    __HARNESS_DASHBOARD_CONFIG__?: {
+      apiBaseUrl?: string;
+    };
+  }
+}
+
+function stripTrailingSlash(value: string): string {
+  return value.replace(/\/$/, "");
+}
+
+export function resolveDashboardApiBasePath(): string {
+  if (typeof window !== "undefined") {
+    const runtimeBaseUrl = window.__HARNESS_DASHBOARD_CONFIG__?.apiBaseUrl?.trim();
+    if (runtimeBaseUrl) {
+      return stripTrailingSlash(runtimeBaseUrl);
+    }
+  }
+
+  const publicBaseUrl = process.env.NEXT_PUBLIC_HARNESS_API_BASE_URL?.trim();
+  if (publicBaseUrl) {
+    return stripTrailingSlash(publicBaseUrl);
+  }
+
+  if (process.env.NEXT_PUBLIC_HARNESS_DASHBOARD_MODE === "local-static") {
+    return localStaticApiBasePath;
+  }
+
+  return proxyBasePath;
+}
 
 function mapVerificationStatus(summary: Record<string, unknown> | null): VerificationStatus | null {
   if (!summary) {
@@ -345,7 +378,7 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
 }
 
 async function fetchJson(path: string): Promise<unknown> {
-  const response = await fetch(`${proxyBasePath}${path}`, {
+  const response = await fetch(`${resolveDashboardApiBasePath()}${path}`, {
     headers: { Accept: "application/json" },
     cache: "no-store",
   });

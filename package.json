@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:dashboard:local": "node scripts/build-local-dashboard.mjs",
     "start": "next start",
     "lint": "eslint .",
     "test:frontend": "tsx --test tests/frontend/**/*.test.ts"

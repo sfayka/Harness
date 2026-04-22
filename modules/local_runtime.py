@@ -39,6 +39,7 @@ ENV_RUNTIME_LOG_PATH = "HARNESS_RUNTIME_LOG_PATH"
 ENV_RUNTIME_HOST = "HARNESS_RUNTIME_HOST"
 ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
+ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
 
 
 class LocalRuntimeError(ValueError):
@@ -56,6 +57,7 @@ class RuntimePaths:
     runtime_dir: Path
     config_path: Path
     database_path: Path
+    dashboard_assets_dir: Path
     pid_path: Path
     log_path: Path
 
@@ -66,6 +68,7 @@ class RuntimeConfig:
     host: str
     port: int
     database_path: Path
+    dashboard_assets_dir: Path
     data_dir: Path
     log_dir: Path
     runtime_dir: Path
@@ -90,6 +93,7 @@ class RuntimeConfig:
             },
             "paths": {
                 "data_dir": str(self.data_dir),
+                "dashboard_assets_dir": str(self.dashboard_assets_dir),
                 "log_dir": str(self.log_dir),
                 "runtime_dir": str(self.runtime_dir),
                 "pid_path": str(self.pid_path),
@@ -126,6 +130,9 @@ class RuntimeConfig:
             ) from error
         database_path = Path(str(storage.get("sqlite_path") or paths.database_path)).expanduser()
         data_dir = Path(str(stored_paths.get("data_dir") or paths.data_dir)).expanduser()
+        dashboard_assets_dir = Path(
+            str(stored_paths.get("dashboard_assets_dir") or paths.dashboard_assets_dir)
+        ).expanduser()
         log_dir = Path(str(stored_paths.get("log_dir") or paths.log_dir)).expanduser()
         runtime_dir = Path(str(stored_paths.get("runtime_dir") or paths.runtime_dir)).expanduser()
         pid_path = Path(str(stored_paths.get("pid_path") or paths.pid_path)).expanduser()
@@ -135,6 +142,7 @@ class RuntimeConfig:
             host=host,
             port=port,
             database_path=database_path,
+            dashboard_assets_dir=dashboard_assets_dir,
             data_dir=data_dir,
             log_dir=log_dir,
             runtime_dir=runtime_dir,
@@ -176,6 +184,7 @@ def resolve_runtime_paths(
         runtime_dir=runtime_dir,
         config_path=resolved_data_dir / "config.json",
         database_path=resolved_data_dir / "harness.db",
+        dashboard_assets_dir=resolved_data_dir / "dashboard",
         pid_path=runtime_dir / "harness.pid",
         log_path=resolved_log_dir / "harness.log",
     )
@@ -210,6 +219,7 @@ def create_default_config(
         host=host,
         port=port,
         database_path=paths.database_path,
+        dashboard_assets_dir=paths.dashboard_assets_dir,
         data_dir=paths.data_dir,
         log_dir=paths.log_dir,
         runtime_dir=paths.runtime_dir,
@@ -284,6 +294,7 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     os.environ[ENV_RUNTIME_HOST] = config.host
     os.environ[ENV_RUNTIME_PORT] = str(config.port)
     os.environ[ENV_RUNTIME_BASE_URL] = config.base_url
+    os.environ.setdefault(ENV_DASHBOARD_ASSETS_DIR, str(config.dashboard_assets_dir))
 
 
 def fetch_runtime_health(
@@ -555,7 +566,7 @@ def stop_runtime(config: RuntimeConfig, *, timeout_seconds: float = 10.0) -> tup
 
 
 def open_runtime(config: RuntimeConfig, *, launch: bool = True) -> tuple[int, dict[str, Any]]:
-    url = os.environ.get("HARNESS_DASHBOARD_URL") or config.base_url
+    url = os.environ.get("HARNESS_DASHBOARD_URL") or f"{config.base_url}/dashboard"
     if launch:
         _open_url(url)
     return EXIT_OK, {
@@ -605,6 +616,7 @@ def _paths_payload(config: RuntimeConfig) -> dict[str, str]:
         "data_dir": str(config.data_dir),
         "log_dir": str(config.log_dir),
         "config_path": str(config.data_dir / "config.json"),
+        "dashboard_assets_dir": str(config.dashboard_assets_dir),
         "database_path": str(config.database_path),
         "runtime_dir": str(config.runtime_dir),
         "pid_path": str(config.pid_path),
