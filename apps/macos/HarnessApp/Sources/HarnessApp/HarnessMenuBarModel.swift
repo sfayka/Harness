@@ -7,6 +7,9 @@ final class HarnessMenuBarModel: ObservableObject {
     @Published private(set) var snapshot: HarnessMenuSnapshot = .initial
     @Published private(set) var isBusy = false
     @Published private(set) var lastDoctorMessage: String?
+    @Published private(set) var dashboardURL: URL?
+    @Published private(set) var dashboardMessage = "Open the dashboard to inspect full Harness progress."
+    @Published private(set) var isPreparingDashboard = false
 
     private let runtime: HarnessRuntimeCommand
     private let apiClient: HarnessAPIClient
@@ -85,15 +88,44 @@ final class HarnessMenuBarModel: ObservableObject {
         }
     }
 
-    func openDashboard() async {
-        await runControlAction("Opening dashboard...") {
-            if snapshot.runtimeState != .running {
+    func prepareDashboard() async {
+        guard !isPreparingDashboard else {
+            return
+        }
+        isPreparingDashboard = true
+        dashboardMessage = "Preparing the local dashboard..."
+        do {
+            let status = try await runtime.runtimeStatus()
+            if status.status != "running" {
+                dashboardMessage = "Starting local Harness runtime..."
                 try await runtime.startRuntime()
                 try? await Task.sleep(for: .seconds(1))
             }
-            let url = try await runtime.dashboardURL()
-            NSWorkspace.shared.open(url)
+            dashboardURL = try await runtime.dashboardURL()
+            dashboardMessage = "Dashboard is connected to the local Harness runtime."
+            await refresh()
+        } catch {
+            dashboardURL = nil
+            dashboardMessage = "Dashboard is unavailable: \(error.localizedDescription)"
         }
+        isPreparingDashboard = false
+    }
+
+    func openDashboardInBrowser(routeURL: URL?) {
+        if let routeURL {
+            NSWorkspace.shared.open(routeURL)
+        } else if let dashboardURL {
+            NSWorkspace.shared.open(dashboardURL)
+        }
+    }
+
+    func copyDashboardURL(_ routeURL: URL?) {
+        let value = routeURL?.absoluteString ?? dashboardURL?.absoluteString
+        guard let value else {
+            return
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(value, forType: .string)
     }
 
     func openLogs() {

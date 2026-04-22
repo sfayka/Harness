@@ -23,6 +23,11 @@ struct HarnessApp: App {
         }
         .menuBarExtraStyle(.menu)
 
+        Window("Harness Dashboard", id: "dashboard") {
+            DashboardWindowView(model: model)
+        }
+        .defaultSize(width: 1180, height: 820)
+
         Settings {
             SettingsView(model: model)
         }

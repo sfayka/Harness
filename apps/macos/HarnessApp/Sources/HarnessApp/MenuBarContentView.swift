@@ -3,6 +3,7 @@ import HarnessAppCore
 import SwiftUI
 
 struct MenuBarContentView: View {
+    @Environment(\.openWindow) private var openWindow
     @ObservedObject var model: HarnessMenuBarModel
 
     var body: some View {
@@ -25,7 +26,8 @@ struct MenuBarContentView: View {
             Divider()
 
             Button("Open Dashboard") {
-                Task { await model.openDashboard() }
+                openWindow(id: "dashboard")
+                Task { await model.prepareDashboard() }
             }
             Button("Refresh Status") {
                 Task { await model.refresh() }
