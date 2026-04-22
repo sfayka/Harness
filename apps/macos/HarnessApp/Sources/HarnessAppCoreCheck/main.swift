@@ -7,6 +7,7 @@ struct HarnessAppCoreCheck {
         try checksRunningSummaryFromTaskListAndQueue()
         try checksStoppedRuntimeSummary()
         try checksDashboardRoutes()
+        try checksGuidedSetupPayloadDecoding()
         print("HarnessAppCoreCheck passed")
     }
 
@@ -132,6 +133,71 @@ struct HarnessAppCoreCheck {
             baseURL.dashboardRoute(.reviews).absoluteString == "http://127.0.0.1:8765/dashboard/reviews/",
             "reviews dashboard route"
         )
+    }
+
+    private static func checksGuidedSetupPayloadDecoding() throws {
+        let payload = try decode(
+            GuidedSetupStatusPayload.self,
+            """
+            {
+              "status": "ready",
+              "onboarding_complete": true,
+              "runtime_ready": true,
+              "selected_workflows": [],
+              "available_workflows": [
+                {
+                  "id": "github-proof",
+                  "label": "GitHub artifact verification",
+                  "description": "Require GitHub proof.",
+                  "required_items": ["github"]
+                }
+              ],
+              "required_blockers": [],
+              "optional_incomplete": ["github"],
+              "optional_attention": [],
+              "doctor_summary": {"pass": 5, "warn": 3, "fail": 0},
+              "items": [
+                {
+                  "id": "local_runtime",
+                  "title": "Local Harness runtime",
+                  "category": "core",
+                  "required": true,
+                  "status": "complete",
+                  "blocks_onboarding": false,
+                  "purpose": "Runs Harness locally.",
+                  "what_user_needs": ["Writable folders."],
+                  "how_harness_validates": "Harness checks setup.",
+                  "next_action": "No setup action is required.",
+                  "doctor_check_codes": ["config"],
+                  "secret_names": [],
+                  "compatible_clients": [],
+                  "setup_actions": [],
+                  "notes": [],
+                  "validation": {
+                    "status": "pass",
+                    "checks": [
+                      {
+                        "code": "config",
+                        "status": "pass",
+                        "message": "Config is ready.",
+                        "impact": "Harness can start.",
+                        "next_action": "No action needed."
+                      }
+                    ],
+                    "missing_check_codes": []
+                  }
+                }
+              ]
+            }
+            """
+        )
+
+        try require(payload.onboardingComplete, "onboarding complete")
+        try require(payload.runtimeReady, "runtime ready")
+        try require(payload.availableWorkflows.first?.requiredItems == ["github"], "workflow required items")
+        try require(payload.item(id: "local_runtime")?.isComplete == true, "setup item complete")
+        try require(payload.item(id: "github") == nil, "missing item lookup")
+        try require(payload.doctorSummary?["pass"] == 5, "doctor summary")
     }
 
     private static func require(_ condition: Bool, _ message: String) throws {

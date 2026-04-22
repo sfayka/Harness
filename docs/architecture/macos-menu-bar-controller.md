@@ -11,10 +11,11 @@ The v1 controller shows:
 - active task count
 - manual-review count
 - failed, stale, retryable, or repair-needed attention count
-- controls for start, stop, restart, refresh, doctor, embedded dashboard, logs, settings, and quit
+- controls for setup assistant, start, stop, restart, refresh, doctor, embedded dashboard, logs, settings, and quit
 
 The dashboard remains the full detail surface.
 The menu bar is for operational awareness and safe controls, not for editing task truth.
+The setup assistant is the first-run path for local runtime initialization and optional app setup.
 
 ## Data Boundary
 
@@ -23,6 +24,7 @@ It uses the same public local contract as any other app shell:
 
 - `python3 -m modules.local_runtime --json status`
 - `python3 -m modules.local_runtime --json doctor`
+- `python3 -m modules.local_runtime --json setup status`
 - `python3 -m modules.local_runtime --json open --print-url`
 - `GET /tasks`
 - `GET /supervision/queue`
@@ -79,3 +81,22 @@ Closing the dashboard window does not stop the runtime.
 The menu bar remains useful without the dashboard window open.
 
 Browser fallback and copy-URL controls exist for debugging local route or asset problems without changing the app/runtime boundary.
+
+## Setup Assistant
+
+The setup assistant is a singleton app scene opened automatically on first launch and manually from the menu bar.
+It keeps normal-user setup inside the app:
+
+- initialize app-managed local runtime and SQLite
+- request optional Launch at Login
+- request optional notifications
+- choose optional workspace folders through `NSOpenPanel`
+- store optional GitHub, Linear, and repair callback secrets through the app-managed secret boundary
+- run doctor and refresh guided setup status
+- open the embedded dashboard when core onboarding is complete
+
+The assistant reports app-owned facts to the setup doctor through environment overlays on the runtime command.
+It does not change Harness task truth, read SQLite, or bypass canonical API/read-model/timeline surfaces.
+
+Issue #326 still owns the full daemon lifecycle and crash/stale-process recovery model.
+Issue #327 still owns actionable notification delivery.

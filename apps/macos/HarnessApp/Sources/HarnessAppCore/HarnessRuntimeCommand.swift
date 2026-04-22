@@ -3,13 +3,16 @@ import Foundation
 public struct HarnessRuntimeCommand: Sendable {
     public let repoRoot: URL
     public let pythonExecutable: String
+    public let environment: [String: String]
 
     public init(
         repoRoot: URL = HarnessRuntimeCommand.defaultRepoRoot(),
-        pythonExecutable: String = ProcessInfo.processInfo.environment["HARNESS_PYTHON"] ?? "python3"
+        pythonExecutable: String = ProcessInfo.processInfo.environment["HARNESS_PYTHON"] ?? "python3",
+        environment: [String: String] = [:]
     ) {
         self.repoRoot = repoRoot
         self.pythonExecutable = pythonExecutable
+        self.environment = environment
     }
 
     public static func defaultRepoRoot() -> URL {
@@ -34,6 +37,14 @@ public struct HarnessRuntimeCommand: Sendable {
         return try JSONDecoder().decode(RuntimeStatusPayload.self, from: Data(result.stdout.utf8))
     }
 
+    public func withEnvironment(_ environment: [String: String]) -> HarnessRuntimeCommand {
+        HarnessRuntimeCommand(
+            repoRoot: repoRoot,
+            pythonExecutable: pythonExecutable,
+            environment: environment
+        )
+    }
+
     @discardableResult
     public func initializeRuntime() async throws -> CommandResult {
         try await runJSONCommand(["init"], allowNonZeroExit: false)
@@ -46,6 +57,7 @@ public struct HarnessRuntimeCommand: Sendable {
             process.currentDirectoryURL = repoRoot
             process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
             process.arguments = [pythonExecutable, "-m", "modules.local_runtime", "serve"]
+            process.environment = mergedProcessEnvironment(environment)
             try process.run()
         }.value
     }
@@ -74,15 +86,33 @@ public struct HarnessRuntimeCommand: Sendable {
         return try JSONDecoder().decode(DoctorSummary.self, from: Data(result.stdout.utf8))
     }
 
+    @discardableResult
+    public func setSecret(name: String, value: String) async throws -> CommandResult {
+        try await runJSONCommand(
+            ["secrets", "set", name, "--value-stdin"],
+            allowNonZeroExit: false,
+            stdin: value
+        )
+    }
+
+    public func guidedSetupStatus(workflows: [String] = []) async throws -> GuidedSetupStatusPayload {
+        let workflowArgs = workflows.flatMap { ["--workflow", $0] }
+        let result = try await runJSONCommand(["setup", "status"] + workflowArgs, allowNonZeroExit: true)
+        return try JSONDecoder().decode(GuidedSetupStatusPayload.self, from: Data(result.stdout.utf8))
+    }
+
     public func runJSONCommand(
         _ args: [String],
-        allowNonZeroExit: Bool
+        allowNonZeroExit: Bool,
+        stdin: String? = nil
     ) async throws -> CommandResult {
         try await Task.detached(priority: .userInitiated) {
             try runProcess(
                 repoRoot: repoRoot,
                 pythonExecutable: pythonExecutable,
                 args: ["-m", "modules.local_runtime", "--json"] + args,
+                environment: environment,
+                stdin: stdin,
                 allowNonZeroExit: allowNonZeroExit
             )
         }.value
@@ -125,18 +155,30 @@ private func runProcess(
     repoRoot: URL,
     pythonExecutable: String,
     args: [String],
+    environment: [String: String],
+    stdin: String?,
     allowNonZeroExit: Bool
 ) throws -> CommandResult {
     let process = Process()
     let stdoutPipe = Pipe()
     let stderrPipe = Pipe()
+    let stdinPipe = stdin == nil ? nil : Pipe()
     process.currentDirectoryURL = repoRoot
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     process.arguments = [pythonExecutable] + args
+    process.environment = mergedProcessEnvironment(environment)
     process.standardOutput = stdoutPipe
     process.standardError = stderrPipe
+    if let stdinPipe {
+        process.standardInput = stdinPipe
+    }
     do {
         try process.run()
+        if let stdin, let stdinPipe {
+            let data = Data(stdin.utf8)
+            stdinPipe.fileHandleForWriting.write(data)
+            stdinPipe.fileHandleForWriting.closeFile()
+        }
     } catch {
         throw HarnessRuntimeCommandError.launchFailed(error.localizedDescription)
     }
@@ -149,4 +191,8 @@ private func runProcess(
         throw HarnessRuntimeCommandError.commandFailed(exitCode: process.terminationStatus, stderr: stderr)
     }
     return result
+}
+
+private func mergedProcessEnvironment(_ environment: [String: String]) -> [String: String] {
+    ProcessInfo.processInfo.environment.merging(environment) { _, appValue in appValue }
 }
