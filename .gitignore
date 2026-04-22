@@ -50,6 +50,7 @@ pip-wheel-metadata/
 .tmp/
 tmp/
 temp/
+.build/
 *.log
 runs/
 .harness-dryruns/
