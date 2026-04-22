@@ -18,6 +18,13 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from modules.local_secrets import (
+    LocalSecretError,
+    MacOSKeychainSecretStore,
+    collect_secret_statuses,
+    load_app_managed_secrets_into_environment,
+    secret_status_payload,
+)
 from modules.store import SQLiteHarnessStore, StoreError
 
 
@@ -40,6 +47,7 @@ ENV_RUNTIME_HOST = "HARNESS_RUNTIME_HOST"
 ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
 ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
+ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
 
 
 class LocalRuntimeError(ValueError):
@@ -295,6 +303,8 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     os.environ[ENV_RUNTIME_PORT] = str(config.port)
     os.environ[ENV_RUNTIME_BASE_URL] = config.base_url
     os.environ.setdefault(ENV_DASHBOARD_ASSETS_DIR, str(config.dashboard_assets_dir))
+    load_app_managed_secrets_into_environment(store=create_secret_store())
+    os.environ.setdefault(ENV_SECRET_PROVIDER, "macos-keychain")
 
 
 def fetch_runtime_health(
@@ -598,6 +608,7 @@ def build_runtime_status_payload(health_payload: dict[str, Any]) -> dict[str, An
     return {
         "status": "running" if health_payload.get("status") == "ok" else "degraded",
         "mode": os.environ.get(ENV_RUNTIME_MODE, "developer"),
+        "secret_provider": os.environ.get(ENV_SECRET_PROVIDER),
         "api_base_url": base_url,
         "store_backend": health_payload.get("store_backend"),
         "database_schema_ready": health_payload.get("database_schema_ready"),
@@ -667,7 +678,42 @@ def build_parser() -> argparse.ArgumentParser:
     stop_parser = subparsers.add_parser("stop", help="Gracefully stop the local Harness runtime")
     stop_parser.add_argument("--timeout", default=10.0, type=float, help="Shutdown timeout in seconds")
 
+    secrets_parser = subparsers.add_parser("secrets", help="Manage app-managed Harness secrets")
+    secrets_subparsers = secrets_parser.add_subparsers(dest="secret_command", required=True)
+
+    secrets_status_parser = secrets_subparsers.add_parser(
+        "status",
+        help="Report configured and missing app-managed secrets without printing values",
+    )
+    secrets_status_parser.add_argument(
+        "--require",
+        action="append",
+        default=[],
+        help="Treat the named secret as required for this status check",
+    )
+
+    secrets_set_parser = secrets_subparsers.add_parser(
+        "set",
+        help="Store a secret in the app-managed secret provider",
+    )
+    secrets_set_parser.add_argument("name", help="Secret name")
+    secrets_set_parser.add_argument(
+        "--value-stdin",
+        action="store_true",
+        help="Read the secret value from stdin",
+    )
+
+    secrets_delete_parser = secrets_subparsers.add_parser(
+        "delete",
+        help="Delete a stored app-managed secret",
+    )
+    secrets_delete_parser.add_argument("name", help="Secret name")
+
     return parser
+
+
+def create_secret_store() -> MacOSKeychainSecretStore:
+    return MacOSKeychainSecretStore()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -713,8 +759,12 @@ def main(argv: list[str] | None = None) -> int:
             config = load_runtime_config(paths)
             exit_code, payload = stop_runtime(config, timeout_seconds=args.timeout)
             return _emit(payload, as_json=args.as_json, exit_code=exit_code)
+        if args.command == "secrets":
+            return _handle_secrets_command(args, as_json=args.as_json)
     except LocalRuntimeError as error:
         return _emit({"status": "error", "error": str(error)}, as_json=args.as_json, exit_code=error.exit_code)
+    except LocalSecretError as error:
+        return _emit({"status": "error", "error": str(error)}, as_json=args.as_json, exit_code=EXIT_SETUP_REQUIRED)
     except Exception as error:
         return _emit(
             {"status": "error", "error": f"{type(error).__name__}: {error}"},
@@ -724,6 +774,43 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.error(f"Unsupported command {args.command!r}")
     return EXIT_RUNTIME_ERROR
+
+
+def _handle_secrets_command(args: argparse.Namespace, *, as_json: bool) -> int:
+    store = create_secret_store()
+    if args.secret_command == "status":
+        statuses = collect_secret_statuses(store=store, required_names=args.require)
+        payload = secret_status_payload(statuses)
+        missing_required = bool(payload.get("missing_required"))
+        exit_code = EXIT_SETUP_REQUIRED if missing_required else EXIT_OK
+        return _emit(payload, as_json=as_json, exit_code=exit_code)
+    if args.secret_command == "set":
+        if not args.value_stdin:
+            raise LocalRuntimeError(
+                "Use `--value-stdin` so secrets are not stored in shell history.",
+                exit_code=EXIT_SETUP_REQUIRED,
+            )
+        value = sys.stdin.read().rstrip("\n")
+        store.set_secret(args.name, value)
+        return _emit(
+            {
+                "status": "stored",
+                "secret": args.name,
+                "message": "Secret stored in the app-managed secret provider.",
+            },
+            as_json=as_json,
+        )
+    if args.secret_command == "delete":
+        deleted = store.delete_secret(args.name)
+        return _emit(
+            {
+                "status": "deleted" if deleted else "missing",
+                "secret": args.name,
+                "message": "Secret deleted." if deleted else "Secret was not stored.",
+            },
+            as_json=as_json,
+        )
+    raise LocalRuntimeError(f"Unsupported secrets command {args.secret_command!r}.")
 
 
 def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -> int:
@@ -748,6 +835,12 @@ def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -
         for check in checks:
             if isinstance(check, dict):
                 print(f"- {check.get('code')}: {check.get('status')} - {check.get('message')}")
+    secrets = payload.get("secrets")
+    if isinstance(secrets, list):
+        print("secrets:")
+        for secret in secrets:
+            if isinstance(secret, dict):
+                print(f"- {secret.get('name')}: {secret.get('status')} - {secret.get('message')}")
     return exit_code
 
 
