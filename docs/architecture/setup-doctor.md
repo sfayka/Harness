@@ -2,6 +2,7 @@
 
 `harness doctor --json` is the local app setup report.
 The menu-bar app and onboarding flow should render this JSON directly instead of parsing logs or backend exception text.
+For user-facing onboarding steps, prefer `harness setup status --json`, which maps these checks into guided setup items and workflow-specific blockers.
 
 The doctor is intentionally broader than `/health`.
 `/health` reports whether the backend is alive.
@@ -90,3 +91,16 @@ The UI should describe the setup item as a desktop-agent bridge for OpenClaw, He
 - Do not mark optional integrations as `fail` just because they are not connected.
 - Do fail configured-but-broken items, such as a selected workspace folder that no longer exists.
 - Do not require notification permission or launch-at-login to use Harness.
+
+## Guided Setup Mapping
+
+`harness setup status --json` consumes this doctor payload.
+It keeps default onboarding limited to the local runtime and marks GitHub, Linear, and ingress/executor setup as optional until a selected workflow requires them.
+
+Use workflow gates when needed:
+
+- `--workflow github-proof`
+- `--workflow linear-sync`
+- `--workflow repair-dispatch`
+
+See [guided-integration-setup.md](guided-integration-setup.md).

@@ -352,11 +352,12 @@ python3 -m modules.local_runtime --json init
 python3 -m modules.local_runtime --json status
 python3 -m modules.local_runtime serve
 python3 -m modules.local_runtime --json doctor
+python3 -m modules.local_runtime --json setup status
 python3 -m modules.local_runtime --json secrets status
 python3 -m modules.local_runtime stop
 ```
 
-Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness open`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
+Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
 Build the packageable dashboard assets for the local app path:
 
@@ -375,6 +376,17 @@ python3 -m modules.local_runtime --json secrets status --require github_token
 ```
 
 The secrets command reports setup state without printing token values. Developer `.env.local` mode remains supported for native local development, but packaged app onboarding should use the secret store instead of asking users to edit env files.
+
+Use guided setup status for the onboarding flow:
+
+```bash
+python3 -m modules.local_runtime --json setup status
+python3 -m modules.local_runtime --json setup status --workflow github-proof
+python3 -m modules.local_runtime --json setup status --workflow linear-sync
+python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
+```
+
+Default onboarding only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
