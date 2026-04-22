@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from modules.api import HarnessApiService
 from modules.local_env import load_native_local_env
+from modules.local_runtime import build_runtime_status_payload
 from modules.reset.service import ResetVerificationService
 from modules.store import HarnessStore
 
@@ -67,6 +68,11 @@ def create_app(
     @app.get("/health")
     def health() -> JSONResponse:
         return _json_response(service.health())
+
+    @app.get("/runtime/status")
+    def runtime_status() -> JSONResponse:
+        _, health_payload = service.health()
+        return JSONResponse(status_code=200, content=build_runtime_status_payload(health_payload))
 
     @app.get("/tasks")
     def list_tasks() -> JSONResponse:

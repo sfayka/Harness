@@ -89,6 +89,27 @@ SQLite mode is the intended persistence base for the self-contained local app. I
 
 If `HARNESS_SQLITE_PATH` is unset, Harness uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
 
+### Run The Local App Runtime Contract
+
+The packaged app will expose this contract as `harness`. From a repo checkout, use the module entry point:
+
+```bash
+python3 -m modules.local_runtime --json init
+python3 -m modules.local_runtime --json status
+python3 -m modules.local_runtime serve
+python3 -m modules.local_runtime --json doctor
+python3 -m modules.local_runtime stop
+```
+
+The runtime contract uses app-managed config, SQLite state, PID files, and logs. It does not require Docker, Node, `pnpm`, or repo-local shell exports.
+
+Default macOS paths:
+
+- `~/Library/Application Support/Harness/config.json`
+- `~/Library/Application Support/Harness/harness.db`
+- `~/Library/Application Support/Harness/runtime/harness.pid`
+- `~/Library/Logs/Harness/harness.log`
+
 To run the same backend against Postgres instead of the file-backed store:
 
 ```bash

@@ -1,0 +1,215 @@
+from __future__ import annotations
+
+import contextlib
+import io
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from modules.local_runtime import (
+    DEFAULT_API_PORT,
+    EXIT_OK,
+    EXIT_SETUP_REQUIRED,
+    EXIT_UNHEALTHY,
+    build_runtime_status_payload,
+    init_runtime,
+    main,
+    resolve_runtime_paths,
+    serve_runtime,
+    stop_runtime,
+)
+
+
+class LocalRuntimeCliTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.log_dir = tempfile.TemporaryDirectory()
+        self.data_path = Path(self.temp_dir.name)
+        self.log_path = Path(self.log_dir.name)
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+        self.log_dir.cleanup()
+
+    def _run_cli(self, *args: str) -> tuple[int, dict[str, object]]:
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            exit_code = main(
+                [
+                    "--data-dir",
+                    str(self.data_path),
+                    "--log-dir",
+                    str(self.log_path),
+                    "--json",
+                    *args,
+                ]
+            )
+        return exit_code, json.loads(stdout.getvalue())
+
+    def test_init_creates_app_managed_config_sqlite_database_and_log(self) -> None:
+        exit_code, payload = self._run_cli("init")
+
+        config_path = self.data_path / "config.json"
+        database_path = self.data_path / "harness.db"
+        runtime_log_path = self.log_path / "harness.log"
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "initialized")
+        self.assertTrue(config_path.exists())
+        self.assertTrue(database_path.exists())
+        self.assertTrue(runtime_log_path.exists())
+
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        self.assertEqual(config["storage"]["backend"], "sqlite")
+        self.assertEqual(config["storage"]["sqlite_path"], str(database_path))
+        self.assertEqual(config["api"]["port"], DEFAULT_API_PORT)
+
+    def test_status_before_init_returns_setup_required(self) -> None:
+        exit_code, payload = self._run_cli("status")
+
+        self.assertEqual(exit_code, EXIT_SETUP_REQUIRED)
+        self.assertEqual(payload["status"], "uninitialized")
+        self.assertIn("harness init", payload["next_action"])
+
+    def test_status_reports_stopped_when_health_is_unreachable(self) -> None:
+        self._run_cli("init")
+
+        exit_code, payload = self._run_cli("status", "--timeout", "0.01")
+
+        self.assertEqual(exit_code, EXIT_UNHEALTHY)
+        self.assertEqual(payload["status"], "stopped")
+        self.assertFalse(payload["process_running"])
+
+    def test_invalid_config_returns_readable_setup_error(self) -> None:
+        self.data_path.mkdir(parents=True, exist_ok=True)
+        (self.data_path / "config.json").write_text(
+            json.dumps({"schema_version": 1, "api": {"port": "not-a-port"}}),
+            encoding="utf-8",
+        )
+
+        exit_code, payload = self._run_cli("status")
+
+        self.assertEqual(exit_code, EXIT_SETUP_REQUIRED)
+        self.assertEqual(payload["status"], "error")
+        self.assertIn("invalid api.port", payload["error"])
+
+    def test_doctor_reports_setup_passes_and_api_warning_when_stopped(self) -> None:
+        self._run_cli("init")
+
+        exit_code, payload = self._run_cli("doctor")
+        checks = {check["code"]: check for check in payload["checks"]}
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "ok")
+        self.assertEqual(checks["app_data_dir"]["status"], "pass")
+        self.assertEqual(checks["log_dir"]["status"], "pass")
+        self.assertEqual(checks["config"]["status"], "pass")
+        self.assertEqual(checks["sqlite"]["status"], "pass")
+        self.assertEqual(checks["api_health"]["status"], "warn")
+        self.assertIn("harness serve", checks["api_health"]["next_action"])
+
+
+class LocalRuntimeProcessTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.log_dir = tempfile.TemporaryDirectory()
+        self.paths = resolve_runtime_paths(data_dir=self.temp_dir.name, log_dir=self.log_dir.name)
+
+    def tearDown(self) -> None:
+        self.temp_dir.cleanup()
+        self.log_dir.cleanup()
+
+    def test_serve_applies_runtime_environment_and_cleans_pid_file(self) -> None:
+        observed: dict[str, object] = {}
+
+        def fake_run_uvicorn(config) -> None:  # noqa: ANN001
+            observed["pid_exists_during_run"] = config.pid_path.exists()
+            observed["store_backend"] = os.environ.get("HARNESS_STORE_BACKEND")
+            observed["sqlite_path"] = os.environ.get("HARNESS_SQLITE_PATH")
+            observed["runtime_mode"] = os.environ.get("HARNESS_RUNTIME_MODE")
+            print("server-started")
+
+        with (
+            patch.dict(os.environ, {}, clear=False),
+            patch("modules.local_runtime._assert_port_available"),
+            patch(
+                "modules.local_runtime._run_uvicorn",
+                side_effect=fake_run_uvicorn,
+            ),
+        ):
+            exit_code = serve_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertTrue(observed["pid_exists_during_run"])
+        self.assertEqual(observed["store_backend"], "sqlite")
+        self.assertEqual(observed["sqlite_path"], str(self.paths.database_path))
+        self.assertEqual(observed["runtime_mode"], "local-app")
+        self.assertFalse(self.paths.pid_path.exists())
+        self.assertIn("server-started", self.paths.log_path.read_text(encoding="utf-8"))
+
+    def test_stop_treats_missing_or_stale_process_as_stopped(self) -> None:
+        config, _ = init_runtime(self.paths)
+        config.pid_path.write_text("999999\n", encoding="utf-8")
+
+        with patch("modules.local_runtime.process_is_running", return_value=False):
+            exit_code, payload = stop_runtime(config)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "stopped")
+        self.assertFalse(config.pid_path.exists())
+
+
+class LocalRuntimeContractTests(unittest.TestCase):
+    def test_resolves_macos_app_managed_paths(self) -> None:
+        paths = resolve_runtime_paths(platform_name="darwin", home="/Users/sean")
+
+        self.assertEqual(paths.data_dir, Path("/Users/sean/Library/Application Support/Harness"))
+        self.assertEqual(paths.log_dir, Path("/Users/sean/Library/Logs/Harness"))
+        self.assertEqual(paths.config_path, paths.data_dir / "config.json")
+        self.assertEqual(paths.database_path, paths.data_dir / "harness.db")
+
+    def test_resolves_linux_app_managed_paths(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"XDG_DATA_HOME": "/tmp/xdg-data", "XDG_STATE_HOME": "/tmp/xdg-state"},
+            clear=True,
+        ):
+            paths = resolve_runtime_paths(platform_name="linux", home="/Users/sean")
+
+        self.assertEqual(paths.data_dir, Path("/tmp/xdg-data/harness"))
+        self.assertEqual(paths.log_dir, Path("/tmp/xdg-state/harness/logs"))
+        self.assertEqual(paths.database_path, Path("/tmp/xdg-data/harness/harness.db"))
+
+    def test_backend_runtime_status_payload_uses_runtime_environment_without_secrets(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "HARNESS_RUNTIME_MODE": "local-app",
+                "HARNESS_RUNTIME_BASE_URL": "http://127.0.0.1:8765",
+                "HARNESS_RUNTIME_CONFIG_PATH": "/tmp/harness/config.json",
+                "HARNESS_RUNTIME_DATA_DIR": "/tmp/harness",
+                "HARNESS_RUNTIME_LOG_PATH": "/tmp/harness.log",
+            },
+            clear=True,
+        ):
+            payload = build_runtime_status_payload(
+                {
+                    "status": "ok",
+                    "store_backend": "sqlite",
+                    "database_path": "/tmp/harness/harness.db",
+                    "database_schema_ready": True,
+                }
+            )
+
+        self.assertEqual(payload["status"], "running")
+        self.assertEqual(payload["mode"], "local-app")
+        self.assertEqual(payload["api_base_url"], "http://127.0.0.1:8765")
+        self.assertEqual(payload["store_backend"], "sqlite")
+        self.assertEqual(payload["paths"]["database_path"], "/tmp/harness/harness.db")
+
+
+if __name__ == "__main__":
+    unittest.main()
