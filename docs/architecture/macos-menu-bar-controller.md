@@ -11,7 +11,7 @@ The v1 controller shows:
 - active task count
 - manual-review count
 - failed, stale, retryable, or repair-needed attention count
-- controls for start, stop, restart, refresh, doctor, dashboard, logs, settings, and quit
+- controls for start, stop, restart, refresh, doctor, embedded dashboard, logs, settings, and quit
 
 The dashboard remains the full detail surface.
 The menu bar is for operational awareness and safe controls, not for editing task truth.
@@ -53,7 +53,7 @@ It is a SwiftPM GUI app with:
 
 - `HarnessApp`: SwiftUI/AppKit menu-bar executable
 - `HarnessAppCore`: testable parsing and summary logic
-- `HarnessAppCoreTests`: Swift unit tests for menu-bar counts
+- `HarnessAppCoreCheck`: deterministic Swift validation executable for summary and route contracts
 
 The project-local run entrypoint is:
 
@@ -61,4 +61,21 @@ The project-local run entrypoint is:
 ./script/build_and_run.sh
 ```
 
-The script builds the SwiftPM app, stages a local `.app` bundle under ignored `dist/macos/`, and launches it with `HARNESS_REPO_ROOT` pointed at the repo checkout so development builds can run the existing Python runtime module.
+The script builds the SwiftPM app, stages a local `.app` bundle under ignored `dist/macos/`, and writes the repo root into the development bundle metadata so local builds can run the existing Python runtime module.
+
+## Dashboard Window
+
+The dashboard window is a singleton app scene opened from the menu bar.
+It starts the local runtime when needed, then embeds the packaged dashboard through a small WebKit bridge.
+
+The window preserves the canonical local dashboard routes:
+
+- `/dashboard/tasks/`
+- `/dashboard/verification/`
+- `/dashboard/reconciliation/`
+- `/dashboard/reviews/`
+
+Closing the dashboard window does not stop the runtime.
+The menu bar remains useful without the dashboard window open.
+
+Browser fallback and copy-URL controls exist for debugging local route or asset problems without changing the app/runtime boundary.

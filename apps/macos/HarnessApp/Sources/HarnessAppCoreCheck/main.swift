@@ -6,6 +6,7 @@ struct HarnessAppCoreCheck {
     static func main() throws {
         try checksRunningSummaryFromTaskListAndQueue()
         try checksStoppedRuntimeSummary()
+        try checksDashboardRoutes()
         print("HarnessAppCoreCheck passed")
     }
 
@@ -110,6 +111,27 @@ struct HarnessAppCoreCheck {
 
     private static func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
         try JSONDecoder().decode(type, from: Data(json.utf8))
+    }
+
+    private static func checksDashboardRoutes() throws {
+        let baseURL = URL(string: "http://127.0.0.1:8765/dashboard?stale=true#old")!
+
+        try require(
+            baseURL.dashboardRoute(.tasks).absoluteString == "http://127.0.0.1:8765/dashboard/tasks/",
+            "tasks dashboard route"
+        )
+        try require(
+            baseURL.dashboardRoute(.verification).absoluteString == "http://127.0.0.1:8765/dashboard/verification/",
+            "verification dashboard route"
+        )
+        try require(
+            baseURL.dashboardRoute(.reconciliation).absoluteString == "http://127.0.0.1:8765/dashboard/reconciliation/",
+            "reconciliation dashboard route"
+        )
+        try require(
+            baseURL.dashboardRoute(.reviews).absoluteString == "http://127.0.0.1:8765/dashboard/reviews/",
+            "reviews dashboard route"
+        )
     }
 
     private static func require(_ condition: Bool, _ message: String) throws {
