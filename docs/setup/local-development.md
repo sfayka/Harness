@@ -5,7 +5,7 @@ This guide covers the practical local and container runbook for Harness.
 ## Prerequisites
 
 - Python 3
-- `pnpm`
+- `pnpm`, when developing or rebuilding the dashboard
 - Docker, if you want the containerized mode
 
 ## Native Local Development
@@ -48,6 +48,8 @@ Frontend validation:
 ```bash
 pnpm lint
 pnpm build
+pnpm build:dashboard:local
+pnpm test:frontend
 ```
 
 ### Run The API
@@ -101,12 +103,13 @@ python3 -m modules.local_runtime --json doctor
 python3 -m modules.local_runtime stop
 ```
 
-The runtime contract uses app-managed config, SQLite state, PID files, and logs. It does not require Docker, Node, `pnpm`, or repo-local shell exports.
+The runtime contract uses app-managed config, SQLite state, PID files, dashboard assets, and logs. A packaged app should not require Docker, Node, `pnpm`, or repo-local shell exports.
 
 Default macOS paths:
 
 - `~/Library/Application Support/Harness/config.json`
 - `~/Library/Application Support/Harness/harness.db`
+- `~/Library/Application Support/Harness/dashboard/`
 - `~/Library/Application Support/Harness/runtime/harness.pid`
 - `~/Library/Logs/Harness/harness.log`
 
@@ -204,6 +207,38 @@ The dashboard is read-only and depends on the canonical inspection APIs:
 - `GET /tasks`
 - `GET /tasks/<task_id>/read-model`
 - `GET /tasks/<task_id>/timeline`
+
+### Build The Packaged Local Dashboard
+
+For the self-contained local app path, build static dashboard assets instead of running a Node dashboard server:
+
+```bash
+pnpm build:dashboard:local
+```
+
+This writes:
+
+```text
+dist/local-dashboard/
+```
+
+The local bundle is served by the Python backend at `/dashboard` and calls the same-origin Harness API directly.
+It does not use the Next proxy route and it does not fall back to sample data.
+
+Smoke it from a checkout:
+
+```bash
+HARNESS_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard" \
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8765
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765/dashboard/
+```
+
+The normal hosted/developer dashboard still uses `pnpm dev` or `pnpm build` and the Next proxy route.
 
 ### One-Command Demo Bootstrap
 

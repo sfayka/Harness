@@ -66,6 +66,10 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(config["storage"]["backend"], "sqlite")
         self.assertEqual(config["storage"]["sqlite_path"], str(database_path))
         self.assertEqual(config["api"]["port"], DEFAULT_API_PORT)
+        self.assertEqual(
+            config["paths"]["dashboard_assets_dir"],
+            str(self.data_path / "dashboard"),
+        )
 
     def test_status_before_init_returns_setup_required(self) -> None:
         exit_code, payload = self._run_cli("status")
@@ -130,6 +134,7 @@ class LocalRuntimeProcessTests(unittest.TestCase):
             observed["store_backend"] = os.environ.get("HARNESS_STORE_BACKEND")
             observed["sqlite_path"] = os.environ.get("HARNESS_SQLITE_PATH")
             observed["runtime_mode"] = os.environ.get("HARNESS_RUNTIME_MODE")
+            observed["dashboard_assets_dir"] = os.environ.get("HARNESS_DASHBOARD_ASSETS_DIR")
             print("server-started")
 
         with (
@@ -147,6 +152,7 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertEqual(observed["store_backend"], "sqlite")
         self.assertEqual(observed["sqlite_path"], str(self.paths.database_path))
         self.assertEqual(observed["runtime_mode"], "local-app")
+        self.assertEqual(observed["dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
         self.assertFalse(self.paths.pid_path.exists())
         self.assertIn("server-started", self.paths.log_path.read_text(encoding="utf-8"))
 
@@ -170,6 +176,7 @@ class LocalRuntimeContractTests(unittest.TestCase):
         self.assertEqual(paths.log_dir, Path("/Users/sean/Library/Logs/Harness"))
         self.assertEqual(paths.config_path, paths.data_dir / "config.json")
         self.assertEqual(paths.database_path, paths.data_dir / "harness.db")
+        self.assertEqual(paths.dashboard_assets_dir, paths.data_dir / "dashboard")
 
     def test_resolves_linux_app_managed_paths(self) -> None:
         with patch.dict(
@@ -182,6 +189,7 @@ class LocalRuntimeContractTests(unittest.TestCase):
         self.assertEqual(paths.data_dir, Path("/tmp/xdg-data/harness"))
         self.assertEqual(paths.log_dir, Path("/tmp/xdg-state/harness/logs"))
         self.assertEqual(paths.database_path, Path("/tmp/xdg-data/harness/harness.db"))
+        self.assertEqual(paths.dashboard_assets_dir, Path("/tmp/xdg-data/harness/dashboard"))
 
     def test_backend_runtime_status_payload_uses_runtime_environment_without_secrets(self) -> None:
         with patch.dict(

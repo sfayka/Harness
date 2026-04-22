@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from modules.api import HarnessApiService
 from modules.local_env import load_native_local_env
@@ -12,6 +15,8 @@ from modules.reset.service import ResetVerificationService
 from modules.store import HarnessStore
 
 load_native_local_env()
+
+DASHBOARD_ASSETS_DIR_ENV_VAR = "HARNESS_DASHBOARD_ASSETS_DIR"
 
 
 def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
@@ -54,6 +59,27 @@ def _build_reset_service(store: HarnessStore | None) -> ResetVerificationService
         return ResetVerificationService.from_env(root_dir=root_dir)
     except (OSError, ValueError) as error:
         return _UnavailableResetService(str(error))
+
+
+def _resolve_dashboard_assets_dir() -> Path | None:
+    configured = os.environ.get(DASHBOARD_ASSETS_DIR_ENV_VAR)
+    if not configured or not configured.strip():
+        return None
+    assets_dir = Path(configured).expanduser()
+    if not (assets_dir / "index.html").is_file():
+        return None
+    return assets_dir
+
+
+def _mount_dashboard_assets(app: FastAPI) -> None:
+    assets_dir = _resolve_dashboard_assets_dir()
+    if assets_dir is None:
+        return
+    app.mount(
+        "/dashboard",
+        StaticFiles(directory=str(assets_dir), html=True),
+        name="dashboard",
+    )
 
 
 def create_app(
@@ -164,6 +190,8 @@ def create_app(
     @app.post("/reset/tick")
     def run_reset_tick() -> JSONResponse:
         return _json_response(reset_verifier.tick_http())
+
+    _mount_dashboard_assets(app)
 
     return app
 

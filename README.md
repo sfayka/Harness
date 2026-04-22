@@ -168,14 +168,15 @@ See:
 ### Frontend
 
 - Next.js 16 app in [`app/`](app) with shared dashboard components in [`components/`](components).
-- Root route redirects to `/tasks`.
+- Root route redirects to `/tasks` in normal Next mode. The static local-app export renders the tasks view at `/dashboard/` so the packaged dashboard has a working entrypoint.
 - Main working views:
   - `/tasks`
   - `/verification`
   - `/reconciliation`
   - `/reviews`
 - Frontend reads backend data through the Next proxy route at [`app/api/harness/[...path]/route.ts`](app/api/harness/[...path]/route.ts).
-- The frontend requires `HARNESS_API_BASE_URL` to point at a reachable backend. If it is missing or unreachable, the UI shows an error; it does not silently switch to fake live data.
+- Local app builds can also export the dashboard as static assets under `/dashboard` with [`scripts/build-local-dashboard.mjs`](scripts/build-local-dashboard.mjs). That packageable path serves the dashboard from the Python backend and calls the same-origin Harness API directly, so normal users do not need Node or `pnpm`.
+- The frontend requires a reachable backend, either through the hosted Next proxy or the local same-origin API. If the backend is missing or unreachable, the UI shows an error; it does not silently switch to fake live data.
 
 ### Backend
 
@@ -214,6 +215,7 @@ See:
 - SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
 - The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
 - The local app runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
+- Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
 
 ## Hosted Deployment Target
 
@@ -351,7 +353,15 @@ python3 -m modules.local_runtime --json doctor
 python3 -m modules.local_runtime stop
 ```
 
-Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness open`, and `harness stop`. The runtime stores config, SQLite state, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
+Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness open`, and `harness stop`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
+
+Build the packageable dashboard assets for the local app path:
+
+```bash
+pnpm build:dashboard:local
+```
+
+The output lives in `dist/local-dashboard/`. When `HARNESS_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API.
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
@@ -451,6 +461,8 @@ Run frontend validation:
 ```bash
 pnpm lint
 pnpm build
+pnpm build:dashboard:local
+pnpm test:frontend
 ```
 
 ## Unattended Dry-Run Runner
@@ -599,7 +611,7 @@ Current screenshot assets:
 ## Known Limitations
 
 - The dashboard is read-only. There is no mutation UI for submissions, reevaluation, or review actions.
-- The frontend depends on a reachable backend via `HARNESS_API_BASE_URL`; it does not provide an offline sample-data mode in the current code path.
+- The frontend depends on a reachable backend via the hosted proxy or local same-origin API; it does not provide an offline sample-data mode in the current code path.
 - Live Linear and GitHub synchronization are still thin integration layers rather than full background sync services.
 - Review-required handling exists in evaluation, reevaluation, and dashboard summaries, but the hosted backend is not guaranteed to keep a review-required example task seeded at all times.
 - Hosted example task IDs are operational data and may change independently of the local deterministic scenario pack.

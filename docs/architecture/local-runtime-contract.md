@@ -29,6 +29,7 @@ Default macOS paths:
 - Data: `~/Library/Application Support/Harness/`
 - Config: `~/Library/Application Support/Harness/config.json`
 - SQLite: `~/Library/Application Support/Harness/harness.db`
+- Dashboard assets: `~/Library/Application Support/Harness/dashboard/`
 - PID: `~/Library/Application Support/Harness/runtime/harness.pid`
 - Logs: `~/Library/Logs/Harness/harness.log`
 
@@ -37,6 +38,7 @@ Default Linux paths:
 - Data: `$XDG_DATA_HOME/harness/`, or `~/.local/share/harness/`
 - Config: `<data-dir>/config.json`
 - SQLite: `<data-dir>/harness.db`
+- Dashboard assets: `<data-dir>/dashboard/`
 - PID: `<data-dir>/runtime/harness.pid`
 - Logs: `$XDG_STATE_HOME/harness/logs/harness.log`, or `~/.local/state/harness/logs/harness.log`
 
@@ -54,7 +56,7 @@ The first schema stores:
 
 - local API host and port
 - SQLite database path
-- data, runtime, PID, and log paths
+- data, dashboard asset, runtime, PID, and log paths
 
 `harness serve` applies the config to the backend process through environment variables before startup:
 
@@ -67,8 +69,32 @@ The first schema stores:
 - `HARNESS_RUNTIME_HOST=127.0.0.1`
 - `HARNESS_RUNTIME_PORT=8765`
 - `HARNESS_RUNTIME_BASE_URL=http://127.0.0.1:8765`
+- `HARNESS_DASHBOARD_ASSETS_DIR=<app-data>/dashboard`
 
 This is what removes the need for Docker, Node, `pnpm`, or repo-local shell exports for the backend runtime.
+
+## Dashboard Assets
+
+The local app dashboard is a prebuilt static bundle served by the Python backend.
+It is not a second server process and it is not a Node runtime embedded in the app package.
+
+Developer builds produce the local bundle with:
+
+```bash
+pnpm build:dashboard:local
+```
+
+Packaged builds should copy that bundle into `dashboard_assets_dir`, or set `HARNESS_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `harness serve`.
+
+When the configured directory contains `index.html`, the backend mounts it at:
+
+- `GET /dashboard/`
+- `GET /dashboard/tasks/`
+- `GET /dashboard/verification/`
+- `GET /dashboard/reconciliation/`
+- `GET /dashboard/reviews/`
+
+The dashboard calls the same-origin local Harness API. If the backend is unavailable, it should display the API error rather than substituting sample data.
 
 ## Status And Health
 
@@ -127,3 +153,9 @@ and removes the PID file on clean exit.
 Missing or stale PID files are treated as already stopped because the desired state is satisfied.
 
 The local API binds to loopback by default. Network exposure is out of scope for the local app v1 contract.
+
+`harness open` should open the dashboard URL by default:
+
+```text
+http://127.0.0.1:<runtime-port>/dashboard
+```
