@@ -1,0 +1,92 @@
+# Setup Doctor Contract
+
+`harness doctor --json` is the local app setup report.
+The menu-bar app and onboarding flow should render this JSON directly instead of parsing logs or backend exception text.
+
+The doctor is intentionally broader than `/health`.
+`/health` reports whether the backend is alive.
+`doctor` explains whether the local app is set up well enough for normal users to understand what is missing and what to do next.
+
+## Check Shape
+
+Every check returns:
+
+```json
+{
+  "code": "sqlite",
+  "status": "pass",
+  "message": "SQLite database is ready at /path/to/harness.db.",
+  "impact": "Harness can persist local task and verifier state.",
+  "next_action": "No action needed.",
+  "details": {
+    "path": "/path/to/harness.db"
+  }
+}
+```
+
+Status values:
+
+- `pass`: the item is ready.
+- `warn`: the item is incomplete, optional, or currently stopped, but Harness can still run.
+- `fail`: the item is broken enough that setup or the selected workflow cannot be trusted.
+
+The top-level payload includes a summary count:
+
+```json
+{
+  "status": "ok",
+  "summary": {
+    "pass": 8,
+    "warn": 4,
+    "fail": 0
+  },
+  "checks": []
+}
+```
+
+The doctor exits with `0` unless at least one check is `fail`.
+Warnings are still important, but they should not block normal local runtime setup.
+
+## Current Checks
+
+The current doctor covers:
+
+- `app_data_dir`: app data directory writability.
+- `log_dir`: log directory writability.
+- `config`: app-managed config presence and readability.
+- `sqlite`: SQLite database availability and schema readiness.
+- `api_health`: local API availability.
+- `dashboard`: packaged dashboard asset availability and dashboard HTTP route reachability when the API is running.
+- `github_connection`: GitHub credential setup state.
+- `linear_connection`: Linear credential setup state.
+- `ingress_executor`: desktop-agent bridge setup state for the current OpenClaw-shaped adapter wiring, without making OpenClaw the product boundary.
+- `notification_permission`: notification permission state reported by the app shell.
+- `launch_at_login`: launch-at-login state reported by the app shell.
+- `workspace_folders`: configured local workspace folder availability.
+
+## App Shell Inputs
+
+Some checks depend on facts owned by the native app shell.
+Until the Swift app owns these directly, the CLI reads these environment variables:
+
+- `HARNESS_NOTIFICATION_PERMISSION`: `authorized`, `denied`, or `not_determined`.
+- `HARNESS_LAUNCH_AT_LOGIN`: `enabled` or `disabled`.
+- `HARNESS_WORKSPACE_FOLDERS`: `os.pathsep`-separated folder paths selected by the user.
+
+Current desktop-agent bridge checks read the existing adapter variables:
+
+- `OPENCLAW_CONFIG_PATH`
+- `OPENCLAW_STATE_DIR`
+- `OPENCLAW_BIN`
+- `OPENCLAW_BASE_URL`
+
+Those names are adapter wiring, not the product boundary.
+The UI should describe the setup item as a desktop-agent bridge for OpenClaw, Hermes, Codex, or a future equivalent.
+
+## Safety Rules
+
+- Do not return raw token values.
+- Do not include stack traces in normal-user output.
+- Do not mark optional integrations as `fail` just because they are not connected.
+- Do fail configured-but-broken items, such as a selected workspace folder that no longer exists.
+- Do not require notification permission or launch-at-login to use Harness.

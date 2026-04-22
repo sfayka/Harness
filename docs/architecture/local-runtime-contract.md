@@ -146,20 +146,32 @@ The backend exposes two app-shell-safe probes:
   "code": "sqlite",
   "status": "pass",
   "message": "SQLite database is ready.",
+  "impact": "Harness can persist local task and verifier state.",
   "next_action": "No action needed."
 }
 ```
 
-Initial checks cover:
+Current checks cover:
 
 - app data directory writability
 - log directory writability
 - config presence and validity
 - SQLite schema readiness
 - local API health
+- dashboard asset and route availability
+- GitHub credential setup state
+- Linear credential setup state
+- ingress/executor bridge setup state
+- notification permission state reported by the app shell
+- Launch at Login state reported by the app shell
+- selected workspace folder availability
 
 The local API check is a warning when the runtime is stopped.
 A stopped runtime is a valid setup state; it is not a corrupted install.
+Optional integrations also report warnings rather than failures when they are missing.
+Configured-but-broken setup, such as a missing selected workspace folder, reports `fail`.
+
+See [setup-doctor.md](setup-doctor.md).
 
 ## Exit Codes
 
