@@ -100,6 +100,7 @@ python3 -m modules.local_runtime --json init
 python3 -m modules.local_runtime --json status
 python3 -m modules.local_runtime serve
 python3 -m modules.local_runtime --json doctor
+python3 -m modules.local_runtime --json secrets status
 python3 -m modules.local_runtime stop
 ```
 
@@ -112,6 +113,17 @@ Default macOS paths:
 - `~/Library/Application Support/Harness/dashboard/`
 - `~/Library/Application Support/Harness/runtime/harness.pid`
 - `~/Library/Logs/Harness/harness.log`
+
+Packaged app secrets use the app-managed secret store instead of `.env.local`:
+
+```bash
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
+printf '%s' "$LINEAR_API_KEY" | python3 -m modules.local_runtime --json secrets set linear_api_key --value-stdin
+python3 -m modules.local_runtime --json secrets status
+```
+
+Secret status output is redacted. Use `--require <secret-name>` when a selected workflow cannot run without that credential.
+Native developer mode can still use repo-root `.env.local`.
 
 To run the same backend against Postgres instead of the file-backed store:
 

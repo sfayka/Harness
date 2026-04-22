@@ -19,6 +19,9 @@ Commands:
 - `harness doctor`
 - `harness open`
 - `harness stop`
+- `harness secrets status`
+- `harness secrets set <name> --value-stdin`
+- `harness secrets delete <name>`
 
 The CLI supports `--json` for app-shell consumption. JSON output is the contract the macOS menu-bar app should use.
 
@@ -50,7 +53,7 @@ Normal app usage should rely on app-managed defaults.
 
 `harness init` writes non-secret config to `config.json` and initializes the SQLite schema.
 Secrets do not belong in this file.
-GitHub, Linear, and ingress/executor credentials should move through the app-managed secret store in later slices.
+GitHub, Linear, and ingress/executor credentials move through the app-managed secret store.
 
 The first schema stores:
 
@@ -70,8 +73,31 @@ The first schema stores:
 - `HARNESS_RUNTIME_PORT=8765`
 - `HARNESS_RUNTIME_BASE_URL=http://127.0.0.1:8765`
 - `HARNESS_DASHBOARD_ASSETS_DIR=<app-data>/dashboard`
+- app-managed secrets, when present, mapped to their backend environment variables
 
 This is what removes the need for Docker, Node, `pnpm`, or repo-local shell exports for the backend runtime.
+
+## Secret Store
+
+macOS v1 stores local app secrets in Keychain. The stable Harness secret names are:
+
+- `github_token`, mapped to `GITHUB_TOKEN`
+- `linear_api_key`, mapped to `LINEAR_API_KEY`
+- `repair_callback_bearer_token`, mapped to `OPENCLAW_REPAIR_BEARER_TOKEN`
+
+From a repo checkout, use:
+
+```bash
+python3 -m modules.local_runtime --json secrets status
+python3 -m modules.local_runtime --json secrets status --require github_token
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
+python3 -m modules.local_runtime --json secrets delete github_token
+```
+
+Secret status output is redacted. It reports configured, missing, unavailable, and error states without returning token values.
+Existing environment variables win over Keychain values so native developer `.env.local` workflows still work.
+
+See [app-managed-secrets.md](app-managed-secrets.md).
 
 ## Dashboard Assets
 

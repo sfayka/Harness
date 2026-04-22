@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from modules.local_secrets import InMemorySecretStore
 from modules.local_runtime import (
     DEFAULT_API_PORT,
     EXIT_OK,
@@ -70,6 +71,8 @@ class LocalRuntimeCliTests(unittest.TestCase):
             config["paths"]["dashboard_assets_dir"],
             str(self.data_path / "dashboard"),
         )
+        self.assertNotIn("GITHUB_TOKEN", json.dumps(config))
+        self.assertNotIn("LINEAR_API_KEY", json.dumps(config))
 
     def test_status_before_init_returns_setup_required(self) -> None:
         exit_code, payload = self._run_cli("status")
@@ -115,6 +118,43 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(checks["api_health"]["status"], "warn")
         self.assertIn("harness serve", checks["api_health"]["next_action"])
 
+    def test_secrets_status_reports_required_missing_without_values(self) -> None:
+        store = InMemorySecretStore({"github_token": "ghp_secret"})
+
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("modules.local_runtime.create_secret_store", return_value=store),
+        ):
+            exit_code, payload = self._run_cli("secrets", "status", "--require", "linear_api_key")
+
+        self.assertEqual(exit_code, EXIT_SETUP_REQUIRED)
+        self.assertEqual(payload["status"], "missing_required_secrets")
+        self.assertEqual(payload["missing_required"], ["linear_api_key"])
+        self.assertNotIn("ghp_secret", json.dumps(payload))
+
+    def test_secrets_set_reads_value_from_stdin_without_echoing_value(self) -> None:
+        store = InMemorySecretStore()
+
+        with (
+            patch("modules.local_runtime.create_secret_store", return_value=store),
+            patch("sys.stdin", io.StringIO("ghp_secret\n")),
+        ):
+            exit_code, payload = self._run_cli("secrets", "set", "github_token", "--value-stdin")
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "stored")
+        self.assertEqual(store.values["github_token"], "ghp_secret")
+        self.assertNotIn("ghp_secret", json.dumps(payload))
+
+    def test_secrets_delete_reports_missing_without_error(self) -> None:
+        store = InMemorySecretStore()
+
+        with patch("modules.local_runtime.create_secret_store", return_value=store):
+            exit_code, payload = self._run_cli("secrets", "delete", "github_token")
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "missing")
+
 
 class LocalRuntimeProcessTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -135,11 +175,16 @@ class LocalRuntimeProcessTests(unittest.TestCase):
             observed["sqlite_path"] = os.environ.get("HARNESS_SQLITE_PATH")
             observed["runtime_mode"] = os.environ.get("HARNESS_RUNTIME_MODE")
             observed["dashboard_assets_dir"] = os.environ.get("HARNESS_DASHBOARD_ASSETS_DIR")
+            observed["github_token"] = os.environ.get("GITHUB_TOKEN")
             print("server-started")
 
         with (
-            patch.dict(os.environ, {}, clear=False),
+            patch.dict(os.environ, {}, clear=True),
             patch("modules.local_runtime._assert_port_available"),
+            patch(
+                "modules.local_runtime.create_secret_store",
+                return_value=InMemorySecretStore({"github_token": "ghp_secret"}),
+            ),
             patch(
                 "modules.local_runtime._run_uvicorn",
                 side_effect=fake_run_uvicorn,
@@ -153,8 +198,11 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertEqual(observed["sqlite_path"], str(self.paths.database_path))
         self.assertEqual(observed["runtime_mode"], "local-app")
         self.assertEqual(observed["dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
+        self.assertEqual(observed["github_token"], "ghp_secret")
         self.assertFalse(self.paths.pid_path.exists())
-        self.assertIn("server-started", self.paths.log_path.read_text(encoding="utf-8"))
+        log_text = self.paths.log_path.read_text(encoding="utf-8")
+        self.assertIn("server-started", log_text)
+        self.assertNotIn("ghp_secret", log_text)
 
     def test_stop_treats_missing_or_stale_process_as_stopped(self) -> None:
         config, _ = init_runtime(self.paths)

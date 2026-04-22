@@ -215,6 +215,7 @@ See:
 - SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
 - The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
 - The local app runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
+- App-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
 - Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
 
 ## Hosted Deployment Target
@@ -350,10 +351,11 @@ python3 -m modules.local_runtime --json init
 python3 -m modules.local_runtime --json status
 python3 -m modules.local_runtime serve
 python3 -m modules.local_runtime --json doctor
+python3 -m modules.local_runtime --json secrets status
 python3 -m modules.local_runtime stop
 ```
 
-Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness open`, and `harness stop`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
+Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness open`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
 Build the packageable dashboard assets for the local app path:
 
@@ -362,6 +364,16 @@ pnpm build:dashboard:local
 ```
 
 The output lives in `dist/local-dashboard/`. When `HARNESS_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API.
+
+Store app-managed secrets for packaged local app usage:
+
+```bash
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
+printf '%s' "$LINEAR_API_KEY" | python3 -m modules.local_runtime --json secrets set linear_api_key --value-stdin
+python3 -m modules.local_runtime --json secrets status --require github_token
+```
+
+The secrets command reports setup state without printing token values. Developer `.env.local` mode remains supported for native local development, but packaged app onboarding should use the secret store instead of asking users to edit env files.
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
