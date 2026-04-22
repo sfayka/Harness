@@ -29,6 +29,10 @@ struct MenuBarContentView: View {
                 openWindow(id: "dashboard")
                 Task { await model.prepareDashboard() }
             }
+            Button("Setup Assistant") {
+                openWindow(id: "onboarding")
+                Task { await model.refreshSetupStatus() }
+            }
             Button("Refresh Status") {
                 Task { await model.refresh() }
             }

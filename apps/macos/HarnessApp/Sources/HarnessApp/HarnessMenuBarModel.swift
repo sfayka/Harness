@@ -10,8 +10,11 @@ final class HarnessMenuBarModel: ObservableObject {
     @Published private(set) var dashboardURL: URL?
     @Published private(set) var dashboardMessage = "Open the dashboard to inspect full Harness progress."
     @Published private(set) var isPreparingDashboard = false
+    @Published private(set) var setupStatus: GuidedSetupStatusPayload?
+    @Published private(set) var setupMessage = "Setup has not been checked yet."
+    @Published private(set) var isCheckingSetup = false
 
-    private let runtime: HarnessRuntimeCommand
+    private var runtime: HarnessRuntimeCommand
     private let apiClient: HarnessAPIClient
     private var pollingTask: Task<Void, Never>?
 
@@ -60,9 +63,54 @@ final class HarnessMenuBarModel: ObservableObject {
         }
     }
 
+    func updateAppEnvironment(_ environment: [String: String]) {
+        runtime = runtime.withEnvironment(environment)
+    }
+
+    func refreshSetupStatus(workflows: [String] = []) async {
+        guard !isCheckingSetup else {
+            return
+        }
+        isCheckingSetup = true
+        setupMessage = "Checking setup..."
+        do {
+            let status = try await runtime.guidedSetupStatus(workflows: workflows)
+            setupStatus = status
+            setupMessage = status.onboardingComplete
+                ? "Core local setup is ready."
+                : "Setup needs attention before onboarding can finish."
+        } catch {
+            setupStatus = nil
+            setupMessage = "Setup could not be checked: \(error.localizedDescription)"
+        }
+        isCheckingSetup = false
+    }
+
+    func initializeAndValidateRuntime() async {
+        await runControlAction("Initializing Harness...") {
+            _ = try await runtime.initializeRuntime()
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = setupStatus?.onboardingComplete == true
+                ? "Core local setup is ready."
+                : "Runtime initialized. Review remaining setup items."
+        }
+    }
+
+    func saveSecretAndValidate(name: String, value: String) async {
+        await runControlAction("Saving setup secret...") {
+            _ = try await runtime.setSecret(name: name, value: value)
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = "Saved \(name) and refreshed setup validation."
+        }
+    }
+
     func startRuntime() async {
         await runControlAction("Starting Harness...") {
             try await runtime.startRuntime()
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = setupStatus?.onboardingComplete == true
+                ? "Core local setup is ready."
+                : "Runtime started. Review remaining setup items."
         }
     }
 
@@ -85,6 +133,8 @@ final class HarnessMenuBarModel: ObservableObject {
             let warnCount = result.summary?["warn"] ?? 0
             let failCount = result.summary?["fail"] ?? 0
             lastDoctorMessage = "Doctor \(result.status): \(passCount) pass, \(warnCount) warn, \(failCount) fail"
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = "Doctor \(result.status): \(passCount) pass, \(warnCount) warn, \(failCount) fail"
         }
     }
 
@@ -156,6 +206,7 @@ final class HarnessMenuBarModel: ObservableObject {
             await refresh()
         } catch {
             snapshot = HarnessMenuSummaryBuilder.errorSnapshot(error.localizedDescription)
+            setupMessage = error.localizedDescription
         }
         isBusy = false
     }

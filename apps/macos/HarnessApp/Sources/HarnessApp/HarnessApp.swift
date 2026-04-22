@@ -16,12 +16,14 @@ struct HarnessApp: App {
         MenuBarExtra {
             MenuBarContentView(model: model)
         } label: {
-            Label(model.snapshot.menuTitle, systemImage: model.snapshot.runtimeState.systemImage)
-                .task {
-                    model.startPolling()
-                }
+            HarnessMenuBarLabel(model: model)
         }
         .menuBarExtraStyle(.menu)
+
+        Window("Harness Setup", id: "onboarding") {
+            OnboardingWindowView(model: model)
+        }
+        .defaultSize(width: 1040, height: 720)
 
         Window("Harness Dashboard", id: "dashboard") {
             DashboardWindowView(model: model)

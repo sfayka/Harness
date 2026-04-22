@@ -1,7 +1,7 @@
 # Harness macOS App
 
 This is the native macOS shell for local Harness operation.
-The first slices are a menu-bar controller with runtime controls and summary counts, plus an embedded dashboard window for full inspection.
+The first slices are a menu-bar controller with runtime controls and summary counts, a first-run setup assistant, and an embedded dashboard window for full inspection.
 
 ## Targets
 
@@ -23,6 +23,21 @@ The repo-level launch path is:
 ```
 
 The app reads Harness through the local CLI and HTTP API contract. It must not read SQLite directly.
+
+## Onboarding
+
+First launch opens the setup assistant.
+It initializes app-managed config, logs, and SQLite state; asks for optional Launch at Login and notification permission; lets users select workspace folders; shows optional GitHub, Linear, and ingress/executor setup items; runs doctor; and opens the embedded dashboard.
+
+The assistant renders `harness setup status --json` through `GuidedSetupStatusPayload`.
+It reports app-owned facts back to the CLI with:
+
+- `HARNESS_NOTIFICATION_PERMISSION`
+- `HARNESS_LAUNCH_AT_LOGIN`
+- `HARNESS_WORKSPACE_FOLDERS`
+
+GitHub, Linear, and repair callback tokens entered in the assistant are saved through the app-managed secret boundary with stdin.
+They are not persisted in Swift preferences.
 
 ## Dashboard
 
