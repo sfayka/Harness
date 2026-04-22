@@ -125,6 +125,14 @@ python3 -m modules.local_runtime --json secrets status
 Secret status output is redacted. Use `--require <secret-name>` when a selected workflow cannot run without that credential.
 Native developer mode can still use repo-root `.env.local`.
 
+Run setup doctor to get app-renderable setup status:
+
+```bash
+python3 -m modules.local_runtime --json doctor
+```
+
+Doctor checks report `status`, `impact`, and `next_action` for runtime health, SQLite, dashboard assets, GitHub and Linear credentials, desktop-agent bridge wiring, notifications, launch-at-login, and configured workspace folders. Warnings are actionable but do not block the local runtime. Failures indicate configured setup that cannot be trusted.
+
 To run the same backend against Postgres instead of the file-backed store:
 
 ```bash

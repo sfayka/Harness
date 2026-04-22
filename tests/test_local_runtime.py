@@ -13,6 +13,7 @@ from modules.local_secrets import InMemorySecretStore
 from modules.local_runtime import (
     DEFAULT_API_PORT,
     EXIT_OK,
+    EXIT_RUNTIME_ERROR,
     EXIT_SETUP_REQUIRED,
     EXIT_UNHEALTHY,
     build_runtime_status_payload,
@@ -105,18 +106,94 @@ class LocalRuntimeCliTests(unittest.TestCase):
 
     def test_doctor_reports_setup_passes_and_api_warning_when_stopped(self) -> None:
         self._run_cli("init")
+        dashboard_dir = self.data_path / "dashboard"
+        dashboard_dir.mkdir()
+        (dashboard_dir / "index.html").write_text("<h1>Harness</h1>", encoding="utf-8")
+        workspace_dir = self.data_path / "workspace"
+        workspace_dir.mkdir()
 
-        exit_code, payload = self._run_cli("doctor")
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "HARNESS_DASHBOARD_ASSETS_DIR": str(dashboard_dir),
+                    "OPENCLAW_BASE_URL": "http://127.0.0.1:18789",
+                    "HARNESS_NOTIFICATION_PERMISSION": "authorized",
+                    "HARNESS_LAUNCH_AT_LOGIN": "enabled",
+                    "HARNESS_WORKSPACE_FOLDERS": str(workspace_dir),
+                },
+                clear=True,
+            ),
+            patch(
+                "modules.local_runtime.create_secret_store",
+                return_value=InMemorySecretStore(
+                    {
+                        "github_token": "ghp_secret",
+                        "linear_api_key": "lin_secret",
+                    }
+                ),
+            ),
+        ):
+            exit_code, payload = self._run_cli("doctor")
         checks = {check["code"]: check for check in payload["checks"]}
 
         self.assertEqual(exit_code, EXIT_OK)
         self.assertEqual(payload["status"], "ok")
+        self.assertEqual(payload["summary"]["fail"], 0)
         self.assertEqual(checks["app_data_dir"]["status"], "pass")
         self.assertEqual(checks["log_dir"]["status"], "pass")
         self.assertEqual(checks["config"]["status"], "pass")
         self.assertEqual(checks["sqlite"]["status"], "pass")
         self.assertEqual(checks["api_health"]["status"], "warn")
+        self.assertEqual(checks["dashboard"]["status"], "warn")
+        self.assertEqual(checks["github_connection"]["status"], "pass")
+        self.assertEqual(checks["linear_connection"]["status"], "pass")
+        self.assertEqual(checks["ingress_executor"]["status"], "pass")
+        self.assertEqual(checks["notification_permission"]["status"], "pass")
+        self.assertEqual(checks["launch_at_login"]["status"], "pass")
+        self.assertEqual(checks["workspace_folders"]["status"], "pass")
         self.assertIn("harness serve", checks["api_health"]["next_action"])
+        self.assertTrue(all(check.get("impact") for check in payload["checks"]))
+        self.assertTrue(all(check.get("next_action") for check in payload["checks"]))
+
+    def test_doctor_fails_when_configured_workspace_folder_is_missing(self) -> None:
+        self._run_cli("init")
+
+        with (
+            patch.dict(
+                os.environ,
+                {"HARNESS_WORKSPACE_FOLDERS": str(self.data_path / "missing-workspace")},
+                clear=True,
+            ),
+            patch("modules.local_runtime.create_secret_store", return_value=InMemorySecretStore()),
+        ):
+            exit_code, payload = self._run_cli("doctor")
+        checks = {check["code"]: check for check in payload["checks"]}
+
+        self.assertEqual(exit_code, EXIT_RUNTIME_ERROR)
+        self.assertEqual(payload["status"], "fail")
+        self.assertEqual(checks["workspace_folders"]["status"], "fail")
+        self.assertIn("Reconnect", checks["workspace_folders"]["next_action"])
+        self.assertNotIn("Traceback", json.dumps(payload))
+
+    def test_doctor_fails_when_configured_executor_config_is_missing(self) -> None:
+        self._run_cli("init")
+
+        with (
+            patch.dict(
+                os.environ,
+                {"OPENCLAW_CONFIG_PATH": str(self.data_path / "missing-openclaw.json5")},
+                clear=True,
+            ),
+            patch("modules.local_runtime.create_secret_store", return_value=InMemorySecretStore()),
+        ):
+            exit_code, payload = self._run_cli("doctor")
+        checks = {check["code"]: check for check in payload["checks"]}
+
+        self.assertEqual(exit_code, EXIT_RUNTIME_ERROR)
+        self.assertEqual(payload["status"], "fail")
+        self.assertEqual(checks["ingress_executor"]["status"], "fail")
+        self.assertIn("OPENCLAW_CONFIG_PATH", checks["ingress_executor"]["next_action"])
 
     def test_secrets_status_reports_required_missing_without_values(self) -> None:
         store = InMemorySecretStore({"github_token": "ghp_secret"})

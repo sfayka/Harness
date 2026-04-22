@@ -217,6 +217,7 @@ See:
 - The local app runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
 - App-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
 - Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
+- Setup doctor output is documented in [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md).
 
 ## Hosted Deployment Target
 

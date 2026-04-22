@@ -7,6 +7,7 @@ import contextlib
 import json
 import os
 import platform
+import shutil
 import signal
 import socket
 import subprocess
@@ -21,6 +22,7 @@ from urllib.request import Request, urlopen
 from modules.local_secrets import (
     LocalSecretError,
     MacOSKeychainSecretStore,
+    SecretStatus,
     collect_secret_statuses,
     load_app_managed_secrets_into_environment,
     secret_status_payload,
@@ -48,6 +50,9 @@ ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
 ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
 ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
+ENV_NOTIFICATION_PERMISSION = "HARNESS_NOTIFICATION_PERMISSION"
+ENV_LAUNCH_AT_LOGIN = "HARNESS_LAUNCH_AT_LOGIN"
+ENV_WORKSPACE_FOLDERS = "HARNESS_WORKSPACE_FOLDERS"
 
 
 class LocalRuntimeError(ValueError):
@@ -164,7 +169,9 @@ class RuntimeCheck:
     code: str
     status: str
     message: str
+    impact: str
     next_action: str
+    details: dict[str, Any] | None = None
 
 
 def resolve_runtime_paths(
@@ -327,6 +334,22 @@ def fetch_runtime_health(
         return None, None, str(error)
 
 
+def fetch_http_status(
+    url: str,
+    *,
+    timeout: float = DEFAULT_REQUEST_TIMEOUT_SECONDS,
+    accept: str = "text/html,application/json",
+) -> tuple[int | None, str | None]:
+    request = Request(url, headers={"Accept": accept})
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return int(response.status), None
+    except HTTPError as error:
+        return int(error.code), str(error)
+    except (OSError, TimeoutError, URLError) as error:
+        return None, str(error)
+
+
 def read_pid(pid_path: Path) -> int | None:
     try:
         raw_pid = pid_path.read_text(encoding="utf-8").strip()
@@ -393,6 +416,7 @@ def uninitialized_status(paths: RuntimePaths) -> dict[str, Any]:
 def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
     checks: list[RuntimeCheck] = []
     config: RuntimeConfig | None = None
+    status_payload: dict[str, Any] | None = None
 
     checks.append(
         _check_writable_directory(
@@ -411,6 +435,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 code="config",
                 status="fail",
                 message=str(error),
+                impact="Harness cannot start reliably until app-managed config exists and is readable.",
                 next_action="Run `harness init` from the app bundle or CLI.",
             )
         )
@@ -420,6 +445,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 code="config",
                 status="pass",
                 message=f"Runtime config exists at {paths.config_path}.",
+                impact="Harness can read non-secret local runtime settings.",
                 next_action="No action needed.",
             )
         )
@@ -434,6 +460,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                     code="sqlite",
                     status="fail",
                     message=str(error),
+                    impact="Harness cannot persist canonical task truth or reset verifier state.",
                     next_action=(
                         "Move the damaged database aside and rerun setup, "
                         "or restore a known-good backup."
@@ -448,6 +475,11 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                     message=(
                         "SQLite database is "
                         f"{'ready' if sqlite_ready else 'not on the expected schema'} at {config.database_path}."
+                    ),
+                    impact=(
+                        "Harness can persist local task and verifier state."
+                        if sqlite_ready
+                        else "Harness storage exists but is not on the expected schema."
                     ),
                     next_action=(
                         "No action needed."
@@ -464,17 +496,67 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 code="api_health",
                 status="pass" if api_running else "warn",
                 message="Local API is healthy." if api_running else "Local API is not running.",
+                impact=(
+                    "The menu-bar app and dashboard can read Harness state."
+                    if api_running
+                    else "The app can still run setup checks, but live task status and the dashboard are unavailable."
+                ),
                 next_action=(
                     "No action needed."
                     if api_running
                     else "Start Harness from the app or run `harness serve`."
                 ),
+                details={
+                    "api_base_url": config.base_url,
+                    "health_http_status": status_payload.get("health_http_status"),
+                },
+            )
+        )
+        checks.append(_check_dashboard(config, status_payload=status_payload))
+    else:
+        checks.append(
+            RuntimeCheck(
+                code="sqlite",
+                status="fail",
+                message="SQLite database has not been initialized.",
+                impact="Harness cannot store local task truth until setup creates the database.",
+                next_action="Run `harness init` from the app bundle or CLI.",
+            )
+        )
+        checks.append(
+            RuntimeCheck(
+                code="api_health",
+                status="warn",
+                message="Local API cannot be checked before runtime initialization.",
+                impact="The app cannot report live task status until setup completes and the API starts.",
+                next_action="Run `harness init`, then start Harness.",
+            )
+        )
+        checks.append(
+            RuntimeCheck(
+                code="dashboard",
+                status="warn",
+                message="Dashboard assets cannot be checked before runtime initialization.",
+                impact="The dashboard window may not open until setup completes.",
+                next_action="Run `harness init`, then install packaged dashboard assets.",
             )
         )
 
+    checks.extend(_secret_doctor_checks())
+    checks.append(_check_ingress_executor())
+    checks.append(_check_notification_permission())
+    checks.append(_check_launch_at_login())
+    checks.append(_check_workspace_folders())
+
     exit_code = EXIT_RUNTIME_ERROR if any(check.status == "fail" for check in checks) else EXIT_OK
+    counts = {
+        "pass": sum(1 for check in checks if check.status == "pass"),
+        "warn": sum(1 for check in checks if check.status == "warn"),
+        "fail": sum(1 for check in checks if check.status == "fail"),
+    }
     return exit_code, {
         "status": "fail" if exit_code else "ok",
+        "summary": counts,
         "checks": [asdict(check) for check in checks],
     }
 
@@ -490,14 +572,274 @@ def _check_writable_directory(code: str, path: Path, impact: str) -> RuntimeChec
             code=code,
             status="fail",
             message=f"{impact} {path} is not writable: {error}",
+            impact=impact,
             next_action="Choose a writable app data location or fix directory permissions.",
+            details={"path": str(path)},
         )
     return RuntimeCheck(
         code=code,
         status="pass",
         message=f"{path} is writable.",
+        impact=impact,
         next_action="No action needed.",
+        details={"path": str(path)},
     )
+
+
+def _check_dashboard(config: RuntimeConfig, *, status_payload: dict[str, Any]) -> RuntimeCheck:
+    assets_dir = Path(os.environ.get(ENV_DASHBOARD_ASSETS_DIR) or config.dashboard_assets_dir).expanduser()
+    dashboard_url = f"{config.base_url}/dashboard/"
+    assets_ready = (assets_dir / "index.html").is_file()
+    api_running = status_payload.get("status") == "running"
+    details: dict[str, Any] = {
+        "assets_dir": str(assets_dir),
+        "dashboard_url": dashboard_url,
+        "assets_ready": assets_ready,
+    }
+
+    if not assets_ready:
+        return RuntimeCheck(
+            code="dashboard",
+            status="warn",
+            message=f"Dashboard assets are missing at {assets_dir}.",
+            impact="The dashboard window cannot render until packaged assets are installed.",
+            next_action="Build or install the packaged dashboard assets, then set HARNESS_DASHBOARD_ASSETS_DIR if they are not in the default app data path.",
+            details=details,
+        )
+
+    if not api_running:
+        return RuntimeCheck(
+            code="dashboard",
+            status="warn",
+            message="Dashboard assets are present, but the local API is not running.",
+            impact="The dashboard window can be opened after Harness starts.",
+            next_action="Start Harness from the app or run `harness serve`.",
+            details=details,
+        )
+
+    http_status, error = fetch_http_status(dashboard_url)
+    details["http_status"] = http_status
+    if http_status == 200:
+        return RuntimeCheck(
+            code="dashboard",
+            status="pass",
+            message="Dashboard is reachable from the local Harness runtime.",
+            impact="The dashboard window can inspect live local Harness state.",
+            next_action="No action needed.",
+            details=details,
+        )
+    details["error"] = error
+    return RuntimeCheck(
+        code="dashboard",
+        status="warn",
+        message="Dashboard assets are present, but the dashboard route is not reachable.",
+        impact="The dashboard window may fail to open or may show a backend error.",
+        next_action="Restart Harness and rerun doctor. If the problem continues, reinstall the dashboard assets.",
+        details=details,
+    )
+
+
+def _secret_doctor_checks() -> list[RuntimeCheck]:
+    statuses = collect_secret_statuses(store=create_secret_store())
+    checks: list[RuntimeCheck] = []
+    for status in statuses:
+        if status.name == "github_token":
+            checks.append(_secret_status_to_check("github_connection", status))
+        elif status.name == "linear_api_key":
+            checks.append(_secret_status_to_check("linear_connection", status))
+    return checks
+
+
+def _secret_status_to_check(code: str, status: SecretStatus) -> RuntimeCheck:
+    configured = status.status == "configured"
+    return RuntimeCheck(
+        code=code,
+        status="pass" if configured else "warn",
+        message=(
+            f"{status.label} is configured."
+            if configured
+            else f"{status.label} is not ready: {status.message}"
+        ),
+        impact=(
+            status.required_for
+            if configured
+            else f"{status.required_for} will remain unavailable until this credential is connected."
+        ),
+        next_action=status.next_action,
+        details={
+            "secret": status.name,
+            "env_var": status.env_var,
+            "source": status.source,
+            "credential_status": status.status,
+        },
+    )
+
+
+def _check_ingress_executor() -> RuntimeCheck:
+    cli_config_path = _clean_env_value("OPENCLAW_CONFIG_PATH")
+    state_dir = _clean_env_value("OPENCLAW_STATE_DIR")
+    base_url = _clean_env_value("OPENCLAW_BASE_URL")
+    cli_bin = _clean_env_value("OPENCLAW_BIN") or "openclaw"
+
+    if cli_config_path or state_dir:
+        details = {
+            "mode": "local_cli",
+            "config_path": cli_config_path,
+            "state_dir": state_dir,
+            "cli_bin": cli_bin,
+        }
+        if cli_config_path and not Path(cli_config_path).expanduser().is_file():
+            return RuntimeCheck(
+                code="ingress_executor",
+                status="fail",
+                message=f"Desktop-agent CLI config is configured but missing at {cli_config_path}.",
+                impact="Harness repair dispatch cannot use the configured local desktop-agent bridge.",
+                next_action="Fix OPENCLAW_CONFIG_PATH or rerun the desktop-agent setup flow.",
+                details=details,
+            )
+        if shutil.which(cli_bin) is None:
+            return RuntimeCheck(
+                code="ingress_executor",
+                status="warn",
+                message=f"Desktop-agent CLI config is present, but `{cli_bin}` is not on PATH.",
+                impact="Harness may not be able to dispatch repair work through the local bridge.",
+                next_action="Install the configured desktop-agent CLI or set OPENCLAW_BIN to the executable path.",
+                details=details,
+            )
+        return RuntimeCheck(
+            code="ingress_executor",
+            status="pass",
+            message="Desktop-agent local CLI bridge is configured.",
+            impact="Harness can request repair work through the configured local bridge when a workflow needs it.",
+            next_action="No action needed.",
+            details=details,
+        )
+
+    if base_url:
+        return RuntimeCheck(
+            code="ingress_executor",
+            status="pass",
+            message="Desktop-agent HTTP repair bridge is configured.",
+            impact="Harness can request repair work through the configured HTTP bridge when a workflow needs it.",
+            next_action="No action needed.",
+            details={"mode": "http", "base_url": base_url},
+        )
+
+    return RuntimeCheck(
+        code="ingress_executor",
+        status="warn",
+        message="No desktop-agent ingress/executor bridge is configured.",
+        impact="Harness can run locally, but repair dispatch and executor-backed workflows are incomplete.",
+        next_action="Connect OpenClaw, Hermes, Codex, or another compatible desktop-agent bridge during setup.",
+        details={"mode": "unconfigured"},
+    )
+
+
+def _check_notification_permission() -> RuntimeCheck:
+    permission = (_clean_env_value(ENV_NOTIFICATION_PERMISSION) or "unknown").lower()
+    if permission in {"authorized", "granted", "enabled"}:
+        return RuntimeCheck(
+            code="notification_permission",
+            status="pass",
+            message="Notification permission is authorized.",
+            impact="Harness can surface attention events through local notifications.",
+            next_action="No action needed.",
+            details={"permission": permission},
+        )
+    if permission in {"denied", "disabled"}:
+        return RuntimeCheck(
+            code="notification_permission",
+            status="warn",
+            message="Notification permission is denied.",
+            impact="Harness can still run, but attention events will not appear as local notifications.",
+            next_action="Enable Harness notifications in system settings if you want attention alerts.",
+            details={"permission": permission},
+        )
+    return RuntimeCheck(
+        code="notification_permission",
+        status="warn",
+        message="Notification permission has not been reported by the app shell.",
+        impact="Harness can run, but the app has not confirmed whether attention alerts can be delivered.",
+        next_action="Open the Harness app and complete the notifications setup step.",
+        details={"permission": permission},
+    )
+
+
+def _check_launch_at_login() -> RuntimeCheck:
+    state = (_clean_env_value(ENV_LAUNCH_AT_LOGIN) or "unknown").lower()
+    if state in {"enabled", "true", "1", "yes"}:
+        return RuntimeCheck(
+            code="launch_at_login",
+            status="pass",
+            message="Launch at Login is enabled.",
+            impact="Harness can start automatically after login.",
+            next_action="No action needed.",
+            details={"state": state},
+        )
+    if state in {"disabled", "false", "0", "no"}:
+        return RuntimeCheck(
+            code="launch_at_login",
+            status="warn",
+            message="Launch at Login is disabled.",
+            impact="Harness will only run after the user starts it manually.",
+            next_action="Enable Launch at Login from the Harness app if you want background supervision after login.",
+            details={"state": state},
+        )
+    return RuntimeCheck(
+        code="launch_at_login",
+        status="warn",
+        message="Launch at Login state has not been reported by the app shell.",
+        impact="Harness can run, but automatic startup has not been confirmed.",
+        next_action="Open the Harness app and complete the Launch at Login setup step.",
+        details={"state": state},
+    )
+
+
+def _check_workspace_folders() -> RuntimeCheck:
+    raw_folders = _clean_env_value(ENV_WORKSPACE_FOLDERS)
+    if not raw_folders:
+        return RuntimeCheck(
+            code="workspace_folders",
+            status="pass",
+            message="No workspace folders are configured.",
+            impact="No external folder access is required until a workflow needs local repo or artifact inspection.",
+            next_action="No action needed.",
+            details={"folders": []},
+        )
+
+    folders = [Path(value).expanduser() for value in raw_folders.split(os.pathsep) if value.strip()]
+    missing = [str(path) for path in folders if not path.exists()]
+    unreadable = [str(path) for path in folders if path.exists() and not os.access(path, os.R_OK)]
+    details = {
+        "folders": [str(path) for path in folders],
+        "missing": missing,
+        "unreadable": unreadable,
+    }
+    if missing or unreadable:
+        return RuntimeCheck(
+            code="workspace_folders",
+            status="fail",
+            message="One or more configured workspace folders are unavailable.",
+            impact="Workflows that need local repository or artifact inspection may fail.",
+            next_action="Reconnect the missing folders from the Harness app or remove stale workspace folder entries.",
+            details=details,
+        )
+    return RuntimeCheck(
+        code="workspace_folders",
+        status="pass",
+        message="Configured workspace folders are accessible.",
+        impact="Harness can use the configured local workspace folders when a workflow needs them.",
+        next_action="No action needed.",
+        details=details,
+    )
+
+
+def _clean_env_value(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    stripped = value.strip()
+    return stripped or None
 
 
 def serve_runtime(paths: RuntimePaths, *, host: str | None = None, port: int | None = None) -> int:
@@ -835,6 +1177,10 @@ def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -
         for check in checks:
             if isinstance(check, dict):
                 print(f"- {check.get('code')}: {check.get('status')} - {check.get('message')}")
+                if check.get("impact"):
+                    print(f"  impact: {check.get('impact')}")
+                if check.get("next_action"):
+                    print(f"  next_action: {check.get('next_action')}")
     secrets = payload.get("secrets")
     if isinstance(secrets, list):
         print("secrets:")
