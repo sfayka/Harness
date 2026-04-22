@@ -14,12 +14,14 @@ python3 -m modules.local_runtime <command>
 Commands:
 
 - `harness init`
+- `harness start`
 - `harness serve`
 - `harness status`
 - `harness doctor`
 - `harness setup status`
 - `harness open`
 - `harness stop`
+- `harness recover`
 - `harness secrets status`
 - `harness secrets set <name> --value-stdin`
 - `harness secrets delete <name>`
@@ -62,7 +64,7 @@ The first schema stores:
 - SQLite database path
 - data, dashboard asset, runtime, PID, and log paths
 
-`harness serve` applies the config to the backend process through environment variables before startup:
+`harness start` and `harness serve` apply the config to the backend process through environment variables before startup:
 
 - `HARNESS_STORE_BACKEND=sqlite`
 - `HARNESS_SQLITE_PATH=<app-data>/harness.db`
@@ -212,11 +214,20 @@ All CLI failures should produce operator-readable messages. Stack traces are not
 
 ## Process Lifecycle
 
-`harness serve` runs the backend in the foreground, writes a PID file, appends runtime output to `harness.log`,
-and removes the PID file on clean exit.
+`harness start` is the app-facing lifecycle command.
+It initializes the runtime if needed, starts `harness serve` as an app-managed background process, waits for `/health`, and then returns JSON the app can render.
+If the runtime is already healthy, `start` exits successfully without launching a duplicate process.
+If the PID file is stale, `start` removes it and starts a fresh runtime.
+If the configured port is already owned by a non-Harness process, `start` fails with `status=port_conflict` and an explicit next action.
+
+`harness serve` runs the backend in the foreground, writes a PID file, appends runtime output to `harness.log`, and removes the PID file on clean exit.
+It is still useful for foreground debugging and for the background process launched by `harness start`.
 
 `harness stop` reads the PID file and sends `SIGTERM`.
 Missing or stale PID files are treated as already stopped because the desired state is satisfied.
+
+`harness recover` is the app-facing repair action for crashed, stale, or degraded runtime state.
+It stops an unhealthy PID-backed process when possible, clears stale PID files, starts a fresh runtime, waits for health, and reports the same user-facing JSON shape as `start`.
 
 The local API binds to loopback by default. Network exposure is out of scope for the local app v1 contract.
 

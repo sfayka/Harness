@@ -66,12 +66,15 @@ Selected workspace folders are different: if the user configured a folder and it
 Launch at Login and notifications are optional but recommended.
 
 Launch at Login is requested through the native login-item API.
-Issue #326 still owns the fuller daemon lifecycle model: recovery from crashed or stale backend processes, port conflicts, and final startup behavior after login.
+When enabled, macOS starts the Harness app after login.
+If onboarding has been completed, the app then starts the local runtime through `harness start`.
+The backend remains an app-managed child process, not a separate LaunchAgent.
 
 Notifications are requested through the native notification authorization prompt.
 Issue #327 still owns attention-event delivery: manual-review alerts, repair-dispatch failures, stalled executors, budget thresholds, and credential-expiry notifications.
 
-The assistant records and validates permission state, but it does not pretend these follow-on event and lifecycle behaviors are finished.
+The assistant records and validates permission state.
+Notification event delivery remains separate from permission capture.
 
 ## Integrations
 

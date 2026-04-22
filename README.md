@@ -349,15 +349,17 @@ Run the local app runtime contract from a repo checkout:
 
 ```bash
 python3 -m modules.local_runtime --json init
+python3 -m modules.local_runtime --json start
 python3 -m modules.local_runtime --json status
 python3 -m modules.local_runtime serve
 python3 -m modules.local_runtime --json doctor
 python3 -m modules.local_runtime --json setup status
 python3 -m modules.local_runtime --json secrets status
-python3 -m modules.local_runtime stop
+python3 -m modules.local_runtime --json recover
+python3 -m modules.local_runtime --json stop
 ```
 
-Packaged builds should expose the same contract as `harness init`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
+Packaged builds should expose the same contract as `harness init`, `harness start`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness recover`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
 Build the packageable dashboard assets for the local app path:
 
@@ -388,13 +390,13 @@ python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
 
 Default onboarding only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
-The native macOS app shell starts under [`apps/macos/HarnessApp`](apps/macos/HarnessApp). It is a SwiftPM menu-bar app that reads runtime/task state through the local CLI and API contracts, not through direct SQLite access. It opens first-run onboarding automatically, exposes setup again from the menu bar, and opens the full local dashboard inside an app window while keeping browser/copy-URL fallbacks for debugging. Build and launch development builds with:
+The native macOS app shell starts under [`apps/macos/HarnessApp`](apps/macos/HarnessApp). It is a SwiftPM menu-bar app that reads runtime/task state through the local CLI and API contracts, not through direct SQLite access. It opens first-run onboarding automatically, exposes setup again from the menu bar, controls Launch at Login through `SMAppService`, supervises the backend through app-managed `start`/`stop`/`recover` commands, and opens the full local dashboard inside an app window while keeping browser/copy-URL fallbacks for debugging. Build and launch development builds with:
 
 ```bash
 ./script/build_and_run.sh
 ```
 
-See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), and [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md).
+See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), [`docs/architecture/macos-daemon-lifecycle.md`](docs/architecture/macos-daemon-lifecycle.md), and [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md).
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 

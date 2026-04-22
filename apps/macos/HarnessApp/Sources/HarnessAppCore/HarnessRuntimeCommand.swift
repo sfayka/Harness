@@ -50,26 +50,25 @@ public struct HarnessRuntimeCommand: Sendable {
         try await runJSONCommand(["init"], allowNonZeroExit: false)
     }
 
-    public func startRuntime() async throws {
-        _ = try await initializeRuntime()
-        try await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.currentDirectoryURL = repoRoot
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-            process.arguments = [pythonExecutable, "-m", "modules.local_runtime", "serve"]
-            process.environment = mergedProcessEnvironment(environment)
-            try process.run()
-        }.value
+    public func startRuntime() async throws -> RuntimeControlPayload {
+        let result = try await runJSONCommand(["start"], allowNonZeroExit: false)
+        return try JSONDecoder().decode(RuntimeControlPayload.self, from: Data(result.stdout.utf8))
     }
 
     @discardableResult
-    public func stopRuntime() async throws -> CommandResult {
-        try await runJSONCommand(["stop"], allowNonZeroExit: false)
+    public func stopRuntime() async throws -> RuntimeControlPayload {
+        let result = try await runJSONCommand(["stop"], allowNonZeroExit: false)
+        return try JSONDecoder().decode(RuntimeControlPayload.self, from: Data(result.stdout.utf8))
     }
 
-    public func restartRuntime() async throws {
+    public func restartRuntime() async throws -> RuntimeControlPayload {
         _ = try? await stopRuntime()
-        try await startRuntime()
+        return try await startRuntime()
+    }
+
+    public func recoverRuntime() async throws -> RuntimeControlPayload {
+        let result = try await runJSONCommand(["recover"], allowNonZeroExit: false)
+        return try JSONDecoder().decode(RuntimeControlPayload.self, from: Data(result.stdout.utf8))
     }
 
     public func dashboardURL() async throws -> URL {
@@ -130,21 +129,41 @@ public struct DoctorSummary: Decodable, Equatable, Sendable {
     public let summary: [String: Int]?
 }
 
+public struct RuntimeControlPayload: Decodable, Equatable, Sendable {
+    public let status: String
+    public let message: String?
+    public let nextAction: String?
+    public let apiBaseURL: String?
+    public let pid: Int?
+    public let recovered: Bool?
+    public let error: String?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case message
+        case nextAction = "next_action"
+        case apiBaseURL = "api_base_url"
+        case pid
+        case recovered
+        case error
+    }
+}
+
 private struct OpenPayload: Decodable {
     let url: String
 }
 
 public enum HarnessRuntimeCommandError: Error, LocalizedError, Equatable {
     case launchFailed(String)
-    case commandFailed(exitCode: Int32, stderr: String)
+    case commandFailed(exitCode: Int32, message: String)
     case invalidURL(String)
 
     public var errorDescription: String? {
         switch self {
         case .launchFailed(let message):
             return message
-        case .commandFailed(let exitCode, let stderr):
-            return "Harness runtime command failed with exit \(exitCode): \(stderr)"
+        case .commandFailed(let exitCode, let message):
+            return "Harness runtime command failed with exit \(exitCode): \(message)"
         case .invalidURL(let value):
             return "Harness returned an invalid dashboard URL: \(value)"
         }
@@ -188,11 +207,34 @@ private func runProcess(
     let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
     let result = CommandResult(exitCode: process.terminationStatus, stdout: stdout, stderr: stderr)
     if !allowNonZeroExit && process.terminationStatus != 0 {
-        throw HarnessRuntimeCommandError.commandFailed(exitCode: process.terminationStatus, stderr: stderr)
+        throw HarnessRuntimeCommandError.commandFailed(
+            exitCode: process.terminationStatus,
+            message: commandFailureMessage(stdout: stdout, stderr: stderr)
+        )
     }
     return result
 }
 
 private func mergedProcessEnvironment(_ environment: [String: String]) -> [String: String] {
     ProcessInfo.processInfo.environment.merging(environment) { _, appValue in appValue }
+}
+
+private func commandFailureMessage(stdout: String, stderr: String) -> String {
+    if let data = stdout.data(using: .utf8),
+       let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        let message = payload["message"] as? String ?? payload["error"] as? String
+        let nextAction = payload["next_action"] as? String
+        if let message, let nextAction {
+            return "\(message) \(nextAction)"
+        }
+        if let message {
+            return message
+        }
+    }
+    let trimmedStderr = stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmedStderr.isEmpty {
+        return trimmedStderr
+    }
+    let trimmedStdout = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedStdout.isEmpty ? "No error output was returned." : trimmedStdout
 }

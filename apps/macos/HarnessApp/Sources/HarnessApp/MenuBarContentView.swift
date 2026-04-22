@@ -51,6 +51,9 @@ struct MenuBarContentView: View {
             Button("Restart") {
                 Task { await model.restartRuntime() }
             }
+            Button("Recover Runtime") {
+                Task { await model.recoverRuntime() }
+            }
 
             Divider()
 

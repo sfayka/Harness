@@ -43,7 +43,7 @@ The Python CLI exists as a portable contract and developer fallback; the native 
 
 ## Runtime Behavior
 
-`harness serve` applies app-managed config, then loads available app-managed secrets into process environment variables before starting the backend.
+`harness start` and `harness serve` apply app-managed config, then load available app-managed secrets into process environment variables before starting the backend.
 
 Existing environment variables win. This preserves developer mode:
 

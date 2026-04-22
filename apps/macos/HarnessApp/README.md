@@ -24,6 +24,18 @@ The repo-level launch path is:
 
 The app reads Harness through the local CLI and HTTP API contract. It must not read SQLite directly.
 
+## Runtime Lifecycle
+
+The app uses the local runtime CLI as the process boundary:
+
+- `harness start`: start the backend as an app-managed process and wait for health.
+- `harness stop`: stop the PID-backed backend process.
+- `harness recover`: clear stale state, stop unhealthy PID-backed processes, handle port conflicts, and restart.
+
+Launch at Login is controlled through `SMAppService`.
+When enabled, macOS launches the app after login; the app then starts the local runtime if onboarding has been completed.
+The backend is not installed as a separate LaunchAgent in this slice.
+
 ## Onboarding
 
 First launch opens the setup assistant.

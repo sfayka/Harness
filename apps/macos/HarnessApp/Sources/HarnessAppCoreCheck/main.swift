@@ -8,6 +8,7 @@ struct HarnessAppCoreCheck {
         try checksStoppedRuntimeSummary()
         try checksDashboardRoutes()
         try checksGuidedSetupPayloadDecoding()
+        try checksRuntimeControlPayloadDecoding()
         print("HarnessAppCoreCheck passed")
     }
 
@@ -198,6 +199,29 @@ struct HarnessAppCoreCheck {
         try require(payload.item(id: "local_runtime")?.isComplete == true, "setup item complete")
         try require(payload.item(id: "github") == nil, "missing item lookup")
         try require(payload.doctorSummary?["pass"] == 5, "doctor summary")
+    }
+
+    private static func checksRuntimeControlPayloadDecoding() throws {
+        let payload = try decode(
+            RuntimeControlPayload.self,
+            """
+            {
+              "status": "running",
+              "message": "Harness runtime started.",
+              "next_action": "No action needed.",
+              "api_base_url": "http://127.0.0.1:8765",
+              "pid": 4242,
+              "recovered": true
+            }
+            """
+        )
+
+        try require(payload.status == "running", "runtime control status")
+        try require(payload.message == "Harness runtime started.", "runtime control message")
+        try require(payload.nextAction == "No action needed.", "runtime control next action")
+        try require(payload.apiBaseURL == "http://127.0.0.1:8765", "runtime control api")
+        try require(payload.pid == 4242, "runtime control pid")
+        try require(payload.recovered == true, "runtime control recovered")
     }
 
     private static func require(_ condition: Bool, _ message: String) throws {

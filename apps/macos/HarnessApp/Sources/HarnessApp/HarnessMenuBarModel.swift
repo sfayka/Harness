@@ -106,23 +106,40 @@ final class HarnessMenuBarModel: ObservableObject {
 
     func startRuntime() async {
         await runControlAction("Starting Harness...") {
-            try await runtime.startRuntime()
+            let result = try await runtime.startRuntime()
             setupStatus = try await runtime.guidedSetupStatus()
-            setupMessage = setupStatus?.onboardingComplete == true
-                ? "Core local setup is ready."
-                : "Runtime started. Review remaining setup items."
+            setupMessage = result.message ?? "Runtime started."
         }
     }
 
     func stopRuntime() async {
         await runControlAction("Stopping Harness...") {
-            _ = try await runtime.stopRuntime()
+            let result = try await runtime.stopRuntime()
+            setupMessage = result.message ?? "Runtime stopped."
         }
     }
 
     func restartRuntime() async {
         await runControlAction("Restarting Harness...") {
-            try await runtime.restartRuntime()
+            let result = try await runtime.restartRuntime()
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = result.message ?? "Runtime restarted."
+        }
+    }
+
+    func recoverRuntime() async {
+        await runControlAction("Recovering Harness...") {
+            let result = try await runtime.recoverRuntime()
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = result.message ?? "Runtime recovered."
+        }
+    }
+
+    func startRuntimeAfterLogin() async {
+        await runControlAction("Starting Harness after login...") {
+            let result = try await runtime.startRuntime()
+            setupStatus = try await runtime.guidedSetupStatus()
+            setupMessage = result.message ?? "Runtime started after login."
         }
     }
 
@@ -148,7 +165,7 @@ final class HarnessMenuBarModel: ObservableObject {
             let status = try await runtime.runtimeStatus()
             if status.status != "running" {
                 dashboardMessage = "Starting local Harness runtime..."
-                try await runtime.startRuntime()
+                _ = try await runtime.startRuntime()
                 try? await Task.sleep(for: .seconds(1))
             }
             dashboardURL = try await runtime.dashboardURL()
