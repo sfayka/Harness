@@ -27,6 +27,11 @@ from modules.local_secrets import (
     load_app_managed_secrets_into_environment,
     secret_status_payload,
 )
+from modules.local_setup import (
+    LocalSetupError,
+    available_workflow_ids,
+    build_guided_setup_status,
+)
 from modules.store import SQLiteHarnessStore, StoreError
 
 
@@ -652,6 +657,7 @@ def _secret_doctor_checks() -> list[RuntimeCheck]:
 
 def _secret_status_to_check(code: str, status: SecretStatus) -> RuntimeCheck:
     configured = status.status == "configured"
+    required_for = status.required_for.rstrip(".")
     return RuntimeCheck(
         code=code,
         status="pass" if configured else "warn",
@@ -663,7 +669,7 @@ def _secret_status_to_check(code: str, status: SecretStatus) -> RuntimeCheck:
         impact=(
             status.required_for
             if configured
-            else f"{status.required_for} will remain unavailable until this credential is connected."
+            else f"{required_for} will remain unavailable until this credential is connected."
         ),
         next_action=status.next_action,
         details={
@@ -1020,6 +1026,21 @@ def build_parser() -> argparse.ArgumentParser:
     stop_parser = subparsers.add_parser("stop", help="Gracefully stop the local Harness runtime")
     stop_parser.add_argument("--timeout", default=10.0, type=float, help="Shutdown timeout in seconds")
 
+    setup_parser = subparsers.add_parser("setup", help="Guide local onboarding and optional integration setup")
+    setup_subparsers = setup_parser.add_subparsers(dest="setup_command", required=True)
+
+    setup_status_parser = setup_subparsers.add_parser(
+        "status",
+        help="Report guided setup state for the local app onboarding flow",
+    )
+    setup_status_parser.add_argument(
+        "--workflow",
+        action="append",
+        choices=available_workflow_ids(),
+        default=[],
+        help="Treat integrations for the selected workflow as required",
+    )
+
     secrets_parser = subparsers.add_parser("secrets", help="Manage app-managed Harness secrets")
     secrets_subparsers = secrets_parser.add_subparsers(dest="secret_command", required=True)
 
@@ -1101,10 +1122,14 @@ def main(argv: list[str] | None = None) -> int:
             config = load_runtime_config(paths)
             exit_code, payload = stop_runtime(config, timeout_seconds=args.timeout)
             return _emit(payload, as_json=args.as_json, exit_code=exit_code)
+        if args.command == "setup":
+            return _handle_setup_command(paths, args, as_json=args.as_json)
         if args.command == "secrets":
             return _handle_secrets_command(args, as_json=args.as_json)
     except LocalRuntimeError as error:
         return _emit({"status": "error", "error": str(error)}, as_json=args.as_json, exit_code=error.exit_code)
+    except LocalSetupError as error:
+        return _emit({"status": "error", "error": str(error)}, as_json=args.as_json, exit_code=EXIT_SETUP_REQUIRED)
     except LocalSecretError as error:
         return _emit({"status": "error", "error": str(error)}, as_json=args.as_json, exit_code=EXIT_SETUP_REQUIRED)
     except Exception as error:
@@ -1116,6 +1141,15 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.error(f"Unsupported command {args.command!r}")
     return EXIT_RUNTIME_ERROR
+
+
+def _handle_setup_command(paths: RuntimePaths, args: argparse.Namespace, *, as_json: bool) -> int:
+    if args.setup_command == "status":
+        _, doctor_payload = run_doctor(paths)
+        payload = build_guided_setup_status(doctor_payload, selected_workflows=args.workflow)
+        exit_code = EXIT_SETUP_REQUIRED if payload.get("required_blockers") else EXIT_OK
+        return _emit(payload, as_json=as_json, exit_code=exit_code)
+    raise LocalRuntimeError(f"Unsupported setup command {args.setup_command!r}.")
 
 
 def _handle_secrets_command(args: argparse.Namespace, *, as_json: bool) -> int:
@@ -1187,6 +1221,15 @@ def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -
         for secret in secrets:
             if isinstance(secret, dict):
                 print(f"- {secret.get('name')}: {secret.get('status')} - {secret.get('message')}")
+    items = payload.get("items")
+    if isinstance(items, list):
+        print("setup_items:")
+        for item in items:
+            if isinstance(item, dict):
+                marker = "required" if item.get("required") else "optional"
+                print(f"- {item.get('id')}: {item.get('status')} ({marker})")
+                if item.get("next_action"):
+                    print(f"  next_action: {item.get('next_action')}")
     return exit_code
 
 

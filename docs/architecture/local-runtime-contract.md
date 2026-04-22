@@ -17,6 +17,7 @@ Commands:
 - `harness serve`
 - `harness status`
 - `harness doctor`
+- `harness setup status`
 - `harness open`
 - `harness stop`
 - `harness secrets status`
@@ -98,6 +99,33 @@ Secret status output is redacted. It reports configured, missing, unavailable, a
 Existing environment variables win over Keychain values so native developer `.env.local` workflows still work.
 
 See [app-managed-secrets.md](app-managed-secrets.md).
+
+## Guided Setup
+
+`harness setup status --json` is the app-renderable onboarding contract.
+It converts `harness doctor --json` into setup items with purpose, requirements, validation status, and next actions.
+
+Default onboarding requires only the local Harness runtime.
+Missing GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the app selects a workflow that requires one of them:
+
+```bash
+python3 -m modules.local_runtime --json setup status
+python3 -m modules.local_runtime --json setup status --workflow github-proof
+python3 -m modules.local_runtime --json setup status --workflow linear-sync
+python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
+```
+
+The current workflow gates are:
+
+- `github-proof`: requires GitHub artifact verification.
+- `linear-sync`: requires Linear coordination.
+- `repair-dispatch`: requires a desktop-agent ingress/executor bridge.
+
+Setup items use the app-managed secret boundary.
+The GitHub and Linear items tell the app which named secret to store and how Harness validates it; they do not ask normal users to edit env files.
+The ingress/executor item stays client-neutral and describes the bridge as compatible with OpenClaw, Hermes, Codex, or future desktop-agent clients.
+
+See [guided-integration-setup.md](guided-integration-setup.md).
 
 ## Dashboard Assets
 

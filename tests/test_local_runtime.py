@@ -232,6 +232,45 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(exit_code, EXIT_OK)
         self.assertEqual(payload["status"], "missing")
 
+    def test_setup_status_allows_runtime_only_onboarding(self) -> None:
+        self._run_cli("init")
+
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("modules.local_runtime.create_secret_store", return_value=InMemorySecretStore()),
+        ):
+            exit_code, payload = self._run_cli("setup", "status")
+        items = {item["id"]: item for item in payload["items"]}
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "ready")
+        self.assertTrue(payload["onboarding_complete"])
+        self.assertEqual(payload["required_blockers"], [])
+        self.assertEqual(items["local_runtime"]["status"], "complete")
+        self.assertEqual(items["github"]["status"], "incomplete")
+        self.assertEqual(items["linear"]["status"], "incomplete")
+        self.assertEqual(items["ingress_executor"]["status"], "incomplete")
+        self.assertFalse(items["github"]["required"])
+        self.assertFalse(items["linear"]["required"])
+        self.assertFalse(items["ingress_executor"]["required"])
+
+    def test_setup_status_selected_workflow_requires_missing_integration(self) -> None:
+        self._run_cli("init")
+
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("modules.local_runtime.create_secret_store", return_value=InMemorySecretStore()),
+        ):
+            exit_code, payload = self._run_cli("setup", "status", "--workflow", "github-proof")
+        items = {item["id"]: item for item in payload["items"]}
+
+        self.assertEqual(exit_code, EXIT_SETUP_REQUIRED)
+        self.assertEqual(payload["status"], "setup_required")
+        self.assertEqual(payload["required_blockers"], ["github"])
+        self.assertTrue(items["github"]["required"])
+        self.assertEqual(items["github"]["secret_names"], ["github_token"])
+        self.assertNotIn("ghp_secret", json.dumps(payload))
+
 
 class LocalRuntimeProcessTests(unittest.TestCase):
     def setUp(self) -> None:
