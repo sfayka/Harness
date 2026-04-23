@@ -53,6 +53,7 @@ ENV_RUNTIME_LOG_PATH = "HARNESS_RUNTIME_LOG_PATH"
 ENV_RUNTIME_HOST = "HARNESS_RUNTIME_HOST"
 ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
+ENV_RUNTIME_EXECUTABLE = "HARNESS_RUNTIME_EXECUTABLE"
 ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
 ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
 ENV_NOTIFICATION_PERMISSION = "HARNESS_NOTIFICATION_PERMISSION"
@@ -382,6 +383,31 @@ def process_is_running(pid: int | None) -> bool:
     return True
 
 
+def runtime_is_frozen() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def runtime_subprocess_command(
+    paths: RuntimePaths,
+    *,
+    host: str | None = None,
+    port: int | None = None,
+) -> list[str]:
+    runtime_executable = _clean_env_value(ENV_RUNTIME_EXECUTABLE)
+    if runtime_executable:
+        command = [runtime_executable]
+    elif runtime_is_frozen():
+        command = [sys.executable]
+    else:
+        command = [sys.executable, "-m", "modules.local_runtime"]
+    command.extend(["--data-dir", str(paths.data_dir), "--log-dir", str(paths.log_dir), "serve"])
+    if host:
+        command.extend(["--host", host])
+    if port:
+        command.extend(["--port", str(port)])
+    return command
+
+
 def runtime_status(
     config: RuntimeConfig,
     *,
@@ -461,20 +487,7 @@ def start_runtime(
             "paths": _paths_payload(config),
         }
 
-    command = [
-        sys.executable,
-        "-m",
-        "modules.local_runtime",
-        "--data-dir",
-        str(paths.data_dir),
-        "--log-dir",
-        str(paths.log_dir),
-        "serve",
-    ]
-    if host:
-        command.extend(["--host", host])
-    if port:
-        command.extend(["--port", str(port)])
+    command = runtime_subprocess_command(paths, host=host, port=port)
 
     try:
         process = subprocess.Popen(

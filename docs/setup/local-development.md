@@ -276,6 +276,32 @@ http://127.0.0.1:8765/dashboard/
 
 The normal hosted/developer dashboard still uses `pnpm dev` or `pnpm build` and the Next proxy route.
 
+### Build The macOS Release Package
+
+For the self-contained macOS distribution path, build the packaged app instead of the repo-root developer bundle:
+
+```bash
+./script/package_macos_app.sh
+```
+
+That script:
+
+- builds `dist/local-dashboard/`
+- freezes `modules/local_runtime.py` into a bundled `harness` runtime
+- stages `dist/macos-release/Harness.app`
+- signs the bundle ad hoc by default, or with `MACOS_CODESIGN_IDENTITY` when set
+- creates `dist/macos-release/Harness.dmg`
+
+For external distribution, also provide:
+
+```bash
+export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
+export MACOS_NOTARY_PROFILE="harness-notary"
+./script/package_macos_app.sh
+```
+
+See [`docs/architecture/macos-packaging.md`](../architecture/macos-packaging.md) for the packaged bundle layout, uninstall/reset notes, and notarization expectations.
+
 ### One-Command Demo Bootstrap
 
 ```bash
