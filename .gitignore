@@ -54,6 +54,7 @@ temp/
 *.log
 runs/
 .harness-dryruns/
+.harness-live-reset-smoke/
 .harness-local-dashboard-build/
 .superpowers/
 

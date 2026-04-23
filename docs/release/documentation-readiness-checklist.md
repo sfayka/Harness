@@ -17,7 +17,7 @@ Use this checklist before calling Harness local-app documentation release-ready.
 
 ## Still Required Before Official Release
 
-- [ ] Run the gated live reset smoke with real GitHub and Linear dry-run targets.
+- [x] Run the gated live reset smoke with real GitHub and Linear dry-run targets. See [live-reset-smoke-2026-04-23.md](live-reset-smoke-2026-04-23.md).
 - [ ] Verify a Developer ID signed and notarized DMG, not only the ad-hoc internal package.
 - [ ] Perform one fresh first-run walkthrough from a clean macOS user state.
 - [ ] Capture any final onboarding screenshots after the first-run app UI is complete.
