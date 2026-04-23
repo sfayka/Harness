@@ -19,8 +19,10 @@ from modules.local_runtime import (
     build_runtime_status_payload,
     init_runtime,
     main,
+    recover_runtime,
     resolve_runtime_paths,
     serve_runtime,
+    start_runtime,
     stop_runtime,
 )
 
@@ -330,6 +332,94 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertEqual(exit_code, EXIT_OK)
         self.assertEqual(payload["status"], "stopped")
         self.assertFalse(config.pid_path.exists())
+
+    def test_start_launches_background_runtime_and_waits_for_health(self) -> None:
+        class FakeProcess:
+            pid = 4242
+
+            def poll(self) -> None:
+                return None
+
+        with (
+            patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")),
+            patch("modules.local_runtime._port_available", return_value=(True, None)),
+            patch("modules.local_runtime._wait_for_runtime_health", return_value=True),
+            patch("modules.local_runtime.subprocess.Popen", return_value=FakeProcess()) as popen,
+        ):
+            exit_code, payload = start_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "running")
+        self.assertEqual(payload["pid"], 4242)
+        self.assertFalse(payload["recovered"])
+        popen.assert_called_once()
+        self.assertIn("serve", popen.call_args.args[0])
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+
+    def test_start_removes_stale_pid_before_launch(self) -> None:
+        class FakeProcess:
+            pid = 5252
+
+            def poll(self) -> None:
+                return None
+
+        config, _ = init_runtime(self.paths)
+        config.pid_path.write_text("999999\n", encoding="utf-8")
+
+        with (
+            patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")),
+            patch("modules.local_runtime.process_is_running", return_value=False),
+            patch("modules.local_runtime._port_available", return_value=(True, None)),
+            patch("modules.local_runtime._wait_for_runtime_health", return_value=True),
+            patch("modules.local_runtime.subprocess.Popen", return_value=FakeProcess()),
+        ):
+            exit_code, payload = start_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "running")
+        self.assertTrue(payload["recovered"])
+        self.assertFalse(config.pid_path.exists())
+
+    def test_start_reports_port_conflict_without_launching_child(self) -> None:
+        with (
+            patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")),
+            patch("modules.local_runtime._port_available", return_value=(False, "address already in use")),
+            patch("modules.local_runtime.subprocess.Popen") as popen,
+        ):
+            exit_code, payload = start_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_RUNTIME_ERROR)
+        self.assertEqual(payload["status"], "port_conflict")
+        self.assertIn("already in use", payload["message"])
+        self.assertIn("Recover Runtime", payload["next_action"])
+        popen.assert_not_called()
+
+    def test_recover_stops_unhealthy_pid_before_restart(self) -> None:
+        class FakeProcess:
+            pid = 6262
+
+            def poll(self) -> None:
+                return None
+
+        with (
+            patch(
+                "modules.local_runtime.runtime_status",
+                return_value=(
+                    EXIT_UNHEALTHY,
+                    {"status": "degraded", "pid": 123, "process_running": True},
+                ),
+            ),
+            patch("modules.local_runtime.stop_runtime", return_value=(EXIT_OK, {"status": "stopped"})) as stop,
+            patch("modules.local_runtime._port_available", return_value=(True, None)),
+            patch("modules.local_runtime._wait_for_runtime_health", return_value=True),
+            patch("modules.local_runtime.subprocess.Popen", return_value=FakeProcess()),
+        ):
+            exit_code, payload = recover_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "running")
+        self.assertTrue(payload["recovered"])
+        stop.assert_called_once()
 
 
 class LocalRuntimeContractTests(unittest.TestCase):

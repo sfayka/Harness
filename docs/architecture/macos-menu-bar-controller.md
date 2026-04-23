@@ -11,7 +11,7 @@ The v1 controller shows:
 - active task count
 - manual-review count
 - failed, stale, retryable, or repair-needed attention count
-- controls for setup assistant, start, stop, restart, refresh, doctor, embedded dashboard, logs, settings, and quit
+- controls for setup assistant, start, stop, restart, recover, refresh, doctor, embedded dashboard, logs, settings, and quit
 
 The dashboard remains the full detail surface.
 The menu bar is for operational awareness and safe controls, not for editing task truth.
@@ -34,14 +34,16 @@ Attention counts use `GET /supervision/queue` so stale, retryable, invalid-proof
 
 ## Runtime Controls
 
-Start, stop, and restart call the existing local runtime CLI:
+Start, stop, restart, and recover call the existing local runtime CLI:
 
-- start initializes local runtime state and launches `harness serve`
+- start initializes local runtime state, launches `harness serve` as an app-managed child process, and waits for health
 - stop calls `harness stop`
 - restart stops, then starts
+- recover stops unhealthy PID-backed processes, clears stale PID files, handles port conflicts explicitly, and starts a fresh runtime
 
-Issue #326 will own the final daemon/Launch-at-Login model.
-This first controller intentionally keeps lifecycle control thin and delegates process semantics to the runtime contract already used by docs and tests.
+The v1 daemon decision is intentionally small: macOS launches the Harness app with `SMAppService`, and the app supervises the backend through the app-managed CLI lifecycle.
+Harness does not install a LaunchAgent in this slice.
+That keeps the user-facing toggle reversible from Settings and avoids adding a second process manager before packaging/notarization work is finished.
 
 ## Project Shape
 
@@ -98,5 +100,5 @@ It keeps normal-user setup inside the app:
 The assistant reports app-owned facts to the setup doctor through environment overlays on the runtime command.
 It does not change Harness task truth, read SQLite, or bypass canonical API/read-model/timeline surfaces.
 
-Issue #326 still owns the full daemon lifecycle and crash/stale-process recovery model.
+Launch at Login and crash/stale-process recovery are implemented through the app-managed lifecycle contract.
 Issue #327 still owns actionable notification delivery.

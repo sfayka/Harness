@@ -137,11 +137,13 @@ The app should control a stable runtime contract, not internal Python modules.
 The target runtime commands are:
 
 - `harness init`
+- `harness start`
 - `harness serve`
 - `harness status`
 - `harness doctor`
 - `harness open`
 - `harness stop`
+- `harness recover`
 
 The app may call an internal executable or bundled launcher rather than a user-installed shell command, but the behavior should match the same contract. A CLI shim can be installed later for power users.
 
@@ -470,7 +472,7 @@ macOS shell:
 - first-run onboarding completes with no integrations configured
 - SQLite DB is created in Application Support
 - runtime starts and survives dashboard window close
-- menu bar can start, stop, restart, and run doctor
+- menu bar can start, stop, restart, recover, and run doctor
 - dashboard opens inside the app
 - Launch at Login can be enabled and disabled
 - notifications permission denial does not block app use

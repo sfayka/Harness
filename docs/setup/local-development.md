@@ -98,14 +98,18 @@ The packaged app will expose this contract as `harness`. From a repo checkout, u
 ```bash
 python3 -m modules.local_runtime --json init
 python3 -m modules.local_runtime --json status
+python3 -m modules.local_runtime --json start
 python3 -m modules.local_runtime serve
 python3 -m modules.local_runtime --json doctor
 python3 -m modules.local_runtime --json setup status
 python3 -m modules.local_runtime --json secrets status
-python3 -m modules.local_runtime stop
+python3 -m modules.local_runtime --json recover
+python3 -m modules.local_runtime --json stop
 ```
 
 The runtime contract uses app-managed config, SQLite state, PID files, dashboard assets, and logs. A packaged app should not require Docker, Node, `pnpm`, or repo-local shell exports.
+Use `start` and `recover` for app-style background lifecycle control.
+Use `serve` only when you intentionally want a foreground backend for debugging.
 
 Default macOS paths:
 

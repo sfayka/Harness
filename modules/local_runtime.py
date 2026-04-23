@@ -405,6 +405,126 @@ def runtime_status(
     }
 
 
+def start_runtime(
+    paths: RuntimePaths,
+    *,
+    host: str | None = None,
+    port: int | None = None,
+    timeout_seconds: float = 10.0,
+    force_restart: bool = False,
+) -> tuple[int, dict[str, Any]]:
+    """Start the local runtime as an app-managed background process."""
+
+    config, _ = init_runtime(paths, host=host or DEFAULT_API_HOST, port=port or DEFAULT_API_PORT)
+    if host or port:
+        config = RuntimeConfig.from_dict(
+            {**config.asdict(), "api": {"host": host or config.host, "port": port or config.port}},
+            paths=paths,
+        )
+
+    _, status_payload = runtime_status(config)
+    if status_payload["status"] == "running" and not force_restart:
+        return EXIT_OK, {
+            "status": "running",
+            "message": "Harness runtime is already running.",
+            "api_base_url": config.base_url,
+            "pid": status_payload.get("pid"),
+            "recovered": False,
+            "paths": _paths_payload(config),
+        }
+
+    recovered = False
+    if status_payload.get("pid") and status_payload.get("process_running"):
+        stop_exit_code, stop_payload = stop_runtime(config, timeout_seconds=min(timeout_seconds, 10.0))
+        if stop_exit_code != EXIT_OK:
+            stop_payload["next_action"] = (
+                "Quit the stuck Harness process from Activity Monitor, then choose Recover Runtime again."
+            )
+            return stop_exit_code, stop_payload
+        recovered = True
+    elif status_payload.get("pid"):
+        with contextlib.suppress(OSError):
+            config.pid_path.unlink()
+        recovered = True
+
+    available, port_error = _port_available(config.host, config.port)
+    if not available:
+        return EXIT_RUNTIME_ERROR, {
+            "status": "port_conflict",
+            "message": f"Harness cannot start because {config.host}:{config.port} is already in use.",
+            "error": port_error,
+            "next_action": (
+                "Stop the process using that port, then choose Recover Runtime. "
+                "If another app owns the port permanently, reinitialize Harness with a different local port."
+            ),
+            "api_base_url": config.base_url,
+            "paths": _paths_payload(config),
+        }
+
+    command = [
+        sys.executable,
+        "-m",
+        "modules.local_runtime",
+        "--data-dir",
+        str(paths.data_dir),
+        "--log-dir",
+        str(paths.log_dir),
+        "serve",
+    ]
+    if host:
+        command.extend(["--host", host])
+    if port:
+        command.extend(["--port", str(port)])
+
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=Path.cwd(),
+            start_new_session=True,
+            close_fds=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError as error:
+        raise LocalRuntimeError(
+            f"Harness runtime could not be started: {error}",
+            exit_code=EXIT_RUNTIME_ERROR,
+        ) from error
+
+    healthy = _wait_for_runtime_health(config, timeout_seconds=timeout_seconds)
+    if healthy:
+        return EXIT_OK, {
+            "status": "running",
+            "message": "Harness runtime started.",
+            "api_base_url": config.base_url,
+            "pid": read_pid(config.pid_path) or process.pid,
+            "recovered": recovered,
+            "paths": _paths_payload(config),
+        }
+
+    if process.poll() is not None:
+        message = "Harness runtime exited before it became healthy."
+    else:
+        message = f"Harness runtime did not become healthy within {timeout_seconds:g} seconds."
+    return EXIT_RUNTIME_ERROR, {
+        "status": "start_failed",
+        "message": message,
+        "pid": read_pid(config.pid_path) or process.pid,
+        "next_action": "Open Harness logs, fix the reported startup problem, then choose Recover Runtime.",
+        "paths": _paths_payload(config),
+    }
+
+
+def recover_runtime(
+    paths: RuntimePaths,
+    *,
+    timeout_seconds: float = 10.0,
+) -> tuple[int, dict[str, Any]]:
+    """Recover the app-managed runtime after stale PID, crash, or degraded health."""
+
+    return start_runtime(paths, timeout_seconds=timeout_seconds, force_restart=True)
+
+
 def uninitialized_status(paths: RuntimePaths) -> dict[str, Any]:
     return {
         "status": "uninitialized",
@@ -872,16 +992,33 @@ def serve_runtime(paths: RuntimePaths, *, host: str | None = None, port: int | N
 
 
 def _assert_port_available(host: str, port: int) -> None:
+    available, error = _port_available(host, port)
+    if not available:
+        raise LocalRuntimeError(
+            f"Harness runtime cannot bind {host}:{port}: {error}. "
+            "Stop the existing process or choose a different port.",
+            exit_code=EXIT_RUNTIME_ERROR,
+        )
+
+
+def _port_available(host: str, port: int) -> tuple[bool, str | None]:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             sock.bind((host, port))
         except OSError as error:
-            raise LocalRuntimeError(
-                f"Harness runtime cannot bind {host}:{port}: {error}. "
-                "Stop the existing process or choose a different port.",
-                exit_code=EXIT_RUNTIME_ERROR,
-            ) from error
+            return False, str(error)
+    return True, None
+
+
+def _wait_for_runtime_health(config: RuntimeConfig, *, timeout_seconds: float) -> bool:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        http_status, health, _ = fetch_runtime_health(config, timeout=0.5)
+        if http_status == 200 and bool(health and health.get("status") == "ok"):
+            return True
+        time.sleep(0.2)
+    return False
 
 
 def _run_uvicorn(config: RuntimeConfig) -> None:
@@ -1005,6 +1142,11 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--host", help="Temporary host override for this process")
     serve_parser.add_argument("--port", type=int, help="Temporary port override for this process")
 
+    start_parser = subparsers.add_parser("start", help="Start the local Harness API as an app-managed process")
+    start_parser.add_argument("--host", help="Temporary host override for this process")
+    start_parser.add_argument("--port", type=int, help="Temporary port override for this process")
+    start_parser.add_argument("--timeout", default=10.0, type=float, help="Startup timeout in seconds")
+
     status_parser = subparsers.add_parser("status", help="Check whether the local Harness runtime is healthy")
     status_parser.add_argument(
         "--timeout",
@@ -1025,6 +1167,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     stop_parser = subparsers.add_parser("stop", help="Gracefully stop the local Harness runtime")
     stop_parser.add_argument("--timeout", default=10.0, type=float, help="Shutdown timeout in seconds")
+
+    recover_parser = subparsers.add_parser("recover", help="Recover a stale, crashed, or degraded local runtime")
+    recover_parser.add_argument("--timeout", default=10.0, type=float, help="Recovery startup timeout in seconds")
 
     setup_parser = subparsers.add_parser("setup", help="Guide local onboarding and optional integration setup")
     setup_subparsers = setup_parser.add_subparsers(dest="setup_command", required=True)
@@ -1098,6 +1243,14 @@ def main(argv: list[str] | None = None) -> int:
             )
         if args.command == "serve":
             return serve_runtime(paths, host=args.host, port=args.port)
+        if args.command == "start":
+            exit_code, payload = start_runtime(
+                paths,
+                host=args.host,
+                port=args.port,
+                timeout_seconds=args.timeout,
+            )
+            return _emit(payload, as_json=args.as_json, exit_code=exit_code)
         if args.command == "status":
             try:
                 config = load_runtime_config(paths)
@@ -1121,6 +1274,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "stop":
             config = load_runtime_config(paths)
             exit_code, payload = stop_runtime(config, timeout_seconds=args.timeout)
+            return _emit(payload, as_json=args.as_json, exit_code=exit_code)
+        if args.command == "recover":
+            exit_code, payload = recover_runtime(paths, timeout_seconds=args.timeout)
             return _emit(payload, as_json=args.as_json, exit_code=exit_code)
         if args.command == "setup":
             return _handle_setup_command(paths, args, as_json=args.as_json)
