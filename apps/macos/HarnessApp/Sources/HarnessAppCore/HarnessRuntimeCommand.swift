@@ -3,16 +3,25 @@ import Foundation
 public struct HarnessRuntimeCommand: Sendable {
     public let repoRoot: URL
     public let pythonExecutable: String
+    public let runtimeExecutableURL: URL?
     public let environment: [String: String]
 
     public init(
         repoRoot: URL = HarnessRuntimeCommand.defaultRepoRoot(),
         pythonExecutable: String = ProcessInfo.processInfo.environment["HARNESS_PYTHON"] ?? "python3",
+        runtimeExecutableURL: URL? = HarnessBundleResources.runtimeExecutableURL(),
+        bundledDashboardAssetsURL: URL? = HarnessBundleResources.dashboardAssetsURL(),
         environment: [String: String] = [:]
     ) {
         self.repoRoot = repoRoot
         self.pythonExecutable = pythonExecutable
-        self.environment = environment
+        self.runtimeExecutableURL = runtimeExecutableURL
+        var resolvedEnvironment = environment
+        if let bundledDashboardAssetsURL,
+           resolvedEnvironment[HarnessBundleResources.dashboardAssetsEnvironmentKey] == nil {
+            resolvedEnvironment[HarnessBundleResources.dashboardAssetsEnvironmentKey] = bundledDashboardAssetsURL.path
+        }
+        self.environment = resolvedEnvironment
     }
 
     public static func defaultRepoRoot() -> URL {
@@ -41,6 +50,7 @@ public struct HarnessRuntimeCommand: Sendable {
         HarnessRuntimeCommand(
             repoRoot: repoRoot,
             pythonExecutable: pythonExecutable,
+            runtimeExecutableURL: runtimeExecutableURL,
             environment: environment
         )
     }
@@ -109,6 +119,7 @@ public struct HarnessRuntimeCommand: Sendable {
             try runProcess(
                 repoRoot: repoRoot,
                 pythonExecutable: pythonExecutable,
+                runtimeExecutableURL: runtimeExecutableURL,
                 args: ["-m", "modules.local_runtime", "--json"] + args,
                 environment: environment,
                 stdin: stdin,
@@ -173,6 +184,7 @@ public enum HarnessRuntimeCommandError: Error, LocalizedError, Equatable {
 private func runProcess(
     repoRoot: URL,
     pythonExecutable: String,
+    runtimeExecutableURL: URL?,
     args: [String],
     environment: [String: String],
     stdin: String?,
@@ -182,9 +194,15 @@ private func runProcess(
     let stdoutPipe = Pipe()
     let stderrPipe = Pipe()
     let stdinPipe = stdin == nil ? nil : Pipe()
-    process.currentDirectoryURL = repoRoot
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = [pythonExecutable] + args
+    if let runtimeExecutableURL {
+        process.currentDirectoryURL = runtimeExecutableURL.deletingLastPathComponent()
+        process.executableURL = runtimeExecutableURL
+        process.arguments = bundledRuntimeArguments(from: args)
+    } else {
+        process.currentDirectoryURL = repoRoot
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [pythonExecutable] + args
+    }
     process.environment = mergedProcessEnvironment(environment)
     process.standardOutput = stdoutPipe
     process.standardError = stderrPipe
@@ -217,6 +235,10 @@ private func runProcess(
 
 private func mergedProcessEnvironment(_ environment: [String: String]) -> [String: String] {
     ProcessInfo.processInfo.environment.merging(environment) { _, appValue in appValue }
+}
+
+public func bundledRuntimeArguments(from args: [String]) -> [String] {
+    Array(args.dropFirst(2))
 }
 
 private func commandFailureMessage(stdout: String, stderr: String) -> String {

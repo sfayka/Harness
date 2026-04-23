@@ -22,6 +22,14 @@ The repo-level launch path is:
 ./script/build_and_run.sh --verify
 ```
 
+The distributable packaging path is:
+
+```bash
+./script/package_macos_app.sh
+```
+
+That script stages a self-contained `Harness.app` and `Harness.dmg` under `dist/macos-release/` with a bundled `harness` runtime and prebuilt dashboard assets.
+
 The app reads Harness through the local CLI and HTTP API contract. It must not read SQLite directly.
 
 ## Runtime Lifecycle

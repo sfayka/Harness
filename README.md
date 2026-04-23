@@ -397,7 +397,15 @@ The native macOS app shell starts under [`apps/macos/HarnessApp`](apps/macos/Har
 ./script/build_and_run.sh
 ```
 
-See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), [`docs/architecture/macos-daemon-lifecycle.md`](docs/architecture/macos-daemon-lifecycle.md), and [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md).
+Build a distributable self-contained app bundle and DMG with:
+
+```bash
+./script/package_macos_app.sh
+```
+
+That release path bundles the native app, a frozen `harness` runtime, and prebuilt dashboard assets into `dist/macos-release/Harness.app` and `dist/macos-release/Harness.dmg`. Normal users should not need a repo checkout, Python, Node, `pnpm`, or Docker after install.
+
+See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), [`docs/architecture/macos-daemon-lifecycle.md`](docs/architecture/macos-daemon-lifecycle.md), [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md), and [`docs/architecture/macos-packaging.md`](docs/architecture/macos-packaging.md).
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 

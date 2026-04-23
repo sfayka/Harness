@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from modules.contracts.schema_loader import load_task_envelope_schema
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-_SCHEMA_PATH = _REPO_ROOT / "schemas" / "task_envelope.schema.json"
-_ROOT_SCHEMA = json.loads(_SCHEMA_PATH.read_text(encoding="utf-8"))
+_ROOT_SCHEMA = load_task_envelope_schema()
 
 
 def _build_defs_validator(def_name: str) -> Draft202012Validator:

@@ -7,6 +7,9 @@ struct HarnessAppCoreCheck {
         try checksRunningSummaryFromTaskListAndQueue()
         try checksStoppedRuntimeSummary()
         try checksDashboardRoutes()
+        try checksBundleResourceDefaults()
+        try checksBundleResourceOverrides()
+        try checksBundledRuntimeArgumentMapping()
         try checksAttentionNotificationPlannerBuildsActionableEvents()
         try checksAttentionNotificationPlannerDeduplicatesDeliveredEvents()
         try checksAttentionNotificationPlannerBuildsCredentialEvents()
@@ -137,6 +140,108 @@ struct HarnessAppCoreCheck {
             baseURL.dashboardRoute(.reviews).absoluteString == "http://127.0.0.1:8765/dashboard/reviews/",
             "reviews dashboard route"
         )
+    }
+
+    private static func checksBundleResourceDefaults() throws {
+        let tempRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let bundleURL = tempRoot.appendingPathComponent("Harness.app", isDirectory: true)
+        let resourceURL = bundleURL.appendingPathComponent("Contents/Resources", isDirectory: true)
+        let runtimeURL = resourceURL.appendingPathComponent("HarnessRuntime/harness", isDirectory: false)
+        let dashboardURL = resourceURL.appendingPathComponent("Dashboard", isDirectory: true)
+
+        try FileManager.default.createDirectory(at: runtimeURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: dashboardURL, withIntermediateDirectories: true)
+        try "#!/bin/sh\n".write(to: runtimeURL, atomically: true, encoding: .utf8)
+        try Data().write(to: dashboardURL.appendingPathComponent("index.html"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: runtimeURL.path)
+
+        let runtime = HarnessBundleResources.runtimeExecutableURL(
+            environment: [:],
+            infoDictionary: [:],
+            bundleURL: bundleURL,
+            resourceURL: resourceURL
+        )
+        let dashboard = HarnessBundleResources.dashboardAssetsURL(
+            environment: [:],
+            infoDictionary: [:],
+            bundleURL: bundleURL,
+            resourceURL: resourceURL
+        )
+
+        try require(runtime?.path == runtimeURL.path, "default bundled runtime path")
+        try require(dashboard?.path == dashboardURL.path, "default bundled dashboard path")
+
+        try? FileManager.default.removeItem(at: tempRoot)
+    }
+
+    private static func checksBundleResourceOverrides() throws {
+        let tempRoot = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let bundleURL = tempRoot.appendingPathComponent("Harness.app", isDirectory: true)
+        let resourceURL = bundleURL.appendingPathComponent("Contents/Resources", isDirectory: true)
+        let infoRuntimeURL = bundleURL.appendingPathComponent("Contents/Resources/AltRuntime/harness", isDirectory: false)
+        let infoDashboardURL = bundleURL.appendingPathComponent("Contents/Resources/AltDashboard", isDirectory: true)
+        let envRuntimeURL = tempRoot.appendingPathComponent("env-runtime/harness", isDirectory: false)
+        let envDashboardURL = tempRoot.appendingPathComponent("env-dashboard", isDirectory: true)
+
+        try FileManager.default.createDirectory(at: infoRuntimeURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: infoDashboardURL, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: envRuntimeURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: envDashboardURL, withIntermediateDirectories: true)
+        try "#!/bin/sh\n".write(to: infoRuntimeURL, atomically: true, encoding: .utf8)
+        try "#!/bin/sh\n".write(to: envRuntimeURL, atomically: true, encoding: .utf8)
+        try Data().write(to: infoDashboardURL.appendingPathComponent("index.html"))
+        try Data().write(to: envDashboardURL.appendingPathComponent("index.html"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: infoRuntimeURL.path)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: envRuntimeURL.path)
+
+        let infoDictionary: [String: Any] = [
+            "HarnessRuntimeExecutable": "Contents/Resources/AltRuntime/harness",
+            "HarnessDashboardAssetsDir": "Contents/Resources/AltDashboard"
+        ]
+        let infoRuntime = HarnessBundleResources.runtimeExecutableURL(
+            environment: [:],
+            infoDictionary: infoDictionary,
+            bundleURL: bundleURL,
+            resourceURL: resourceURL
+        )
+        let infoDashboard = HarnessBundleResources.dashboardAssetsURL(
+            environment: [:],
+            infoDictionary: infoDictionary,
+            bundleURL: bundleURL,
+            resourceURL: resourceURL
+        )
+
+        try require(infoRuntime?.path == infoRuntimeURL.path, "info runtime override")
+        try require(infoDashboard?.path == infoDashboardURL.path, "info dashboard override")
+
+        let environment = [
+            HarnessBundleResources.runtimeExecutableEnvironmentKey: envRuntimeURL.path,
+            HarnessBundleResources.dashboardAssetsEnvironmentKey: envDashboardURL.path
+        ]
+        let envRuntime = HarnessBundleResources.runtimeExecutableURL(
+            environment: environment,
+            infoDictionary: infoDictionary,
+            bundleURL: bundleURL,
+            resourceURL: resourceURL
+        )
+        let envDashboard = HarnessBundleResources.dashboardAssetsURL(
+            environment: environment,
+            infoDictionary: infoDictionary,
+            bundleURL: bundleURL,
+            resourceURL: resourceURL
+        )
+
+        try require(envRuntime?.path == envRuntimeURL.path, "environment runtime override")
+        try require(envDashboard?.path == envDashboardURL.path, "environment dashboard override")
+
+        try? FileManager.default.removeItem(at: tempRoot)
+    }
+
+    private static func checksBundledRuntimeArgumentMapping() throws {
+        let bundledArgs = bundledRuntimeArguments(from: ["-m", "modules.local_runtime", "--json", "status"])
+        try require(bundledArgs == ["--json", "status"], "bundled runtime keeps json flag")
     }
 
     private static func checksAttentionNotificationPlannerBuildsActionableEvents() throws {

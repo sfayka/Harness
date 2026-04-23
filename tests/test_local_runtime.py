@@ -394,6 +394,32 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertIn("Recover Runtime", payload["next_action"])
         popen.assert_not_called()
 
+    def test_start_uses_bundled_runtime_executable_when_frozen(self) -> None:
+        class FakeProcess:
+            pid = 4343
+
+            def poll(self) -> None:
+                return None
+
+        with (
+            patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")),
+            patch("modules.local_runtime._port_available", return_value=(True, None)),
+            patch("modules.local_runtime._wait_for_runtime_health", return_value=True),
+            patch("modules.local_runtime.runtime_is_frozen", return_value=True),
+            patch("modules.local_runtime.sys.executable", "/Applications/Harness.app/Contents/Resources/HarnessRuntime/harness"),
+            patch("modules.local_runtime.subprocess.Popen", return_value=FakeProcess()) as popen,
+        ):
+            exit_code, payload = start_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "running")
+        self.assertEqual(
+            popen.call_args.args[0][0],
+            "/Applications/Harness.app/Contents/Resources/HarnessRuntime/harness",
+        )
+        self.assertNotIn("-m", popen.call_args.args[0])
+        self.assertIn("serve", popen.call_args.args[0])
+
     def test_recover_stops_unhealthy_pid_before_restart(self) -> None:
         class FakeProcess:
             pid = 6262
