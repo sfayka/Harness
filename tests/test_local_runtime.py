@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from modules.local_secrets import InMemorySecretStore
+from modules.local_secrets import InMemorySecretStore, LinuxSecretServiceSecretStore
 from modules.local_runtime import (
     DEFAULT_API_PORT,
     EXIT_OK,
@@ -87,7 +87,8 @@ class LocalRuntimeCliTests(unittest.TestCase):
     def test_status_reports_stopped_when_health_is_unreachable(self) -> None:
         self._run_cli("init")
 
-        exit_code, payload = self._run_cli("status", "--timeout", "0.01")
+        with patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")):
+            exit_code, payload = self._run_cli("status", "--timeout", "0.01")
 
         self.assertEqual(exit_code, EXIT_UNHEALTHY)
         self.assertEqual(payload["status"], "stopped")
@@ -126,6 +127,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
                 },
                 clear=True,
             ),
+            patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")),
             patch(
                 "modules.local_runtime.create_secret_store",
                 return_value=InMemorySecretStore(
@@ -293,6 +295,7 @@ class LocalRuntimeProcessTests(unittest.TestCase):
             observed["sqlite_path"] = os.environ.get("HARNESS_SQLITE_PATH")
             observed["runtime_mode"] = os.environ.get("HARNESS_RUNTIME_MODE")
             observed["dashboard_assets_dir"] = os.environ.get("HARNESS_DASHBOARD_ASSETS_DIR")
+            observed["secret_provider"] = os.environ.get("HARNESS_SECRET_PROVIDER")
             observed["github_token"] = os.environ.get("GITHUB_TOKEN")
             print("server-started")
 
@@ -316,11 +319,32 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertEqual(observed["sqlite_path"], str(self.paths.database_path))
         self.assertEqual(observed["runtime_mode"], "local-app")
         self.assertEqual(observed["dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
+        self.assertEqual(observed["secret_provider"], "memory")
         self.assertEqual(observed["github_token"], "ghp_secret")
         self.assertFalse(self.paths.pid_path.exists())
         log_text = self.paths.log_path.read_text(encoding="utf-8")
         self.assertIn("server-started", log_text)
         self.assertNotIn("ghp_secret", log_text)
+
+    def test_serve_uses_platform_secret_provider_without_macos_assumption(self) -> None:
+        observed: dict[str, object] = {}
+
+        def fake_run_uvicorn(config) -> None:  # noqa: ANN001
+            observed["secret_provider"] = os.environ.get("HARNESS_SECRET_PROVIDER")
+
+        with (
+            patch.dict(os.environ, {}, clear=True),
+            patch("modules.local_runtime._assert_port_available"),
+            patch(
+                "modules.local_runtime.create_secret_store",
+                return_value=LinuxSecretServiceSecretStore(platform_name="Linux"),
+            ),
+            patch("modules.local_runtime._run_uvicorn", side_effect=fake_run_uvicorn),
+        ):
+            exit_code = serve_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(observed["secret_provider"], "linux-secret-service")
 
     def test_stop_treats_missing_or_stale_process_as_stopped(self) -> None:
         config, _ = init_runtime(self.paths)
@@ -476,6 +500,7 @@ class LocalRuntimeContractTests(unittest.TestCase):
             os.environ,
             {
                 "HARNESS_RUNTIME_MODE": "local-app",
+                "HARNESS_SECRET_PROVIDER": "linux-secret-service",
                 "HARNESS_RUNTIME_BASE_URL": "http://127.0.0.1:8765",
                 "HARNESS_RUNTIME_CONFIG_PATH": "/tmp/harness/config.json",
                 "HARNESS_RUNTIME_DATA_DIR": "/tmp/harness",
@@ -494,6 +519,7 @@ class LocalRuntimeContractTests(unittest.TestCase):
 
         self.assertEqual(payload["status"], "running")
         self.assertEqual(payload["mode"], "local-app")
+        self.assertEqual(payload["secret_provider"], "linux-secret-service")
         self.assertEqual(payload["api_base_url"], "http://127.0.0.1:8765")
         self.assertEqual(payload["store_backend"], "sqlite")
         self.assertEqual(payload["paths"]["database_path"], "/tmp/harness/harness.db")

@@ -196,6 +196,65 @@ class MacOSKeychainSecretStore:
         return resolved
 
 
+class LinuxSecretServiceSecretStore:
+    """Linux secret-store contract placeholder for future Secret Service support."""
+
+    provider_name = "linux-secret-service"
+
+    def __init__(self, *, platform_name: str | None = None) -> None:
+        self._platform_name = platform_name or platform.system()
+
+    def get_secret(self, name: str) -> str:
+        definition = get_secret_definition(name)
+        raise SecretProviderUnavailableError(
+            f"{definition.label} is unavailable because the Linux Secret Service provider is not implemented yet. "
+            "Use developer env-file mode until the Linux local-app secret provider ships."
+        )
+
+    def set_secret(self, name: str, value: str) -> None:
+        definition = get_secret_definition(name)
+        raise SecretProviderUnavailableError(
+            f"{definition.label} cannot be stored because the Linux Secret Service provider is not implemented yet."
+        )
+
+    def delete_secret(self, name: str) -> bool:
+        get_secret_definition(name)
+        raise SecretProviderUnavailableError(
+            "Linux Secret Service deletion is unavailable until the Linux local-app secret provider is implemented."
+        )
+
+
+class UnsupportedPlatformSecretStore:
+    """Fallback contract placeholder for unsupported local-app secret providers."""
+
+    def __init__(self, *, platform_name: str | None = None) -> None:
+        self._platform_name = platform_name or platform.system()
+
+    @property
+    def provider_name(self) -> str:
+        return f"unsupported-{self._platform_name.lower()}"
+
+    def get_secret(self, name: str) -> str:
+        definition = get_secret_definition(name)
+        raise SecretProviderUnavailableError(
+            f"{definition.label} is unavailable because Harness does not have an app-managed secret provider "
+            f"for {self._platform_name}."
+        )
+
+    def set_secret(self, name: str, value: str) -> None:
+        definition = get_secret_definition(name)
+        raise SecretProviderUnavailableError(
+            f"{definition.label} cannot be stored because Harness does not have an app-managed secret provider "
+            f"for {self._platform_name}."
+        )
+
+    def delete_secret(self, name: str) -> bool:
+        get_secret_definition(name)
+        raise SecretProviderUnavailableError(
+            f"Harness does not have an app-managed secret provider for {self._platform_name}."
+        )
+
+
 class InMemorySecretStore:
     """Small test and fixture secret store. Not used for persisted app secrets."""
 
@@ -222,6 +281,15 @@ class InMemorySecretStore:
         return self.values.pop(name, None) is not None
 
 
+def create_secret_store(*, platform_name: str | None = None) -> SecretStore:
+    resolved_platform = platform_name or platform.system()
+    if resolved_platform == "Darwin":
+        return MacOSKeychainSecretStore(platform_name=resolved_platform)
+    if resolved_platform == "Linux":
+        return LinuxSecretServiceSecretStore(platform_name=resolved_platform)
+    return UnsupportedPlatformSecretStore(platform_name=resolved_platform)
+
+
 def load_app_managed_secrets_into_environment(
     *,
     store: SecretStore | None = None,
@@ -233,7 +301,7 @@ def load_app_managed_secrets_into_environment(
     explicitly exported variables keep working.
     """
 
-    secret_store = store or MacOSKeychainSecretStore()
+    secret_store = store or create_secret_store()
     statuses: list[SecretStatus] = []
     for definition in SECRET_DEFINITIONS:
         current_value = os.environ.get(definition.env_var)
@@ -259,7 +327,7 @@ def collect_secret_statuses(
     store: SecretStore | None = None,
     required_names: Iterable[str] = (),
 ) -> list[SecretStatus]:
-    secret_store = store or MacOSKeychainSecretStore()
+    secret_store = store or create_secret_store()
     required = set(required_names)
     for name in required:
         get_secret_definition(name)

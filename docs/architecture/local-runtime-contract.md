@@ -26,7 +26,7 @@ Commands:
 - `harness secrets set <name> --value-stdin`
 - `harness secrets delete <name>`
 
-The CLI supports `--json` for app-shell consumption. JSON output is the contract the macOS menu-bar app should use.
+The CLI supports `--json` for app-shell consumption. JSON output is the contract the macOS menu-bar app should use, and it is also the portability boundary a future Linux shell must reuse.
 
 ## App-Managed Paths
 
@@ -100,6 +100,8 @@ python3 -m modules.local_runtime --json secrets delete github_token
 Secret status output is redacted. It reports configured, missing, unavailable, and error states without returning token values.
 Existing environment variables win over Keychain values so native developer `.env.local` workflows still work.
 
+Provider selection is platform-aware. Darwin uses `macos-keychain`; Linux is reserved for the `linux-secret-service` boundary even though the Linux provider is still deferred.
+
 See [app-managed-secrets.md](app-managed-secrets.md).
 
 ## Guided Setup
@@ -158,7 +160,7 @@ The backend exposes two app-shell-safe probes:
 
 - `GET /health`: canonical backend and storage health.
 - `GET /runtime/status`: local app runtime status envelope that includes mode, API base URL,
-  store backend, schema readiness, and app-managed paths.
+  store backend, secret provider, schema readiness, and app-managed paths.
 
 `harness status --json` calls the local health endpoint and returns:
 
@@ -236,3 +238,5 @@ The local API binds to loopback by default. Network exposure is out of scope for
 ```text
 http://127.0.0.1:<runtime-port>/dashboard
 ```
+
+See [linux-portability-contract.md](linux-portability-contract.md) for the platform-neutral versus shell-specific boundaries.

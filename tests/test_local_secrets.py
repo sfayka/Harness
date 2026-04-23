@@ -6,10 +6,13 @@ import unittest
 from unittest.mock import patch
 
 from modules.local_secrets import (
+    create_secret_store,
     InMemorySecretStore,
+    LinuxSecretServiceSecretStore,
     MacOSKeychainSecretStore,
     SecretNotFoundError,
     SecretProviderUnavailableError,
+    UnsupportedPlatformSecretStore,
     collect_secret_statuses,
     load_app_managed_secrets_into_environment,
     secret_status_payload,
@@ -83,6 +86,30 @@ class MacOSKeychainSecretStoreTests(unittest.TestCase):
 
 
 class LocalSecretStatusTests(unittest.TestCase):
+    def test_create_secret_store_selects_macos_keychain_on_darwin(self) -> None:
+        store = create_secret_store(platform_name="Darwin")
+
+        self.assertIsInstance(store, MacOSKeychainSecretStore)
+        self.assertEqual(store.provider_name, "macos-keychain")
+
+    def test_create_secret_store_selects_linux_placeholder_on_linux(self) -> None:
+        store = create_secret_store(platform_name="Linux")
+
+        self.assertIsInstance(store, LinuxSecretServiceSecretStore)
+        self.assertEqual(store.provider_name, "linux-secret-service")
+
+    def test_create_secret_store_falls_back_on_unsupported_platform(self) -> None:
+        store = create_secret_store(platform_name="FreeBSD")
+
+        self.assertIsInstance(store, UnsupportedPlatformSecretStore)
+        self.assertEqual(store.provider_name, "unsupported-freebsd")
+
+    def test_linux_secret_store_reports_unavailable_until_implemented(self) -> None:
+        store = LinuxSecretServiceSecretStore(platform_name="Linux")
+
+        with self.assertRaises(SecretProviderUnavailableError):
+            store.get_secret("github_token")
+
     def test_loads_app_managed_secrets_into_missing_environment_vars(self) -> None:
         store = InMemorySecretStore(
             {

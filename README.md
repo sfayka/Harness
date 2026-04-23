@@ -405,7 +405,9 @@ Build a distributable self-contained app bundle and DMG with:
 
 That release path bundles the native app, a frozen `harness` runtime, and prebuilt dashboard assets into `dist/macos-release/Harness.app` and `dist/macos-release/Harness.dmg`. Normal users should not need a repo checkout, Python, Node, `pnpm`, or Docker after install.
 
-See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), [`docs/architecture/macos-daemon-lifecycle.md`](docs/architecture/macos-daemon-lifecycle.md), [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md), and [`docs/architecture/macos-packaging.md`](docs/architecture/macos-packaging.md).
+Linux shell work remains deferred, but the reusable backend/CLI/dashboard boundaries are now documented in [`docs/architecture/linux-portability-contract.md`](docs/architecture/linux-portability-contract.md).
+
+See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), [`docs/architecture/macos-daemon-lifecycle.md`](docs/architecture/macos-daemon-lifecycle.md), [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md), [`docs/architecture/macos-packaging.md`](docs/architecture/macos-packaging.md), and [`docs/architecture/linux-portability-contract.md`](docs/architecture/linux-portability-contract.md).
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 

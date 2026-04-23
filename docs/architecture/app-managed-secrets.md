@@ -22,6 +22,14 @@ Current secret names:
 
 The `OPENCLAW_REPAIR_BEARER_TOKEN` env name remains the current concrete repair-adapter variable. It is not the product boundary. The stable local-app boundary is the named Harness secret.
 
+Provider selection is platform-aware at the Python boundary:
+
+- `macos-keychain` on Darwin
+- `linux-secret-service` as the deferred Linux provider contract
+- `unsupported-<platform>` on other local-app platforms until a provider exists
+
+Linux Secret Service support is not implemented in this slice. The important part is that the runtime no longer hard-codes the macOS provider name into status or environment surfaces.
+
 ## CLI Contract
 
 The packaged app can call the same command surface that developers can run from a checkout:
@@ -66,3 +74,5 @@ Workflows that need a credential should call `secrets status --require <name>` o
 
 Linux support will use the same Harness secret names and CLI/status contract.
 The provider can later be Secret Service/libsecret or an encrypted local fallback, but it should not change the runtime env mapping or the onboarding contract.
+
+See [linux-portability-contract.md](linux-portability-contract.md).

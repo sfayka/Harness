@@ -20,8 +20,8 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from modules.local_secrets import (
+    create_secret_store,
     LocalSecretError,
-    MacOSKeychainSecretStore,
     SecretStatus,
     collect_secret_statuses,
     load_app_managed_secrets_into_environment,
@@ -306,6 +306,7 @@ def init_runtime(
 def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> None:
     """Apply app-managed runtime environment for backend startup."""
 
+    secret_store = create_secret_store()
     os.environ["HARNESS_STORE_BACKEND"] = "sqlite"
     os.environ["HARNESS_SQLITE_PATH"] = str(config.database_path)
     os.environ[ENV_RUNTIME_MODE] = "local-app"
@@ -316,8 +317,11 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     os.environ[ENV_RUNTIME_PORT] = str(config.port)
     os.environ[ENV_RUNTIME_BASE_URL] = config.base_url
     os.environ.setdefault(ENV_DASHBOARD_ASSETS_DIR, str(config.dashboard_assets_dir))
-    load_app_managed_secrets_into_environment(store=create_secret_store())
-    os.environ.setdefault(ENV_SECRET_PROVIDER, "macos-keychain")
+    load_app_managed_secrets_into_environment(store=secret_store)
+    os.environ.setdefault(
+        ENV_SECRET_PROVIDER,
+        str(getattr(secret_store, "provider_name", "app-managed-secret-store")),
+    )
 
 
 def fetch_runtime_health(
@@ -1231,11 +1235,6 @@ def build_parser() -> argparse.ArgumentParser:
     secrets_delete_parser.add_argument("name", help="Secret name")
 
     return parser
-
-
-def create_secret_store() -> MacOSKeychainSecretStore:
-    return MacOSKeychainSecretStore()
-
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
