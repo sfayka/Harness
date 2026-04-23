@@ -27,6 +27,7 @@ DASHBOARD_STAGING_DIR="$APP_RESOURCES/Dashboard"
 DMG_PATH="$DIST_DIR/Harness.dmg"
 VERIFY_DATA_DIR="$BUILD_DIR/verify-data"
 VERIFY_LOG_DIR="$BUILD_DIR/verify-logs"
+VERIFY_PORT="${HARNESS_PACKAGE_VERIFY_PORT:-18765}"
 PACKAGING_VENV="$BUILD_DIR/venv"
 
 APP_VERSION="${HARNESS_RELEASE_VERSION:-$DEFAULT_VERSION}"
@@ -142,9 +143,9 @@ codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
 echo "Verifying bundled runtime..."
 mkdir -p "$VERIFY_DATA_DIR" "$VERIFY_LOG_DIR"
 export HARNESS_DASHBOARD_ASSETS_DIR="$DASHBOARD_STAGING_DIR"
-"$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json init >/dev/null
+"$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json init --port "$VERIFY_PORT" >/dev/null
 "$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json doctor >/dev/null
-"$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json start --timeout 10 >/dev/null
+"$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json start --port "$VERIFY_PORT" --timeout 10 >/dev/null
 "$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json status >/dev/null
 "$RUNTIME_BINARY" --data-dir "$VERIFY_DATA_DIR" --log-dir "$VERIFY_LOG_DIR" --json stop --timeout 5 >/dev/null
 

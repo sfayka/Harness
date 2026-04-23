@@ -2,6 +2,8 @@
 
 This walkthrough uses the real public Harness API, persisted task state, and the dashboard's real inspection surfaces.
 
+The release-facing usage guide is [Use Harness](../howto/use-harness.md). It references screenshots captured from this deterministic local walkthrough.
+
 ## Purpose
 
 Use this flow when you want one repeatable demo that shows:

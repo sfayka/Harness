@@ -8,6 +8,7 @@ Use this mode when Harness should run as one Vercel project with:
 - optional Vercel Blob storage for future file/object surfaces
 
 This is the default hosted deployment path for Harness.
+For local install and operator usage, start with the how-to index instead: [Harness How-To Index](../howto/index.md).
 
 ## Project Shape
 
