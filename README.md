@@ -641,18 +641,34 @@ The health endpoint does not return raw `DATABASE_URL` values or credentials.
 
 ## Docs And Screenshots
 
-Useful docs:
+Start here:
+
+- [`docs/howto/index.md`](docs/howto/index.md)
+- [`docs/howto/local-quickstart.md`](docs/howto/local-quickstart.md)
+- [`docs/howto/use-harness.md`](docs/howto/use-harness.md)
+- [`docs/howto/test-and-validate.md`](docs/howto/test-and-validate.md)
+- [`docs/howto/troubleshoot.md`](docs/howto/troubleshoot.md)
+
+Source-of-truth references:
 
 - [`docs/architecture/system-context.md`](docs/architecture/system-context.md)
 - [`docs/architecture/module-boundaries.md`](docs/architecture/module-boundaries.md)
 - [`docs/architecture/task-envelope.md`](docs/architecture/task-envelope.md)
+- [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md)
+- [`docs/architecture/macos-packaging.md`](docs/architecture/macos-packaging.md)
+- [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md)
 - [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md)
 - [`docs/setup/local-development.md`](docs/setup/local-development.md)
+- [`docs/setup/vercel-neon.md`](docs/setup/vercel-neon.md)
 
-Current screenshot assets:
+Current screenshot-backed how-to assets:
 
-- [`docs/demo/kno-133-happy-path/`](docs/demo/kno-133-happy-path)
-- [`docs/demo/review-needed/`](docs/demo/review-needed)
+- [`docs/howto/images/local-dashboard-tasks.png`](docs/howto/images/local-dashboard-tasks.png)
+- [`docs/howto/images/local-dashboard-task-detail.png`](docs/howto/images/local-dashboard-task-detail.png)
+- [`docs/howto/images/local-dashboard-reviews.png`](docs/howto/images/local-dashboard-reviews.png)
+- [`docs/howto/images/health-check-response.png`](docs/howto/images/health-check-response.png)
+- [`docs/howto/images/reset-dryrun-verified.png`](docs/howto/images/reset-dryrun-verified.png)
+- [`docs/howto/images/reset-dryrun-review.png`](docs/howto/images/reset-dryrun-review.png)
 
 ## Known Limitations
 

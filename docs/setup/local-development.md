@@ -2,6 +2,8 @@
 
 This guide covers the practical local and container runbook for Harness.
 
+For a reader-facing install and validation path, start with [Local Quickstart](../howto/local-quickstart.md), [Use Harness](../howto/use-harness.md), and [Test And Validate Harness](../howto/test-and-validate.md).
+
 ## Prerequisites
 
 - Python 3
