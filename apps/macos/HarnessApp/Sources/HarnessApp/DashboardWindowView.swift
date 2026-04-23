@@ -3,12 +3,10 @@ import SwiftUI
 
 struct DashboardWindowView: View {
     @ObservedObject var model: HarnessMenuBarModel
-    @State private var selectedRoute: DashboardRoute = .tasks
 
     var body: some View {
         VStack(spacing: 0) {
             DashboardToolbar(
-                selectedRoute: $selectedRoute,
                 routeURL: routeURL,
                 model: model
             )
@@ -42,18 +40,20 @@ struct DashboardWindowView: View {
     }
 
     private var routeURL: URL? {
-        model.dashboardURL?.dashboardRoute(selectedRoute)
+        model.dashboardURL?.dashboardRoute(model.selectedDashboardRoute)
     }
 }
 
 private struct DashboardToolbar: View {
-    @Binding var selectedRoute: DashboardRoute
     let routeURL: URL?
     @ObservedObject var model: HarnessMenuBarModel
 
     var body: some View {
         HStack(spacing: 12) {
-            Picker("Dashboard Route", selection: $selectedRoute) {
+            Picker("Dashboard Route", selection: Binding(
+                get: { model.selectedDashboardRoute },
+                set: { model.selectDashboardRoute($0) }
+            )) {
                 ForEach(DashboardRoute.allCases) { route in
                     Text(route.title).tag(route)
                 }

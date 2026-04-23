@@ -10,20 +10,27 @@ final class HarnessMenuBarModel: ObservableObject {
     @Published private(set) var dashboardURL: URL?
     @Published private(set) var dashboardMessage = "Open the dashboard to inspect full Harness progress."
     @Published private(set) var isPreparingDashboard = false
+    @Published private(set) var selectedDashboardRoute: DashboardRoute = .tasks
     @Published private(set) var setupStatus: GuidedSetupStatusPayload?
     @Published private(set) var setupMessage = "Setup has not been checked yet."
     @Published private(set) var isCheckingSetup = false
 
     private var runtime: HarnessRuntimeCommand
     private let apiClient: HarnessAPIClient
+    private let notificationScheduler: HarnessNotificationScheduler
     private var pollingTask: Task<Void, Never>?
+    private var attentionNotificationsEnabled: Bool
 
     init(
         runtime: HarnessRuntimeCommand = HarnessRuntimeCommand(),
-        apiClient: HarnessAPIClient = HarnessAPIClient()
+        apiClient: HarnessAPIClient = HarnessAPIClient(),
+        notificationScheduler: HarnessNotificationScheduler? = nil,
+        attentionNotificationsEnabled: Bool = UserDefaults.standard.object(forKey: AppPreferenceKeys.attentionNotificationsEnabled) as? Bool ?? true
     ) {
         self.runtime = runtime
         self.apiClient = apiClient
+        self.notificationScheduler = notificationScheduler ?? HarnessNotificationScheduler()
+        self.attentionNotificationsEnabled = attentionNotificationsEnabled
     }
 
     deinit {
@@ -58,6 +65,7 @@ final class HarnessMenuBarModel: ObservableObject {
                 tasks: tasks,
                 queue: queue
             )
+            await publishAttentionNotifications(tasks: tasks, queue: queue, setupStatus: setupStatus)
         } catch {
             snapshot = HarnessMenuSummaryBuilder.errorSnapshot(error.localizedDescription)
         }
@@ -65,6 +73,14 @@ final class HarnessMenuBarModel: ObservableObject {
 
     func updateAppEnvironment(_ environment: [String: String]) {
         runtime = runtime.withEnvironment(environment)
+    }
+
+    func setAttentionNotificationsEnabled(_ enabled: Bool) {
+        attentionNotificationsEnabled = enabled
+    }
+
+    func selectDashboardRoute(_ route: DashboardRoute) {
+        selectedDashboardRoute = route
     }
 
     func refreshSetupStatus(workflows: [String] = []) async {
@@ -83,6 +99,7 @@ final class HarnessMenuBarModel: ObservableObject {
             setupStatus = nil
             setupMessage = "Setup could not be checked: \(error.localizedDescription)"
         }
+        await publishAttentionNotifications(tasks: nil, queue: nil, setupStatus: setupStatus)
         isCheckingSetup = false
     }
 
@@ -235,5 +252,22 @@ final class HarnessMenuBarModel: ObservableObject {
             .appendingPathComponent("Logs")
             .appendingPathComponent("Harness")
             .path
+    }
+
+    private func publishAttentionNotifications(
+        tasks: TaskListPayload?,
+        queue: SupervisionQueuePayload?,
+        setupStatus: GuidedSetupStatusPayload?
+    ) async {
+        let candidates = HarnessAttentionNotificationPlanner.plan(
+            tasks: tasks,
+            queue: queue,
+            setupStatus: setupStatus,
+            deliveredNotificationIDs: notificationScheduler.deliveredNotificationIDs()
+        )
+        await notificationScheduler.deliver(
+            candidates,
+            notificationsEnabled: attentionNotificationsEnabled
+        )
     }
 }

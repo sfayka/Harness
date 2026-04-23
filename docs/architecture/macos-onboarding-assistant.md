@@ -71,10 +71,16 @@ If onboarding has been completed, the app then starts the local runtime through 
 The backend remains an app-managed child process, not a separate LaunchAgent.
 
 Notifications are requested through the native notification authorization prompt.
-Issue #327 still owns attention-event delivery: manual-review alerts, repair-dispatch failures, stalled executors, budget thresholds, and credential-expiry notifications.
+Notification event delivery is permission-aware and can be disabled later from Settings without affecting core app usage.
 
 The assistant records and validates permission state.
-Notification event delivery remains separate from permission capture.
+The menu-bar app then delivers attention notifications from canonical Harness queue/setup surfaces when delivery is enabled:
+
+- manual-review alerts
+- repair-dispatch failures when surfaced by the API
+- stalled executor alerts
+- budget threshold alerts when surfaced by the API
+- integration credential attention
 
 ## Integrations
 
