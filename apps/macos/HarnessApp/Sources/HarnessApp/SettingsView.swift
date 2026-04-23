@@ -1,13 +1,16 @@
 import HarnessAppCore
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     @ObservedObject var model: HarnessMenuBarModel
     @AppStorage(AppPreferenceKeys.workspaceFolders) private var storedWorkspaceFolders = ""
+    @AppStorage(AppPreferenceKeys.attentionNotificationsEnabled) private var attentionNotificationsEnabled = true
     @State private var launchAtLogin: LaunchAtLoginState = .unknown
     @State private var notificationPermission: NotificationPermissionState = .unknown
     @State private var platformMessage: String?
     @State private var isUpdatingLaunchAtLogin = false
+    @State private var isUpdatingNotifications = false
 
     var body: some View {
         Form {
@@ -54,8 +57,25 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Notifications") {
+                Toggle("Attention Notifications", isOn: $attentionNotificationsEnabled)
+                LabeledContent("macOS Permission", value: notificationPermission.displayName)
+                Text("When enabled and authorized by macOS, Harness sends local notifications for manual review, stalled executor, repair-dispatch, budget, and integration credential attention events.")
+                    .foregroundStyle(.secondary)
+
+                HStack {
+                    Button("Request Permission") {
+                        Task { await requestNotifications() }
+                    }
+                    Button("Refresh") {
+                        Task { await refreshPlatformState() }
+                    }
+                }
+                .disabled(isUpdatingNotifications)
+            }
+
             Section("Operation") {
-                Text("The menu bar reads local runtime status and task counts through the Harness CLI and HTTP API. It does not read SQLite directly. Launch at Login starts the app; the app supervises the backend as an app-managed child process.")
+                Text("The menu bar reads local runtime status and task counts through the Harness CLI and HTTP API. It does not read SQLite directly. Launch at Login starts the app; the app supervises the backend as an app-managed child process. Notifications are derived from canonical Harness attention/setup surfaces, not direct database polling.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -64,6 +84,9 @@ struct SettingsView: View {
         .frame(width: 620)
         .task {
             await refreshPlatformState()
+        }
+        .onChange(of: attentionNotificationsEnabled) { _, enabled in
+            model.setAttentionNotificationsEnabled(enabled)
         }
     }
 
@@ -97,6 +120,20 @@ struct SettingsView: View {
         launchAtLogin = MacOSSetupState.launchAtLoginState()
         notificationPermission = await MacOSSetupState.notificationPermissionState()
         await applySetupEnvironment()
+    }
+
+    @MainActor
+    private func requestNotifications() async {
+        isUpdatingNotifications = true
+        notificationPermission = await MacOSSetupState.requestNotificationPermission()
+        attentionNotificationsEnabled = notificationPermission == .authorized
+        model.setAttentionNotificationsEnabled(attentionNotificationsEnabled)
+        platformMessage = notificationPermission == .authorized
+            ? "Notifications are authorized."
+            : "Notifications are optional. Harness can run without them."
+        await applySetupEnvironment()
+        await model.refreshSetupStatus()
+        isUpdatingNotifications = false
     }
 
     @MainActor

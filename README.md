@@ -218,6 +218,7 @@ See:
 - App-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
 - Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
 - Setup doctor output is documented in [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md).
+- The macOS menu-bar app can request optional notifications and delivers attention alerts from canonical Harness queue/setup surfaces; delivery is reversible from Settings and never reads SQLite directly.
 
 ## Hosted Deployment Target
 

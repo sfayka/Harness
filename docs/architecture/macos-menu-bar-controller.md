@@ -101,4 +101,22 @@ The assistant reports app-owned facts to the setup doctor through environment ov
 It does not change Harness task truth, read SQLite, or bypass canonical API/read-model/timeline surfaces.
 
 Launch at Login and crash/stale-process recovery are implemented through the app-managed lifecycle contract.
-Issue #327 still owns actionable notification delivery.
+
+## Notifications
+
+The menu-bar app delivers optional local notifications when macOS permission and the app-level Settings toggle both allow delivery.
+Notification denial is treated as a user preference, not a setup failure.
+
+Notification candidates come from Harness surfaces the app already reads:
+
+- `GET /supervision/queue` for task attention such as `review_required`, `repair_dispatch_failed`, `stale_active_task`, and `budget_threshold_crossed`
+- guided setup status for integration credential attention after the local runtime is ready
+
+The app stores delivered notification IDs in user defaults to avoid resending the same task/setup attention event on every poll.
+It does not use SQLite, filesystem scans, or private backend internals to discover notification events.
+
+Clicking a notification posts an in-app destination request:
+
+- review and budget attention opens the dashboard review route
+- repair and stale executor attention opens the dashboard task route
+- integration credential attention opens the setup assistant

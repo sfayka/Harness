@@ -126,12 +126,18 @@ public struct SupervisionQueuePayload: Decodable, Equatable, Sendable {
 
 public struct SupervisionQueueEntry: Decodable, Equatable, Sendable {
     public let taskID: String
+    public let title: String?
     public let attentionType: String
+    public let suggestedAction: String?
+    public let reason: String?
     public let stale: Bool?
 
     enum CodingKeys: String, CodingKey {
         case taskID = "task_id"
+        case title
         case attentionType = "attention_type"
+        case suggestedAction = "suggested_action"
+        case reason
         case stale
     }
 }

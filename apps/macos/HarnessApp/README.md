@@ -51,6 +51,22 @@ It reports app-owned facts back to the CLI with:
 GitHub, Linear, and repair callback tokens entered in the assistant are saved through the app-managed secret boundary with stdin.
 They are not persisted in Swift preferences.
 
+## Notifications
+
+Notifications are optional and reversible from Settings.
+The app asks for macOS notification permission during onboarding, but denial does not block setup, runtime startup, or dashboard use.
+
+When notifications are enabled and authorized, the app schedules local alerts from canonical Harness attention/setup surfaces:
+
+- manual review required
+- repair dispatch failed when the API surfaces that attention type
+- stale executor / active task with no recent canonical activity
+- budget threshold crossed when the API surfaces that attention type
+- integration credential attention from guided setup status
+
+Notification clicks reopen the relevant surface: review and task attention opens the dashboard route, and integration credential attention opens the setup assistant.
+The Swift app does not read SQLite to find notification events.
+
 ## Dashboard
 
 The dashboard opens inside the app from the menu bar.

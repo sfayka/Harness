@@ -7,6 +7,9 @@ struct HarnessAppCoreCheck {
         try checksRunningSummaryFromTaskListAndQueue()
         try checksStoppedRuntimeSummary()
         try checksDashboardRoutes()
+        try checksAttentionNotificationPlannerBuildsActionableEvents()
+        try checksAttentionNotificationPlannerDeduplicatesDeliveredEvents()
+        try checksAttentionNotificationPlannerBuildsCredentialEvents()
         try checksGuidedSetupPayloadDecoding()
         try checksRuntimeControlPayloadDecoding()
         print("HarnessAppCoreCheck passed")
@@ -134,6 +137,196 @@ struct HarnessAppCoreCheck {
             baseURL.dashboardRoute(.reviews).absoluteString == "http://127.0.0.1:8765/dashboard/reviews/",
             "reviews dashboard route"
         )
+    }
+
+    private static func checksAttentionNotificationPlannerBuildsActionableEvents() throws {
+        let tasks = try decode(
+            TaskListPayload.self,
+            """
+            {
+              "tasks": [
+                {
+                  "task_id": "review-1",
+                  "title": "Review Required",
+                  "current_status": "in_review",
+                  "review_summary": {"status": "requested"},
+                  "verification_summary": {"requires_review": true},
+                  "failure_summary": {"state": "review_required"},
+                  "execution_summary": {"failure_state": "review_required", "retry_eligible": false}
+                },
+                {
+                  "task_id": "stale-1",
+                  "title": "Stale Executor",
+                  "current_status": "assigned",
+                  "review_summary": {"status": "none"},
+                  "verification_summary": {"requires_review": false},
+                  "failure_summary": {"state": "clear"},
+                  "execution_summary": {"failure_state": "clear", "retry_eligible": false}
+                }
+              ]
+            }
+            """
+        )
+        let queue = try decode(
+            SupervisionQueuePayload.self,
+            """
+            {
+              "queue": [
+                {
+                  "task_id": "review-1",
+                  "title": "Review Required",
+                  "attention_type": "review_required",
+                  "suggested_action": "resolve_review_gate",
+                  "reason": "Task has an active manual review gate.",
+                  "stale": false
+                },
+                {
+                  "task_id": "repair-1",
+                  "title": "Repair Failed",
+                  "attention_type": "repair_dispatch_failed",
+                  "suggested_action": "inspect_repair_bridge",
+                  "reason": "Harness could not dispatch repair work.",
+                  "stale": false
+                },
+                {
+                  "task_id": "stale-1",
+                  "title": "Stale Executor",
+                  "attention_type": "stale_active_task",
+                  "suggested_action": "investigate_staleness",
+                  "reason": "Task is active without recent canonical activity.",
+                  "stale": true
+                },
+                {
+                  "task_id": "budget-1",
+                  "title": "Budget Warning",
+                  "attention_type": "budget_threshold_crossed",
+                  "suggested_action": "review_budget",
+                  "reason": "Execution budget threshold was crossed.",
+                  "stale": false
+                }
+              ]
+            }
+            """
+        )
+
+        let candidates = HarnessAttentionNotificationPlanner.plan(
+            tasks: tasks,
+            queue: queue,
+            setupStatus: nil,
+            deliveredNotificationIDs: []
+        )
+
+        try require(candidates.map(\.kind) == [
+            .manualReviewRequired,
+            .repairDispatchFailed,
+            .executorStalled,
+            .budgetThresholdCrossed,
+        ], "attention notification kinds")
+        try require(candidates[0].id == "task:review-1:review_required", "review notification id")
+        try require(candidates[0].destination == .dashboard(.reviews), "review destination")
+        try require(candidates[1].destination == .dashboard(.tasks), "repair destination")
+        try require(candidates[2].body.contains("Stale Executor"), "stale notification body")
+        try require(candidates[3].title == "Harness budget threshold crossed", "budget notification title")
+    }
+
+    private static func checksAttentionNotificationPlannerDeduplicatesDeliveredEvents() throws {
+        let queue = try decode(
+            SupervisionQueuePayload.self,
+            """
+            {
+              "queue": [
+                {
+                  "task_id": "review-1",
+                  "title": "Review Required",
+                  "attention_type": "review_required",
+                  "suggested_action": "resolve_review_gate",
+                  "reason": "Task has an active manual review gate.",
+                  "stale": false
+                },
+                {
+                  "task_id": "stale-1",
+                  "title": "Stale Executor",
+                  "attention_type": "stale_active_task",
+                  "suggested_action": "investigate_staleness",
+                  "reason": "Task is active without recent canonical activity.",
+                  "stale": true
+                }
+              ]
+            }
+            """
+        )
+
+        let candidates = HarnessAttentionNotificationPlanner.plan(
+            tasks: nil,
+            queue: queue,
+            setupStatus: nil,
+            deliveredNotificationIDs: ["task:review-1:review_required"]
+        )
+
+        try require(candidates.map(\.id) == ["task:stale-1:stale_active_task"], "deduplicated notifications")
+    }
+
+    private static func checksAttentionNotificationPlannerBuildsCredentialEvents() throws {
+        let setupStatus = try decode(
+            GuidedSetupStatusPayload.self,
+            """
+            {
+              "status": "ready",
+              "onboarding_complete": true,
+              "runtime_ready": true,
+              "selected_workflows": [],
+              "available_workflows": [],
+              "required_blockers": [],
+              "optional_incomplete": ["github"],
+              "optional_attention": ["github"],
+              "doctor_summary": {"pass": 4, "warn": 1, "fail": 0},
+              "items": [
+                {
+                  "id": "github",
+                  "title": "GitHub",
+                  "category": "integration",
+                  "required": false,
+                  "status": "blocked",
+                  "blocks_onboarding": false,
+                  "purpose": "Verify GitHub artifacts.",
+                  "what_user_needs": ["A GitHub token."],
+                  "how_harness_validates": "Harness checks credential status.",
+                  "next_action": "Reconnect GitHub in Harness setup.",
+                  "doctor_check_codes": ["github_connection"],
+                  "secret_names": ["github_token"],
+                  "compatible_clients": [],
+                  "setup_actions": [],
+                  "notes": [],
+                  "validation": {
+                    "status": "warn",
+                    "checks": [
+                      {
+                        "code": "github_connection",
+                        "status": "warn",
+                        "message": "GitHub credential is disconnected.",
+                        "impact": "GitHub verification is unavailable.",
+                        "next_action": "Reconnect GitHub in Harness setup."
+                      }
+                    ],
+                    "missing_check_codes": []
+                  }
+                }
+              ]
+            }
+            """
+        )
+
+        let candidates = HarnessAttentionNotificationPlanner.plan(
+            tasks: nil,
+            queue: nil,
+            setupStatus: setupStatus,
+            deliveredNotificationIDs: []
+        )
+
+        try require(candidates.count == 1, "credential notification count")
+        try require(candidates[0].id == "setup:github:credential_attention", "credential notification id")
+        try require(candidates[0].kind == .credentialDisconnected, "credential notification kind")
+        try require(candidates[0].destination == .setupAssistant, "credential destination")
     }
 
     private static func checksGuidedSetupPayloadDecoding() throws {
