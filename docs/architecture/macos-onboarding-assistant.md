@@ -124,3 +124,7 @@ python3 -m unittest tests.test_local_runtime tests.test_local_setup -v
 ```
 
 `HarnessAppCoreCheck` decodes the setup payload, verifies menu summary logic, and verifies dashboard route mapping in environments where SwiftPM test frameworks are unavailable.
+
+For clean first-run validation, do not reuse the normal development bundle ID or default app data path.
+Set `HARNESS_DEV_BUNDLE_ID`, `HARNESS_APP_DATA_DIR`, `HARNESS_APP_LOG_DIR`, and `HARNESS_RUNTIME_PORT` before running `./script/build_and_run.sh --verify`.
+The launch script also passes `dist/local-dashboard/` as `HARNESS_DASHBOARD_ASSETS_DIR` when those assets exist, which prevents the embedded dashboard from opening against a healthy runtime but missing packaged UI assets.

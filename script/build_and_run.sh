@@ -3,12 +3,13 @@ set -euo pipefail
 
 MODE="${1:-run}"
 APP_NAME="HarnessApp"
-BUNDLE_ID="com.knoxanalytics.harness.local"
+BUNDLE_ID="${HARNESS_DEV_BUNDLE_ID:-com.knoxanalytics.harness.local}"
 MIN_SYSTEM_VERSION="14.0"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_DIR="$ROOT_DIR/apps/macos/HarnessApp"
 DIST_DIR="$ROOT_DIR/dist/macos"
+DEFAULT_DASHBOARD_ASSETS_DIR="$ROOT_DIR/dist/local-dashboard"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
@@ -55,7 +56,28 @@ cat >"$INFO_PLIST" <<PLIST
 PLIST
 
 open_app() {
-  /usr/bin/open -n "$APP_BUNDLE"
+  local open_args=("-n")
+  local dashboard_assets_dir="${HARNESS_DASHBOARD_ASSETS_DIR:-}"
+  if [[ -z "$dashboard_assets_dir" && -f "$DEFAULT_DASHBOARD_ASSETS_DIR/index.html" ]]; then
+    dashboard_assets_dir="$DEFAULT_DASHBOARD_ASSETS_DIR"
+  fi
+
+  open_args+=("--env" "HARNESS_REPO_ROOT=${HARNESS_REPO_ROOT:-$ROOT_DIR}")
+  if [[ -n "$dashboard_assets_dir" ]]; then
+    open_args+=("--env" "HARNESS_DASHBOARD_ASSETS_DIR=$dashboard_assets_dir")
+  fi
+  for key in \
+    HARNESS_APP_DATA_DIR \
+    HARNESS_APP_LOG_DIR \
+    HARNESS_RUNTIME_HOST \
+    HARNESS_RUNTIME_PORT \
+    HARNESS_RUNTIME_EXECUTABLE
+  do
+    if [[ -n "${!key:-}" ]]; then
+      open_args+=("--env" "$key=${!key}")
+    fi
+  done
+  /usr/bin/open "${open_args[@]}" "$APP_BUNDLE"
 }
 
 case "$MODE" in

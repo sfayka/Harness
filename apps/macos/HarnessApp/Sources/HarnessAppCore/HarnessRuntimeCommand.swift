@@ -1,6 +1,8 @@
 import Foundation
 
 public struct HarnessRuntimeCommand: Sendable {
+    public static let runtimePortEnvironmentKey = "HARNESS_RUNTIME_PORT"
+
     public let repoRoot: URL
     public let pythonExecutable: String
     public let runtimeExecutableURL: URL?
@@ -57,11 +59,11 @@ public struct HarnessRuntimeCommand: Sendable {
 
     @discardableResult
     public func initializeRuntime() async throws -> CommandResult {
-        try await runJSONCommand(["init"], allowNonZeroExit: false)
+        try await runJSONCommand(["init"] + runtimePortOverrideArguments(environment: effectiveEnvironment), allowNonZeroExit: false)
     }
 
     public func startRuntime() async throws -> RuntimeControlPayload {
-        let result = try await runJSONCommand(["start"], allowNonZeroExit: false)
+        let result = try await runJSONCommand(["start"] + runtimePortOverrideArguments(environment: effectiveEnvironment), allowNonZeroExit: false)
         return try JSONDecoder().decode(RuntimeControlPayload.self, from: Data(result.stdout.utf8))
     }
 
@@ -126,6 +128,10 @@ public struct HarnessRuntimeCommand: Sendable {
                 allowNonZeroExit: allowNonZeroExit
             )
         }.value
+    }
+
+    private var effectiveEnvironment: [String: String] {
+        mergedProcessEnvironment(environment)
     }
 }
 
@@ -239,6 +245,15 @@ private func mergedProcessEnvironment(_ environment: [String: String]) -> [Strin
 
 public func bundledRuntimeArguments(from args: [String]) -> [String] {
     Array(args.dropFirst(2))
+}
+
+public func runtimePortOverrideArguments(environment: [String: String] = ProcessInfo.processInfo.environment) -> [String] {
+    guard let rawPort = environment[HarnessRuntimeCommand.runtimePortEnvironmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines),
+          let port = Int(rawPort),
+          (1...65535).contains(port) else {
+        return []
+    }
+    return ["--port", String(port)]
 }
 
 private func commandFailureMessage(stdout: String, stderr: String) -> String {
