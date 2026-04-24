@@ -299,7 +299,7 @@ For external distribution, also provide:
 ```bash
 export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
 export MACOS_NOTARY_PROFILE="harness-notary"
-./script/package_macos_app.sh
+HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
 ```
 
 See [`docs/architecture/macos-packaging.md`](../architecture/macos-packaging.md) for the packaged bundle layout, uninstall/reset notes, and notarization expectations.

@@ -25,8 +25,10 @@ The internal validation package is ad-hoc signed unless `MACOS_CODESIGN_IDENTITY
 ```bash
 export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
 export MACOS_NOTARY_PROFILE="harness-notary"
-./script/package_macos_app.sh
+HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
 ```
+
+`HARNESS_REQUIRE_NOTARIZATION=1` is the release guardrail. It fails before build work starts if the Developer ID identity or notary profile is missing, so an official release cannot accidentally ship from an ad-hoc internal package.
 
 After installing the app, first run should guide the user through:
 
