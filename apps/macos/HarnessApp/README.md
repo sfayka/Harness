@@ -22,6 +22,19 @@ The repo-level launch path is:
 ./script/build_and_run.sh --verify
 ```
 
+When `dist/local-dashboard/index.html` exists, the repo launch script passes it to the app as `HARNESS_DASHBOARD_ASSETS_DIR`.
+That keeps developer-launched apps aligned with packaged app behavior.
+
+Use a separate bundle ID and runtime path for clean first-run proof runs:
+
+```bash
+HARNESS_DEV_BUNDLE_ID=com.knoxanalytics.harness.local.first-run-proof \
+HARNESS_APP_DATA_DIR=/tmp/harness-first-run/data \
+HARNESS_APP_LOG_DIR=/tmp/harness-first-run/logs \
+HARNESS_RUNTIME_PORT=18767 \
+./script/build_and_run.sh --verify
+```
+
 The distributable packaging path is:
 
 ```bash

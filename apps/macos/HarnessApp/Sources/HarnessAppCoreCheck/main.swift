@@ -10,6 +10,7 @@ struct HarnessAppCoreCheck {
         try checksBundleResourceDefaults()
         try checksBundleResourceOverrides()
         try checksBundledRuntimeArgumentMapping()
+        try checksRuntimePortOverrideArguments()
         try checksAttentionNotificationPlannerBuildsActionableEvents()
         try checksAttentionNotificationPlannerDeduplicatesDeliveredEvents()
         try checksAttentionNotificationPlannerBuildsCredentialEvents()
@@ -242,6 +243,21 @@ struct HarnessAppCoreCheck {
     private static func checksBundledRuntimeArgumentMapping() throws {
         let bundledArgs = bundledRuntimeArguments(from: ["-m", "modules.local_runtime", "--json", "status"])
         try require(bundledArgs == ["--json", "status"], "bundled runtime keeps json flag")
+    }
+
+    private static func checksRuntimePortOverrideArguments() throws {
+        try require(
+            runtimePortOverrideArguments(environment: ["HARNESS_RUNTIME_PORT": "18766"]) == ["--port", "18766"],
+            "valid runtime port override"
+        )
+        try require(
+            runtimePortOverrideArguments(environment: ["HARNESS_RUNTIME_PORT": "0"]).isEmpty,
+            "invalid runtime port override"
+        )
+        try require(
+            runtimePortOverrideArguments(environment: ["HARNESS_RUNTIME_PORT": "not-a-port"]).isEmpty,
+            "non-numeric runtime port override"
+        )
     }
 
     private static func checksAttentionNotificationPlannerBuildsActionableEvents() throws {

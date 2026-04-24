@@ -38,6 +38,28 @@ After installing the app, first run should guide the user through:
 
 The app stores runtime state under `~/Library/Application Support/Harness/` and logs under `~/Library/Logs/Harness/`.
 
+## First Run In The macOS App
+
+On a clean first launch, Harness opens the setup assistant before the dashboard.
+The default path only requires local runtime and SQLite readiness. Launch at Login, notifications, workspace folders, GitHub, Linear, and desktop-agent bridge setup are useful, but they are not required to finish core onboarding.
+
+![Harness onboarding welcome](images/macos-onboarding-welcome.png)
+
+Use **Skip Optional Items** when you only want to prove the local app path. The dashboard step stays blocked until the local runtime is initialized, running, and healthy.
+
+![Harness onboarding ready](images/macos-onboarding-ready.png)
+
+When the setup assistant shows **Ready**, choose **Finish & Open Dashboard**. The embedded dashboard should load from the local Harness runtime and show the canonical dashboard routes.
+
+![Harness embedded dashboard](images/macos-dashboard-tasks.png)
+
+What to verify:
+
+- the setup badge changes from `1 blocker` to `Ready`
+- the dashboard opens at a loopback `/dashboard/tasks/` URL
+- the dashboard renders the real Harness UI, not `{"detail":"Not Found"}`
+- the task inventory can be empty on a fresh install; that is expected
+
 ## Developer Checkout Path
 
 Use this path when you are developing Harness or validating a PR.
@@ -78,6 +100,15 @@ Run one deterministic reset proof:
 ```bash
 python3 -m modules.reset_dryrun success
 ```
+
+For developer validation of the macOS first-run path, build the local dashboard first and launch the app through the repo script:
+
+```bash
+pnpm build:dashboard:local
+./script/build_and_run.sh --verify
+```
+
+The script passes `dist/local-dashboard/` to the app when those assets exist. Without packaged dashboard assets, the runtime can be healthy but the embedded dashboard cannot render the UI.
 
 ## What Good Looks Like
 
