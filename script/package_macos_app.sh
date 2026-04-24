@@ -34,6 +34,7 @@ APP_VERSION="${HARNESS_RELEASE_VERSION:-$DEFAULT_VERSION}"
 BUILD_VERSION="${HARNESS_BUILD_VERSION:-$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)}"
 CODESIGN_IDENTITY="${MACOS_CODESIGN_IDENTITY:-}"
 NOTARY_PROFILE="${MACOS_NOTARY_PROFILE:-}"
+REQUIRE_NOTARIZATION="${HARNESS_REQUIRE_NOTARIZATION:-0}"
 
 require_tool() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -42,12 +43,52 @@ require_tool() {
   }
 }
 
+truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+codesign_identity_available() {
+  local identity="$1"
+  security find-identity -v -p codesigning | grep -F "$identity" >/dev/null 2>&1
+}
+
+validate_distribution_prerequisites() {
+  if [[ -n "$NOTARY_PROFILE" && -z "$CODESIGN_IDENTITY" ]]; then
+    echo "MACOS_NOTARY_PROFILE requires MACOS_CODESIGN_IDENTITY; notarization must use a Developer ID signed app." >&2
+    exit 2
+  fi
+
+  if truthy "$REQUIRE_NOTARIZATION"; then
+    if [[ -z "$CODESIGN_IDENTITY" ]]; then
+      echo "HARNESS_REQUIRE_NOTARIZATION=1 requires MACOS_CODESIGN_IDENTITY." >&2
+      exit 2
+    fi
+    if [[ -z "$NOTARY_PROFILE" ]]; then
+      echo "HARNESS_REQUIRE_NOTARIZATION=1 requires MACOS_NOTARY_PROFILE." >&2
+      exit 2
+    fi
+  fi
+
+  if [[ -n "$CODESIGN_IDENTITY" ]] && ! codesign_identity_available "$CODESIGN_IDENTITY"; then
+    echo "codesign identity not found in the active keychain: $CODESIGN_IDENTITY" >&2
+    echo "Install the Developer ID Application certificate or choose an identity from: security find-identity -v -p codesigning" >&2
+    exit 2
+  fi
+}
+
 require_tool python3
 require_tool pnpm
 require_tool swift
 require_tool hdiutil
 require_tool codesign
 require_tool xattr
+require_tool security
+require_tool xcrun
+
+validate_distribution_prerequisites
 
 rm -rf "$BUILD_DIR" "$DIST_DIR"
 mkdir -p "$BUILD_DIR" "$DIST_DIR" "$APP_MACOS" "$APP_RESOURCES"

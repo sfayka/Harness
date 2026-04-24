@@ -72,8 +72,10 @@ For external distribution, use:
 
 - `MACOS_CODESIGN_IDENTITY` for Developer ID Application signing
 - `MACOS_NOTARY_PROFILE` for `xcrun notarytool` submission
+- `HARNESS_REQUIRE_NOTARIZATION=1` to fail fast when either release prerequisite is missing
 
 When a notary profile is present, the package script submits the generated DMG, waits for completion, and staples the result.
+When `HARNESS_REQUIRE_NOTARIZATION=1` is set, the script refuses to continue without both a configured Developer ID Application identity and a notary profile.
 
 ## Installer Flow
 

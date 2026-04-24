@@ -76,7 +76,15 @@ Internal validation packages may be ad-hoc signed. External distribution require
 ```bash
 export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
 export MACOS_NOTARY_PROFILE="harness-notary"
-./script/package_macos_app.sh
+HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
 ```
 
 Then verify signing and notarization before publishing the DMG.
+
+If the command fails before building with `codesign identity not found`, inspect the available identities:
+
+```bash
+security find-identity -v -p codesigning
+```
+
+Official distribution needs a valid `Developer ID Application` certificate installed in the active keychain. An ad-hoc package is acceptable for internal validation, but it is not an official release artifact.
