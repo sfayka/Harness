@@ -44,6 +44,8 @@ On the inspection side, Harness now also exposes a canonical supervision queue a
 
 On the execution side, Harness now also contains a real Codex Cloud adapter boundary in addition to the stub dispatch path. That adapter projects canonical dispatch input into a Codex Cloud request shape and enforces the repo/bootstrap preflight contract before it will emit a successful advisory completion signal. Live runtime transport is still a separate integration step, but the proof gate is now encoded at the adapter boundary instead of left to convention.
 
+OpenAI's Symphony project gives Harness a clearer lower-level execution-substrate target. Harness should not duplicate a runner whose only job is to poll structured work, create isolated workspaces, launch Codex, and retry stalled attempts. A Symphony-like runner belongs underneath Harness as an advisory scheduler. Harness remains above it as the final verification and trust boundary. The design pivot is documented in [`docs/architecture/symphony-execution-substrate.md`](docs/architecture/symphony-execution-substrate.md).
+
 The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
 
 If you are introducing or swapping a desktop agent client such as Hermes, OpenClaw, or a future equivalent, target the canonical `POST /tasks` contract first. The `/ingress/manual`, `/ingress/linear`, and `/ingress/openclaw` routes are translator helpers for those specific payload families, not the universal ingress contract. The source-of-truth ingress shape, prohibited initial-submission fields, and a copyable planning-only example now live in [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md) under `Ingress Client Contract`.
@@ -162,6 +164,7 @@ See:
 - [`docs/architecture/local-eval-harness.md`](docs/architecture/local-eval-harness.md)
 - [`docs/architecture/openclaw-executor-adapter.md`](docs/architecture/openclaw-executor-adapter.md)
 - [`docs/architecture/completion-interception-and-artifact-validation-boundary.md`](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
+- [`docs/architecture/symphony-execution-substrate.md`](docs/architecture/symphony-execution-substrate.md)
 
 ## Current Architecture
 

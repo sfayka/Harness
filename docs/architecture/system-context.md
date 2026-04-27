@@ -13,12 +13,14 @@ Harness sits underneath the user-facing and agent-facing work surface as the sys
 - Harness is the control plane and reliability layer beneath that work surface.
 - GitHub is the source of truth for code artifacts such as pull requests and commits.
 - Executors such as Codex are workers.
+- A Symphony-like execution substrate may schedule isolated executor runs, but it is not completion truth.
 - The workflow substrate provides persistence, resumability, and coordination state for Harness itself.
 
 Stated another way:
 
 - Linear is the source of truth for intended work.
 - GitHub is the source of truth for executed artifacts.
+- Symphony-like runners are execution schedulers.
 - Harness is the source of truth for verified state and lifecycle correctness.
 
 ## Context Diagram
@@ -33,6 +35,8 @@ flowchart LR
     L --> H["Harness\nControl plane and reliability layer"]
     H --> G["GitHub\nArtifact evidence source of truth"]
     H --> S["Workflow substrate\nPersistence and resumability"]
+    H --> R["Execution substrate\nSymphony-like runner"]
+    R --> E
     H --> E["Executors\nCodex and future workers"]
     E --> H
     H --> L
@@ -79,6 +83,15 @@ flowchart LR
 - stores execution checkpoints and internal coordination state
 - does not replace Linear as the source of truth for work items
 
+### Execution Substrate
+
+- polls or receives eligible work under Harness policy
+- creates isolated workspaces for attempts
+- launches Codex or future executor sessions
+- tracks runner sessions, stalls, retries, and handoffs
+- emits advisory execution events and artifact references
+- does not verify completion or own lifecycle state
+
 ### Executors
 
 - perform assigned work
@@ -93,6 +106,7 @@ flowchart LR
 - Linear owns work coordination and structured work records, not completion enforcement semantics.
 - GitHub owns artifact evidence records, not lifecycle policy.
 - Executors do not own planning, routing, or lifecycle policy.
+- A Symphony-like execution substrate does not own completion truth.
 - The workflow substrate owns resumability, not product-level work semantics.
 - completion is not accepted as true unless Harness can reconcile it with artifacts and system-of-record state
 
@@ -101,5 +115,12 @@ flowchart LR
 - ingress, control-plane enforcement, systems of record, and execution remain separable
 - Linear-facing coordination can evolve without changing Harness verification and enforcement logic
 - executor implementations can change without changing Harness core planning logic
+- runner implementations can change if they emit the same advisory execution-substrate events
 - workflow technology can change if Harness state transitions are modeled explicitly
 - model-native reasoning improvements do not displace Harness as long as correctness, evidence, and auditability remain Harness-owned concerns
+
+## Related Documents
+
+- [symphony-execution-substrate.md](symphony-execution-substrate.md)
+- [runtime-execution-contract.md](runtime-execution-contract.md)
+- [verification-and-completion-enforcement.md](verification-and-completion-enforcement.md)
