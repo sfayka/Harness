@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+MODE="${1:-package}"
 APP_NAME="HarnessApp"
 BUNDLE_ID="com.knoxanalytics.harness.local"
 MIN_SYSTEM_VERSION="14.0"
@@ -79,6 +80,15 @@ validate_distribution_prerequisites() {
   fi
 }
 
+check_release_prerequisites() {
+  REQUIRE_NOTARIZATION=1
+  validate_distribution_prerequisites
+  echo "macOS release prerequisites are configured."
+  echo "codesign identity: $CODESIGN_IDENTITY"
+  echo "notary profile: $NOTARY_PROFILE"
+  echo "Next: HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh"
+}
+
 strip_forbidden_bundle_xattrs() {
   xattr -cr "$APP_BUNDLE"
   find "$APP_BUNDLE" -exec xattr -d com.apple.FinderInfo {} \; 2>/dev/null || true
@@ -104,6 +114,19 @@ require_tool codesign
 require_tool xattr
 require_tool security
 require_tool xcrun
+
+case "$MODE" in
+  package)
+    ;;
+  --check-release-prereqs|check-release-prereqs)
+    check_release_prerequisites
+    exit 0
+    ;;
+  *)
+    echo "usage: $0 [package|--check-release-prereqs]" >&2
+    exit 2
+    ;;
+esac
 
 validate_distribution_prerequisites
 

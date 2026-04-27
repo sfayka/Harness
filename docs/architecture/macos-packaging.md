@@ -80,6 +80,16 @@ For external distribution, use:
 When a notary profile is present, the package script submits the generated DMG, waits for completion, and staples the result.
 When `HARNESS_REQUIRE_NOTARIZATION=1` is set, the script refuses to continue without both a configured Developer ID Application identity and a notary profile.
 
+Use this preflight before starting the full build:
+
+```bash
+export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
+export MACOS_NOTARY_PROFILE="harness-notary"
+./script/package_macos_app.sh --check-release-prereqs
+```
+
+The preflight checks local inputs only. It does not build the app, create a DMG, submit to Apple, or prove that the notary profile can authenticate with Apple's service.
+
 ## Installer Flow
 
 The v1 distribution artifact is a DMG containing `Harness.app`.
