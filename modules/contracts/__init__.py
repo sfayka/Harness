@@ -47,6 +47,16 @@ from .execution_advisory import (
     validate_execution_event,
     validate_execution_provenance,
 )
+from .execution_substrate import (
+    ExecutionSubstrateArtifactReference,
+    ExecutionSubstrateEvent,
+    ExecutionSubstrateEventType,
+    ExecutionSubstrateProvenance,
+    ExecutionSubstrateValidationError,
+    validate_execution_substrate_artifact_reference,
+    validate_execution_substrate_event,
+    validate_execution_substrate_provenance,
+)
 from .task_envelope_enforcement import (
     EnforcementAction,
     EnforcementInput,
@@ -131,6 +141,11 @@ __all__ = [
     "ExecutionEvent",
     "ExecutionEventType",
     "ExecutionProvenance",
+    "ExecutionSubstrateArtifactReference",
+    "ExecutionSubstrateEvent",
+    "ExecutionSubstrateEventType",
+    "ExecutionSubstrateProvenance",
+    "ExecutionSubstrateValidationError",
     "ExternalFactValidationError",
     "ForbiddenTransitionError",
     "GitHubArtifactFacts",
@@ -186,6 +201,9 @@ __all__ = [
     "validate_artifact_reference",
     "validate_execution_event",
     "validate_execution_provenance",
+    "validate_execution_substrate_artifact_reference",
+    "validate_execution_substrate_event",
+    "validate_execution_substrate_provenance",
     "validate_branch_fact",
     "validate_changed_files_summary",
     "validate_commit_fact",
