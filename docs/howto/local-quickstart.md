@@ -30,6 +30,12 @@ HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
 
 `HARNESS_REQUIRE_NOTARIZATION=1` is the release guardrail. It fails before build work starts if the Developer ID identity or notary profile is missing, so an official release cannot accidentally ship from an ad-hoc internal package.
 
+Check the local release prerequisites before the full build:
+
+```bash
+./script/package_macos_app.sh --check-release-prereqs
+```
+
 After installing the app, first run should guide the user through:
 
 - local runtime initialization

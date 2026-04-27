@@ -32,6 +32,14 @@ export MACOS_NOTARY_PROFILE="harness-notary"
 HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
 ```
 
+Before running the full package build, verify the local release prerequisites without building or uploading anything:
+
+```bash
+export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
+export MACOS_NOTARY_PROFILE="harness-notary"
+./script/package_macos_app.sh --check-release-prereqs
+```
+
 With `HARNESS_REQUIRE_NOTARIZATION=1`, the script fails before build work starts if either release prerequisite is missing:
 
 - `MACOS_CODESIGN_IDENTITY`
@@ -43,8 +51,9 @@ If `MACOS_CODESIGN_IDENTITY` is set but not visible in `security find-identity -
 
 1. Install the Apple Developer ID Application certificate into the active keychain.
 2. Configure a notarytool keychain profile, for example `harness-notary`.
-3. Run the strict package command above.
-4. Confirm the script submits the DMG, waits for notarization, staples the app and DMG, and leaves `dist/macos-release/Harness.dmg` ready for external distribution.
+3. Run `./script/package_macos_app.sh --check-release-prereqs`.
+4. Run the strict package command above.
+5. Confirm the script submits the DMG, waits for notarization, staples the app and DMG, and leaves `dist/macos-release/Harness.dmg` ready for external distribution.
 
 ## Boundary
 

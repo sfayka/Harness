@@ -88,3 +88,9 @@ security find-identity -v -p codesigning
 ```
 
 Official distribution needs a valid `Developer ID Application` certificate installed in the active keychain. An ad-hoc package is acceptable for internal validation, but it is not an official release artifact.
+
+After installing the certificate and configuring the notary profile, run the local preflight before starting a full package build:
+
+```bash
+./script/package_macos_app.sh --check-release-prereqs
+```
