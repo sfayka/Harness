@@ -38,6 +38,13 @@ from modules.contracts.failure_classification import FailureClassification, Fail
 from modules.contracts.task_envelope_lifecycle import ForbiddenTransitionError, apply_task_transition
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
+from modules.contracts.execution_substrate import (
+    ExecutionSubstrateArtifactReference,
+    ExecutionSubstrateEvent,
+    ExecutionSubstrateEventType,
+    ExecutionSubstrateProvenance,
+    validate_execution_substrate_event,
+)
 from modules.contracts.task_envelope_enforcement import EnforcementAction, EnforcementResult
 from modules.contracts.task_envelope_reconciliation import (
     ExpectedCodeContext,
@@ -1342,6 +1349,121 @@ def _with_execution_attempt_record(task_envelope: dict[str, Any], *, attempt: di
 
     execution_attempts.append(deepcopy(attempt))
     execution_metadata["execution_attempts"] = execution_attempts
+    merged_task["observability"]["execution_metadata"] = execution_metadata
+    merged_task["timestamps"]["updated_at"] = _iso_now()
+    return merged_task
+
+
+def _parse_execution_substrate_artifact_reference(
+    payload: dict[str, Any],
+    *,
+    field_name: str,
+) -> ExecutionSubstrateArtifactReference:
+    return ExecutionSubstrateArtifactReference(
+        artifact_type=_require_non_empty_string(payload.get("artifact_type"), field_name=f"{field_name}.artifact_type"),
+        reported_by=_require_non_empty_string(payload.get("reported_by"), field_name=f"{field_name}.reported_by"),
+        reported_at=_require_non_empty_string(payload.get("reported_at"), field_name=f"{field_name}.reported_at"),
+        source_attempt_id=_require_non_empty_string(
+            payload.get("source_attempt_id"),
+            field_name=f"{field_name}.source_attempt_id",
+        ),
+        verification_status=_optional_non_empty_string(
+            payload.get("verification_status"),
+            field_name=f"{field_name}.verification_status",
+        )
+        or "unverified",
+        repository=_optional_non_empty_string(payload.get("repository"), field_name=f"{field_name}.repository"),
+        branch=_optional_non_empty_string(payload.get("branch"), field_name=f"{field_name}.branch"),
+        commit_sha=_optional_non_empty_string(payload.get("commit_sha"), field_name=f"{field_name}.commit_sha"),
+        pr_url=_optional_non_empty_string(payload.get("pr_url"), field_name=f"{field_name}.pr_url"),
+        metadata=_optional_mapping(payload.get("metadata"), field_name=f"{field_name}.metadata") or {},
+    )
+
+
+def _parse_execution_substrate_event(payload: dict[str, Any], *, task_id: str) -> ExecutionSubstrateEvent:
+    event_payload = _require_mapping(payload.get("event"), field_name="event")
+    provenance_payload = _require_mapping(event_payload.get("provenance"), field_name="event.provenance")
+    artifact_references = tuple(
+        _parse_execution_substrate_artifact_reference(
+            artifact_reference,
+            field_name=f"event.artifact_references[{index}]",
+        )
+        for index, artifact_reference in enumerate(
+            _optional_object_list(
+                event_payload.get("artifact_references"),
+                field_name="event.artifact_references",
+            )
+        )
+    )
+    event_task_id = _require_non_empty_string(event_payload.get("task_id"), field_name="event.task_id")
+    if event_task_id != task_id:
+        raise ApiRequestError("event.task_id must match the URL task id")
+    event_type = _require_non_empty_string(event_payload.get("event_type"), field_name="event.event_type")
+    try:
+        parsed_event_type = ExecutionSubstrateEventType(event_type)
+    except ValueError as error:
+        raise ApiRequestError(f"Unsupported execution substrate event_type: {event_type}") from error
+
+    return validate_execution_substrate_event(
+        ExecutionSubstrateEvent(
+            event_id=_require_non_empty_string(event_payload.get("event_id"), field_name="event.event_id"),
+            task_id=event_task_id,
+            attempt_id=_require_non_empty_string(event_payload.get("attempt_id"), field_name="event.attempt_id"),
+            runner_kind=_require_non_empty_string(
+                event_payload.get("runner_kind"),
+                field_name="event.runner_kind",
+            ),
+            runner_session_id=_require_non_empty_string(
+                event_payload.get("runner_session_id"),
+                field_name="event.runner_session_id",
+            ),
+            executor_kind=_require_non_empty_string(
+                event_payload.get("executor_kind"),
+                field_name="event.executor_kind",
+            ),
+            workspace_id=_require_non_empty_string(event_payload.get("workspace_id"), field_name="event.workspace_id"),
+            event_type=parsed_event_type,
+            occurred_at=_require_non_empty_string(event_payload.get("occurred_at"), field_name="event.occurred_at"),
+            provenance=ExecutionSubstrateProvenance(
+                source_system=_require_non_empty_string(
+                    provenance_payload.get("source_system"),
+                    field_name="event.provenance.source_system",
+                ),
+                source_type=_require_non_empty_string(
+                    provenance_payload.get("source_type"),
+                    field_name="event.provenance.source_type",
+                ),
+                source_id=_require_non_empty_string(
+                    provenance_payload.get("source_id"),
+                    field_name="event.provenance.source_id",
+                ),
+                captured_by=_optional_non_empty_string(
+                    provenance_payload.get("captured_by"),
+                    field_name="event.provenance.captured_by",
+                ),
+            ),
+            payload=_optional_mapping(event_payload.get("payload"), field_name="event.payload") or {},
+            artifact_references=artifact_references,
+        )
+    )
+
+
+def _with_execution_substrate_event(task_envelope: dict[str, Any], *, event: ExecutionSubstrateEvent) -> dict[str, Any]:
+    merged_task = deepcopy(task_envelope)
+    execution_metadata = dict(merged_task["observability"]["execution_metadata"] or {})
+    existing_events = execution_metadata.get("execution_substrate_events")
+    if existing_events is None:
+        events: list[dict[str, Any]] = []
+    elif isinstance(existing_events, list):
+        events = [deepcopy(item) for item in existing_events]
+    else:
+        raise ApiRequestError("observability.execution_metadata.execution_substrate_events must be an array")
+
+    event_payload = _to_jsonable(event)
+    if any(isinstance(existing, dict) and existing.get("event_id") == event.event_id for existing in events):
+        raise ApiRequestError(f"execution substrate event {event.event_id!r} already exists for this task")
+    events.append(event_payload)
+    execution_metadata["execution_substrate_events"] = events
     merged_task["observability"]["execution_metadata"] = execution_metadata
     merged_task["timestamps"]["updated_at"] = _iso_now()
     return merged_task
@@ -4181,6 +4303,35 @@ class HarnessApiService:
         response_payload["requires_review"] = _review_gate_is_active(stored_task, updated_records)
         return status, response_payload
 
+    def submit_execution_substrate_event(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        try:
+            stored_task = self.store.get_task(task_id)
+        except TaskEnvelopeNotFoundError:
+            return HTTPStatus.NOT_FOUND, {"error": f"Task {task_id!r} was not found"}
+
+        try:
+            event = _parse_execution_substrate_event(payload, task_id=task_id)
+            updated_task = _with_execution_substrate_event(stored_task, event=event)
+        except Exception as error:
+            return HTTPStatus.BAD_REQUEST, {
+                "error": str(error),
+                "invalid_input": True,
+            }
+
+        stored_task = self.store.update_task(updated_task)
+        read_model = self.read_model_service.build_task_read_model(task_id)
+        return HTTPStatus.OK, {
+            "task_envelope": _to_jsonable(stored_task),
+            "execution_substrate_event": _to_jsonable(event),
+            "execution_summary": read_model.execution_summary,
+            "accepted_completion": stored_task.get("status") == "completed",
+            "requires_review": _review_gate_is_active(
+                stored_task,
+                self.store.list_evaluation_records(task_id),
+            ),
+            "action": "execution_substrate_event_recorded",
+        }
+
     def dispatch_task(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
             stored_task = self.store.get_task(task_id)
@@ -4453,7 +4604,7 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
         } and not (
             len(path_components) == 3
             and path_components[0] == "tasks"
-            and path_components[2] in {"reevaluate", "completion-claims", "dispatch"}
+            and path_components[2] in {"reevaluate", "completion-claims", "dispatch", "execution-substrate-events"}
         ):
             self._write_json(HTTPStatus.NOT_FOUND, {"error": "Not found"})
             return
@@ -4481,6 +4632,12 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
             status, response_payload = service.evaluate(payload)
         elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "completion-claims":
             status, response_payload = service.submit_completion_claim(path_components[1], payload)
+        elif (
+            len(path_components) == 3
+            and path_components[0] == "tasks"
+            and path_components[2] == "execution-substrate-events"
+        ):
+            status, response_payload = service.submit_execution_substrate_event(path_components[1], payload)
         elif len(path_components) == 3 and path_components[0] == "tasks" and path_components[2] == "dispatch":
             status, response_payload = service.dispatch_task(path_components[1], payload)
         else:

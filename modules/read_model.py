@@ -509,8 +509,28 @@ def _latest_execution_attempt(execution_attempts: list[dict[str, Any]]) -> dict[
     )
 
 
+def _latest_execution_substrate_event(substrate_events: list[dict[str, Any]]) -> dict[str, Any] | None:
+    valid_events = [event for event in substrate_events if isinstance(event, dict)]
+    if not valid_events:
+        return None
+    return max(
+        valid_events,
+        key=lambda event: (
+            _parse_iso_timestamp(str(event.get("occurred_at") or "")),
+            str(event.get("event_id") or ""),
+        ),
+    )
+
+
 def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord, ...]) -> dict[str, Any]:
-    execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    execution_metadata = (task_envelope.get("observability") or {}).get("execution_metadata") or {}
+    execution_attempts = execution_metadata.get("execution_attempts") or []
+    substrate_events = execution_metadata.get("execution_substrate_events") or []
+    latest_substrate_event = (
+        _latest_execution_substrate_event(substrate_events)
+        if isinstance(substrate_events, list)
+        else None
+    )
     review_summary = _build_review_summary(records)
     latest_failure_summary = _latest_failure_summary(
         records,
@@ -534,6 +554,8 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         return {
             "attempt_count": 0,
             "latest_attempt": None,
+            "substrate_event_count": len(substrate_events) if isinstance(substrate_events, list) else 0,
+            "latest_substrate_event": dict(latest_substrate_event) if latest_substrate_event is not None else None,
             "latest_artifact_references": [],
             "total_attempts": len(records),
             "retry_count": retry_count,
@@ -563,6 +585,18 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
     return {
         "attempt_count": attempt_count,
         "latest_attempt": dict(latest_attempt) if latest_attempt is not None else None,
+        "substrate_event_count": len(substrate_events) if isinstance(substrate_events, list) else 0,
+        "latest_substrate_event": dict(latest_substrate_event) if latest_substrate_event is not None else None,
+        "latest_runner_session_id": (
+            latest_substrate_event.get("runner_session_id")
+            if isinstance(latest_substrate_event, dict)
+            else None
+        ),
+        "latest_workspace_id": (
+            latest_substrate_event.get("workspace_id")
+            if isinstance(latest_substrate_event, dict)
+            else None
+        ),
         "latest_status": latest_attempt.get("status") if isinstance(latest_attempt, dict) else None,
         "latest_dispatch_origin": (
             ((latest_attempt.get("metadata") or {}).get("dispatch_mode"))
@@ -685,7 +719,28 @@ def _build_timeline(task_envelope: TaskEnvelope, records: tuple[EvaluationRecord
             }
         )
 
-    execution_attempts = ((task_envelope.get("observability") or {}).get("execution_metadata") or {}).get("execution_attempts") or []
+    execution_metadata = (task_envelope.get("observability") or {}).get("execution_metadata") or {}
+    substrate_events = execution_metadata.get("execution_substrate_events") or []
+    if isinstance(substrate_events, list):
+        for index, substrate_event in enumerate(substrate_events):
+            if not isinstance(substrate_event, dict):
+                continue
+            events.append(
+                {
+                    "event_id": f"{task_envelope['id']}:execution_substrate:{substrate_event.get('event_id') or index}",
+                    "event_type": "execution_substrate_event_recorded",
+                    "occurred_at": substrate_event.get("occurred_at") or timestamps.get("updated_at"),
+                    "summary": f"Execution substrate event: {substrate_event.get('event_type')}",
+                    "source": (
+                        ((substrate_event.get("provenance") or {}).get("source_system"))
+                        or substrate_event.get("runner_kind")
+                        or "execution_substrate"
+                    ),
+                    "details": dict(substrate_event),
+                }
+            )
+
+    execution_attempts = execution_metadata.get("execution_attempts") or []
     for index, attempt in enumerate(execution_attempts):
         if not isinstance(attempt, dict):
             continue
