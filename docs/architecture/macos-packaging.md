@@ -63,6 +63,9 @@ This is intentionally a build-machine workflow, not an end-user workflow.
 The build machine may need Python, `pnpm`, and Xcode tools.
 The installed app must not.
 
+Before signing, the package script strips signing-forbidden extended attributes such as `com.apple.FinderInfo` and `com.apple.ResourceFork` from the staged app bundle.
+That matters because copied dashboard/runtime artifacts can inherit macOS metadata that makes `codesign` reject the bundle.
+
 The packaging smoke test uses `HARNESS_PACKAGE_VERIFY_PORT`, defaulting to `18765`, so it can run while a developer's normal local Harness app already owns `127.0.0.1:8765`.
 
 ## Signing And Notarization
