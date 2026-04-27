@@ -22,4 +22,4 @@ Use this checklist before calling Harness local-app documentation release-ready.
 - [x] Run the gated live reset smoke with real GitHub and Linear dry-run targets. See [live-reset-smoke-2026-04-23.md](live-reset-smoke-2026-04-23.md).
 - [ ] Verify a Developer ID signed and notarized DMG, not only the ad-hoc internal package.
   Current local blocker: `security find-identity -v -p codesigning` reports `0 valid identities found`, so this machine cannot produce a Developer ID signed DMG yet. See [macos-notarization-readiness-2026-04-24.md](macos-notarization-readiness-2026-04-24.md).
-- [ ] Re-run every reader-facing command after the final app UI and installer flow land.
+- [x] Re-run every reader-facing command after the final app UI and installer flow land. See [reader-command-verification-2026-04-27.md](reader-command-verification-2026-04-27.md).

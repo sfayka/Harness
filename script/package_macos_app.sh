@@ -79,6 +79,23 @@ validate_distribution_prerequisites() {
   fi
 }
 
+strip_forbidden_bundle_xattrs() {
+  xattr -cr "$APP_BUNDLE"
+  find "$APP_BUNDLE" -exec xattr -d com.apple.FinderInfo {} \; 2>/dev/null || true
+  find "$APP_BUNDLE" -exec xattr -d com.apple.ResourceFork {} \; 2>/dev/null || true
+  find "$APP_BUNDLE" -exec xattr -d 'com.apple.fileprovider.fpfs#P' {} \; 2>/dev/null || true
+}
+
+assert_no_forbidden_bundle_xattrs() {
+  local forbidden
+  forbidden="$(find "$APP_BUNDLE" -print0 | xargs -0 xattr 2>/dev/null | grep -E 'com\\.apple\\.(FinderInfo|ResourceFork)' || true)"
+  if [[ -n "$forbidden" ]]; then
+    echo "app bundle contains signing-forbidden extended attributes:" >&2
+    echo "$forbidden" >&2
+    exit 2
+  fi
+}
+
 require_tool python3
 require_tool pnpm
 require_tool swift
@@ -173,7 +190,8 @@ cat >"$INFO_PLIST" <<PLIST
 PLIST
 
 echo "Signing app bundle..."
-xattr -cr "$APP_BUNDLE"
+strip_forbidden_bundle_xattrs
+assert_no_forbidden_bundle_xattrs
 if [[ -n "$CODESIGN_IDENTITY" ]]; then
   codesign --force --deep --options runtime --sign "$CODESIGN_IDENTITY" "$APP_BUNDLE"
 else

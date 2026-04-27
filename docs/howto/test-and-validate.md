@@ -21,6 +21,8 @@ python3 -m unittest discover -s tests
 From a checkout:
 
 ```bash
+pnpm build:dashboard:local
+export HARNESS_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard"
 python3 -m modules.local_runtime --json init
 python3 -m modules.local_runtime --json start
 python3 -m modules.local_runtime --json status
@@ -28,6 +30,8 @@ python3 -m modules.local_runtime --json doctor
 python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
+
+The dashboard asset export matters for checkout validation. Without it, the runtime can still be healthy, but `doctor` will warn that the embedded dashboard cannot render packaged UI assets.
 
 A packaged build should expose the same contract as `harness ...`.
 
