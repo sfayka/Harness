@@ -16,6 +16,7 @@ Each module below has one owner. Ownership here means responsibility for the mod
 | Work registry sync | Linear integration layer | create and update Linear records, reconcile Harness state with Linear task state, enforce Linear as structured work record and work-coordination surface | decomposition policy, executor runtime control, verification authority |
 | Artifact evidence sync | GitHub integration layer | collect pull request, commit, and review evidence, reconcile artifact state with task state, expose evidence facts to Harness | lifecycle policy, planning decisions |
 | Assignment and routing | Harness core | choose executor type, assign work, reassign stalled tasks, enforce assignment rules | executor implementation details, user-facing clarification |
+| Execution substrate adapter | Executor integration layer | translate Harness dispatch policy into Symphony-like runner requests, ingest runner session events, normalize workspace/session/attempt facts | lifecycle authority, artifact verification, Linear truth, GitHub truth |
 | Execution gateway | Executor integration layer | send tasks to Codex or future workers, collect outputs, normalize execution events | planning, source-of-truth ownership, completion authority |
 | Verification and completion enforcement | Harness core | require artifact-backed completion where applicable, enforce blocked, in-review, failed, and completed semantics, reconcile evidence before terminal state changes | executor implementation details, ingress behavior |
 | Workflow runtime adapter | Workflow substrate layer | persist workflow checkpoints, resume interrupted runs, model orchestration progress through durable state | user-facing ingress, structured work definitions |
@@ -46,6 +47,7 @@ Each module below has one owner. Ownership here means responsibility for the mod
 - Existing tasks must use canonical reevaluation paths for persisted mutation; evaluation surfaces must not smuggle stored lifecycle, assignment, or artifact truth through convenience overlays.
 - Generic reevaluation may attach support artifacts and external facts, and it may reflect fact-only repository artifacts from external sync, but it must not combine repository execution artifacts with executor runtime telemetry for an existing task. New executor-side PR/commit/branch/changed-file proof plus runtime facts belongs to the completion-claim boundary, where Harness can bind it to an execution attempt and enforce execution-contract truth.
 - Executors may report status and outputs, but they do not decide final work state without Harness applying policy and verification rules.
+- Symphony-like runners may schedule isolated executor attempts, report handoffs, and retry within explicit budgets, but they do not decide final work state.
 
 ## Required Contracts
 
@@ -89,6 +91,26 @@ Required fields should eventually include:
 - timestamp
 - payload
 
+### Execution Substrate Event Contract
+
+Message from a Symphony-like runner back to Harness.
+
+Required fields should eventually include:
+
+- event identifier
+- task identifier
+- attempt identifier
+- runner kind
+- runner session identifier
+- executor kind
+- workspace identifier
+- event type
+- timestamp
+- payload
+- provenance
+
+Execution substrate events are advisory. They can trigger reevaluation, retry handling, or artifact synchronization, but they cannot authorize canonical completion.
+
 ### Verification Contract
 
 Evidence required before Harness accepts a task as complete.
@@ -109,3 +131,4 @@ Required fields should eventually include:
 - treating workflow checkpoint state as the product-facing source of truth
 - storing business workflow policy inside a vendor-specific orchestration graph
 - trusting executor completion claims without evidence or system-of-record reconciliation
+- treating a Symphony-like runner as Harness lifecycle truth

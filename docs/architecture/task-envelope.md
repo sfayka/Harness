@@ -440,6 +440,10 @@ Runtime observations:
 - `observability.retries`
 - `observability.execution_metadata`
 
+A future schema revision may promote Symphony-compatible runner data into a dedicated `execution` object. Until that field is proven by a dry-run implementation, runner session identifiers, workspace identifiers, attempt counters, handoff state, and execution-substrate correlation IDs should remain neutral runtime observations under `observability.execution_metadata` or linked attempt records.
+
+Runner data must not be stored in artifact evidence fields until Harness has independently validated the referenced artifacts. A runner-reported PR URL or commit SHA is an advisory artifact reference; GitHub readback and verification decide whether it becomes trusted completion evidence.
+
 This distinction matters because Linear and Harness business logic should reason over business state, while substrates and executors contribute runtime observations.
 
 ## Module Expectations
@@ -480,3 +484,8 @@ This distinction matters because Linear and Harness business logic should reason
 ## Schema Reference
 
 The machine-readable schema lives in [task_envelope.schema.json](../../schemas/task_envelope.schema.json).
+
+Related architecture:
+
+- [symphony-execution-substrate.md](symphony-execution-substrate.md)
+- [runtime-execution-contract.md](runtime-execution-contract.md)

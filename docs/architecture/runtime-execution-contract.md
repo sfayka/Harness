@@ -8,6 +8,8 @@ Harness is a reliability/control-plane system. The runtime coordinates execution
 
 The runtime is not the planner, not the dispatcher, and not the verifier.
 
+A Symphony-like runner is one possible runtime or execution-substrate implementation. It may poll eligible work, create isolated workspaces, launch Codex sessions, detect stalls, and report handoffs. It still emits advisory execution facts only. Harness remains responsible for verification, reconciliation, manual review, and lifecycle acceptance.
+
 ## Runtime Role
 
 The runtime is responsible for coordinating task execution once a task has been assigned to a worker.
@@ -468,6 +470,8 @@ Retry policy is not invented by the runtime.
 
 The runtime applies the policy given by Harness core or higher-level orchestration rules.
 
+When the runtime is backed by a Symphony-like daemon, retry state must still obey Harness budgets. A daemon loop may keep work moving only while a task, project, repository, and executor all remain within explicit retry, wall-clock, idle-time, and spend limits. Budget exhaustion must stop automatic continuation rather than letting the runner relaunch work forever.
+
 ## Budget Governance
 
 The runtime may observe budget consumption, but it does not invent budget policy.
@@ -592,3 +596,4 @@ The goal is that a reviewer can answer:
 - [Trace Continuity Model](trace-continuity.md)
 - [Execution Budget Model](execution-budget-model.md)
 - [Artifact And Completion Evidence](artifact-and-completion-evidence.md)
+- [Symphony Execution Substrate](symphony-execution-substrate.md)
