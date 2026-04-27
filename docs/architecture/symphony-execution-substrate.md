@@ -147,6 +147,8 @@ GitHub stores artifact facts. It does not decide Harness lifecycle state.
 
 The runner integration should emit advisory events into Harness. These events should be append-only and attempt-scoped.
 
+The first in-code contract lives in [`modules/contracts/execution_substrate.py`](../../modules/contracts/execution_substrate.py). It intentionally models runner events as advisory input, not as lifecycle authority.
+
 Initial event family:
 
 - `dispatch_requested`
