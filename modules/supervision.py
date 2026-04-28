@@ -32,6 +32,7 @@ class SupervisionQueueEntry:
     clarification_status: str
     failure_state: str
     retry_eligible: bool
+    execution_substrate_intent: dict[str, Any] | None
 
 
 class HarnessSupervisionService:
@@ -202,6 +203,41 @@ class HarnessSupervisionService:
             )
         return None
 
+    @staticmethod
+    def _execution_substrate_intent(
+        task: dict[str, Any],
+        *,
+        attention_type: str,
+        suggested_action: str,
+        reason: str,
+    ) -> dict[str, Any] | None:
+        if attention_type == "retryable_failure" and suggested_action == "retry_or_redispatch":
+            intent_type = "retry_execution"
+        elif attention_type == "stale_active_task" and suggested_action == "investigate_staleness":
+            intent_type = "investigate_or_restart_execution"
+        else:
+            return None
+
+        task_id = str(task.get("task_id") or "")
+        if not task_id:
+            return None
+        return {
+            "intent_type": intent_type,
+            "substrate_kind": "symphony-compatible",
+            "task_id": task_id,
+            "source": "harness_supervision_queue",
+            "reason": reason,
+            "suggested_action": suggested_action,
+            "advisory_only": True,
+            "events_endpoint": f"/tasks/{task_id}/execution-substrate-events",
+            "completion_authority": "harness_verification",
+            "prohibited_actions": [
+                "mark_harness_complete",
+                "move_linear_to_done_as_truth",
+                "auto_merge_without_policy",
+            ],
+        }
+
     def list_attention_queue(self) -> list[dict[str, Any]]:
         priority = {
             "review_required": 0,
@@ -219,6 +255,12 @@ class HarnessSupervisionService:
             if attention is None:
                 continue
             attention_type, suggested_action, reason, stale = attention
+            execution_substrate_intent = self._execution_substrate_intent(
+                task,
+                attention_type=attention_type,
+                suggested_action=suggested_action,
+                reason=reason,
+            )
             queue.append(
                 asdict(
                     SupervisionQueueEntry(
@@ -234,6 +276,7 @@ class HarnessSupervisionService:
                         clarification_status=str(((task.get("clarification_summary") or {}).get("status")) or "none"),
                         failure_state=str(((task.get("failure_summary") or {}).get("state")) or "clear"),
                         retry_eligible=bool(((task.get("execution_summary") or {}).get("retry_eligible"))),
+                        execution_substrate_intent=execution_substrate_intent,
                     )
                 )
             )

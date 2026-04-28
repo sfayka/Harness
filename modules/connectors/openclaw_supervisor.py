@@ -27,6 +27,8 @@ class OpenClawSupervisionDecision:
     timeline_event_count: int
     can_autonomously_dispatch: bool
     proposed_dispatch_payload: dict[str, Any] | None
+    can_request_execution_substrate: bool
+    proposed_execution_substrate_intent: dict[str, Any] | None
     can_autonomously_sync: bool
     proposed_sync_payload: dict[str, Any] | None
     read_model: dict[str, Any]
@@ -211,6 +213,13 @@ class OpenClawHarnessSupervisor:
                 if can_dispatch
                 else None
             ),
+            can_request_execution_substrate=can_dispatch
+            and isinstance(entry.get("execution_substrate_intent"), dict),
+            proposed_execution_substrate_intent=(
+                dict(entry["execution_substrate_intent"])
+                if can_dispatch and isinstance(entry.get("execution_substrate_intent"), dict)
+                else None
+            ),
             can_autonomously_sync=can_sync,
             proposed_sync_payload=sync_payload,
             read_model=read_model_payload,
@@ -235,6 +244,7 @@ class OpenClawHarnessSupervisor:
         allow_redispatch: bool = False,
         allow_sync: bool = False,
         executor: str = "codex",
+        allow_legacy_direct_dispatch: bool = False,
     ) -> OpenClawSupervisionCycleResult:
         queue_status, queue_payload = self.client.get_supervision_queue()
         if queue_status >= 400:
@@ -269,7 +279,30 @@ class OpenClawHarnessSupervisor:
                     )
                 )
                 continue
-            if allow_redispatch and decision.can_autonomously_dispatch and decision.proposed_dispatch_payload is not None:
+            if (
+                allow_redispatch
+                and decision.can_request_execution_substrate
+                and decision.proposed_execution_substrate_intent is not None
+                and not allow_legacy_direct_dispatch
+            ):
+                action_results.append(
+                    OpenClawSupervisionActionResult(
+                        task_id=decision.task_id,
+                        attention_type=decision.attention_type,
+                        action_status="execution_substrate_dispatch_intent",
+                        http_status=None,
+                        action="submit_to_execution_substrate",
+                        resulting_task_status=decision.current_status,
+                    )
+                )
+                continue
+
+            if (
+                allow_redispatch
+                and allow_legacy_direct_dispatch
+                and decision.can_autonomously_dispatch
+                and decision.proposed_dispatch_payload is not None
+            ):
                 dispatch_status, dispatch_payload = self.client.dispatch_task(
                     decision.task_id,
                     payload=decision.proposed_dispatch_payload,
