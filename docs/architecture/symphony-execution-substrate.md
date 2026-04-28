@@ -151,6 +151,8 @@ The first in-code contract lives in [`modules/contracts/execution_substrate.py`]
 
 Harness accepts these events through `POST /tasks/<task_id>/execution-substrate-events`. That endpoint appends validated runner events to `observability.execution_metadata.execution_substrate_events` and projects them into the read-model and timeline. It does not run verification, mutate Linear or GitHub, or authorize a lifecycle transition.
 
+The deterministic local dry run lives in [`modules/execution_substrate_dryrun.py`](../../modules/execution_substrate_dryrun.py). It simulates a Symphony-style event stream against a disposable local task and proves that runner handoff remains advisory until Harness verification runs.
+
 Initial event family:
 
 - `dispatch_requested`
