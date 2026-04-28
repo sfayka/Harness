@@ -88,7 +88,7 @@ The dispatcher must not begin normal dispatch from:
 - `failed`
 - `canceled`
 
-Automatic post-ingestion dispatch follows the same rule. A task that is merely `planned` is not dispatchable just because it looks non-terminal; planning and clarification gates must be cleared and the task must enter `dispatch_ready` first.
+Automatic post-ingestion dispatch follows the same rule. A task that is merely `planned` is not dispatchable just because it looks non-terminal; planning and clarification gates must be cleared and the task must enter `dispatch_ready` first. While Harness still exposes legacy direct dispatch for compatibility, API responses now describe that follow-up under `execution_continuation`; the older `automatic_dispatch` field is a compatibility alias, not the preferred execution-substrate contract.
 
 ### Clarification Preconditions
 
