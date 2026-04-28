@@ -4442,6 +4442,10 @@ class HarnessApiService:
                 "dispatch_trigger": dispatch_trigger,
                 "dispatch_mode": dispatch_mode,
                 "dispatch_reason": dispatch_reason,
+                "dispatch_surface": "legacy_direct_dispatch",
+                "compatibility_mode": True,
+                "preferred_execution_surface": "execution_substrate",
+                "execution_substrate_events_endpoint": f"/tasks/{task_id}/execution-substrate-events",
                 "executor": executor,
                 "execution_parameters": dict(execution_parameters),
                 "dispatch_at": dispatch_recorded_at,
@@ -4474,6 +4478,10 @@ class HarnessApiService:
                 "attempt_id": attempt_id,
                 "executor": executor,
                 "attempt_status": attempt_status,
+                "dispatch_surface": "legacy_direct_dispatch",
+                "compatibility_mode": True,
+                "preferred_execution_surface": "execution_substrate",
+                "execution_substrate_events_endpoint": f"/tasks/{task_id}/execution-substrate-events",
             }
         return status, response_payload
 
