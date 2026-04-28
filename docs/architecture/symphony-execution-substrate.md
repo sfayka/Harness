@@ -149,6 +149,8 @@ The runner integration should emit advisory events into Harness. These events sh
 
 The first in-code contract lives in [`modules/contracts/execution_substrate.py`](../../modules/contracts/execution_substrate.py). It intentionally models runner events as advisory input, not as lifecycle authority.
 
+Harness accepts these events through `POST /tasks/<task_id>/execution-substrate-events`. That endpoint appends validated runner events to `observability.execution_metadata.execution_substrate_events` and projects them into the read-model and timeline. It does not run verification, mutate Linear or GitHub, or authorize a lifecycle transition.
+
 Initial event family:
 
 - `dispatch_requested`
