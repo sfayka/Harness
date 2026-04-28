@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -120,6 +121,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
                 os.environ,
                 {
                     "HARNESS_DASHBOARD_ASSETS_DIR": str(dashboard_dir),
+                    "HARNESS_SYMPHONY_BIN": sys.executable,
                     "OPENCLAW_BASE_URL": "http://127.0.0.1:18789",
                     "HARNESS_NOTIFICATION_PERMISSION": "authorized",
                     "HARNESS_LAUNCH_AT_LOGIN": "enabled",
@@ -152,6 +154,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(checks["dashboard"]["status"], "warn")
         self.assertEqual(checks["github_connection"]["status"], "pass")
         self.assertEqual(checks["linear_connection"]["status"], "pass")
+        self.assertEqual(checks["execution_substrate"]["status"], "pass")
         self.assertEqual(checks["ingress_executor"]["status"], "pass")
         self.assertEqual(checks["notification_permission"]["status"], "pass")
         self.assertEqual(checks["launch_at_login"]["status"], "pass")
@@ -253,9 +256,11 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(items["local_runtime"]["status"], "complete")
         self.assertEqual(items["github"]["status"], "incomplete")
         self.assertEqual(items["linear"]["status"], "incomplete")
+        self.assertIn(items["execution_substrate"]["status"], {"complete", "incomplete"})
         self.assertEqual(items["ingress_executor"]["status"], "incomplete")
         self.assertFalse(items["github"]["required"])
         self.assertFalse(items["linear"]["required"])
+        self.assertFalse(items["execution_substrate"]["required"])
         self.assertFalse(items["ingress_executor"]["required"])
 
     def test_setup_status_selected_workflow_requires_missing_integration(self) -> None:

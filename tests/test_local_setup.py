@@ -12,6 +12,7 @@ def healthy_runtime_doctor_payload(
     *,
     github_status: str = "warn",
     linear_status: str = "warn",
+    substrate_status: str = "warn",
     executor_status: str = "warn",
 ) -> dict[str, object]:
     checks = [
@@ -35,9 +36,14 @@ def healthy_runtime_doctor_payload(
             next_action="Connect Linear API key during setup or run `harness secrets set linear_api_key --value-stdin`.",
         ),
         check(
+            "execution_substrate",
+            substrate_status,
+            next_action="Install/build Symphony and set HARNESS_SYMPHONY_BIN if the binary is not on PATH.",
+        ),
+        check(
             "ingress_executor",
             executor_status,
-            next_action="Connect OpenClaw, Hermes, Codex, or another compatible desktop-agent bridge during setup.",
+            next_action="Only configure this compatibility bridge if an older workflow still depends on it.",
         ),
     ]
     return {
@@ -74,9 +80,11 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertTrue(items["local_runtime"]["required"])
         self.assertEqual(items["github"]["status"], "incomplete")
         self.assertEqual(items["linear"]["status"], "incomplete")
+        self.assertEqual(items["execution_substrate"]["status"], "incomplete")
         self.assertEqual(items["ingress_executor"]["status"], "incomplete")
         self.assertFalse(items["github"]["required"])
         self.assertFalse(items["linear"]["required"])
+        self.assertFalse(items["execution_substrate"]["required"])
         self.assertFalse(items["ingress_executor"]["required"])
 
     def test_selected_workflow_makes_integration_setup_required(self) -> None:
@@ -107,23 +115,33 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertEqual(items["github"]["status"], "complete")
         self.assertTrue(items["github"]["required"])
 
-    def test_repair_dispatch_requires_client_neutral_executor_bridge(self) -> None:
+    def test_repair_dispatch_requires_symphony_execution_substrate(self) -> None:
         payload = build_guided_setup_status(
             healthy_runtime_doctor_payload(),
             selected_workflows=["repair-dispatch"],
         )
         items = {item["id"]: item for item in payload["items"]}
-        executor = items["ingress_executor"]
+        substrate = items["execution_substrate"]
 
         self.assertEqual(payload["status"], "setup_required")
-        self.assertEqual(payload["required_blockers"], ["ingress_executor"])
-        self.assertEqual(executor["status"], "incomplete")
-        self.assertTrue(executor["required"])
-        self.assertIn("OpenClaw", executor["compatible_clients"])
-        self.assertIn("Hermes", executor["compatible_clients"])
-        self.assertIn("Codex", executor["compatible_clients"])
-        self.assertIn("future desktop-agent clients", executor["compatible_clients"])
-        self.assertIn("client-neutral", " ".join(executor["notes"]))
+        self.assertEqual(payload["required_blockers"], ["execution_substrate"])
+        self.assertEqual(substrate["status"], "incomplete")
+        self.assertTrue(substrate["required"])
+        self.assertFalse(items["ingress_executor"]["required"])
+        self.assertIn("Symphony", substrate["compatible_clients"])
+        self.assertIn("verification", " ".join(substrate["notes"]))
+
+    def test_configured_symphony_substrate_completes_repair_dispatch_setup(self) -> None:
+        payload = build_guided_setup_status(
+            healthy_runtime_doctor_payload(substrate_status="pass"),
+            selected_workflows=["repair-dispatch"],
+        )
+        items = {item["id"]: item for item in payload["items"]}
+
+        self.assertEqual(payload["status"], "ready")
+        self.assertEqual(payload["required_blockers"], [])
+        self.assertEqual(items["execution_substrate"]["status"], "complete")
+        self.assertTrue(items["execution_substrate"]["required"])
 
     def test_configured_broken_runtime_blocks_onboarding(self) -> None:
         payload = healthy_runtime_doctor_payload()

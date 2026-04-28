@@ -20,6 +20,8 @@ Harness should wrap a Symphony-like runner as an execution substrate.
 
 Harness should not build a duplicate low-level daemon whose only purpose is to poll Linear, create workspaces, launch Codex, and keep attempts moving. Symphony's public spec is now the right shape for that lower layer.
 
+Local setup now reflects that decision. The `repair-dispatch` workflow requires an `execution_substrate` setup item, with Symphony as the preferred runner. The old `ingress_executor` setup item remains as a compatibility bridge for older OpenClaw/Hermes/Codex repair paths, but it is no longer the primary execution-scheduling requirement.
+
 Harness should also not collapse into Symphony. Symphony is a runner and tracker reader. Harness is the source of verified lifecycle truth.
 
 The intended stack is:

@@ -14,12 +14,14 @@ The dispatcher converts planned task structure into auditable assignment decisio
 
 Assignment truth starts here, not at ingress. New task creation and ingress adapters may declare task intent, planning state, dependencies, and clarification blockers, but they must not persist `assigned_executor` or create a task directly in `assigned`. If upstream systems want a task routed quickly, they may hand off a task as `dispatch_ready`, but Harness still owns the actual assignment decision.
 
+Symphony changes the implementation target for dispatch. Harness should make policy and assignment decisions, then hand execution scheduling to a Symphony-compatible substrate. Harness should not grow an always-on runner that duplicates Symphony's polling, workspace, session, and retry responsibilities.
+
 It is responsible for:
 
 - selecting an executor type for a dispatchable task
 - recording assignment decisions on the canonical task record
 - moving tasks through dispatch-related lifecycle states
-- initiating execution through the execution gateway
+- initiating execution through a Symphony-compatible execution substrate or compatibility gateway
 - deciding when reassignment or retry routing is needed under control-plane policy
 - preserving auditable assignment history
 
