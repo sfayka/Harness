@@ -65,9 +65,12 @@ WORKFLOW_DEFINITIONS: tuple[SetupWorkflow, ...] = (
     ),
     SetupWorkflow(
         id="repair-dispatch",
-        label="Executor repair dispatch",
-        description="Require a desktop-agent bridge before Harness can request repair or executor-backed work.",
-        required_items=("ingress_executor",),
+        label="Execution substrate dispatch",
+        description=(
+            "Require a Symphony-compatible execution substrate before Harness can request repair "
+            "or executor-backed work."
+        ),
+        required_items=("execution_substrate",),
     ),
 )
 WORKFLOW_DEFINITIONS_BY_ID = {workflow.id: workflow for workflow in WORKFLOW_DEFINITIONS}
@@ -181,12 +184,50 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         secret_names=("linear_api_key",),
     ),
     SetupItemDefinition(
-        id="ingress_executor",
-        title="Ingress/executor bridge",
+        id="execution_substrate",
+        title="Execution substrate",
         category="integration",
         purpose=(
-            "Lets external clients submit work to Harness and lets Harness request repair or executor-backed "
-            "work when policy says more work is needed."
+            "Lets Harness hand executable work to a scheduler/runner layer. Symphony is the preferred "
+            "substrate for polling structured work, creating isolated workspaces, launching Codex, "
+            "and reporting advisory execution events back to Harness."
+        ),
+        what_user_needs=(
+            "A local Symphony checkout or another Symphony-compatible runner.",
+            "A built runner binary that Harness can find through HARNESS_SYMPHONY_BIN, SYMPHONY_BIN, PATH, "
+            "or the Knox Infrastructure checkout convention.",
+            "A workflow contract such as WORKFLOW.md before any live runner is enabled.",
+        ),
+        how_harness_validates=(
+            "Harness checks whether a Symphony-compatible runner binary is available. This only proves "
+            "the execution substrate is installed; Harness still treats runner output as advisory until "
+            "verification and reconciliation succeed."
+        ),
+        doctor_check_codes=("execution_substrate",),
+        completion_check_codes=("execution_substrate",),
+        setup_actions=(
+            SetupAction(
+                kind="connection",
+                label="Connect Symphony",
+                description=(
+                    "Install or build Symphony, then set HARNESS_SYMPHONY_BIN if the binary is not on PATH."
+                ),
+                command="mise exec -- mix build",
+            ),
+        ),
+        compatible_clients=("Symphony", "Symphony-compatible runners"),
+        notes=(
+            "This replaces Harness-owned runner scheduling for new work. Harness still owns verification, reconciliation, and lifecycle truth.",
+            "A configured runner is not allowed to mark work complete directly.",
+        ),
+    ),
+    SetupItemDefinition(
+        id="ingress_executor",
+        title="Legacy ingress/executor bridge",
+        category="compatibility",
+        purpose=(
+            "Keeps older OpenClaw/Hermes/Codex bridge paths visible while Harness pivots execution "
+            "scheduling to a Symphony-compatible substrate."
         ),
         what_user_needs=(
             "A compatible desktop-agent bridge such as OpenClaw, Hermes, Codex, or a future equivalent.",
@@ -196,7 +237,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         how_harness_validates=(
             "Harness checks the configured desktop-agent bridge mode through the setup doctor. "
             "Current adapter validation accepts a local CLI config/state pair or an HTTP bridge URL, "
-            "but the setup item remains client-neutral."
+            "but new execution-scheduling work should use the execution substrate item instead."
         ),
         doctor_check_codes=("ingress_executor",),
         completion_check_codes=("ingress_executor",),
@@ -220,7 +261,8 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         secret_names=("repair_callback_bearer_token",),
         compatible_clients=("OpenClaw", "Hermes", "Codex", "future desktop-agent clients"),
         notes=(
-            "This setup item is client-neutral; OpenClaw-shaped environment variable names are adapter wiring, not Harness product boundaries.",
+            "Compatibility path only; Symphony-compatible execution substrate is the preferred runner layer for new work.",
+            "OpenClaw-shaped environment variable names are adapter wiring, not Harness product boundaries.",
         ),
     ),
 )

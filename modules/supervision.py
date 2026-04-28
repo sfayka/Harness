@@ -1,4 +1,4 @@
-"""Canonical supervision queue for autonomous OpenClaw-style polling."""
+"""Canonical attention queue for external supervisors and execution substrates."""
 
 from __future__ import annotations
 
@@ -35,7 +35,12 @@ class SupervisionQueueEntry:
 
 
 class HarnessSupervisionService:
-    """Project canonical task truth into an attention queue for autonomous supervisors."""
+    """Project canonical task truth into an advisory attention queue.
+
+    This is not a Harness-owned runner loop. Symphony-compatible substrates and
+    legacy supervisors may consume the queue, but Harness lifecycle truth still
+    flows through verification, reconciliation, and explicit review.
+    """
 
     def __init__(
         self,

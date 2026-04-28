@@ -59,6 +59,7 @@ ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
 ENV_NOTIFICATION_PERMISSION = "HARNESS_NOTIFICATION_PERMISSION"
 ENV_LAUNCH_AT_LOGIN = "HARNESS_LAUNCH_AT_LOGIN"
 ENV_WORKSPACE_FOLDERS = "HARNESS_WORKSPACE_FOLDERS"
+ENV_SYMPHONY_BIN = "HARNESS_SYMPHONY_BIN"
 
 
 class LocalRuntimeError(ValueError):
@@ -685,6 +686,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
         )
 
     checks.extend(_secret_doctor_checks())
+    checks.append(_check_execution_substrate())
     checks.append(_check_ingress_executor())
     checks.append(_check_notification_permission())
     checks.append(_check_launch_at_login())
@@ -818,6 +820,70 @@ def _secret_status_to_check(code: str, status: SecretStatus) -> RuntimeCheck:
     )
 
 
+def _symphony_binary_candidates() -> list[Path]:
+    candidates: list[Path] = []
+    for env_var in (ENV_SYMPHONY_BIN, "SYMPHONY_BIN"):
+        configured = _clean_env_value(env_var)
+        if configured:
+            candidates.append(Path(configured).expanduser())
+
+    path_binary = shutil.which("symphony")
+    if path_binary:
+        candidates.append(Path(path_binary))
+
+    repo_root = Path(__file__).resolve().parents[1]
+    candidates.append(repo_root.parent / "Infrastructure" / "symphony" / "elixir" / "bin" / "symphony")
+
+    unique_candidates: list[Path] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate)
+        if key not in seen:
+            unique_candidates.append(candidate)
+            seen.add(key)
+    return unique_candidates
+
+
+def _check_execution_substrate() -> RuntimeCheck:
+    candidates = _symphony_binary_candidates()
+    for candidate in candidates:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return RuntimeCheck(
+                code="execution_substrate",
+                status="pass",
+                message=f"Symphony execution substrate is installed at {candidate}.",
+                impact=(
+                    "Harness can include the Symphony-compatible runner in local dry runs and later "
+                    "execution-substrate E2E tests."
+                ),
+                next_action="No action needed.",
+                details={
+                    "preferred_runner": "symphony",
+                    "binary": str(candidate),
+                    "checked_candidates": [str(path) for path in candidates],
+                    "mode": "installed",
+                },
+            )
+
+    return RuntimeCheck(
+        code="execution_substrate",
+        status="warn",
+        message="No Symphony-compatible execution substrate binary was found.",
+        impact=(
+            "Harness can still verify work, but new runner/scheduler E2E coverage is unavailable "
+            "until Symphony or a compatible substrate is installed."
+        ),
+        next_action=(
+            "Install/build Symphony and set HARNESS_SYMPHONY_BIN if the binary is not on PATH."
+        ),
+        details={
+            "preferred_runner": "symphony",
+            "checked_candidates": [str(path) for path in candidates],
+            "mode": "unconfigured",
+        },
+    )
+
+
 def _check_ingress_executor() -> RuntimeCheck:
     cli_config_path = _clean_env_value("OPENCLAW_CONFIG_PATH")
     state_dir = _clean_env_value("OPENCLAW_STATE_DIR")
@@ -871,9 +937,12 @@ def _check_ingress_executor() -> RuntimeCheck:
     return RuntimeCheck(
         code="ingress_executor",
         status="warn",
-        message="No desktop-agent ingress/executor bridge is configured.",
-        impact="Harness can run locally, but repair dispatch and executor-backed workflows are incomplete.",
-        next_action="Connect OpenClaw, Hermes, Codex, or another compatible desktop-agent bridge during setup.",
+        message="No legacy desktop-agent ingress/executor bridge is configured.",
+        impact=(
+            "Legacy OpenClaw/Hermes repair dispatch is unavailable. New execution scheduling should use "
+            "the Symphony-compatible execution substrate instead."
+        ),
+        next_action="Only configure this compatibility bridge if an older workflow still depends on it.",
         details={"mode": "unconfigured"},
     )
 
