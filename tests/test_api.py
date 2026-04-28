@@ -4304,10 +4304,20 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(dispatch_status, 200)
         self.assertEqual(dispatch_response["dispatch"]["attempt_id"], "attempt-1")
         self.assertEqual(dispatch_response["dispatch"]["executor"], "codex")
+        self.assertEqual(dispatch_response["dispatch"]["dispatch_surface"], "legacy_direct_dispatch")
+        self.assertTrue(dispatch_response["dispatch"]["compatibility_mode"])
+        self.assertEqual(dispatch_response["dispatch"]["preferred_execution_surface"], "execution_substrate")
+        self.assertEqual(
+            dispatch_response["dispatch"]["execution_substrate_events_endpoint"],
+            f"/tasks/{task_id}/execution-substrate-events",
+        )
         self.assertIn(
             dispatch_response["dispatch"]["attempt_status"],
             {"started", "in_progress", "completed", "failed", "blocked"},
         )
+        latest_attempt = dispatch_response["task_envelope"]["observability"]["execution_metadata"]["execution_attempts"][-1]
+        self.assertEqual(latest_attempt["metadata"]["dispatch_surface"], "legacy_direct_dispatch")
+        self.assertTrue(latest_attempt["metadata"]["compatibility_mode"])
         self.assertEqual(timeline_status, 200)
         self.assertTrue(any(event["event_type"] == "task_dispatched" for event in timeline_payload["timeline"]))
         self.assertTrue(any(event["event_type"] == "execution_event_recorded" for event in timeline_payload["timeline"]))
@@ -7166,6 +7176,8 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(submit_response["task_envelope"]["status"], "dispatch_ready")
         self.assertEqual(dispatch_status, 200)
         self.assertEqual(dispatch_response["dispatch"]["task_id"], task_id)
+        self.assertEqual(dispatch_response["dispatch"]["dispatch_surface"], "legacy_direct_dispatch")
+        self.assertTrue(dispatch_response["dispatch"]["compatibility_mode"])
 
     def test_api_can_reevaluate_completed_task_back_to_blocked_for_contradictory_facts(self) -> None:
         initial_payload = _request_payload("accepted_completion")

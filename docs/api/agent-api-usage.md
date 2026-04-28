@@ -34,14 +34,15 @@ Queue entries are derived from canonical read-model and timeline truth and curre
 - `retryable_failure`
 - `stale_active_task`
 
-OpenClaw, Hermes, or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, dispatch, completion-claim, or reevaluation paths.
+OpenClaw, Hermes, Symphony, or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, execution-substrate event ingestion, GitHub sync, completion-claim, or reevaluation paths.
 
 The repository now includes a thin example supervisor loop in [`modules/connectors/openclaw_supervisor.py`](../../modules/connectors/openclaw_supervisor.py). That file is the current concrete OpenClaw-shaped example, not an architectural requirement. It does not mutate review, clarification, or proof decisions on its own. It only:
 
 - polls `GET /supervision/queue`
 - enriches queue entries with canonical inspection surfaces
 - may trigger `POST /sync/github` when the queue shows `github_sync_required` and the latest persisted execution attempt already carries enough repository proof to construct a bounded sync payload
-- optionally triggers `POST /tasks/<task_id>/dispatch` for bounded redispatch when the queue recommends `retry_or_redispatch` and the current canonical task state remains dispatchable
+- emits a Symphony-compatible `execution_substrate_intent` for retryable or stale execution work by default
+- may still trigger `POST /tasks/<task_id>/dispatch` only when explicitly running the legacy direct-dispatch compatibility path
 
 `POST /tasks` is an intake/planning creation path, not a completion-reporting path. A brand-new task may include objective, planning, support artifacts, coordination metadata, and clarification blockers, but it must not arrive with claimed completion, acceptance assertions, runtime facts, validated completion evidence, execution attempts, advisory completion claims, reconciliation history, or runtime/terminal lifecycle state already attached.
 
@@ -237,17 +238,19 @@ If that task is accepted, the ingress client should treat these as the canonical
 
 ### Manual Dispatch Bridge
 
-- `POST /tasks/<task_id>/dispatch` manually dispatches an existing canonical task to an executor adapter.
+- `POST /tasks/<task_id>/dispatch` is the legacy direct-dispatch bridge for manually dispatching an existing canonical task to an executor adapter.
+- New runner integrations should prefer the supervision queue's `execution_substrate_intent` plus `POST /tasks/<task_id>/execution-substrate-events`.
 - The request supports:
   - `request.executor` (optional: `codex`, `openclaw`, or `stub-executor`; default `codex`)
   - `request.execution_parameters` (optional object for advisory execution metadata)
   - `request.artifact_references` (optional list of advisory artifact references such as PR URL, commit SHA, and branch metadata)
+- Successful responses include `dispatch.compatibility_mode=true`, `dispatch.dispatch_surface=legacy_direct_dispatch`, and `dispatch.preferred_execution_surface=execution_substrate`.
 - Dispatch:
   - records a new execution attempt under `observability.execution_metadata.execution_attempts`
   - records advisory completion claim metadata
   - automatically triggers canonical reevaluation through the existing completion-claim path
 - Dispatch remains advisory-only and must not bypass verification, reconciliation, lifecycle enforcement, or review gates.
-- The repository now includes a Codex Cloud adapter boundary that can be injected into dispatch for `request.executor="codex"`. That adapter requires repo/bootstrap preflight proof before it will emit a successful advisory completion path.
+- The repository still includes a Codex Cloud adapter boundary that can be injected into this compatibility bridge for `request.executor="codex"`. That adapter requires repo/bootstrap preflight proof before it will emit a successful advisory completion path.
 
 - Existing-task reevaluation uses the stored task snapshot as the source of truth.
 - `POST /evaluate` may still be used as an evaluation surface for an existing task id, but it no longer accepts submission-style mutation overlays for that stored task.

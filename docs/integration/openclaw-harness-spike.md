@@ -108,15 +108,16 @@ The loop remains intentionally narrow:
 
 It currently performs bounded autonomous follow-ups only when the canonical task state is still dispatchable:
 
-- if the queue surfaces `retryable_failure`, the loop may call `POST /tasks/<task_id>/dispatch` with an explicit `dispatch_trigger=openclaw_supervision_loop`
-- if the queue surfaces `stale_active_task` for an `assigned` or `dispatch_ready` task, the loop may call the same canonical dispatch endpoint to kick stalled work back into motion
+- if the queue surfaces `retryable_failure`, the loop now emits an `execution_substrate_intent` by default so a Symphony-compatible runner can continue the work
+- if the queue surfaces `stale_active_task` for an `assigned` or `dispatch_ready` task, the loop now emits an `execution_substrate_intent` by default so a Symphony-compatible runner can investigate or restart the work
+- the old `POST /tasks/<task_id>/dispatch` follow-up remains available only when explicitly running the legacy direct-dispatch compatibility path with `dispatch_trigger=openclaw_supervision_loop`
 - if the queue surfaces `github_sync_required`, the loop may call `POST /sync/github` using repository and branch facts already recorded in the canonical execution summary
 
 That keeps OpenClaw thin while proving the next autonomy step:
 
 - OpenClaw can observe what needs attention
 - OpenClaw can inspect the canonical evidence behind that attention
-- OpenClaw can trigger a governed redispatch or GitHub sync without bypassing Harness lifecycle enforcement
+- OpenClaw can hand execution continuation to a runner substrate or trigger GitHub sync without bypassing Harness lifecycle enforcement
 
 Since the spike was written, Harness added a dedicated OpenClaw ingress adapter endpoint (`POST /ingress/openclaw`) that still delegates into canonical submission semantics (`POST /tasks`) rather than introducing a separate control-plane contract.
 
