@@ -60,7 +60,8 @@ The current doctor covers:
 - `dashboard`: packaged dashboard asset availability and dashboard HTTP route reachability when the API is running.
 - `github_connection`: GitHub credential setup state.
 - `linear_connection`: Linear credential setup state.
-- `ingress_executor`: desktop-agent bridge setup state for the current OpenClaw-shaped adapter wiring, without making OpenClaw the product boundary.
+- `execution_substrate`: Symphony-compatible execution-substrate availability.
+- `ingress_executor`: legacy desktop-agent bridge setup state for the current OpenClaw-shaped adapter wiring, without making OpenClaw the product boundary.
 - `notification_permission`: notification permission state reported by the app shell.
 - `launch_at_login`: launch-at-login state reported by the app shell.
 - `workspace_folders`: configured local workspace folder availability.
@@ -74,7 +75,14 @@ Until the Swift app owns these directly, the CLI reads these environment variabl
 - `HARNESS_LAUNCH_AT_LOGIN`: `enabled` or `disabled`.
 - `HARNESS_WORKSPACE_FOLDERS`: `os.pathsep`-separated folder paths selected by the user.
 
-Current desktop-agent bridge checks read the existing adapter variables:
+Execution-substrate checks read:
+
+- `HARNESS_SYMPHONY_BIN`
+- `SYMPHONY_BIN`
+- `symphony` on `PATH`
+- the Knox Analytics `Infrastructure/symphony/elixir/bin/symphony` convention
+
+Current legacy desktop-agent bridge checks read the existing adapter variables:
 
 - `OPENCLAW_CONFIG_PATH`
 - `OPENCLAW_STATE_DIR`
@@ -82,7 +90,7 @@ Current desktop-agent bridge checks read the existing adapter variables:
 - `OPENCLAW_BASE_URL`
 
 Those names are adapter wiring, not the product boundary.
-The UI should describe the setup item as a desktop-agent bridge for OpenClaw, Hermes, Codex, or a future equivalent.
+The UI should describe the execution-substrate setup item as a Symphony-compatible runner and the ingress/executor setup item as a legacy compatibility bridge.
 
 ## Safety Rules
 
@@ -95,7 +103,7 @@ The UI should describe the setup item as a desktop-agent bridge for OpenClaw, He
 ## Guided Setup Mapping
 
 `harness setup status --json` consumes this doctor payload.
-It keeps default onboarding limited to the local runtime and marks GitHub, Linear, and ingress/executor setup as optional until a selected workflow requires them.
+It keeps default onboarding limited to the local runtime and marks GitHub, Linear, execution-substrate, and legacy ingress/executor setup as optional until a selected workflow requires them.
 
 Use workflow gates when needed:
 

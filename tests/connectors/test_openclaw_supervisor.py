@@ -125,6 +125,8 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
         self.assertGreaterEqual(review_decision.evaluation_history_count, 2)
         self.assertFalse(review_decision.can_autonomously_dispatch)
         self.assertIsNone(review_decision.proposed_dispatch_payload)
+        self.assertFalse(review_decision.can_request_execution_substrate)
+        self.assertIsNone(review_decision.proposed_execution_substrate_intent)
         self.assertEqual(actions[review_decision.task_id].action_status, "manual_review_required")
 
         clarification_decision = decisions["task-openclaw-supervisor-clarification-1"]
@@ -135,9 +137,11 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
         self.assertGreaterEqual(clarification_decision.evaluation_history_count, 1)
         self.assertFalse(clarification_decision.can_autonomously_dispatch)
         self.assertIsNone(clarification_decision.proposed_dispatch_payload)
+        self.assertFalse(clarification_decision.can_request_execution_substrate)
+        self.assertIsNone(clarification_decision.proposed_execution_substrate_intent)
         self.assertEqual(actions[clarification_decision.task_id].action_status, "clarification_required")
 
-    def test_cycle_can_trigger_bounded_redispatch_for_retryable_failure(self) -> None:
+    def test_cycle_emits_substrate_intent_for_retryable_failure_by_default(self) -> None:
         retry_payload = {"request": to_jsonable(build_demo_request("blocked_insufficient_evidence"))}
         retry_payload["request"]["runtime_facts"] = {
             "executor_reported_failure": True,
@@ -162,14 +166,27 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
             retry_decision.proposed_dispatch_payload["request"]["dispatch_trigger"],
             "openclaw_supervision_loop",
         )
+        self.assertTrue(retry_decision.can_request_execution_substrate)
+        self.assertEqual(
+            retry_decision.proposed_execution_substrate_intent["intent_type"],
+            "retry_execution",
+        )
+        self.assertEqual(
+            retry_decision.proposed_execution_substrate_intent["events_endpoint"],
+            f"/tasks/{task_id}/execution-substrate-events",
+        )
+        self.assertEqual(
+            retry_decision.proposed_execution_substrate_intent["completion_authority"],
+            "harness_verification",
+        )
 
         retry_action = actions[task_id]
-        self.assertEqual(retry_action.action_status, "redispatch_triggered")
-        self.assertEqual(retry_action.http_status, 200)
-        self.assertIsNotNone(retry_action.action)
-        self.assertIn(retry_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
+        self.assertEqual(retry_action.action_status, "execution_substrate_dispatch_intent")
+        self.assertIsNone(retry_action.http_status)
+        self.assertEqual(retry_action.action, "submit_to_execution_substrate")
+        self.assertEqual(retry_action.resulting_task_status, "blocked")
 
-    def test_cycle_can_trigger_bounded_redispatch_for_stale_active_task(self) -> None:
+    def test_cycle_emits_substrate_intent_for_stale_active_task_by_default(self) -> None:
         self.service.supervision_service = HarnessSupervisionService(
             store=self.service.store,
             now_provider=lambda: "2026-04-16T12:00:00Z",
@@ -217,12 +234,46 @@ class OpenClawHarnessSupervisorTests(unittest.TestCase):
             stale_decision.proposed_dispatch_payload["request"]["dispatch_trigger"],
             "openclaw_supervision_loop",
         )
+        self.assertTrue(stale_decision.can_request_execution_substrate)
+        self.assertEqual(
+            stale_decision.proposed_execution_substrate_intent["intent_type"],
+            "investigate_or_restart_execution",
+        )
+        self.assertEqual(
+            stale_decision.proposed_execution_substrate_intent["completion_authority"],
+            "harness_verification",
+        )
 
         stale_action = actions[task_id]
-        self.assertEqual(stale_action.action_status, "redispatch_triggered")
-        self.assertEqual(stale_action.http_status, 200)
-        self.assertIsNotNone(stale_action.action)
-        self.assertIn(stale_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
+        self.assertEqual(stale_action.action_status, "execution_substrate_dispatch_intent")
+        self.assertIsNone(stale_action.http_status)
+        self.assertEqual(stale_action.action, "submit_to_execution_substrate")
+        self.assertEqual(stale_action.resulting_task_status, "assigned")
+
+    def test_cycle_can_still_use_legacy_direct_dispatch_when_explicitly_enabled(self) -> None:
+        retry_payload = {"request": to_jsonable(build_demo_request("blocked_insufficient_evidence"))}
+        retry_payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        create_status, create_payload = self._request_json("POST", "/evaluate", retry_payload)
+        self.assertEqual(create_status, 200)
+        task_id = create_payload["task_envelope"]["id"]
+
+        supervisor = OpenClawHarnessSupervisor(self.base_url)
+        cycle = supervisor.run_cycle(
+            allow_redispatch=True,
+            allow_legacy_direct_dispatch=True,
+            executor="codex",
+        )
+        actions = {result.task_id: result for result in cycle.action_results}
+
+        retry_action = actions[task_id]
+        self.assertEqual(retry_action.action_status, "redispatch_triggered")
+        self.assertEqual(retry_action.http_status, 200)
+        self.assertIsNotNone(retry_action.action)
+        self.assertIn(retry_action.resulting_task_status, {"blocked", "completed", "failed", "in_review"})
 
     def test_cycle_can_trigger_github_sync_for_sync_required_attention(self) -> None:
         submit_status, submit_payload = self.client.submit_task(

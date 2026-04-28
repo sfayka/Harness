@@ -32,7 +32,7 @@ Default onboarding only requires the local Harness runtime:
 - SQLite schema readiness
 - accessible selected workspace folders, if any were selected
 
-Missing GitHub, Linear, and ingress/executor setup appears as incomplete optional work.
+Missing GitHub, Linear, execution-substrate, and legacy ingress/executor setup appears as incomplete optional work.
 Those integrations become blockers only when the user selects a workflow that needs them.
 
 Warnings for API stopped, dashboard assets, notifications, or Launch at Login are actionable, but they do not block runtime-only onboarding.
@@ -52,7 +52,7 @@ Current workflow gates:
 
 - `github-proof` requires GitHub artifact verification.
 - `linear-sync` requires Linear coordination.
-- `repair-dispatch` requires an ingress/executor bridge.
+- `repair-dispatch` requires the execution substrate.
 
 Multiple `--workflow` flags can be passed when the app needs to validate a combined workflow.
 
@@ -110,9 +110,10 @@ printf '%s' "$TOKEN" | python3 -m modules.local_runtime --json secrets set githu
 printf '%s' "$TOKEN" | python3 -m modules.local_runtime --json secrets set linear_api_key --value-stdin
 ```
 
-The ingress/executor item must stay client-neutral in UI copy.
-It should describe the connection as a desktop-agent bridge for OpenClaw, Hermes, Codex, or a future equivalent.
-The current doctor still recognizes OpenClaw-shaped adapter variables because that is the existing bridge wiring, not the Harness product boundary.
+The execution-substrate item should name Symphony as the preferred runner without giving it completion authority.
+The legacy ingress/executor item must stay client-neutral in UI copy.
+It should describe the connection as a compatibility desktop-agent bridge for OpenClaw, Hermes, Codex, or a future equivalent.
+The current doctor still recognizes OpenClaw-shaped adapter variables because that is existing bridge wiring, not the Harness product boundary.
 
 ## Validation Source
 
@@ -124,6 +125,7 @@ Current mapping:
 - Local runtime: `app_data_dir`, `log_dir`, `config`, `sqlite`, `api_health`, `dashboard`, `notification_permission`, `launch_at_login`, `workspace_folders`
 - GitHub: `github_connection`
 - Linear: `linear_connection`
-- Ingress/executor: `ingress_executor`
+- Execution substrate: `execution_substrate`
+- Legacy ingress/executor: `ingress_executor`
 
 This keeps the app, CLI, and docs aligned around one diagnostic source.

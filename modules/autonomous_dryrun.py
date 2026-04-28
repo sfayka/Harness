@@ -329,7 +329,11 @@ def run_retryable_codex_supervision_dry_run(
             initial_queue_entry = _find_queue_entry(initial_queue_payload, task_id=task_id)
 
             supervisor = OpenClawHarnessSupervisor(base_url)
-            cycle = supervisor.run_cycle(allow_redispatch=True, executor="codex")
+            cycle = supervisor.run_cycle(
+                allow_redispatch=True,
+                allow_legacy_direct_dispatch=True,
+                executor="codex",
+            )
 
             post_dispatch_task_status, post_dispatch_task_payload = _request_json(base_url, "GET", f"/tasks/{task_id}")
             if post_dispatch_task_status >= 400:
@@ -432,7 +436,11 @@ def run_stale_codex_supervision_dry_run(
             initial_queue_entry = _find_queue_entry(initial_queue_payload, task_id=task_id)
 
             supervisor = OpenClawHarnessSupervisor(base_url)
-            cycle = supervisor.run_cycle(allow_redispatch=True, executor="codex")
+            cycle = supervisor.run_cycle(
+                allow_redispatch=True,
+                allow_legacy_direct_dispatch=True,
+                executor="codex",
+            )
 
             task_status, task_payload = _request_json(base_url, "GET", f"/tasks/{task_id}")
             final_queue_status, final_queue_payload = _request_json(base_url, "GET", "/supervision/queue")

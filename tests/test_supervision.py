@@ -121,10 +121,16 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         retry_item = queue[retry_response["task_envelope"]["id"]]
         self.assertEqual(retry_item["attention_type"], "retryable_failure")
         self.assertEqual(retry_item["suggested_action"], "retry_or_redispatch")
+        self.assertEqual(retry_item["execution_substrate_intent"]["intent_type"], "retry_execution")
+        self.assertEqual(
+            retry_item["execution_substrate_intent"]["completion_authority"],
+            "harness_verification",
+        )
 
         invalid_item = queue[invalid_response["task_envelope"]["id"]]
         self.assertEqual(invalid_item["attention_type"], "invalid_execution_attempt")
         self.assertEqual(invalid_item["suggested_action"], "request_fresh_proof_or_rework")
+        self.assertIsNone(invalid_item["execution_substrate_intent"])
 
     def test_queue_surfaces_stale_active_tasks(self) -> None:
         stale_payload = _manual_happy_path_overlay_payload()
@@ -162,6 +168,10 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         self.assertEqual(stale_item["attention_type"], "stale_active_task")
         self.assertEqual(stale_item["suggested_action"], "investigate_staleness")
         self.assertTrue(stale_item["stale"])
+        self.assertEqual(
+            stale_item["execution_substrate_intent"]["intent_type"],
+            "investigate_or_restart_execution",
+        )
 
     def test_queue_surfaces_github_sync_required_when_valid_execution_proof_exists_without_synced_artifacts(self) -> None:
         payload = _manual_happy_path_overlay_payload()

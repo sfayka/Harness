@@ -498,7 +498,8 @@ python3 -m unittest discover -s tests
 Run the controlled autonomous dry run that exercises:
 
 - canonical task creation through `POST /evaluate`
-- OpenClaw-style retry supervision through `GET /supervision/queue` and redispatch
+- supervision through `GET /supervision/queue`, which now produces Symphony-compatible execution-substrate intents by default
+- legacy direct redispatch only because this controlled compatibility dry run explicitly enables it
 - Codex Cloud adapter proof validation
 - post-dispatch GitHub-backed sync through `POST /sync/github` that closes the missing changed-file evidence gap
 
