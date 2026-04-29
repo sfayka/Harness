@@ -5442,6 +5442,29 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(history_status, 200)
         self.assertEqual(len(history["evaluations"]), 1)
 
+    def test_service_exposes_execution_substrate_intents_from_supervision_queue(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            status, response = self.service.evaluate(payload)
+        intent_status, intent_payload = self.service.get_execution_substrate_intents()
+
+        self.assertEqual(status, 200)
+        self.assertEqual(intent_status, 200)
+        self.assertTrue(intent_payload["advisory_only"])
+        self.assertEqual(intent_payload["completion_authority"], "harness_verification")
+        self.assertEqual(intent_payload["intent_count"], 1)
+        intent_entry = intent_payload["intents"][0]
+        self.assertEqual(intent_entry["task_id"], response["task_envelope"]["id"])
+        self.assertEqual(intent_entry["attention_type"], "retryable_failure")
+        self.assertEqual(intent_entry["intent"]["intent_type"], "retry_execution")
+        self.assertEqual(intent_entry["intent"]["completion_authority"], "harness_verification")
+
 
 class HarnessHttpApiTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -6608,6 +6631,27 @@ class HarnessHttpApiTests(unittest.TestCase):
         queue_item = queue_by_task_id[create_payload["task_envelope"]["id"]]
         self.assertEqual(queue_item["attention_type"], "review_required")
         self.assertEqual(queue_item["suggested_action"], "resolve_review_gate")
+
+    def test_api_exposes_execution_substrate_intents_endpoint(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        create_status, create_payload = self._post_json("/evaluate", payload)
+
+        status, intent_payload = self._get_json("/execution-substrate/intents")
+
+        self.assertEqual(create_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(intent_payload["intent_count"], 1)
+        self.assertTrue(intent_payload["advisory_only"])
+        self.assertEqual(intent_payload["completion_authority"], "harness_verification")
+        intent_entry = intent_payload["intents"][0]
+        self.assertEqual(intent_entry["task_id"], create_payload["task_envelope"]["id"])
+        self.assertEqual(intent_entry["attention_type"], "retryable_failure")
+        self.assertEqual(intent_entry["intent"]["intent_type"], "retry_execution")
 
     def test_api_openclaw_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-invalid-1")

@@ -155,7 +155,7 @@ Harness accepts these events through `POST /tasks/<task_id>/execution-substrate-
 
 The deterministic local dry run lives in [`modules/execution_substrate_dryrun.py`](../../modules/execution_substrate_dryrun.py). It simulates a Symphony-style event stream against a disposable local task and proves that runner handoff remains advisory until Harness verification runs.
 
-The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Harness pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
+The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Harness pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. Harness also exposes `GET /execution-substrate/intents` as a runner-facing filtered projection of those intents. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
 
 Initial event family:
 
