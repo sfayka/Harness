@@ -1819,6 +1819,32 @@ def _executor_hint(hint: str | None) -> str:
     raise ApiRequestError("request.executor must be one of: codex, openclaw, stub-executor")
 
 
+def _legacy_execution_continuation_payload(
+    *,
+    attempted: bool,
+    dispatchable: bool,
+    reason: str,
+    status: int | None = None,
+    dispatch: dict[str, Any] | None = None,
+    error: Any = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "attempted": attempted,
+        "dispatchable": dispatchable,
+        "reason": reason,
+        "surface": "legacy_direct_dispatch",
+        "compatibility_mode": True,
+        "preferred_execution_surface": "execution_substrate",
+    }
+    if status is not None:
+        payload["status"] = int(status)
+    if dispatch is not None:
+        payload["dispatch"] = deepcopy(dispatch)
+    if error is not None:
+        payload["error"] = error
+    return payload
+
+
 def _collect_review_activity(records: tuple[EvaluationRecord, ...]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     requests: list[dict[str, Any]] = []
     decisions: list[dict[str, Any]] = []
@@ -3335,12 +3361,14 @@ class HarnessApiService:
                 }
             },
         )
-        response_payload["automatic_dispatch"] = {
-            "attempted": True,
-            "dispatchable": True,
-            "reason": reason,
-            "status": int(dispatch_status),
-        }
+        execution_continuation = _legacy_execution_continuation_payload(
+            attempted=True,
+            dispatchable=True,
+            reason=reason,
+            status=int(dispatch_status),
+        )
+        response_payload["execution_continuation"] = deepcopy(execution_continuation)
+        response_payload["automatic_dispatch"] = deepcopy(execution_continuation)
         if dispatch_status == HTTPStatus.OK:
             for response_key in (
                 "action",
@@ -3361,6 +3389,7 @@ class HarnessApiService:
                 else:
                     response_payload.pop(response_key, None)
             if isinstance(dispatch_payload.get("dispatch"), dict):
+                response_payload["execution_continuation"]["dispatch"] = deepcopy(dispatch_payload["dispatch"])
                 response_payload["automatic_dispatch"]["dispatch"] = deepcopy(dispatch_payload["dispatch"])
             if isinstance(dispatch_payload.get("task_envelope"), dict):
                 task_envelope = dispatch_payload["task_envelope"]
@@ -3368,6 +3397,7 @@ class HarnessApiService:
             if isinstance(dispatch_payload.get("evaluation_record"), dict):
                 response_payload["evaluation_record"] = deepcopy(dispatch_payload["evaluation_record"])
         else:
+            response_payload["execution_continuation"]["error"] = dispatch_payload.get("error")
             response_payload["automatic_dispatch"]["error"] = dispatch_payload.get("error")
         return task_envelope, response_payload
 
@@ -3907,10 +3937,19 @@ class HarnessApiService:
                 dispatch_policy_stage="post_ingestion",
             )
         else:
+            execution_continuation = _legacy_execution_continuation_payload(
+                attempted=False,
+                dispatchable=False,
+                reason=reason,
+            )
+            response_payload["execution_continuation"] = deepcopy(execution_continuation)
             response_payload["automatic_dispatch"] = {
                 "attempted": False,
                 "dispatchable": False,
                 "reason": reason,
+                "surface": "legacy_direct_dispatch",
+                "compatibility_mode": True,
+                "preferred_execution_surface": "execution_substrate",
             }
         return status, response_payload
 
@@ -4175,10 +4214,19 @@ class HarnessApiService:
                     dispatch_policy_stage="post_reevaluation",
                 )
             else:
+                execution_continuation = _legacy_execution_continuation_payload(
+                    attempted=False,
+                    dispatchable=False,
+                    reason=reason,
+                )
+                response_payload["execution_continuation"] = deepcopy(execution_continuation)
                 response_payload["automatic_dispatch"] = {
                     "attempted": False,
                     "dispatchable": False,
                     "reason": reason,
+                    "surface": "legacy_direct_dispatch",
+                    "compatibility_mode": True,
+                    "preferred_execution_surface": "execution_substrate",
                 }
         return status, response_payload
 

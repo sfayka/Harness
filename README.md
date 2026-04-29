@@ -109,7 +109,7 @@ The operator surfaces follow that same rule for active review. When a task is `i
 
 If that manual-review outcome is `require_clarification`, Harness now records a real canonical `task.clarification` contract at the same time. The task does not just become generically `blocked`; operators can see the explicit clarification blocker, its `resume_target_status`, and the required input through the task, read-model, list, and timeline surfaces.
 
-When manual review explicitly authorizes redispatch, Harness now performs that redispatch automatically instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.
+When manual review explicitly authorizes redispatch, Harness now records a governed execution continuation instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.
 
 Reevaluation also cannot pre-satisfy completion evidence as a side channel. If a reevaluation is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise preload final evidence state before a canonical completion decision.
 
@@ -121,7 +121,7 @@ If recovery succeeds, the task can proceed to canonical reevaluation. If recover
 
 Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
 
-Harness also does not auto-dispatch work just because it is merely `planned`. Normal automatic dispatch begins from `dispatch_ready`, after planning and clarification boundaries have actually been satisfied. Even then, explicit blocking dependencies must already satisfy their required milestone before dispatch is allowed to proceed. When a reevaluation triggers automatic dispatch, the API response now reports the post-dispatch canonical task outcome rather than the intermediate `dispatch_ready` hop, so operators see the real result of the follow-up attempt immediately.
+Harness also does not auto-dispatch work just because it is merely `planned`. Normal automatic dispatch begins from `dispatch_ready`, after planning and clarification boundaries have actually been satisfied. Even then, explicit blocking dependencies must already satisfy their required milestone before dispatch is allowed to proceed. When a reevaluation triggers legacy direct dispatch, the API response now reports the post-dispatch canonical task outcome rather than the intermediate `dispatch_ready` hop, so operators see the real result of the follow-up attempt immediately. New clients should read the `execution_continuation` field; the older `automatic_dispatch` field remains as a compatibility alias.
 
 Governed reconciliation (current scope):
 

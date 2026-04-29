@@ -232,8 +232,9 @@ If that task is accepted, the ingress client should treat these as the canonical
 - If a single completion claim still needs both PR and commit proof after that downgrade, Harness chains the canonical reconciliation handlers in order rather than trusting the self-certified artifact pair.
 - If that chained reconciliation escalates to `in_review`, Harness persists the resulting reconciliation review gate as a real evaluation record with a canonical `review_request`. Clients should use that persisted request when later sending `review_decision`; `in_review` is not an informal status-only signal.
 - Support artifacts do not satisfy repository, branch, or commit identity for executor-attempt validation. If an executor reports a review note or handoff artifact with GitHub-looking context fields, Harness treats it as support context only, not as current-run code proof.
-- If a reevaluation resolves an active review gate with `authorize_redispatch`, Harness follows through by dispatching the next execution attempt automatically instead of stopping at a passive `dispatch_ready` result.
-- When that automatic redispatch runs immediately, the reevaluation response reflects the post-dispatch canonical outcome, not the intermediate `dispatch_ready` transition that briefly authorized the follow-up attempt.
+- If a reevaluation resolves an active review gate with `authorize_redispatch`, Harness may follow through through the legacy direct-dispatch compatibility bridge instead of stopping at a passive `dispatch_ready` result.
+- When that compatibility dispatch runs immediately, the reevaluation response reflects the post-dispatch canonical outcome, not the intermediate `dispatch_ready` transition that briefly authorized the follow-up attempt.
+- New clients should inspect `execution_continuation`. The older `automatic_dispatch` response field remains as a compatibility alias while Harness pivots dispatch continuation toward Symphony-compatible execution-substrate events.
 - This endpoint must not be used to mutate stored task truth with submission-style fields such as `request.task_envelope`, `request.task_status`, `request.assigned_executor`, or `request.linked_artifacts`. Those payload shapes are rejected as invalid input.
 
 ### Manual Dispatch Bridge
