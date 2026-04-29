@@ -22,8 +22,11 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - `GET /tasks/<task_id>/read-model`: canonical current-truth projection for one task
 - `GET /tasks/<task_id>/timeline`: canonical ordered audit timeline for one task
 - `GET /supervision/queue`: canonical attention queue for autonomous supervisors such as OpenClaw, Hermes, or a future desktop agent client
+- `GET /execution-substrate/intents`: runner-facing projection of Symphony-compatible execution continuation intents
 
 `GET /supervision/queue` is projection-only. It does not create work, mutate task state, or authorize follow-up actions. It exists so an ingress-side supervisor can poll Harness for the tasks that currently need intervention without rebuilding policy client-side from raw task payloads.
+
+`GET /execution-substrate/intents` is also projection-only. It filters the supervision queue down to entries that carry `execution_substrate_intent`, so a Symphony-compatible runner can poll only the work that belongs to the execution substrate. The response is advisory and still points completion authority back to Harness verification.
 
 Queue entries are derived from canonical read-model and timeline truth and currently classify:
 

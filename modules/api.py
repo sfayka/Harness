@@ -4550,6 +4550,31 @@ class HarnessApiService:
             "queue": self.supervision_service.list_attention_queue(),
         }
 
+    def get_execution_substrate_intents(self) -> tuple[int, dict[str, Any]]:
+        queue = self.supervision_service.list_attention_queue()
+        intents: list[dict[str, Any]] = []
+        for entry in queue:
+            intent = entry.get("execution_substrate_intent") if isinstance(entry, dict) else None
+            if not isinstance(intent, dict):
+                continue
+            intents.append(
+                {
+                    "task_id": str(entry.get("task_id") or intent.get("task_id") or ""),
+                    "attention_type": str(entry.get("attention_type") or ""),
+                    "current_status": str(entry.get("current_status") or ""),
+                    "last_activity_at": entry.get("last_activity_at"),
+                    "intent": deepcopy(intent),
+                }
+            )
+        return HTTPStatus.OK, {
+            "generated_at": _iso_now(),
+            "intent_count": len(intents),
+            "intents": intents,
+            "source": "supervision_queue",
+            "advisory_only": True,
+            "completion_authority": "harness_verification",
+        }
+
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             self.store.get_task(task_id)
@@ -4621,6 +4646,11 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
         if path_components == ("supervision", "queue"):
             status, payload = service.get_supervision_queue()
+            self._write_json(status, payload)
+            return
+
+        if path_components == ("execution-substrate", "intents"):
+            status, payload = service.get_execution_substrate_intents()
             self._write_json(status, payload)
             return
 
