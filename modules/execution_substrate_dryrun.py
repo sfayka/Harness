@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-import tempfile
+import argparse
+import json
 import os
-from dataclasses import dataclass
+import tempfile
+from dataclasses import asdict, dataclass
 from typing import Any
 
 from modules.api import HarnessApiService
@@ -313,9 +315,58 @@ def run_symphony_intent_consumer_dry_run(
         )
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Run deterministic local Symphony execution-substrate dry runs.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    event_stream = subparsers.add_parser(
+        "event-stream",
+        help="Record a local Symphony-style runner event stream against a disposable task.",
+    )
+    event_stream.add_argument(
+        "--task-id",
+        default="symphony-substrate-dryrun-1",
+        help="Disposable Harness task id to use for the dry run.",
+    )
+
+    intent_consumer = subparsers.add_parser(
+        "intent-consumer",
+        help="Poll local execution-substrate intents and record advisory runner events.",
+    )
+    intent_consumer.add_argument(
+        "--task-id",
+        default="symphony-intent-consumer-dryrun-1",
+        help="Disposable Harness task id to use for the dry run.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.command == "event-stream":
+        result = run_symphony_substrate_dry_run(task_id=args.task_id)
+    elif args.command == "intent-consumer":
+        result = run_symphony_intent_consumer_dry_run(task_id=args.task_id)
+    else:  # pragma: no cover - argparse prevents this branch.
+        parser.error(f"unsupported command: {args.command}")
+
+    print(json.dumps(asdict(result), indent=2, sort_keys=True))
+    return 0
+
+
 __all__ = [
     "ExecutionSubstrateDryRunResult",
     "ExecutionSubstrateIntentDryRunResult",
+    "build_parser",
+    "main",
     "run_symphony_intent_consumer_dry_run",
     "run_symphony_substrate_dry_run",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
