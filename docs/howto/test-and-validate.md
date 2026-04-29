@@ -53,6 +53,15 @@ python3 -m modules.reset_dryrun review
 
 The success path should verify a claimed completion. The review path should exhaust the retry path and land in explicit review instead of pretending the task completed.
 
+## Execution Substrate Dry Runs
+
+```bash
+python3 -m modules.execution_substrate_dryrun event-stream
+python3 -m modules.execution_substrate_dryrun intent-consumer
+```
+
+These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work.
+
 ## Local Live Smoke
 
 Only run this when the repo has live `GITHUB_TOKEN` and `LINEAR_API_KEY` access configured:

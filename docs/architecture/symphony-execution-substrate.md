@@ -155,6 +155,15 @@ Harness accepts these events through `POST /tasks/<task_id>/execution-substrate-
 
 The deterministic local dry run lives in [`modules/execution_substrate_dryrun.py`](../../modules/execution_substrate_dryrun.py). It simulates a Symphony-style event stream against a disposable local task and proves that runner handoff remains advisory until Harness verification runs. It also includes an intent-consumer dry run that creates a local retryable task, polls the execution-substrate intent queue, and records advisory runner events without starting Symphony or touching live work.
 
+Run the two local substrate dry runs with:
+
+```bash
+python3 -m modules.execution_substrate_dryrun event-stream
+python3 -m modules.execution_substrate_dryrun intent-consumer
+```
+
+Both commands write a JSON summary to stdout. They use disposable local stores, do not start Symphony, do not read live Linear or GitHub state, and do not authorize task completion. They exist to make the execution-substrate boundary testable before Harness connects a real Symphony runner.
+
 The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Harness pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. Harness also exposes `GET /execution-substrate/intents` as a runner-facing filtered projection of those intents. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
 
 Initial event family:
