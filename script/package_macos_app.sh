@@ -37,6 +37,17 @@ CODESIGN_IDENTITY="${MACOS_CODESIGN_IDENTITY:-}"
 NOTARY_PROFILE="${MACOS_NOTARY_PROFILE:-}"
 REQUIRE_NOTARIZATION="${HARNESS_REQUIRE_NOTARIZATION:-0}"
 
+if [[ "${HARNESS_ENABLE_DEPRECATED_MACOS_APP:-}" != "1" ]]; then
+  cat >&2 <<'EOF'
+The native macOS app and DMG package path are deprecated and are no longer supported Harness release surfaces.
+Use the CLI/runtime contract and web dashboard instead.
+
+To run this legacy packaging script intentionally, set:
+  HARNESS_ENABLE_DEPRECATED_MACOS_APP=1
+EOF
+  exit 2
+fi
+
 require_tool() {
   command -v "$1" >/dev/null 2>&1 || {
     echo "missing required tool: $1" >&2

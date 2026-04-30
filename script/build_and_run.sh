@@ -16,6 +16,17 @@ APP_MACOS="$APP_CONTENTS/MacOS"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
+if [[ "${HARNESS_ENABLE_DEPRECATED_MACOS_APP:-}" != "1" ]]; then
+  cat >&2 <<'EOF'
+The native macOS app is deprecated and is no longer a supported Harness surface.
+Use the CLI/runtime contract and web dashboard instead.
+
+To run this legacy script intentionally, set:
+  HARNESS_ENABLE_DEPRECATED_MACOS_APP=1
+EOF
+  exit 2
+fi
+
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
 cd "$APP_DIR"

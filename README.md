@@ -401,11 +401,14 @@ The native macOS app shell under [`apps/macos/HarnessApp`](apps/macos/HarnessApp
 The legacy development commands still exist for compatibility, but they are not part of the recommended operator path:
 
 ```bash
+HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 \
 ./script/build_and_run.sh
+
+HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 \
 ./script/package_macos_app.sh
 ```
 
-No new product work should depend on those commands. Normal Harness operation should be CLI + API + web dashboard.
+Without `HARNESS_ENABLE_DEPRECATED_MACOS_APP=1`, those scripts fail fast with a deprecation message. No new product work should depend on them. Normal Harness operation should be CLI + API + web dashboard.
 
 See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md), [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md), and [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md). The older macOS architecture notes remain for historical context only.
 
