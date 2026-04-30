@@ -3,6 +3,7 @@ import type {
   ReviewDecision,
   ReviewRequest,
   ExecutionSubstrateHandoffPreview,
+  ExecutionSubstrateTransportStatus,
   Task,
   TimelineEvent,
   VerificationStatus,
@@ -525,5 +526,26 @@ export async function fetchExecutionSubstrateHandoffs(): Promise<ExecutionSubstr
     advisory_only: Boolean(payload.advisory_only),
     dispatch_enabled: Boolean(payload.dispatch_enabled),
     completion_authority: String(payload.completion_authority ?? ""),
+  };
+}
+
+export async function fetchExecutionSubstrateTransportStatus(): Promise<ExecutionSubstrateTransportStatus> {
+  const payload = (await fetchJson("/execution-substrate/transport-status")) as Record<string, unknown>;
+
+  return {
+    generated_at: String(payload.generated_at ?? ""),
+    substrate_kind: String(payload.substrate_kind ?? ""),
+    preferred_runner: String(payload.preferred_runner ?? ""),
+    transport_status: String(payload.transport_status ?? ""),
+    dispatch_enabled: Boolean(payload.dispatch_enabled),
+    live_dispatch_enabled: Boolean(payload.live_dispatch_enabled),
+    advisory_only: Boolean(payload.advisory_only),
+    completion_authority: String(payload.completion_authority ?? ""),
+    runner_completion_is_truth: Boolean(payload.runner_completion_is_truth),
+    safe_to_execute_live: Boolean(payload.safe_to_execute_live),
+    events_contract: String(payload.events_contract ?? ""),
+    handoff_preview_endpoint: String(payload.handoff_preview_endpoint ?? ""),
+    intents_endpoint: String(payload.intents_endpoint ?? ""),
+    message: String(payload.message ?? ""),
   };
 }
