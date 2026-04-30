@@ -36,6 +36,13 @@ class ExecutionSubstrateEventType(StrEnum):
     RUN_COMPLETED_BY_EXECUTOR = "run_completed_by_executor"
 
 
+class ExecutionSubstrateIntentType(StrEnum):
+    """Runner-facing execution intents Harness may hand to a substrate."""
+
+    RETRY_EXECUTION = "retry_execution"
+    INVESTIGATE_OR_RESTART_EXECUTION = "investigate_or_restart_execution"
+
+
 _PROHIBITED_LIFECYCLE_KEYS: frozenset[str] = frozenset(
     {
         "accepted_completion",
@@ -46,6 +53,14 @@ _PROHIBITED_LIFECYCLE_KEYS: frozenset[str] = frozenset(
         "lifecycle_status",
         "target_status",
         "verified_complete",
+    }
+)
+
+_REQUIRED_PROHIBITED_ACTIONS: frozenset[str] = frozenset(
+    {
+        "mark_harness_complete",
+        "move_linear_to_done_as_truth",
+        "auto_merge_without_policy",
     }
 )
 
@@ -106,6 +121,35 @@ class ExecutionSubstrateEvent:
     provenance: ExecutionSubstrateProvenance
     payload: dict[str, Any] = field(default_factory=dict)
     artifact_references: tuple[ExecutionSubstrateArtifactReference, ...] = ()
+
+
+@dataclass(frozen=True)
+class ExecutionSubstrateIntent:
+    """Validated advisory request for a runner substrate to continue work."""
+
+    intent_type: ExecutionSubstrateIntentType
+    substrate_kind: str
+    task_id: str
+    source: str
+    reason: str
+    suggested_action: str
+    events_endpoint: str
+    advisory_only: bool = True
+    completion_authority: str = "harness_verification"
+    prohibited_actions: tuple[str, ...] = tuple(sorted(_REQUIRED_PROHIBITED_ACTIONS))
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+def _intent_type_for_attention(
+    *,
+    attention_type: str,
+    suggested_action: str,
+) -> ExecutionSubstrateIntentType | None:
+    if attention_type == "retryable_failure" and suggested_action == "retry_or_redispatch":
+        return ExecutionSubstrateIntentType.RETRY_EXECUTION
+    if attention_type == "stale_active_task" and suggested_action == "investigate_staleness":
+        return ExecutionSubstrateIntentType.INVESTIGATE_OR_RESTART_EXECUTION
+    return None
 
 
 def validate_execution_substrate_provenance(
@@ -176,13 +220,97 @@ def validate_execution_substrate_event(event: ExecutionSubstrateEvent) -> Execut
     return event
 
 
+def validate_execution_substrate_intent(intent: ExecutionSubstrateIntent) -> ExecutionSubstrateIntent:
+    """Validate a Harness-to-runner execution intent as advisory only."""
+
+    _require_non_empty(intent.intent_type.value, field_name="intent.intent_type")
+    _require_non_empty(intent.substrate_kind, field_name="intent.substrate_kind")
+    _require_non_empty(intent.task_id, field_name="intent.task_id")
+    _require_non_empty(intent.source, field_name="intent.source")
+    _require_non_empty(intent.reason, field_name="intent.reason")
+    _require_non_empty(intent.suggested_action, field_name="intent.suggested_action")
+    _require_non_empty(intent.events_endpoint, field_name="intent.events_endpoint")
+    _require_non_empty(intent.completion_authority, field_name="intent.completion_authority")
+    if intent.advisory_only is not True:
+        raise ExecutionSubstrateValidationError("execution-substrate intents must be advisory_only=true")
+    if intent.completion_authority != "harness_verification":
+        raise ExecutionSubstrateValidationError(
+            "execution-substrate intents must keep completion_authority=harness_verification"
+        )
+    missing_actions = sorted(_REQUIRED_PROHIBITED_ACTIONS.difference(intent.prohibited_actions))
+    if missing_actions:
+        names = ", ".join(missing_actions)
+        raise ExecutionSubstrateValidationError(
+            f"execution-substrate intent is missing required prohibited actions: {names}"
+        )
+    _validate_no_lifecycle_authority(intent.metadata, field_name="intent.metadata")
+    return intent
+
+
+def build_execution_substrate_intent(
+    *,
+    task_id: str,
+    attention_type: str,
+    suggested_action: str,
+    reason: str,
+    source: str = "harness_supervision_queue",
+    substrate_kind: str = "symphony-compatible",
+    metadata: dict[str, Any] | None = None,
+) -> ExecutionSubstrateIntent | None:
+    """Build a validated runner-facing intent for an eligible supervision entry."""
+
+    intent_type = _intent_type_for_attention(
+        attention_type=attention_type,
+        suggested_action=suggested_action,
+    )
+    if intent_type is None:
+        return None
+    intent = ExecutionSubstrateIntent(
+        intent_type=intent_type,
+        substrate_kind=substrate_kind,
+        task_id=task_id,
+        source=source,
+        reason=reason,
+        suggested_action=suggested_action,
+        events_endpoint=f"/tasks/{task_id}/execution-substrate-events",
+        metadata=metadata or {},
+    )
+    return validate_execution_substrate_intent(intent)
+
+
+def execution_substrate_intent_to_dict(intent: ExecutionSubstrateIntent) -> dict[str, Any]:
+    """Serialize an execution-substrate intent for API and adapter payloads."""
+
+    validate_execution_substrate_intent(intent)
+    payload = {
+        "intent_type": intent.intent_type.value,
+        "substrate_kind": intent.substrate_kind,
+        "task_id": intent.task_id,
+        "source": intent.source,
+        "reason": intent.reason,
+        "suggested_action": intent.suggested_action,
+        "advisory_only": intent.advisory_only,
+        "events_endpoint": intent.events_endpoint,
+        "completion_authority": intent.completion_authority,
+        "prohibited_actions": list(intent.prohibited_actions),
+    }
+    if intent.metadata:
+        payload["metadata"] = dict(intent.metadata)
+    return payload
+
+
 __all__ = [
     "ExecutionSubstrateArtifactReference",
     "ExecutionSubstrateEvent",
     "ExecutionSubstrateEventType",
+    "ExecutionSubstrateIntent",
+    "ExecutionSubstrateIntentType",
     "ExecutionSubstrateProvenance",
     "ExecutionSubstrateValidationError",
+    "build_execution_substrate_intent",
+    "execution_substrate_intent_to_dict",
     "validate_execution_substrate_artifact_reference",
     "validate_execution_substrate_event",
+    "validate_execution_substrate_intent",
     "validate_execution_substrate_provenance",
 ]

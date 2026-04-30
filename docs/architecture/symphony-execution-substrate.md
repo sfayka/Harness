@@ -166,6 +166,8 @@ Both commands write a JSON summary to stdout. They use disposable local stores, 
 
 The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Harness pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. Harness also exposes `GET /execution-substrate/intents` as a runner-facing filtered projection of those intents. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
 
+Runner-facing intents are also part of the in-code execution-substrate contract. Supervision builds them through `build_execution_substrate_intent` rather than hand-writing arbitrary queue payloads. A valid intent must remain advisory, must preserve `completion_authority=harness_verification`, and must explicitly prohibit marking Harness complete, moving Linear to Done as truth, or auto-merging without policy. This gives a Symphony adapter a stable handoff shape while keeping Harness above the runner as the verification boundary.
+
 Initial event family:
 
 - `dispatch_requested`
