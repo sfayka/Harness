@@ -244,6 +244,7 @@ If that task is accepted, the ingress client should treat these as the canonical
 - If a reevaluation resolves an active review gate with `authorize_redispatch`, Harness may follow through through the legacy direct-dispatch compatibility bridge instead of stopping at a passive `dispatch_ready` result.
 - When that compatibility dispatch runs immediately, the reevaluation response reflects the post-dispatch canonical outcome, not the intermediate `dispatch_ready` transition that briefly authorized the follow-up attempt.
 - New clients should inspect `execution_continuation`. The older `automatic_dispatch` response field remains as a compatibility alias while Harness pivots dispatch continuation toward Symphony-compatible execution-substrate events.
+- Legacy continuation payloads also report `execution_transport_status=disabled`, `live_dispatch_enabled=false`, `completion_authority=harness_verification`, and `runner_completion_is_truth=false`. These fields make explicit that the compatibility bridge is not live Symphony transport and still cannot claim completion truth.
 - This endpoint must not be used to mutate stored task truth with submission-style fields such as `request.task_envelope`, `request.task_status`, `request.assigned_executor`, or `request.linked_artifacts`. Those payload shapes are rejected as invalid input.
 
 ### Manual Dispatch Bridge
@@ -254,7 +255,7 @@ If that task is accepted, the ingress client should treat these as the canonical
   - `request.executor` (optional: `codex`, `openclaw`, or `stub-executor`; default `codex`)
   - `request.execution_parameters` (optional object for advisory execution metadata)
   - `request.artifact_references` (optional list of advisory artifact references such as PR URL, commit SHA, and branch metadata)
-- Successful responses include `dispatch.compatibility_mode=true`, `dispatch.dispatch_surface=legacy_direct_dispatch`, and `dispatch.preferred_execution_surface=execution_substrate`.
+- Successful responses include `dispatch.compatibility_mode=true`, `dispatch.dispatch_surface=legacy_direct_dispatch`, `dispatch.preferred_execution_surface=execution_substrate`, `dispatch.execution_transport_status=disabled`, and `dispatch.live_dispatch_enabled=false`.
 - Dispatch:
   - records a new execution attempt under `observability.execution_metadata.execution_attempts`
   - records advisory completion claim metadata
