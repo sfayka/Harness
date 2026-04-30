@@ -82,6 +82,8 @@ Execution-substrate checks read:
 - `symphony` on `PATH`
 - the Knox Analytics `Infrastructure/symphony/elixir/bin/symphony` convention
 
+When the execution substrate is found, the check reports `status=pass` and `details.mode=installed`. When it is not found, the check reports `status=warn` and `details.mode=unconfigured`. Both states must keep `details.live_dispatch_enabled=false`, `details.completion_authority=harness_verification`, and `details.runner_completion_is_truth=false`. The doctor confirms installation posture only; it does not authorize Harness to dispatch live Symphony work or trust runner completion.
+
 Current legacy desktop-agent bridge checks read the existing adapter variables:
 
 - `OPENCLAW_CONFIG_PATH`
