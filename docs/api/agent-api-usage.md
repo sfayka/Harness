@@ -368,7 +368,9 @@ On `GET /tasks` and `GET /tasks/<task_id>/read-model`, `execution_summary.attemp
 
 `execution_summary.total_attempts` is broader: it can include retry/evaluation-chain activity even when no new execution-attempt record exists. It must never be lower than `attempt_count`, because inspection surfaces cannot truthfully report fewer total attempts than the canonical execution-attempt history already attached to the task.
 
-`execution_summary.latest_attempt`, `latest_status`, `latest_dispatch_origin`, and `latest_attempt_validation` must follow the newest recorded execution attempt by `recorded_at`. Clients must not treat storage append order as authoritative when execution-attempt arrays are out of sequence.
+`execution_summary.latest_attempt`, `latest_status`, `latest_dispatch_origin`, `latest_attempt_validation`, and latest execution-transport fields must follow the newest recorded execution attempt by `recorded_at`. Clients must not treat storage append order as authoritative when execution-attempt arrays are out of sequence.
+
+When present, `execution_summary.latest_execution_transport_status`, `latest_live_dispatch_enabled`, `latest_completion_authority`, and `latest_runner_completion_is_truth` are projections from the latest recorded execution attempt metadata. They let clients see that a legacy attempt is still compatibility-mode dispatch with Harness completion authority without parsing raw attempt metadata.
 
 ## Linear Facts Workflow Rule
 

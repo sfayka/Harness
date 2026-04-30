@@ -554,6 +554,10 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         return {
             "attempt_count": 0,
             "latest_attempt": None,
+            "latest_execution_transport_status": None,
+            "latest_live_dispatch_enabled": None,
+            "latest_completion_authority": None,
+            "latest_runner_completion_is_truth": None,
             "substrate_event_count": len(substrate_events) if isinstance(substrate_events, list) else 0,
             "latest_substrate_event": dict(latest_substrate_event) if latest_substrate_event is not None else None,
             "latest_artifact_references": [],
@@ -573,6 +577,11 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         if validation.get("failure_type") == "invalid_execution_attempt":
             invalid_attempt_count += 1
     retry_eligible = bool((latest_failure_summary or {}).get("recoverable"))
+    latest_attempt_metadata = (
+        latest_attempt.get("metadata")
+        if isinstance(latest_attempt, dict) and isinstance(latest_attempt.get("metadata"), dict)
+        else {}
+    )
     failure_state = _failure_state(
         failure_type=(
             str(latest_failure_summary.get("failure_type"))
@@ -585,6 +594,10 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
     return {
         "attempt_count": attempt_count,
         "latest_attempt": dict(latest_attempt) if latest_attempt is not None else None,
+        "latest_execution_transport_status": latest_attempt_metadata.get("execution_transport_status"),
+        "latest_live_dispatch_enabled": latest_attempt_metadata.get("live_dispatch_enabled"),
+        "latest_completion_authority": latest_attempt_metadata.get("completion_authority"),
+        "latest_runner_completion_is_truth": latest_attempt_metadata.get("runner_completion_is_truth"),
         "substrate_event_count": len(substrate_events) if isinstance(substrate_events, list) else 0,
         "latest_substrate_event": dict(latest_substrate_event) if latest_substrate_event is not None else None,
         "latest_runner_session_id": (
@@ -599,12 +612,12 @@ def _build_execution_summary(task_envelope: TaskEnvelope, records: tuple[Evaluat
         ),
         "latest_status": latest_attempt.get("status") if isinstance(latest_attempt, dict) else None,
         "latest_dispatch_origin": (
-            ((latest_attempt.get("metadata") or {}).get("dispatch_mode"))
+            latest_attempt_metadata.get("dispatch_mode")
             if isinstance(latest_attempt, dict)
             else None
         ),
         "latest_attempt_validation": (
-            dict((((latest_attempt.get("metadata") or {}).get("attempt_validation")) or {}))
+            dict((latest_attempt_metadata.get("attempt_validation") or {}))
             if isinstance(latest_attempt, dict)
             else None
         ),
