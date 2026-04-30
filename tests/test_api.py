@@ -6686,6 +6686,22 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(intent_entry["attention_type"], "retryable_failure")
         self.assertEqual(intent_entry["intent"]["intent_type"], "retry_execution")
 
+    def test_api_exposes_disabled_execution_substrate_transport_status(self) -> None:
+        status, payload = self._get_json("/execution-substrate/transport-status")
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["substrate_kind"], "symphony-compatible")
+        self.assertEqual(payload["preferred_runner"], "symphony")
+        self.assertEqual(payload["transport_status"], "disabled")
+        self.assertFalse(payload["dispatch_enabled"])
+        self.assertFalse(payload["live_dispatch_enabled"])
+        self.assertTrue(payload["advisory_only"])
+        self.assertEqual(payload["completion_authority"], "harness_verification")
+        self.assertFalse(payload["runner_completion_is_truth"])
+        self.assertFalse(payload["safe_to_execute_live"])
+        self.assertEqual(payload["handoff_preview_endpoint"], "/execution-substrate/handoffs")
+        self.assertEqual(payload["intents_endpoint"], "/execution-substrate/intents")
+
     def test_api_exposes_execution_substrate_handoff_preview_endpoint(self) -> None:
         payload = _request_payload("blocked_insufficient_evidence")
         payload["request"]["runtime_facts"] = {
