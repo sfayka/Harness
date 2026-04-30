@@ -160,9 +160,10 @@ Run the two local substrate dry runs with:
 ```bash
 python3 -m modules.execution_substrate_dryrun event-stream
 python3 -m modules.execution_substrate_dryrun intent-consumer
+python3 -m modules.execution_substrate_dryrun handoff
 ```
 
-Both commands write a JSON summary to stdout. They use disposable local stores, do not start Symphony, do not read live Linear or GitHub state, and do not authorize task completion. They exist to make the execution-substrate boundary testable before Harness connects a real Symphony runner.
+These commands write a JSON summary to stdout. They use disposable local stores, do not start Symphony, do not read live Linear or GitHub state, and do not authorize task completion. The `handoff` command renders the Symphony-compatible adapter payload and marks it `safe_to_execute_live=false`. They exist to make the execution-substrate boundary testable before Harness connects a real Symphony runner.
 
 The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Harness pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. Harness also exposes `GET /execution-substrate/intents` as a runner-facing filtered projection of those intents. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
 

@@ -58,9 +58,10 @@ The success path should verify a claimed completion. The review path should exha
 ```bash
 python3 -m modules.execution_substrate_dryrun event-stream
 python3 -m modules.execution_substrate_dryrun intent-consumer
+python3 -m modules.execution_substrate_dryrun handoff
 ```
 
-These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work.
+These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work. The `handoff` command renders the payload Harness would hand to a Symphony-compatible runner while keeping `safe_to_execute_live=false`.
 
 ## Local Live Smoke
 

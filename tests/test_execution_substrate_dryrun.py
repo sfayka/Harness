@@ -9,6 +9,7 @@ import unittest
 
 from modules.execution_substrate_dryrun import (
     main,
+    run_symphony_handoff_dry_run,
     run_symphony_intent_consumer_dry_run,
     run_symphony_substrate_dry_run,
 )
@@ -40,6 +41,25 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(result.substrate_event_count, 2)
         self.assertEqual(result.latest_event_type, "runner_session_started")
 
+    def test_symphony_handoff_dry_run_renders_adapter_payload_without_execution(self) -> None:
+        result = run_symphony_handoff_dry_run(
+            task_id="symphony-handoff-test-1",
+            harness_base_url="http://harness.test",
+        )
+
+        self.assertEqual(result.initial_task_status, "blocked")
+        self.assertEqual(result.intent_status, 200)
+        self.assertEqual(result.intent_count, 1)
+        self.assertEqual(result.rendered_intent_type, "retry_execution")
+        self.assertEqual(result.handoff_mode, "render_only")
+        self.assertEqual(
+            result.events_url,
+            "http://harness.test/tasks/symphony-handoff-test-1/execution-substrate-events",
+        )
+        self.assertEqual(result.completion_authority, "harness_verification")
+        self.assertFalse(result.runner_completion_is_truth)
+        self.assertFalse(result.safe_to_execute_live)
+
     def test_event_stream_cli_outputs_json_summary(self) -> None:
         stdout = io.StringIO()
         with contextlib.redirect_stdout(stdout):
@@ -67,6 +87,28 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(payload["event_statuses"], [200, 200])
         self.assertEqual(payload["final_task_status"], "blocked")
         self.assertFalse(payload["accepted_completion"])
+
+    def test_handoff_cli_outputs_json_summary(self) -> None:
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            exit_code = main(
+                [
+                    "handoff",
+                    "--task-id",
+                    "symphony-handoff-cli-test-1",
+                    "--harness-base-url",
+                    "http://harness.test",
+                ]
+            )
+        payload = json.loads(stdout.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["task_id"], "symphony-handoff-cli-test-1")
+        self.assertEqual(payload["rendered_intent_type"], "retry_execution")
+        self.assertEqual(payload["handoff_mode"], "render_only")
+        self.assertEqual(payload["completion_authority"], "harness_verification")
+        self.assertFalse(payload["runner_completion_is_truth"])
+        self.assertFalse(payload["safe_to_execute_live"])
 
 
 if __name__ == "__main__":
