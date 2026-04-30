@@ -1347,6 +1347,16 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(read_status, 200)
         self.assertEqual(read_payload["task"]["execution_summary"]["attempt_count"], 1)
         self.assertIsNotNone(read_payload["task"]["execution_summary"]["latest_attempt"])
+        self.assertEqual(
+            read_payload["task"]["execution_summary"]["latest_execution_transport_status"],
+            "disabled",
+        )
+        self.assertFalse(read_payload["task"]["execution_summary"]["latest_live_dispatch_enabled"])
+        self.assertEqual(
+            read_payload["task"]["execution_summary"]["latest_completion_authority"],
+            "harness_verification",
+        )
+        self.assertFalse(read_payload["task"]["execution_summary"]["latest_runner_completion_is_truth"])
 
     def test_read_model_total_attempts_does_not_undercount_recorded_execution_attempts(self) -> None:
         submit_status, submit_payload = self.service.submit(
