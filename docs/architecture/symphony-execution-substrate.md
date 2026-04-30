@@ -168,6 +168,8 @@ The supervision queue now also exposes `execution_substrate_intent` for attentio
 
 Runner-facing intents are also part of the in-code execution-substrate contract. Supervision builds them through `build_execution_substrate_intent` rather than hand-writing arbitrary queue payloads. A valid intent must remain advisory, must preserve `completion_authority=harness_verification`, and must explicitly prohibit marking Harness complete, moving Linear to Done as truth, or auto-merging without policy. This gives a Symphony adapter a stable handoff shape while keeping Harness above the runner as the verification boundary.
 
+The first Symphony adapter lives in [`modules/adapters/symphony`](../../modules/adapters/symphony). It only renders a validated intent into an inert Symphony-compatible handoff payload. It does not start Symphony, poll Linear, launch Codex, mutate GitHub, or consume live work. Its purpose is to pin the Harness-to-runner payload shape before adding any daemon transport.
+
 Initial event family:
 
 - `dispatch_requested`
