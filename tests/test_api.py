@@ -5465,6 +5465,39 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(intent_entry["intent"]["intent_type"], "retry_execution")
         self.assertEqual(intent_entry["intent"]["completion_authority"], "harness_verification")
 
+    def test_service_previews_execution_substrate_handoffs_without_dispatch(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+
+        with patch.dict(os.environ, {"HARNESS_CLASSIFIED_RETRY_BUDGET": "2"}):
+            status, response = self.service.evaluate(payload)
+        preview_status, preview_payload = self.service.preview_execution_substrate_handoffs(
+            harness_base_url="http://harness.test",
+        )
+
+        self.assertEqual(status, 200)
+        self.assertEqual(preview_status, 200)
+        self.assertEqual(preview_payload["handoff_count"], 1)
+        self.assertFalse(preview_payload["dispatch_enabled"])
+        self.assertEqual(preview_payload["completion_authority"], "harness_verification")
+        handoff_entry = preview_payload["handoffs"][0]
+        self.assertEqual(handoff_entry["task_id"], response["task_envelope"]["id"])
+        self.assertEqual(handoff_entry["attention_type"], "retryable_failure")
+        handoff = handoff_entry["handoff"]
+        self.assertEqual(handoff["mode"], "render_only")
+        self.assertEqual(handoff["intent"]["intent_type"], "retry_execution")
+        self.assertEqual(handoff["harness_boundary"]["completion_authority"], "harness_verification")
+        self.assertFalse(handoff["harness_boundary"]["runner_completion_is_truth"])
+        self.assertFalse(handoff["metadata"]["safe_to_execute_live"])
+        self.assertEqual(
+            handoff["callback"]["events_url"],
+            f"http://harness.test/tasks/{response['task_envelope']['id']}/execution-substrate-events",
+        )
+
 
 class HarnessHttpApiTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -6652,6 +6685,32 @@ class HarnessHttpApiTests(unittest.TestCase):
         self.assertEqual(intent_entry["task_id"], create_payload["task_envelope"]["id"])
         self.assertEqual(intent_entry["attention_type"], "retryable_failure")
         self.assertEqual(intent_entry["intent"]["intent_type"], "retry_execution")
+
+    def test_api_exposes_execution_substrate_handoff_preview_endpoint(self) -> None:
+        payload = _request_payload("blocked_insufficient_evidence")
+        payload["request"]["runtime_facts"] = {
+            "executor_reported_failure": True,
+            "attempt_count": 1,
+            "latest_attempt_outcome": "failed",
+        }
+        create_status, create_payload = self._post_json("/evaluate", payload)
+
+        status, preview_payload = self._get_json("/execution-substrate/handoffs")
+
+        self.assertEqual(create_status, 200)
+        self.assertEqual(status, 200)
+        self.assertEqual(preview_payload["handoff_count"], 1)
+        self.assertFalse(preview_payload["dispatch_enabled"])
+        handoff_entry = preview_payload["handoffs"][0]
+        self.assertEqual(handoff_entry["task_id"], create_payload["task_envelope"]["id"])
+        handoff = handoff_entry["handoff"]
+        self.assertEqual(handoff["mode"], "render_only")
+        self.assertEqual(handoff["intent"]["completion_authority"], "harness_verification")
+        self.assertFalse(handoff["metadata"]["safe_to_execute_live"])
+        self.assertIn(
+            f"/tasks/{create_payload['task_envelope']['id']}/execution-substrate-events",
+            handoff["callback"]["events_url"],
+        )
 
     def test_api_openclaw_ingress_rejects_invalid_payload_without_persisting_state(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-invalid-1")

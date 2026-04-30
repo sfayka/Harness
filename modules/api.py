@@ -38,11 +38,13 @@ from modules.contracts.failure_classification import FailureClassification, Fail
 from modules.contracts.task_envelope_lifecycle import ForbiddenTransitionError, apply_task_transition
 from modules.contracts.task_envelope_end_to_end import CanonicalExternalFactBundle
 from modules.contracts.task_envelope_external_facts import ExternalFactValidationError, GitHubArtifactFacts, LinearFacts
+from modules.adapters.symphony import SymphonyExecutionSubstrateAdapter
 from modules.contracts.execution_substrate import (
     ExecutionSubstrateArtifactReference,
     ExecutionSubstrateEvent,
     ExecutionSubstrateEventType,
     ExecutionSubstrateProvenance,
+    execution_substrate_intent_from_dict,
     validate_execution_substrate_event,
 )
 from modules.contracts.task_envelope_enforcement import EnforcementAction, EnforcementResult
@@ -3207,6 +3209,11 @@ def _task_path_components(path: str) -> tuple[str, ...]:
     return tuple(unquote(component) for component in parsed_path.split("/"))
 
 
+def _request_base_url(handler: BaseHTTPRequestHandler) -> str:
+    host = handler.headers.get("Host") or f"{handler.server.server_address[0]}:{handler.server.server_port}"
+    return f"http://{host}"
+
+
 def _serialize_evaluation_record(record: EvaluationRecord) -> dict[str, Any]:
     return _to_jsonable(record)
 
@@ -4575,6 +4582,43 @@ class HarnessApiService:
             "completion_authority": "harness_verification",
         }
 
+    def preview_execution_substrate_handoffs(
+        self,
+        *,
+        harness_base_url: str = "http://127.0.0.1:8765",
+    ) -> tuple[int, dict[str, Any]]:
+        status, intent_payload = self.get_execution_substrate_intents()
+        if status != HTTPStatus.OK:
+            return status, intent_payload
+
+        adapter = SymphonyExecutionSubstrateAdapter(harness_base_url=harness_base_url)
+        handoffs: list[dict[str, Any]] = []
+        for entry in intent_payload["intents"]:
+            intent_payload_entry = entry.get("intent") if isinstance(entry, dict) else None
+            if not isinstance(intent_payload_entry, dict):
+                continue
+            handoffs.append(
+                {
+                    "task_id": str(entry.get("task_id") or ""),
+                    "attention_type": str(entry.get("attention_type") or ""),
+                    "current_status": str(entry.get("current_status") or ""),
+                    "last_activity_at": entry.get("last_activity_at"),
+                    "handoff": adapter.render_handoff(
+                        execution_substrate_intent_from_dict(intent_payload_entry)
+                    ).to_dict(),
+                }
+            )
+
+        return HTTPStatus.OK, {
+            "generated_at": _iso_now(),
+            "handoff_count": len(handoffs),
+            "handoffs": handoffs,
+            "source": "execution_substrate_intents",
+            "advisory_only": True,
+            "dispatch_enabled": False,
+            "completion_authority": "harness_verification",
+        }
+
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
             self.store.get_task(task_id)
@@ -4651,6 +4695,13 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
         if path_components == ("execution-substrate", "intents"):
             status, payload = service.get_execution_substrate_intents()
+            self._write_json(status, payload)
+            return
+
+        if path_components == ("execution-substrate", "handoffs"):
+            status, payload = service.preview_execution_substrate_handoffs(
+                harness_base_url=_request_base_url(self),
+            )
             self._write_json(status, payload)
             return
 

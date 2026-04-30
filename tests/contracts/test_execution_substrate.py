@@ -14,6 +14,7 @@ from modules.contracts.execution_substrate import (
     ExecutionSubstrateProvenance,
     ExecutionSubstrateValidationError,
     build_execution_substrate_intent,
+    execution_substrate_intent_from_dict,
     execution_substrate_intent_to_dict,
     validate_execution_substrate_artifact_reference,
     validate_execution_substrate_event,
@@ -136,6 +137,11 @@ class ExecutionSubstrateEventTests(unittest.TestCase):
         self.assertIn("mark_harness_complete", payload["prohibited_actions"])
         self.assertIn("move_linear_to_done_as_truth", payload["prohibited_actions"])
         self.assertIn("auto_merge_without_policy", payload["prohibited_actions"])
+
+        round_tripped = execution_substrate_intent_from_dict(payload)
+        self.assertEqual(round_tripped.intent_type, intent.intent_type)
+        self.assertEqual(round_tripped.task_id, intent.task_id)
+        self.assertEqual(round_tripped.completion_authority, "harness_verification")
 
     def test_builds_stale_task_intent_as_investigation_request(self) -> None:
         intent = build_execution_substrate_intent(

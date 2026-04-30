@@ -171,6 +171,8 @@ Runner-facing intents are also part of the in-code execution-substrate contract.
 
 The first Symphony adapter lives in [`modules/adapters/symphony`](../../modules/adapters/symphony). It only renders a validated intent into an inert Symphony-compatible handoff payload. It does not start Symphony, poll Linear, launch Codex, mutate GitHub, or consume live work. Its purpose is to pin the Harness-to-runner payload shape before adding any daemon transport.
 
+Harness exposes `GET /execution-substrate/handoffs` as a read-only preview of those rendered handoffs. The endpoint renders from the current supervision intent queue, marks `dispatch_enabled=false`, and does not start or contact Symphony. It exists so operators and future runners can inspect the exact payload shape before any live execution transport is enabled.
+
 Initial event family:
 
 - `dispatch_requested`

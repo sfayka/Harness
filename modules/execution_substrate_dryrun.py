@@ -12,8 +12,7 @@ from typing import Any
 from modules.adapters.symphony import SymphonyExecutionSubstrateAdapter
 from modules.api import HarnessApiService
 from modules.contracts.execution_substrate import (
-    ExecutionSubstrateIntent,
-    ExecutionSubstrateIntentType,
+    execution_substrate_intent_from_dict,
 )
 from modules.demo_cases import build_demo_request
 from modules.intake.task_envelope import create_task_envelope
@@ -242,26 +241,6 @@ def _with_env_var(name: str, value: str):
     return _EnvGuard()
 
 
-def _intent_from_payload(intent_payload: dict[str, Any]) -> ExecutionSubstrateIntent:
-    return ExecutionSubstrateIntent(
-        intent_type=ExecutionSubstrateIntentType(str(intent_payload["intent_type"])),
-        substrate_kind=str(intent_payload["substrate_kind"]),
-        task_id=str(intent_payload["task_id"]),
-        source=str(intent_payload["source"]),
-        reason=str(intent_payload["reason"]),
-        suggested_action=str(intent_payload["suggested_action"]),
-        events_endpoint=str(intent_payload["events_endpoint"]),
-        advisory_only=bool(intent_payload["advisory_only"]),
-        completion_authority=str(intent_payload["completion_authority"]),
-        prohibited_actions=tuple(str(action) for action in intent_payload["prohibited_actions"]),
-        metadata=(
-            dict(intent_payload["metadata"])
-            if isinstance(intent_payload.get("metadata"), dict)
-            else {}
-        ),
-    )
-
-
 def _create_retryable_task_and_poll_intent(
     *,
     service: HarnessApiService,
@@ -386,7 +365,7 @@ def run_symphony_handoff_dry_run(
         intent_entry = intent_payload["intents"][0]
         handoff = SymphonyExecutionSubstrateAdapter(
             harness_base_url=harness_base_url,
-        ).render_handoff(_intent_from_payload(intent_entry["intent"]))
+        ).render_handoff(execution_substrate_intent_from_dict(intent_entry["intent"]))
         handoff_payload = handoff.to_dict()
         return ExecutionSubstrateHandoffDryRunResult(
             task_id=task_id,
