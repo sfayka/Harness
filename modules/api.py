@@ -46,6 +46,7 @@ from modules.contracts.execution_substrate import (
     ExecutionSubstrateProvenance,
     execution_substrate_intent_from_dict,
     validate_execution_substrate_event,
+    validate_execution_substrate_handoff_preview,
 )
 from modules.contracts.task_envelope_enforcement import EnforcementAction, EnforcementResult
 from modules.contracts.task_envelope_reconciliation import (
@@ -4609,7 +4610,7 @@ class HarnessApiService:
                 }
             )
 
-        return HTTPStatus.OK, {
+        preview_payload = {
             "generated_at": _iso_now(),
             "handoff_count": len(handoffs),
             "handoffs": handoffs,
@@ -4618,6 +4619,8 @@ class HarnessApiService:
             "dispatch_enabled": False,
             "completion_authority": "harness_verification",
         }
+        validate_execution_substrate_handoff_preview(preview_payload)
+        return HTTPStatus.OK, preview_payload
 
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         try:
