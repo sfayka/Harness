@@ -4583,6 +4583,29 @@ class HarnessApiService:
             "completion_authority": "harness_verification",
         }
 
+    def get_execution_substrate_transport_status(self) -> tuple[int, dict[str, Any]]:
+        """Return the current Symphony-compatible transport posture."""
+
+        return HTTPStatus.OK, {
+            "generated_at": _iso_now(),
+            "substrate_kind": "symphony-compatible",
+            "preferred_runner": "symphony",
+            "transport_status": "disabled",
+            "dispatch_enabled": False,
+            "live_dispatch_enabled": False,
+            "advisory_only": True,
+            "completion_authority": "harness_verification",
+            "runner_completion_is_truth": False,
+            "safe_to_execute_live": False,
+            "events_contract": "execution_substrate_event.v1",
+            "handoff_preview_endpoint": "/execution-substrate/handoffs",
+            "intents_endpoint": "/execution-substrate/intents",
+            "message": (
+                "Harness can render Symphony-compatible handoffs, but live Symphony "
+                "dispatch is disabled until an explicit transport policy is added."
+            ),
+        }
+
     def preview_execution_substrate_handoffs(
         self,
         *,
@@ -4698,6 +4721,11 @@ class HarnessApiHandler(BaseHTTPRequestHandler):
 
         if path_components == ("execution-substrate", "intents"):
             status, payload = service.get_execution_substrate_intents()
+            self._write_json(status, payload)
+            return
+
+        if path_components == ("execution-substrate", "transport-status"):
+            status, payload = service.get_execution_substrate_transport_status()
             self._write_json(status, payload)
             return
 

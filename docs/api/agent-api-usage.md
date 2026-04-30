@@ -23,10 +23,16 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - `GET /tasks/<task_id>/timeline`: canonical ordered audit timeline for one task
 - `GET /supervision/queue`: canonical attention queue for autonomous supervisors such as OpenClaw, Hermes, or a future desktop agent client
 - `GET /execution-substrate/intents`: runner-facing projection of Symphony-compatible execution continuation intents
+- `GET /execution-substrate/transport-status`: read-only transport posture for the Symphony-compatible execution substrate
+- `GET /execution-substrate/handoffs`: read-only preview of rendered Symphony-compatible handoff payloads
 
 `GET /supervision/queue` is projection-only. It does not create work, mutate task state, or authorize follow-up actions. It exists so an ingress-side supervisor can poll Harness for the tasks that currently need intervention without rebuilding policy client-side from raw task payloads.
 
 `GET /execution-substrate/intents` is also projection-only. It filters the supervision queue down to entries that carry `execution_substrate_intent`, so a Symphony-compatible runner can poll only the work that belongs to the execution substrate. The response is advisory and still points completion authority back to Harness verification.
+
+`GET /execution-substrate/transport-status` is the operator-readable transport guardrail. It currently reports `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, `completion_authority=harness_verification`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. That endpoint is posture, not permission. A live Symphony transport must add a separate policy-gated execution path instead of changing this status silently.
+
+`GET /execution-substrate/handoffs` renders the handoff payloads for current execution-substrate intents without starting Symphony, mutating GitHub, updating Linear, or trusting runner completion. It exists for inspection and future adapter development.
 
 Queue entries are derived from canonical read-model and timeline truth and currently classify:
 
