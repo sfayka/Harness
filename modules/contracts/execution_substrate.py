@@ -64,6 +64,19 @@ _REQUIRED_PROHIBITED_ACTIONS: frozenset[str] = frozenset(
     }
 )
 
+_DISABLED_TRANSPORT_POLICY: dict[str, Any] = {
+    "substrate_kind": "symphony-compatible",
+    "preferred_runner": "symphony",
+    "transport_status": "disabled",
+    "dispatch_enabled": False,
+    "live_dispatch_enabled": False,
+    "advisory_only": True,
+    "completion_authority": "harness_verification",
+    "runner_completion_is_truth": False,
+    "safe_to_execute_live": False,
+    "events_contract": "execution_substrate_event.v1",
+}
+
 
 def _require_non_empty(value: str | None, *, field_name: str) -> None:
     if value is None or not value.strip():
@@ -77,6 +90,23 @@ def _validate_no_lifecycle_authority(payload: dict[str, Any], *, field_name: str
         raise ExecutionSubstrateValidationError(
             f"{field_name} contains prohibited lifecycle authority fields: {names}"
         )
+
+
+def disabled_execution_substrate_transport_policy() -> dict[str, Any]:
+    """Return the canonical inert Symphony-compatible transport policy."""
+
+    return dict(_DISABLED_TRANSPORT_POLICY)
+
+
+def validate_disabled_execution_substrate_transport_policy(payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate that a transport posture keeps live execution disabled."""
+
+    for key, expected in _DISABLED_TRANSPORT_POLICY.items():
+        if payload.get(key) != expected:
+            raise ExecutionSubstrateValidationError(
+                f"disabled execution-substrate transport must keep {key}={expected!r}"
+            )
+    return payload
 
 
 @dataclass(frozen=True)
@@ -427,8 +457,10 @@ __all__ = [
     "ExecutionSubstrateProvenance",
     "ExecutionSubstrateValidationError",
     "build_execution_substrate_intent",
+    "disabled_execution_substrate_transport_policy",
     "execution_substrate_intent_from_dict",
     "execution_substrate_intent_to_dict",
+    "validate_disabled_execution_substrate_transport_policy",
     "validate_execution_substrate_artifact_reference",
     "validate_execution_substrate_event",
     "validate_execution_substrate_handoff_preview",
