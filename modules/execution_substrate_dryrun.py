@@ -9,7 +9,12 @@ import tempfile
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from modules.adapters.symphony import SymphonyExecutionSubstrateAdapter
 from modules.api import HarnessApiService
+from modules.contracts.execution_substrate import (
+    ExecutionSubstrateIntent,
+    ExecutionSubstrateIntentType,
+)
 from modules.demo_cases import build_demo_request
 from modules.intake.task_envelope import create_task_envelope
 from modules.runtime_scenario_builders import to_jsonable
@@ -45,6 +50,22 @@ class ExecutionSubstrateIntentDryRunResult:
     accepted_completion: bool
     substrate_event_count: int
     latest_event_type: str | None
+
+
+@dataclass(frozen=True)
+class ExecutionSubstrateHandoffDryRunResult:
+    """Structured result from rendering a Symphony-compatible handoff payload."""
+
+    task_id: str
+    initial_task_status: str | None
+    intent_status: int
+    intent_count: int
+    rendered_intent_type: str | None
+    handoff_mode: str
+    events_url: str
+    completion_authority: str
+    runner_completion_is_truth: bool
+    safe_to_execute_live: bool
 
 
 def _disposable_task(task_id: str) -> dict[str, Any]:
@@ -221,6 +242,45 @@ def _with_env_var(name: str, value: str):
     return _EnvGuard()
 
 
+def _intent_from_payload(intent_payload: dict[str, Any]) -> ExecutionSubstrateIntent:
+    return ExecutionSubstrateIntent(
+        intent_type=ExecutionSubstrateIntentType(str(intent_payload["intent_type"])),
+        substrate_kind=str(intent_payload["substrate_kind"]),
+        task_id=str(intent_payload["task_id"]),
+        source=str(intent_payload["source"]),
+        reason=str(intent_payload["reason"]),
+        suggested_action=str(intent_payload["suggested_action"]),
+        events_endpoint=str(intent_payload["events_endpoint"]),
+        advisory_only=bool(intent_payload["advisory_only"]),
+        completion_authority=str(intent_payload["completion_authority"]),
+        prohibited_actions=tuple(str(action) for action in intent_payload["prohibited_actions"]),
+        metadata=(
+            dict(intent_payload["metadata"])
+            if isinstance(intent_payload.get("metadata"), dict)
+            else {}
+        ),
+    )
+
+
+def _create_retryable_task_and_poll_intent(
+    *,
+    service: HarnessApiService,
+    task_id: str,
+) -> tuple[dict[str, Any], int, dict[str, Any]]:
+    with _with_env_var("HARNESS_CLASSIFIED_RETRY_BUDGET", "2"):
+        create_status, create_payload = service.evaluate(_intent_creation_payload(task_id))
+    if create_status != 200:
+        raise RuntimeError(f"intent dry run create failed with HTTP {create_status}")
+
+    intent_status, intent_payload = service.get_execution_substrate_intents()
+    if intent_status != 200:
+        raise RuntimeError(f"intent dry run poll failed with HTTP {intent_status}")
+    intents = intent_payload.get("intents") if isinstance(intent_payload.get("intents"), list) else []
+    if not intents:
+        raise RuntimeError("intent dry run did not produce an execution-substrate intent")
+    return create_payload, int(intent_status), intent_payload
+
+
 def run_symphony_substrate_dry_run(
     *,
     task_id: str = "symphony-substrate-dryrun-1",
@@ -273,19 +333,12 @@ def run_symphony_intent_consumer_dry_run(
     with tempfile.TemporaryDirectory() as temp_dir:
         store = FileBackedHarnessStore(temp_dir)
         service = HarnessApiService(store=store)
-        with _with_env_var("HARNESS_CLASSIFIED_RETRY_BUDGET", "2"):
-            create_status, create_payload = service.evaluate(_intent_creation_payload(task_id))
-        if create_status != 200:
-            raise RuntimeError(f"intent dry run create failed with HTTP {create_status}")
+        create_payload, intent_status, intent_payload = _create_retryable_task_and_poll_intent(
+            service=service,
+            task_id=task_id,
+        )
 
-        intent_status, intent_payload = service.get_execution_substrate_intents()
-        if intent_status != 200:
-            raise RuntimeError(f"intent dry run poll failed with HTTP {intent_status}")
-        intents = intent_payload.get("intents") if isinstance(intent_payload.get("intents"), list) else []
-        if not intents:
-            raise RuntimeError("intent dry run did not produce an execution-substrate intent")
-
-        intent_entry = intents[0]
+        intent_entry = intent_payload["intents"][0]
         event_statuses = tuple(
             service.submit_execution_substrate_event(task_id, event_payload)[0]
             for event_payload in _intent_consumer_events(intent_entry)
@@ -315,6 +368,46 @@ def run_symphony_intent_consumer_dry_run(
         )
 
 
+def run_symphony_handoff_dry_run(
+    *,
+    task_id: str = "symphony-handoff-dryrun-1",
+    harness_base_url: str = "http://127.0.0.1:8765",
+) -> ExecutionSubstrateHandoffDryRunResult:
+    """Render a Symphony-compatible handoff payload from a local Harness intent."""
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        store = FileBackedHarnessStore(temp_dir)
+        service = HarnessApiService(store=store)
+        create_payload, intent_status, intent_payload = _create_retryable_task_and_poll_intent(
+            service=service,
+            task_id=task_id,
+        )
+
+        intent_entry = intent_payload["intents"][0]
+        handoff = SymphonyExecutionSubstrateAdapter(
+            harness_base_url=harness_base_url,
+        ).render_handoff(_intent_from_payload(intent_entry["intent"]))
+        handoff_payload = handoff.to_dict()
+        return ExecutionSubstrateHandoffDryRunResult(
+            task_id=task_id,
+            initial_task_status=(
+                str((create_payload.get("task_envelope") or {}).get("status"))
+                if isinstance(create_payload.get("task_envelope"), dict)
+                else None
+            ),
+            intent_status=intent_status,
+            intent_count=int(intent_payload["intent_count"]),
+            rendered_intent_type=handoff_payload["intent"].get("intent_type"),
+            handoff_mode=str(handoff_payload["mode"]),
+            events_url=str(handoff_payload["callback"]["events_url"]),
+            completion_authority=str(handoff_payload["harness_boundary"]["completion_authority"]),
+            runner_completion_is_truth=bool(
+                handoff_payload["harness_boundary"]["runner_completion_is_truth"]
+            ),
+            safe_to_execute_live=bool(handoff_payload["metadata"]["safe_to_execute_live"]),
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run deterministic local Symphony execution-substrate dry runs.",
@@ -340,6 +433,21 @@ def build_parser() -> argparse.ArgumentParser:
         default="symphony-intent-consumer-dryrun-1",
         help="Disposable Harness task id to use for the dry run.",
     )
+
+    handoff = subparsers.add_parser(
+        "handoff",
+        help="Render a local Symphony-compatible handoff payload without starting Symphony.",
+    )
+    handoff.add_argument(
+        "--task-id",
+        default="symphony-handoff-dryrun-1",
+        help="Disposable Harness task id to use for the dry run.",
+    )
+    handoff.add_argument(
+        "--harness-base-url",
+        default="http://127.0.0.1:8765",
+        help="Base Harness URL to use when rendering callback URLs.",
+    )
     return parser
 
 
@@ -351,6 +459,11 @@ def main(argv: list[str] | None = None) -> int:
         result = run_symphony_substrate_dry_run(task_id=args.task_id)
     elif args.command == "intent-consumer":
         result = run_symphony_intent_consumer_dry_run(task_id=args.task_id)
+    elif args.command == "handoff":
+        result = run_symphony_handoff_dry_run(
+            task_id=args.task_id,
+            harness_base_url=args.harness_base_url,
+        )
     else:  # pragma: no cover - argparse prevents this branch.
         parser.error(f"unsupported command: {args.command}")
 
@@ -360,9 +473,11 @@ def main(argv: list[str] | None = None) -> int:
 
 __all__ = [
     "ExecutionSubstrateDryRunResult",
+    "ExecutionSubstrateHandoffDryRunResult",
     "ExecutionSubstrateIntentDryRunResult",
     "build_parser",
     "main",
+    "run_symphony_handoff_dry_run",
     "run_symphony_intent_consumer_dry_run",
     "run_symphony_substrate_dry_run",
 ]
