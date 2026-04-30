@@ -1,7 +1,10 @@
 # Harness macOS App
 
-This is the native macOS shell for local Harness operation.
-The first slices are a menu-bar controller with runtime controls and summary counts, a first-run setup assistant, and an embedded dashboard window for full inspection.
+Status: deprecated.
+
+This native macOS shell is no longer a supported Harness product surface. Keep it as legacy/experimental code while the repo pivots to CLI + API + web dashboard operation.
+
+Do not add new menu-bar, first-run onboarding, notification, Launch at Login, signing, notarization, or distribution features unless the native app decision is explicitly reopened. Reusable behavior should move through the portable local runtime contract and web dashboard instead.
 
 ## Targets
 

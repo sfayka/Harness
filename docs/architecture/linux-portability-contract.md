@@ -1,8 +1,8 @@
 # Linux Portability Contract
 
-`#329` is not a Linux app implementation issue. It is the guardrail issue that keeps the macOS-first work from baking macOS assumptions into Harness core.
+This document is now historical guardrail context. Harness is no longer pursuing a native macOS shell first; the supported surface is CLI + API + web dashboard.
 
-Harness is allowed to ship a native macOS shell first. It is not allowed to make the backend, SQLite store, dashboard, or CLI contract depend on Swift, AppKit, Keychain-only semantics, or `.app`-bundle assumptions.
+Harness is not allowed to make the backend, SQLite store, dashboard, or CLI contract depend on Swift, AppKit, Keychain-only semantics, or `.app`-bundle assumptions.
 
 ## Platform-Neutral Surfaces
 
@@ -15,7 +15,7 @@ These pieces must remain reusable for a future Linux package:
 - static dashboard bundle and same-origin API behavior
 - doctor/setup data model and integration semantics
 
-If one of these changes in a macOS feature branch, the change needs to be justified as a portable runtime change, not a shell convenience.
+If one of these changes in a platform packaging branch, the change needs to be justified as a portable runtime change, not a shell convenience.
 
 ## Replaceable Boundaries
 

@@ -1,16 +1,16 @@
 # Configure Harness
 
-Harness has two configuration paths: app-managed local configuration for the packaged app, and repo-root `.env.local` for developer and CI-style runs.
+Harness has two configuration paths: local runtime configuration for CLI/web usage, and repo-root `.env.local` for developer and CI-style runs.
 
-## App-Managed Local Configuration
+## Local Runtime Configuration
 
-The macOS app writes non-secret runtime configuration to:
+The local runtime writes non-secret runtime configuration to:
 
 ```text
 ~/Library/Application Support/Harness/config.json
 ```
 
-Secrets do not belong in that file. The app stores local credentials through the app-managed secret boundary.
+Secrets do not belong in that file. Store local credentials through the app-managed secret boundary exposed by the CLI.
 
 Stable Harness secret names:
 
@@ -56,11 +56,11 @@ The current concrete repair receiver is still OpenClaw-shaped, so some operation
 
 Those names are implementation details. Harness itself should stay client-neutral: OpenClaw, Hermes, Codex, or a future desktop agent can fill the same role if it speaks the Harness API boundaries.
 
-For hosted repair dispatch, `OPENCLAW_BASE_URL` must point at a receiver reachable from the hosted runtime. A loopback value such as `http://127.0.0.1:18789` only works for native local development.
+For hosted repair dispatch, `OPENCLAW_BASE_URL` must point at a receiver reachable from the hosted runtime. A loopback value such as `http://127.0.0.1:18789` only works for local development.
 
 ## Storage Choices
 
-Use SQLite for self-contained local app state:
+Use SQLite for self-contained local CLI/web state:
 
 ```bash
 export HARNESS_STORE_BACKEND=sqlite

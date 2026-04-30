@@ -24,7 +24,7 @@ Check:
 
 The dashboard should report backend errors honestly. It should not silently switch to fake live data.
 
-## Local App Runtime Will Not Start
+## Local Runtime Will Not Start
 
 Run:
 
@@ -69,28 +69,6 @@ Check:
 
 Harness treats worker-reported success as advisory. If evidence is missing, stale, contradictory, or tied to the wrong run, the correct behavior is to block, retry, reconcile, or require review.
 
-## Packaged App Opens But macOS Blocks It
+## Native macOS App Issues
 
-Internal validation packages may be ad-hoc signed. External distribution requires:
-
-```bash
-export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
-export MACOS_NOTARY_PROFILE="harness-notary"
-HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
-```
-
-Then verify signing and notarization before publishing the DMG.
-
-If the command fails before building with `codesign identity not found`, inspect the available identities:
-
-```bash
-security find-identity -v -p codesigning
-```
-
-Official distribution needs a valid `Developer ID Application` certificate installed in the active keychain. An ad-hoc package is acceptable for internal validation, but it is not an official release artifact.
-
-After installing the certificate and configuring the notary profile, run the local preflight before starting a full package build:
-
-```bash
-./script/package_macos_app.sh --check-release-prereqs
-```
+The native macOS app is deprecated and is not the supported operator path. Prefer `python3 -m modules.local_runtime ...` plus the web dashboard for local operation. Do not spend debugging time on signing, notarization, Launch at Login, or notification problems unless a task explicitly reopens the native app decision.

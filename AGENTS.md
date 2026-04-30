@@ -25,6 +25,7 @@ Do not collapse these roles:
 - Harness normalizes and evaluates
 - GitHub and Linear provide external facts
 - dashboard reads canonical inspection APIs
+- CLI and web dashboard are the supported operator surfaces
 
 Harness is not:
 
@@ -32,6 +33,7 @@ Harness is not:
 - an agent runtime
 - a chatbot UI
 - a replacement for Linear coordination
+- a native desktop-app product
 - a place where worker claims are accepted without policy enforcement
 
 ## Non-Goals
@@ -42,7 +44,23 @@ Do not casually turn this repo into:
 - a generic project-management surface
 - a mutation-heavy dashboard app
 - a tightly coupled OpenClaw runtime extension
+- a native macOS app distribution project
 - a fake demo system that hides whether data is live or sample
+
+## Operator Surface Direction
+
+Harness is now CLI + API + web dashboard first.
+
+The native macOS app under `apps/macos/HarnessApp` is legacy/experimental code. Do not add new native macOS features, packaging work, notarization work, menu-bar behavior, notification behavior, or onboarding behavior unless a task explicitly reopens that product decision.
+
+Keep reusable runtime pieces in portable Python/TypeScript surfaces:
+
+- `python3 -m modules.local_runtime ...`
+- hosted/local backend APIs
+- the Next.js dashboard
+- static local dashboard assets served by the Python backend
+
+If existing macOS code needs to remain buildable while it is still in the tree, keep fixes minimal and compatibility-focused. Do not make Harness core depend on Swift, AppKit, `.app` bundle layout, Keychain-only semantics, Launch at Login, or macOS notification APIs.
 
 ## Invariants That Must Not Be Broken
 

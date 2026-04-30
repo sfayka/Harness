@@ -33,16 +33,7 @@ python3 -m modules.local_runtime --json stop
 
 The dashboard asset export matters for checkout validation. Without it, the runtime can still be healthy, but `doctor` will warn that the embedded dashboard cannot render packaged UI assets.
 
-A packaged build should expose the same contract as `harness ...`.
-
-## Packaged macOS App
-
-```bash
-./script/package_macos_app.sh
-```
-
-The script builds dashboard assets, freezes the Python runtime, signs the bundle, smoke-tests the bundled runtime, and writes `dist/macos-release/Harness.dmg`.
-The package smoke test defaults to port `18765` so it can run even when the normal local app already owns `127.0.0.1:8765`; override it with `HARNESS_PACKAGE_VERIFY_PORT` if needed.
+A future packaged CLI should expose the same contract as `harness ...`. The native macOS app package is deprecated and is not part of the normal validation path.
 
 ## Deterministic Reset Proofs
 

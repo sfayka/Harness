@@ -60,7 +60,7 @@ pnpm test:frontend
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-`backend.server` now auto-loads repo-root `.env.local` during native local startup. It also loads `config/openclaw/.env.local` when present so the current repo-owned desktop-agent config and state paths do not need to be duplicated into the shell environment.
+`backend.server` now auto-loads repo-root `.env.local` during local startup. It also loads `config/openclaw/.env.local` when present so the current repo-owned desktop-agent config and state paths do not need to be duplicated into the shell environment.
 
 For the reset verifier slice, put these in repo-root `.env.local`:
 
@@ -79,7 +79,7 @@ When `config/openclaw/.env.local` provides `OPENCLAW_CONFIG_PATH` or `OPENCLAW_S
 
 If the remote repair receiver is bearer-protected, set `OPENCLAW_REPAIR_BEARER_TOKEN`. Harness will send it as `Authorization: Bearer <token>` on the HTTP repair callback path.
 
-That loopback-style fallback is only appropriate for native local development. Do not copy `OPENCLAW_BASE_URL=http://127.0.0.1:...` into hosted Vercel environments, because the reset verifier will not be able to reach your laptop from a serverless runtime.
+That loopback-style fallback is only appropriate for local development. Do not copy `OPENCLAW_BASE_URL=http://127.0.0.1:...` into hosted Vercel environments, because the reset verifier will not be able to reach your laptop from a serverless runtime.
 
 To run the backend against SQLite local persistence:
 
@@ -89,13 +89,13 @@ export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-SQLite mode is the intended persistence base for the self-contained local app. It creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in one local database.
+SQLite mode is the intended persistence base for self-contained local CLI/web usage. It creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in one local database.
 
 If `HARNESS_SQLITE_PATH` is unset, Harness uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
 
-### Run The Local App Runtime Contract
+### Run The Local Runtime Contract
 
-The packaged app will expose this contract as `harness`. From a repo checkout, use the module entry point:
+A future packaged CLI can expose this contract as `harness`. From a repo checkout, use the module entry point:
 
 ```bash
 python3 -m modules.local_runtime --json init
@@ -109,8 +109,8 @@ python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
 
-The runtime contract uses app-managed config, SQLite state, PID files, dashboard assets, and logs. A packaged app should not require Docker, Node, `pnpm`, or repo-local shell exports.
-Use `start` and `recover` for app-style background lifecycle control.
+The runtime contract uses app-managed config, SQLite state, PID files, dashboard assets, and logs. A future packaged CLI should not require Docker, Node, `pnpm`, or repo-local shell exports.
+Use `start` and `recover` for local background lifecycle control.
 Use `serve` only when you intentionally want a foreground backend for debugging.
 
 Default macOS paths:
@@ -121,7 +121,7 @@ Default macOS paths:
 - `~/Library/Application Support/Harness/runtime/harness.pid`
 - `~/Library/Logs/Harness/harness.log`
 
-Packaged app secrets use the app-managed secret store instead of `.env.local`:
+Local CLI/web secrets use the app-managed secret store instead of `.env.local`:
 
 ```bash
 printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
@@ -130,9 +130,9 @@ python3 -m modules.local_runtime --json secrets status
 ```
 
 Secret status output is redacted. Use `--require <secret-name>` when a selected workflow cannot run without that credential.
-Native developer mode can still use repo-root `.env.local`.
+Developer mode can still use repo-root `.env.local`.
 
-Run setup doctor to get app-renderable setup status:
+Run setup doctor to get machine-readable setup status:
 
 ```bash
 python3 -m modules.local_runtime --json doctor
@@ -248,7 +248,7 @@ The dashboard is read-only and depends on the canonical inspection APIs:
 
 ### Build The Packaged Local Dashboard
 
-For the self-contained local app path, build static dashboard assets instead of running a Node dashboard server:
+For the self-contained local CLI/web path, build static dashboard assets instead of running a Node dashboard server:
 
 ```bash
 pnpm build:dashboard:local
@@ -278,32 +278,11 @@ http://127.0.0.1:8765/dashboard/
 
 The normal hosted/developer dashboard still uses `pnpm dev` or `pnpm build` and the Next proxy route.
 
-### Build The macOS Release Package
+### Deprecated macOS Package Path
 
-For the self-contained macOS distribution path, build the packaged app instead of the repo-root developer bundle:
+The native macOS package path is deprecated. Do not use `./script/package_macos_app.sh`, Developer ID signing, notarization, or DMG output as the normal Harness validation or release path unless a future task explicitly reopens the native app decision.
 
-```bash
-./script/package_macos_app.sh
-```
-
-That script:
-
-- builds `dist/local-dashboard/`
-- freezes `modules/local_runtime.py` into a bundled `harness` runtime
-- stages `dist/macos-release/Harness.app`
-- signs the bundle ad hoc by default, or with `MACOS_CODESIGN_IDENTITY` when set
-- creates `dist/macos-release/Harness.dmg`
-
-For external distribution, also provide:
-
-```bash
-export MACOS_CODESIGN_IDENTITY="Developer ID Application: ..."
-export MACOS_NOTARY_PROFILE="harness-notary"
-./script/package_macos_app.sh --check-release-prereqs
-HARNESS_REQUIRE_NOTARIZATION=1 ./script/package_macos_app.sh
-```
-
-See [`docs/architecture/macos-packaging.md`](../architecture/macos-packaging.md) for the packaged bundle layout, uninstall/reset notes, and notarization expectations.
+The reusable packaging work that remains relevant is the static dashboard bundle plus the local runtime contract above.
 
 ### One-Command Demo Bootstrap
 
@@ -342,7 +321,7 @@ python3 -m modules.demo_walkthrough seed \
   --output-dir demo-output/walkthrough
 ```
 
-Use native local mode when you need fast edit-run-debug loops.
+Use local mode when you need fast edit-run-debug loops.
 
 ## Docker Mode
 
