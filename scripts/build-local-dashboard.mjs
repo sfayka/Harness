@@ -75,6 +75,7 @@ async function writeManifest() {
       "/dashboard/verification/",
       "/dashboard/reconciliation/",
       "/dashboard/reviews/",
+      "/dashboard/execution/",
     ],
   };
   await writeFile(

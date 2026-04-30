@@ -141,6 +141,10 @@ struct HarnessAppCoreCheck {
             baseURL.dashboardRoute(.reviews).absoluteString == "http://127.0.0.1:8765/dashboard/reviews/",
             "reviews dashboard route"
         )
+        try require(
+            baseURL.dashboardRoute(.execution).absoluteString == "http://127.0.0.1:8765/dashboard/execution/",
+            "execution dashboard route"
+        )
     }
 
     private static func checksBundleResourceDefaults() throws {

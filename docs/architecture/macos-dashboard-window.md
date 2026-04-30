@@ -26,6 +26,7 @@ The window exposes the current dashboard routes as first-class toolbar choices:
 - `Verification`: `/dashboard/verification/`
 - `Reconciliation`: `/dashboard/reconciliation/`
 - `Reviews`: `/dashboard/reviews/`
+- `Execution`: `/dashboard/execution/`
 
 These are the same routes used by the packaged local dashboard.
 The app must not introduce a separate route model that contradicts the dashboard.
