@@ -239,3 +239,20 @@ export interface ExecutionSubstrateHandoffPreview {
   dispatch_enabled: boolean;
   completion_authority: string;
 }
+
+export interface ExecutionSubstrateTransportStatus {
+  generated_at: string;
+  substrate_kind: string;
+  preferred_runner: string;
+  transport_status: string;
+  dispatch_enabled: boolean;
+  live_dispatch_enabled: boolean;
+  advisory_only: boolean;
+  completion_authority: string;
+  runner_completion_is_truth: boolean;
+  safe_to_execute_live: boolean;
+  events_contract: string;
+  handoff_preview_endpoint: string;
+  intents_endpoint: string;
+  message: string;
+}

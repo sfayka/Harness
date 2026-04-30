@@ -12,11 +12,19 @@ import {
 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { Card, CardContent } from "@/components/ui/card";
-import { fetchExecutionSubstrateHandoffs } from "@/lib/harness-api";
-import type { ExecutionSubstrateHandoffPreview } from "@/lib/types";
+import {
+  fetchExecutionSubstrateHandoffs,
+  fetchExecutionSubstrateTransportStatus,
+} from "@/lib/harness-api";
+import type {
+  ExecutionSubstrateHandoffPreview,
+  ExecutionSubstrateTransportStatus,
+} from "@/lib/types";
 
 export function ExecutionHandoffBrowser() {
   const [preview, setPreview] = useState<ExecutionSubstrateHandoffPreview | null>(null);
+  const [transportStatus, setTransportStatus] =
+    useState<ExecutionSubstrateTransportStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -31,13 +39,13 @@ export function ExecutionHandoffBrowser() {
       },
       {
         label: "Dispatch Disabled",
-        value: preview && !preview.dispatch_enabled ? 1 : 0,
+        value: transportStatus && !transportStatus.dispatch_enabled ? 1 : 0,
         icon: Ban,
         tone: "text-warning",
       },
       {
         label: "Harness Authority",
-        value: preview?.completion_authority === "harness_verification" ? 1 : 0,
+        value: transportStatus?.completion_authority === "harness_verification" ? 1 : 0,
         icon: ShieldCheck,
         tone: "text-success",
       },
@@ -48,14 +56,19 @@ export function ExecutionHandoffBrowser() {
         tone: "text-destructive",
       },
     ],
-    [handoffs, preview],
+    [handoffs, transportStatus],
   );
 
   async function loadPreview() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      setPreview(await fetchExecutionSubstrateHandoffs());
+      const [nextTransportStatus, nextPreview] = await Promise.all([
+        fetchExecutionSubstrateTransportStatus(),
+        fetchExecutionSubstrateHandoffs(),
+      ]);
+      setTransportStatus(nextTransportStatus);
+      setPreview(nextPreview);
     } catch (error) {
       setLoadError(
         error instanceof Error
@@ -118,6 +131,46 @@ export function ExecutionHandoffBrowser() {
               </Card>
             ))}
           </div>
+
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Power className="h-4 w-4 text-warning" />
+                    <p className="text-sm font-medium text-foreground">
+                      Transport Status
+                    </p>
+                    <span className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+                      {transportStatus?.transport_status || "unknown"}
+                    </span>
+                  </div>
+                  <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+                    {transportStatus?.message ||
+                      "Harness has not returned execution transport posture yet."}
+                  </p>
+                </div>
+                <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
+                  <PreviewField
+                    label="Runner"
+                    value={transportStatus?.preferred_runner || "unknown"}
+                  />
+                  <PreviewField
+                    label="Live Dispatch"
+                    value={transportStatus?.live_dispatch_enabled ? "enabled" : "disabled"}
+                  />
+                  <PreviewField
+                    label="Authority"
+                    value={transportStatus?.completion_authority || "unknown"}
+                  />
+                  <PreviewField
+                    label="Event Contract"
+                    value={transportStatus?.events_contract || "unknown"}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {loadError ? (
             <Card className="border-destructive/40">
