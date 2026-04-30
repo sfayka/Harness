@@ -370,7 +370,7 @@ def _build_setup_item(
         missing_completion_checks=missing_completion_checks,
     )
     blocks_onboarding = required and status != "complete"
-    return {
+    item = {
         "id": definition.id,
         "title": definition.title,
         "category": definition.category,
@@ -391,6 +391,25 @@ def _build_setup_item(
             "checks": [_summarize_check(check) for check in relevant_checks],
             "missing_check_codes": missing_completion_checks,
         },
+    }
+    if definition.id == "execution_substrate":
+        item["execution_transport"] = _execution_transport_policy(relevant_checks)
+    return item
+
+
+def _execution_transport_policy(checks: list[dict[str, Any]]) -> dict[str, Any]:
+    details: dict[str, Any] = {}
+    for check in checks:
+        raw_details = check.get("details")
+        if isinstance(raw_details, dict):
+            details.update(raw_details)
+
+    return {
+        "preferred_runner": str(details.get("preferred_runner") or "symphony"),
+        "mode": str(details.get("mode") or "unknown"),
+        "live_dispatch_enabled": bool(details.get("live_dispatch_enabled")),
+        "completion_authority": str(details.get("completion_authority") or "harness_verification"),
+        "runner_completion_is_truth": bool(details.get("runner_completion_is_truth")),
     }
 
 

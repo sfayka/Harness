@@ -72,6 +72,7 @@ Each item reports:
 - `next_action`
 - `setup_actions`
 - `validation`
+- `execution_transport` for the `execution_substrate` item only
 
 Item status values:
 
@@ -111,6 +112,7 @@ printf '%s' "$TOKEN" | python3 -m modules.local_runtime --json secrets set linea
 ```
 
 The execution-substrate item should name Symphony as the preferred runner without giving it completion authority.
+It also exposes a normalized `execution_transport` object with `preferred_runner`, `mode`, `live_dispatch_enabled`, `completion_authority`, and `runner_completion_is_truth`. `live_dispatch_enabled` must remain `false` until Harness has an explicit live Symphony transport policy.
 The legacy ingress/executor item must stay client-neutral in UI copy.
 It should describe the connection as a compatibility desktop-agent bridge for OpenClaw, Hermes, Codex, or a future equivalent.
 The current doctor still recognizes OpenClaw-shaped adapter variables because that is existing bridge wiring, not the Harness product boundary.

@@ -58,13 +58,22 @@ def healthy_runtime_doctor_payload(
 
 
 def check(code: str, status: str, *, next_action: str = "No action needed.") -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "code": code,
         "status": status,
         "message": f"{code} is {status}.",
         "impact": f"{code} impact.",
         "next_action": next_action,
     }
+    if code == "execution_substrate":
+        payload["details"] = {
+            "preferred_runner": "symphony",
+            "mode": "installed" if status == "pass" else "unconfigured",
+            "live_dispatch_enabled": False,
+            "completion_authority": "harness_verification",
+            "runner_completion_is_truth": False,
+        }
+    return payload
 
 
 class GuidedSetupStatusTests(unittest.TestCase):
@@ -129,6 +138,14 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertTrue(substrate["required"])
         self.assertFalse(items["ingress_executor"]["required"])
         self.assertIn("Symphony", substrate["compatible_clients"])
+        self.assertEqual(substrate["execution_transport"]["preferred_runner"], "symphony")
+        self.assertEqual(substrate["execution_transport"]["mode"], "unconfigured")
+        self.assertFalse(substrate["execution_transport"]["live_dispatch_enabled"])
+        self.assertEqual(
+            substrate["execution_transport"]["completion_authority"],
+            "harness_verification",
+        )
+        self.assertFalse(substrate["execution_transport"]["runner_completion_is_truth"])
         self.assertIn("verification", " ".join(substrate["notes"]))
 
     def test_configured_symphony_substrate_completes_repair_dispatch_setup(self) -> None:
@@ -142,6 +159,8 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertEqual(payload["required_blockers"], [])
         self.assertEqual(items["execution_substrate"]["status"], "complete")
         self.assertTrue(items["execution_substrate"]["required"])
+        self.assertEqual(items["execution_substrate"]["execution_transport"]["mode"], "installed")
+        self.assertFalse(items["execution_substrate"]["execution_transport"]["live_dispatch_enabled"])
 
     def test_configured_broken_runtime_blocks_onboarding(self) -> None:
         payload = healthy_runtime_doctor_payload()
