@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 from dataclasses import replace
+from typing import Any
 
 from modules.contracts.execution_substrate import (
     ExecutionSubstrateArtifactReference,
@@ -18,6 +19,7 @@ from modules.contracts.execution_substrate import (
     execution_substrate_intent_to_dict,
     validate_execution_substrate_artifact_reference,
     validate_execution_substrate_event,
+    validate_execution_substrate_handoff_preview,
     validate_execution_substrate_intent,
 )
 
@@ -44,6 +46,58 @@ class ExecutionSubstrateEventTests(unittest.TestCase):
             occurred_at="2026-04-27T20:00:00Z",
             provenance=self._provenance(),
         )
+
+    def _handoff_preview(self) -> dict[str, Any]:
+        intent = build_execution_substrate_intent(
+            task_id="task-1",
+            attention_type="retryable_failure",
+            suggested_action="retry_or_redispatch",
+            reason="Task is retryable.",
+        )
+        assert intent is not None
+        intent_payload = execution_substrate_intent_to_dict(intent)
+        return {
+            "generated_at": "2026-04-30T15:00:00Z",
+            "handoff_count": 1,
+            "source": "execution_substrate_intents",
+            "advisory_only": True,
+            "dispatch_enabled": False,
+            "completion_authority": "harness_verification",
+            "handoffs": [
+                {
+                    "task_id": "task-1",
+                    "attention_type": "retryable_failure",
+                    "current_status": "blocked",
+                    "last_activity_at": None,
+                    "handoff": {
+                        "adapter": "symphony-execution-substrate",
+                        "mode": "render_only",
+                        "intent": intent_payload,
+                        "harness_boundary": {
+                            "completion_authority": "harness_verification",
+                            "advisory_only": True,
+                            "runner_completion_is_truth": False,
+                            "artifact_verification_required": True,
+                        },
+                        "runner_policy": {
+                            "substrate_kind": "symphony-compatible",
+                            "allowed_intent_type": "retry_execution",
+                            "prohibited_actions": intent_payload["prohibited_actions"],
+                        },
+                        "callback": {
+                            "events_endpoint": "/tasks/task-1/execution-substrate-events",
+                            "events_url": "http://harness.test/tasks/task-1/execution-substrate-events",
+                            "event_contract": "execution_substrate_event.v1",
+                        },
+                        "metadata": {
+                            "task_id": "task-1",
+                            "source": "harness_supervision_queue",
+                            "safe_to_execute_live": False,
+                        },
+                    },
+                },
+            ],
+        }
 
     def test_validate_event_accepts_runner_handoff(self) -> None:
         event = self._event(ExecutionSubstrateEventType.HANDOFF_REPORTED)
@@ -203,6 +257,45 @@ class ExecutionSubstrateEventTests(unittest.TestCase):
             "missing required prohibited actions",
         ):
             validate_execution_substrate_intent(intent)
+
+    def test_handoff_preview_guardrail_accepts_inert_preview(self) -> None:
+        preview = self._handoff_preview()
+
+        validated = validate_execution_substrate_handoff_preview(preview)
+
+        self.assertIs(validated, preview)
+
+    def test_handoff_preview_guardrail_rejects_live_dispatch(self) -> None:
+        preview = self._handoff_preview()
+        preview["dispatch_enabled"] = True
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "dispatch_enabled=false",
+        ):
+            validate_execution_substrate_handoff_preview(preview)
+
+    def test_handoff_preview_guardrail_rejects_runner_completion_truth(self) -> None:
+        preview = self._handoff_preview()
+        handoff = preview["handoffs"][0]["handoff"]
+        handoff["harness_boundary"]["runner_completion_is_truth"] = True
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "runner_completion_is_truth=false",
+        ):
+            validate_execution_substrate_handoff_preview(preview)
+
+    def test_handoff_preview_guardrail_rejects_live_safe_flag(self) -> None:
+        preview = self._handoff_preview()
+        handoff = preview["handoffs"][0]["handoff"]
+        handoff["metadata"]["safe_to_execute_live"] = True
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "safe_to_execute_live=false",
+        ):
+            validate_execution_substrate_handoff_preview(preview)
 
 
 if __name__ == "__main__":

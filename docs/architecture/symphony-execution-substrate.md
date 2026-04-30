@@ -173,6 +173,8 @@ The first Symphony adapter lives in [`modules/adapters/symphony`](../../modules/
 
 Harness exposes `GET /execution-substrate/handoffs` as a read-only preview of those rendered handoffs. The endpoint renders from the current supervision intent queue, marks `dispatch_enabled=false`, and does not start or contact Symphony. It exists so operators and future runners can inspect the exact payload shape before any live execution transport is enabled.
 
+That preview surface is protected by the execution-substrate contract validator. A valid preview must remain `advisory_only=true`, `dispatch_enabled=false`, `completion_authority=harness_verification`, `mode=render_only`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. It must also carry the required runner prohibitions: no marking Harness complete, no treating Linear Done as truth, and no auto-merge without policy. Future live Symphony transport should add a separate execution path rather than weakening this read-only preview contract.
+
 Initial event family:
 
 - `dispatch_requested`

@@ -318,6 +318,106 @@ def execution_substrate_intent_from_dict(payload: dict[str, Any]) -> ExecutionSu
     return validate_execution_substrate_intent(intent)
 
 
+def validate_execution_substrate_handoff_preview(payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate that a rendered handoff preview is inert and Harness-authoritative.
+
+    This is intentionally stricter than runner event validation. The preview
+    endpoint is an operator/adapter inspection surface, not a live transport.
+    """
+
+    if payload.get("advisory_only") is not True:
+        raise ExecutionSubstrateValidationError(
+            "execution-substrate handoff previews must be advisory_only=true"
+        )
+    if payload.get("dispatch_enabled") is not False:
+        raise ExecutionSubstrateValidationError(
+            "execution-substrate handoff previews must keep dispatch_enabled=false"
+        )
+    if payload.get("completion_authority") != "harness_verification":
+        raise ExecutionSubstrateValidationError(
+            "execution-substrate handoff previews must keep completion_authority=harness_verification"
+        )
+
+    handoffs = payload.get("handoffs")
+    if not isinstance(handoffs, list):
+        raise ExecutionSubstrateValidationError(
+            "execution-substrate handoff previews must include a handoffs list"
+        )
+
+    for index, entry in enumerate(handoffs):
+        if not isinstance(entry, dict):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must be an object"
+            )
+        handoff = entry.get("handoff")
+        if not isinstance(handoff, dict):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must include a handoff object"
+            )
+        if handoff.get("mode") != "render_only":
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must keep mode=render_only"
+            )
+
+        intent_payload = handoff.get("intent")
+        if not isinstance(intent_payload, dict):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must include an intent object"
+            )
+        validate_execution_substrate_intent(execution_substrate_intent_from_dict(intent_payload))
+
+        harness_boundary = handoff.get("harness_boundary")
+        if not isinstance(harness_boundary, dict):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must include harness_boundary"
+            )
+        if harness_boundary.get("completion_authority") != "harness_verification":
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must keep Harness completion authority"
+            )
+        if harness_boundary.get("advisory_only") is not True:
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must keep harness_boundary.advisory_only=true"
+            )
+        if harness_boundary.get("runner_completion_is_truth") is not False:
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must keep runner_completion_is_truth=false"
+            )
+        if harness_boundary.get("artifact_verification_required") is not True:
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must require artifact verification"
+            )
+
+        runner_policy = handoff.get("runner_policy")
+        if not isinstance(runner_policy, dict):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must include runner_policy"
+            )
+        prohibited_actions = runner_policy.get("prohibited_actions")
+        if not isinstance(prohibited_actions, list):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must include runner_policy.prohibited_actions"
+            )
+        missing_actions = sorted(_REQUIRED_PROHIBITED_ACTIONS.difference(prohibited_actions))
+        if missing_actions:
+            names = ", ".join(missing_actions)
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} is missing prohibited actions: {names}"
+            )
+
+        metadata = handoff.get("metadata")
+        if not isinstance(metadata, dict):
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must include metadata"
+            )
+        if metadata.get("safe_to_execute_live") is not False:
+            raise ExecutionSubstrateValidationError(
+                f"execution-substrate handoff preview entry {index} must keep safe_to_execute_live=false"
+            )
+
+    return payload
+
+
 __all__ = [
     "ExecutionSubstrateArtifactReference",
     "ExecutionSubstrateEvent",
@@ -331,6 +431,7 @@ __all__ = [
     "execution_substrate_intent_to_dict",
     "validate_execution_substrate_artifact_reference",
     "validate_execution_substrate_event",
+    "validate_execution_substrate_handoff_preview",
     "validate_execution_substrate_intent",
     "validate_execution_substrate_provenance",
 ]
