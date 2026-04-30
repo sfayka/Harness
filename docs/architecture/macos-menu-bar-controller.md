@@ -78,6 +78,7 @@ The window preserves the canonical local dashboard routes:
 - `/dashboard/verification/`
 - `/dashboard/reconciliation/`
 - `/dashboard/reviews/`
+- `/dashboard/execution/`
 
 Closing the dashboard window does not stop the runtime.
 The menu bar remains useful without the dashboard window open.

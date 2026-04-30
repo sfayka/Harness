@@ -5,6 +5,7 @@ public enum DashboardRoute: String, CaseIterable, Identifiable, Sendable {
     case verification
     case reconciliation
     case reviews
+    case execution
 
     public var id: String { rawValue }
 
@@ -18,6 +19,8 @@ public enum DashboardRoute: String, CaseIterable, Identifiable, Sendable {
             return "Reconciliation"
         case .reviews:
             return "Reviews"
+        case .execution:
+            return "Execution"
         }
     }
 
@@ -31,6 +34,8 @@ public enum DashboardRoute: String, CaseIterable, Identifiable, Sendable {
             return "/dashboard/reconciliation/"
         case .reviews:
             return "/dashboard/reviews/"
+        case .execution:
+            return "/dashboard/execution/"
         }
     }
 }
