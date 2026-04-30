@@ -197,6 +197,10 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
     readModel.review_summary && typeof readModel.review_summary === "object"
       ? (readModel.review_summary as Record<string, unknown>)
       : {};
+  const executionSummary =
+    readModel.execution_summary && typeof readModel.execution_summary === "object"
+      ? (readModel.execution_summary as Record<string, unknown>)
+      : {};
   const evaluationSummary =
     readModel.evaluation_summary && typeof readModel.evaluation_summary === "object"
       ? (readModel.evaluation_summary as Record<string, unknown>)
@@ -359,6 +363,25 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
       decisions: Array.isArray(reviewSummary.decisions)
         ? reviewSummary.decisions.map((decision) => mapReviewDecision(decision as Record<string, unknown>)).filter(Boolean) as ReviewDecision[]
         : [],
+    },
+    execution_summary: {
+      attempt_count: Number(executionSummary.attempt_count ?? 0),
+      latest_status:
+        (executionSummary.latest_status as string | null | undefined) ?? null,
+      latest_dispatch_origin:
+        (executionSummary.latest_dispatch_origin as string | null | undefined) ?? null,
+      latest_execution_transport_status:
+        (executionSummary.latest_execution_transport_status as string | null | undefined) ?? null,
+      latest_live_dispatch_enabled:
+        typeof executionSummary.latest_live_dispatch_enabled === "boolean"
+          ? executionSummary.latest_live_dispatch_enabled
+          : null,
+      latest_completion_authority:
+        (executionSummary.latest_completion_authority as string | null | undefined) ?? null,
+      latest_runner_completion_is_truth:
+        typeof executionSummary.latest_runner_completion_is_truth === "boolean"
+          ? executionSummary.latest_runner_completion_is_truth
+          : null,
     },
     evaluation_summary: {
       count: Number(evaluationSummary.count ?? 0),

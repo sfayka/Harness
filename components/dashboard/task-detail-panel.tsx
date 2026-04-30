@@ -13,6 +13,8 @@ import {
   Link2,
   Maximize2,
   Minimize2,
+  Power,
+  ShieldCheck,
 } from "lucide-react";
 import { TaskTimeline } from "./task-timeline";
 import { EvidencePanel } from "./evidence-panel";
@@ -33,6 +35,16 @@ export function TaskDetailPanel({
   isExpanded = false,
   onToggleExpand,
 }: TaskDetailPanelProps) {
+  const executionSummary = task.execution_summary ?? {
+    attempt_count: 0,
+    latest_status: null,
+    latest_dispatch_origin: null,
+    latest_execution_transport_status: null,
+    latest_live_dispatch_enabled: null,
+    latest_completion_authority: null,
+    latest_runner_completion_is_truth: null,
+  };
+
   return (
     <div className="flex flex-col h-full bg-card border-l border-border">
       {/* Header */}
@@ -232,6 +244,57 @@ export function TaskDetailPanel({
                 </CardContent>
               </Card>
             )}
+
+            {/* Execution Transport */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle>Execution Transport</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Transport</dt>
+                    <dd className="mt-0.5 font-medium">
+                      {executionSummary.latest_execution_transport_status || (
+                        <span className="text-muted-foreground">none</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Live Dispatch</dt>
+                    <dd className="mt-0.5 flex items-center gap-1">
+                      <Power className="h-3 w-3 text-muted-foreground" />
+                      <span>
+                        {executionSummary.latest_live_dispatch_enabled === null
+                          ? "none"
+                          : executionSummary.latest_live_dispatch_enabled
+                            ? "enabled"
+                            : "disabled"}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Authority</dt>
+                    <dd className="mt-0.5 flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-mono text-xs">
+                        {executionSummary.latest_completion_authority || "none"}
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Runner Truth</dt>
+                    <dd className="mt-0.5">
+                      {executionSummary.latest_runner_completion_is_truth === null
+                        ? "none"
+                        : executionSummary.latest_runner_completion_is_truth
+                          ? "trusted"
+                          : "not trusted"}
+                    </dd>
+                  </div>
+                </dl>
+              </CardContent>
+            </Card>
 
             {/* Timeline - moves to left column in expanded mode */}
             {isExpanded && <TaskTimeline events={task.timeline} />}
