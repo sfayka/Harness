@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import unittest
 
-from modules.adapters.symphony import SymphonyExecutionSubstrateAdapter
+from modules.adapters.symphony import (
+    DisabledSymphonyExecutionTransport,
+    SymphonyExecutionSubstrateAdapter,
+    SymphonyTransportDisabledError,
+)
 from modules.contracts.execution_substrate import (
     ExecutionSubstrateIntent,
     ExecutionSubstrateIntentType,
@@ -80,6 +84,44 @@ class SymphonyExecutionSubstrateAdapterTests(unittest.TestCase):
             SymphonyExecutionSubstrateAdapter(
                 harness_base_url="http://127.0.0.1:8765",
             ).render_handoff(intent)
+
+    def test_disabled_transport_previews_without_live_dispatch_authority(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-symphony-4",
+            attention_type="retryable_failure",
+            suggested_action="retry_or_redispatch",
+            reason="Task is retryable.",
+        )
+        assert intent is not None
+
+        result = DisabledSymphonyExecutionTransport(
+            harness_base_url="http://harness.test",
+        ).preview(intent)
+
+        self.assertEqual(result.status, "disabled")
+        self.assertFalse(result.dispatch_enabled)
+        self.assertFalse(result.live_dispatch_enabled)
+        self.assertEqual(result.completion_authority, "harness_verification")
+        self.assertFalse(result.runner_completion_is_truth)
+        self.assertEqual(result.handoff["mode"], "render_only")
+        self.assertFalse(result.handoff["metadata"]["safe_to_execute_live"])
+
+    def test_disabled_transport_rejects_live_dispatch_attempts(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-symphony-5",
+            attention_type="retryable_failure",
+            suggested_action="retry_or_redispatch",
+            reason="Task is retryable.",
+        )
+        assert intent is not None
+
+        with self.assertRaisesRegex(
+            SymphonyTransportDisabledError,
+            "live dispatch is disabled",
+        ):
+            DisabledSymphonyExecutionTransport(
+                harness_base_url="http://harness.test",
+            ).dispatch(intent)
 
 
 if __name__ == "__main__":
