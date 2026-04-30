@@ -299,6 +299,25 @@ def execution_substrate_intent_to_dict(intent: ExecutionSubstrateIntent) -> dict
     return payload
 
 
+def execution_substrate_intent_from_dict(payload: dict[str, Any]) -> ExecutionSubstrateIntent:
+    """Deserialize and validate an execution-substrate intent payload."""
+
+    intent = ExecutionSubstrateIntent(
+        intent_type=ExecutionSubstrateIntentType(str(payload["intent_type"])),
+        substrate_kind=str(payload["substrate_kind"]),
+        task_id=str(payload["task_id"]),
+        source=str(payload["source"]),
+        reason=str(payload["reason"]),
+        suggested_action=str(payload["suggested_action"]),
+        events_endpoint=str(payload["events_endpoint"]),
+        advisory_only=bool(payload["advisory_only"]),
+        completion_authority=str(payload["completion_authority"]),
+        prohibited_actions=tuple(str(action) for action in payload["prohibited_actions"]),
+        metadata=dict(payload["metadata"]) if isinstance(payload.get("metadata"), dict) else {},
+    )
+    return validate_execution_substrate_intent(intent)
+
+
 __all__ = [
     "ExecutionSubstrateArtifactReference",
     "ExecutionSubstrateEvent",
@@ -308,6 +327,7 @@ __all__ = [
     "ExecutionSubstrateProvenance",
     "ExecutionSubstrateValidationError",
     "build_execution_substrate_intent",
+    "execution_substrate_intent_from_dict",
     "execution_substrate_intent_to_dict",
     "validate_execution_substrate_artifact_reference",
     "validate_execution_substrate_event",
