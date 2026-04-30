@@ -61,7 +61,7 @@ python3 -m modules.execution_substrate_dryrun intent-consumer
 python3 -m modules.execution_substrate_dryrun handoff
 ```
 
-These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work. The `handoff` command renders the payload Harness would hand to a Symphony-compatible runner while keeping `safe_to_execute_live=false`.
+These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work. The `handoff` command renders the payload Harness would hand to a Symphony-compatible runner through the disabled transport boundary while keeping `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, and `safe_to_execute_live=false`.
 
 ## Local Live Smoke
 

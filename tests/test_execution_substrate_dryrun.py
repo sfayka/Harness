@@ -51,11 +51,14 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(result.intent_status, 200)
         self.assertEqual(result.intent_count, 1)
         self.assertEqual(result.rendered_intent_type, "retry_execution")
+        self.assertEqual(result.transport_status, "disabled")
         self.assertEqual(result.handoff_mode, "render_only")
         self.assertEqual(
             result.events_url,
             "http://harness.test/tasks/symphony-handoff-test-1/execution-substrate-events",
         )
+        self.assertFalse(result.dispatch_enabled)
+        self.assertFalse(result.live_dispatch_enabled)
         self.assertEqual(result.completion_authority, "harness_verification")
         self.assertFalse(result.runner_completion_is_truth)
         self.assertFalse(result.safe_to_execute_live)
@@ -105,7 +108,10 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(exit_code, 0)
         self.assertEqual(payload["task_id"], "symphony-handoff-cli-test-1")
         self.assertEqual(payload["rendered_intent_type"], "retry_execution")
+        self.assertEqual(payload["transport_status"], "disabled")
         self.assertEqual(payload["handoff_mode"], "render_only")
+        self.assertFalse(payload["dispatch_enabled"])
+        self.assertFalse(payload["live_dispatch_enabled"])
         self.assertEqual(payload["completion_authority"], "harness_verification")
         self.assertFalse(payload["runner_completion_is_truth"])
         self.assertFalse(payload["safe_to_execute_live"])

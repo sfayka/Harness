@@ -9,7 +9,7 @@ import tempfile
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from modules.adapters.symphony import SymphonyExecutionSubstrateAdapter
+from modules.adapters.symphony import DisabledSymphonyExecutionTransport
 from modules.api import HarnessApiService
 from modules.contracts.execution_substrate import (
     execution_substrate_intent_from_dict,
@@ -60,8 +60,11 @@ class ExecutionSubstrateHandoffDryRunResult:
     intent_status: int
     intent_count: int
     rendered_intent_type: str | None
+    transport_status: str
     handoff_mode: str
     events_url: str
+    dispatch_enabled: bool
+    live_dispatch_enabled: bool
     completion_authority: str
     runner_completion_is_truth: bool
     safe_to_execute_live: bool
@@ -363,10 +366,10 @@ def run_symphony_handoff_dry_run(
         )
 
         intent_entry = intent_payload["intents"][0]
-        handoff = SymphonyExecutionSubstrateAdapter(
+        transport_result = DisabledSymphonyExecutionTransport(
             harness_base_url=harness_base_url,
-        ).render_handoff(execution_substrate_intent_from_dict(intent_entry["intent"]))
-        handoff_payload = handoff.to_dict()
+        ).preview(execution_substrate_intent_from_dict(intent_entry["intent"]))
+        handoff_payload = transport_result.handoff
         return ExecutionSubstrateHandoffDryRunResult(
             task_id=task_id,
             initial_task_status=(
@@ -377,12 +380,13 @@ def run_symphony_handoff_dry_run(
             intent_status=intent_status,
             intent_count=int(intent_payload["intent_count"]),
             rendered_intent_type=handoff_payload["intent"].get("intent_type"),
+            transport_status=transport_result.status,
             handoff_mode=str(handoff_payload["mode"]),
             events_url=str(handoff_payload["callback"]["events_url"]),
-            completion_authority=str(handoff_payload["harness_boundary"]["completion_authority"]),
-            runner_completion_is_truth=bool(
-                handoff_payload["harness_boundary"]["runner_completion_is_truth"]
-            ),
+            dispatch_enabled=transport_result.dispatch_enabled,
+            live_dispatch_enabled=transport_result.live_dispatch_enabled,
+            completion_authority=transport_result.completion_authority,
+            runner_completion_is_truth=transport_result.runner_completion_is_truth,
             safe_to_execute_live=bool(handoff_payload["metadata"]["safe_to_execute_live"]),
         )
 
