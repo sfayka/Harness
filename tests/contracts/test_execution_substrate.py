@@ -15,8 +15,10 @@ from modules.contracts.execution_substrate import (
     ExecutionSubstrateProvenance,
     ExecutionSubstrateValidationError,
     build_execution_substrate_intent,
+    disabled_execution_substrate_transport_policy,
     execution_substrate_intent_from_dict,
     execution_substrate_intent_to_dict,
+    validate_disabled_execution_substrate_transport_policy,
     validate_execution_substrate_artifact_reference,
     validate_execution_substrate_event,
     validate_execution_substrate_handoff_preview,
@@ -296,6 +298,29 @@ class ExecutionSubstrateEventTests(unittest.TestCase):
             "safe_to_execute_live=false",
         ):
             validate_execution_substrate_handoff_preview(preview)
+
+    def test_disabled_transport_policy_keeps_live_execution_off(self) -> None:
+        policy = disabled_execution_substrate_transport_policy()
+
+        validated = validate_disabled_execution_substrate_transport_policy(policy)
+
+        self.assertIs(validated, policy)
+        self.assertEqual(policy["transport_status"], "disabled")
+        self.assertFalse(policy["dispatch_enabled"])
+        self.assertFalse(policy["live_dispatch_enabled"])
+        self.assertFalse(policy["runner_completion_is_truth"])
+        self.assertFalse(policy["safe_to_execute_live"])
+        self.assertEqual(policy["completion_authority"], "harness_verification")
+
+    def test_disabled_transport_policy_rejects_enabled_dispatch(self) -> None:
+        policy = disabled_execution_substrate_transport_policy()
+        policy["dispatch_enabled"] = True
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "dispatch_enabled=False",
+        ):
+            validate_disabled_execution_substrate_transport_policy(policy)
 
 
 if __name__ == "__main__":

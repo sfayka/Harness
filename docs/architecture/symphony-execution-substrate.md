@@ -175,6 +175,8 @@ Harness exposes `GET /execution-substrate/handoffs` as a read-only preview of th
 
 That preview surface is protected by the execution-substrate contract validator. A valid preview must remain `advisory_only=true`, `dispatch_enabled=false`, `completion_authority=harness_verification`, `mode=render_only`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. It must also carry the required runner prohibitions: no marking Harness complete, no treating Linear Done as truth, and no auto-merge without policy. Future live Symphony transport should add a separate execution path rather than weakening this read-only preview contract.
 
+The disabled live-transport posture is also an explicit contract. `modules/contracts/execution_substrate.py` owns the canonical disabled Symphony-compatible policy used by `GET /execution-substrate/transport-status`: `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, `completion_authority=harness_verification`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. New live transport work must introduce a separate policy-gated path rather than changing these guardrail fields opportunistically.
+
 Initial event family:
 
 - `dispatch_requested`
