@@ -25,6 +25,7 @@ from modules.local_runtime import (
     serve_runtime,
     start_runtime,
     stop_runtime,
+    _check_execution_substrate,
 )
 
 
@@ -155,6 +156,12 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(checks["github_connection"]["status"], "pass")
         self.assertEqual(checks["linear_connection"]["status"], "pass")
         self.assertEqual(checks["execution_substrate"]["status"], "pass")
+        self.assertFalse(checks["execution_substrate"]["details"]["live_dispatch_enabled"])
+        self.assertEqual(
+            checks["execution_substrate"]["details"]["completion_authority"],
+            "harness_verification",
+        )
+        self.assertFalse(checks["execution_substrate"]["details"]["runner_completion_is_truth"])
         self.assertEqual(checks["ingress_executor"]["status"], "pass")
         self.assertEqual(checks["notification_permission"]["status"], "pass")
         self.assertEqual(checks["launch_at_login"]["status"], "pass")
@@ -162,6 +169,18 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertIn("harness serve", checks["api_health"]["next_action"])
         self.assertTrue(all(check.get("impact") for check in payload["checks"]))
         self.assertTrue(all(check.get("next_action") for check in payload["checks"]))
+
+    def test_execution_substrate_warning_still_preserves_harness_authority(self) -> None:
+        missing_binary = self.data_path / "missing-symphony"
+
+        with patch("modules.local_runtime._symphony_binary_candidates", return_value=[missing_binary]):
+            check = _check_execution_substrate()
+
+        self.assertEqual(check.status, "warn")
+        self.assertEqual(check.details["mode"], "unconfigured")
+        self.assertFalse(check.details["live_dispatch_enabled"])
+        self.assertEqual(check.details["completion_authority"], "harness_verification")
+        self.assertFalse(check.details["runner_completion_is_truth"])
 
     def test_doctor_fails_when_configured_workspace_folder_is_missing(self) -> None:
         self._run_cli("init")

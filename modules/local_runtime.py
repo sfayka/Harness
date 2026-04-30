@@ -862,6 +862,9 @@ def _check_execution_substrate() -> RuntimeCheck:
                     "binary": str(candidate),
                     "checked_candidates": [str(path) for path in candidates],
                     "mode": "installed",
+                    "live_dispatch_enabled": False,
+                    "completion_authority": "harness_verification",
+                    "runner_completion_is_truth": False,
                 },
             )
 
@@ -880,6 +883,9 @@ def _check_execution_substrate() -> RuntimeCheck:
             "preferred_runner": "symphony",
             "checked_candidates": [str(path) for path in candidates],
             "mode": "unconfigured",
+            "live_dispatch_enabled": False,
+            "completion_authority": "harness_verification",
+            "runner_completion_is_truth": False,
         },
     )
 
