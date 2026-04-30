@@ -134,6 +134,16 @@ export interface ReviewSummary {
   decisions: ReviewDecision[];
 }
 
+export interface ExecutionSummary {
+  attempt_count: number;
+  latest_status: string | null;
+  latest_dispatch_origin: string | null;
+  latest_execution_transport_status: string | null;
+  latest_live_dispatch_enabled: boolean | null;
+  latest_completion_authority: string | null;
+  latest_runner_completion_is_truth: boolean | null;
+}
+
 export interface TimelineEvent {
   event_id: string;
   event_type:
@@ -171,6 +181,7 @@ export interface Task {
   verification_summary: VerificationSummary | null;
   reconciliation_summary: ReconciliationSummary | null;
   review_summary: ReviewSummary;
+  execution_summary?: ExecutionSummary;
   evaluation_summary: {
     count: number;
     latest_action: string | null;
