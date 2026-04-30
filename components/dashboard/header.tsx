@@ -11,6 +11,7 @@ export function DashboardHeader() {
     { href: "/verification", label: "Verification" },
     { href: "/reconciliation", label: "Reconciliation" },
     { href: "/reviews", label: "Reviews" },
+    { href: "/execution", label: "Execution" },
   ];
 
   return (

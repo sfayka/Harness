@@ -185,3 +185,57 @@ export interface Task {
   timeline: TimelineEvent[];
   priority: Priority;
 }
+
+export interface ExecutionSubstrateHandoff {
+  task_id: string;
+  attention_type: string;
+  current_status: string;
+  last_activity_at: string | null;
+  handoff: {
+    adapter: string;
+    mode: string;
+    intent: {
+      intent_type: string;
+      substrate_kind: string;
+      task_id: string;
+      source: string;
+      reason: string;
+      suggested_action: string;
+      advisory_only: boolean;
+      events_endpoint: string;
+      completion_authority: string;
+      prohibited_actions: string[];
+    };
+    harness_boundary: {
+      completion_authority: string;
+      advisory_only: boolean;
+      runner_completion_is_truth: boolean;
+      artifact_verification_required: boolean;
+    };
+    runner_policy: {
+      substrate_kind: string;
+      allowed_intent_type: string;
+      prohibited_actions: string[];
+    };
+    callback: {
+      events_endpoint: string;
+      events_url: string;
+      event_contract: string;
+    };
+    metadata: {
+      task_id: string;
+      source: string;
+      safe_to_execute_live: boolean;
+    };
+  };
+}
+
+export interface ExecutionSubstrateHandoffPreview {
+  generated_at: string;
+  handoff_count: number;
+  handoffs: ExecutionSubstrateHandoff[];
+  source: string;
+  advisory_only: boolean;
+  dispatch_enabled: boolean;
+  completion_authority: string;
+}

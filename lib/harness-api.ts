@@ -2,6 +2,7 @@ import type {
   ReconciliationStatus,
   ReviewDecision,
   ReviewRequest,
+  ExecutionSubstrateHandoffPreview,
   Task,
   TimelineEvent,
   VerificationStatus,
@@ -433,4 +434,96 @@ export async function fetchTaskDetail(taskId: string): Promise<Task> {
     ? timelinePayload.timeline.map((event) => mapTimelineEvent(event))
     : [];
   return mapTask(taskPayload.task, timeline);
+}
+
+function mapStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
+  const handoff =
+    entry.handoff && typeof entry.handoff === "object"
+      ? (entry.handoff as Record<string, unknown>)
+      : {};
+  const intent =
+    handoff.intent && typeof handoff.intent === "object"
+      ? (handoff.intent as Record<string, unknown>)
+      : {};
+  const harnessBoundary =
+    handoff.harness_boundary && typeof handoff.harness_boundary === "object"
+      ? (handoff.harness_boundary as Record<string, unknown>)
+      : {};
+  const runnerPolicy =
+    handoff.runner_policy && typeof handoff.runner_policy === "object"
+      ? (handoff.runner_policy as Record<string, unknown>)
+      : {};
+  const callback =
+    handoff.callback && typeof handoff.callback === "object"
+      ? (handoff.callback as Record<string, unknown>)
+      : {};
+  const metadata =
+    handoff.metadata && typeof handoff.metadata === "object"
+      ? (handoff.metadata as Record<string, unknown>)
+      : {};
+
+  return {
+    task_id: String(entry.task_id ?? ""),
+    attention_type: String(entry.attention_type ?? ""),
+    current_status: String(entry.current_status ?? ""),
+    last_activity_at: (entry.last_activity_at as string | null | undefined) ?? null,
+    handoff: {
+      adapter: String(handoff.adapter ?? ""),
+      mode: String(handoff.mode ?? ""),
+      intent: {
+        intent_type: String(intent.intent_type ?? ""),
+        substrate_kind: String(intent.substrate_kind ?? ""),
+        task_id: String(intent.task_id ?? ""),
+        source: String(intent.source ?? ""),
+        reason: String(intent.reason ?? ""),
+        suggested_action: String(intent.suggested_action ?? ""),
+        advisory_only: Boolean(intent.advisory_only),
+        events_endpoint: String(intent.events_endpoint ?? ""),
+        completion_authority: String(intent.completion_authority ?? ""),
+        prohibited_actions: mapStringArray(intent.prohibited_actions),
+      },
+      harness_boundary: {
+        completion_authority: String(harnessBoundary.completion_authority ?? ""),
+        advisory_only: Boolean(harnessBoundary.advisory_only),
+        runner_completion_is_truth: Boolean(harnessBoundary.runner_completion_is_truth),
+        artifact_verification_required: Boolean(harnessBoundary.artifact_verification_required),
+      },
+      runner_policy: {
+        substrate_kind: String(runnerPolicy.substrate_kind ?? ""),
+        allowed_intent_type: String(runnerPolicy.allowed_intent_type ?? ""),
+        prohibited_actions: mapStringArray(runnerPolicy.prohibited_actions),
+      },
+      callback: {
+        events_endpoint: String(callback.events_endpoint ?? ""),
+        events_url: String(callback.events_url ?? ""),
+        event_contract: String(callback.event_contract ?? ""),
+      },
+      metadata: {
+        task_id: String(metadata.task_id ?? ""),
+        source: String(metadata.source ?? ""),
+        safe_to_execute_live: Boolean(metadata.safe_to_execute_live),
+      },
+    },
+  };
+}
+
+export async function fetchExecutionSubstrateHandoffs(): Promise<ExecutionSubstrateHandoffPreview> {
+  const payload = (await fetchJson("/execution-substrate/handoffs")) as Record<string, unknown>;
+  const handoffs = Array.isArray(payload.handoffs)
+    ? payload.handoffs.map((entry) => mapExecutionSubstrateHandoff(entry as Record<string, unknown>))
+    : [];
+
+  return {
+    generated_at: String(payload.generated_at ?? ""),
+    handoff_count: Number(payload.handoff_count ?? handoffs.length),
+    handoffs,
+    source: String(payload.source ?? ""),
+    advisory_only: Boolean(payload.advisory_only),
+    dispatch_enabled: Boolean(payload.dispatch_enabled),
+    completion_authority: String(payload.completion_authority ?? ""),
+  };
 }
