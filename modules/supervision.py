@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from modules.read_model import HarnessReadModelService
+from modules.contracts.execution_substrate import (
+    build_execution_substrate_intent,
+    execution_substrate_intent_to_dict,
+)
 from modules.store import HarnessStore, build_harness_store
 
 _CODE_EXECUTION_ARTIFACT_TYPES = frozenset({"branch", "commit", "pull_request", "changed_file"})
@@ -211,32 +215,18 @@ class HarnessSupervisionService:
         suggested_action: str,
         reason: str,
     ) -> dict[str, Any] | None:
-        if attention_type == "retryable_failure" and suggested_action == "retry_or_redispatch":
-            intent_type = "retry_execution"
-        elif attention_type == "stale_active_task" and suggested_action == "investigate_staleness":
-            intent_type = "investigate_or_restart_execution"
-        else:
-            return None
-
         task_id = str(task.get("task_id") or "")
         if not task_id:
             return None
-        return {
-            "intent_type": intent_type,
-            "substrate_kind": "symphony-compatible",
-            "task_id": task_id,
-            "source": "harness_supervision_queue",
-            "reason": reason,
-            "suggested_action": suggested_action,
-            "advisory_only": True,
-            "events_endpoint": f"/tasks/{task_id}/execution-substrate-events",
-            "completion_authority": "harness_verification",
-            "prohibited_actions": [
-                "mark_harness_complete",
-                "move_linear_to_done_as_truth",
-                "auto_merge_without_policy",
-            ],
-        }
+        intent = build_execution_substrate_intent(
+            task_id=task_id,
+            attention_type=attention_type,
+            suggested_action=suggested_action,
+            reason=reason,
+        )
+        if intent is None:
+            return None
+        return execution_substrate_intent_to_dict(intent)
 
     def list_attention_queue(self) -> list[dict[str, Any]]:
         priority = {

@@ -9,10 +9,15 @@ from modules.contracts.execution_substrate import (
     ExecutionSubstrateArtifactReference,
     ExecutionSubstrateEvent,
     ExecutionSubstrateEventType,
+    ExecutionSubstrateIntent,
+    ExecutionSubstrateIntentType,
     ExecutionSubstrateProvenance,
     ExecutionSubstrateValidationError,
+    build_execution_substrate_intent,
+    execution_substrate_intent_to_dict,
     validate_execution_substrate_artifact_reference,
     validate_execution_substrate_event,
+    validate_execution_substrate_intent,
 )
 
 
@@ -109,6 +114,89 @@ class ExecutionSubstrateEventTests(unittest.TestCase):
             "must not start with verification_status=verified",
         ):
             validate_execution_substrate_artifact_reference(artifact)
+
+    def test_builds_retry_intent_as_advisory_harness_handoff(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-1",
+            attention_type="retryable_failure",
+            suggested_action="retry_or_redispatch",
+            reason="Task is retryable.",
+        )
+
+        self.assertIsNotNone(intent)
+        assert intent is not None
+        payload = execution_substrate_intent_to_dict(intent)
+
+        self.assertEqual(payload["intent_type"], "retry_execution")
+        self.assertEqual(payload["substrate_kind"], "symphony-compatible")
+        self.assertEqual(payload["task_id"], "task-1")
+        self.assertTrue(payload["advisory_only"])
+        self.assertEqual(payload["events_endpoint"], "/tasks/task-1/execution-substrate-events")
+        self.assertEqual(payload["completion_authority"], "harness_verification")
+        self.assertIn("mark_harness_complete", payload["prohibited_actions"])
+        self.assertIn("move_linear_to_done_as_truth", payload["prohibited_actions"])
+        self.assertIn("auto_merge_without_policy", payload["prohibited_actions"])
+
+    def test_builds_stale_task_intent_as_investigation_request(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-1",
+            attention_type="stale_active_task",
+            suggested_action="investigate_staleness",
+            reason="Task is stale.",
+        )
+
+        self.assertIsNotNone(intent)
+        assert intent is not None
+        self.assertEqual(
+            intent.intent_type,
+            ExecutionSubstrateIntentType.INVESTIGATE_OR_RESTART_EXECUTION,
+        )
+
+    def test_intent_builder_ignores_non_runner_attention_items(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-1",
+            attention_type="review_required",
+            suggested_action="manual_review",
+            reason="Review is required.",
+        )
+
+        self.assertIsNone(intent)
+
+    def test_intent_rejects_completion_authority_transfer(self) -> None:
+        intent = ExecutionSubstrateIntent(
+            intent_type=ExecutionSubstrateIntentType.RETRY_EXECUTION,
+            substrate_kind="symphony-compatible",
+            task_id="task-1",
+            source="harness_supervision_queue",
+            reason="Task is retryable.",
+            suggested_action="retry_or_redispatch",
+            events_endpoint="/tasks/task-1/execution-substrate-events",
+            completion_authority="symphony",
+        )
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "completion_authority=harness_verification",
+        ):
+            validate_execution_substrate_intent(intent)
+
+    def test_intent_rejects_missing_prohibited_actions(self) -> None:
+        intent = ExecutionSubstrateIntent(
+            intent_type=ExecutionSubstrateIntentType.RETRY_EXECUTION,
+            substrate_kind="symphony-compatible",
+            task_id="task-1",
+            source="harness_supervision_queue",
+            reason="Task is retryable.",
+            suggested_action="retry_or_redispatch",
+            events_endpoint="/tasks/task-1/execution-substrate-events",
+            prohibited_actions=("mark_harness_complete",),
+        )
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "missing required prohibited actions",
+        ):
+            validate_execution_substrate_intent(intent)
 
 
 if __name__ == "__main__":
