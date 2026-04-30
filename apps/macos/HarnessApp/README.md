@@ -15,6 +15,7 @@ Do not add new menu-bar, first-run onboarding, notification, Launch at Login, si
 ## Validate
 
 ```bash
+export HARNESS_ENABLE_DEPRECATED_MACOS_APP=1
 swift build
 swift run HarnessAppCoreCheck
 ```
@@ -22,7 +23,7 @@ swift run HarnessAppCoreCheck
 The repo-level launch path is:
 
 ```bash
-./script/build_and_run.sh --verify
+HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 ./script/build_and_run.sh --verify
 ```
 
 When `dist/local-dashboard/index.html` exists, the repo launch script passes it to the app as `HARNESS_DASHBOARD_ASSETS_DIR`.
@@ -35,13 +36,14 @@ HARNESS_DEV_BUNDLE_ID=com.knoxanalytics.harness.local.first-run-proof \
 HARNESS_APP_DATA_DIR=/tmp/harness-first-run/data \
 HARNESS_APP_LOG_DIR=/tmp/harness-first-run/logs \
 HARNESS_RUNTIME_PORT=18767 \
+HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 \
 ./script/build_and_run.sh --verify
 ```
 
 The distributable packaging path is:
 
 ```bash
-./script/package_macos_app.sh
+HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 ./script/package_macos_app.sh
 ```
 
 That script stages a self-contained `Harness.app` and `Harness.dmg` under `dist/macos-release/` with a bundled `harness` runtime and prebuilt dashboard assets.

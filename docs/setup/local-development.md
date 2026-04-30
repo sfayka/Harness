@@ -282,6 +282,12 @@ The normal hosted/developer dashboard still uses `pnpm dev` or `pnpm build` and 
 
 The native macOS package path is deprecated. Do not use `./script/package_macos_app.sh`, Developer ID signing, notarization, or DMG output as the normal Harness validation or release path unless a future task explicitly reopens the native app decision.
 
+The legacy script now requires an explicit opt-in:
+
+```bash
+HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 ./script/package_macos_app.sh
+```
+
 The reusable packaging work that remains relevant is the static dashboard bundle plus the local runtime contract above.
 
 ### One-Command Demo Bootstrap
