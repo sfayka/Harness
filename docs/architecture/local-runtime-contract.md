@@ -1,7 +1,7 @@
 # Local Runtime Contract
 
-Harness local app builds control the Python backend through a stable runtime contract.
-The app shell should not import backend internals, write SQLite directly, or depend on repo-local shell exports.
+Harness local CLI/web usage controls the Python backend through a stable runtime contract.
+Any packaging or shell around this contract should not import backend internals, write SQLite directly, or depend on repo-local shell exports.
 
 ## Command Surface
 
@@ -26,7 +26,7 @@ Commands:
 - `harness secrets set <name> --value-stdin`
 - `harness secrets delete <name>`
 
-The CLI supports `--json` for app-shell consumption. JSON output is the contract the macOS menu-bar app should use, and it is also the portability boundary a future Linux shell must reuse.
+The CLI supports `--json` for automation and future packaging. JSON output is the supported local runtime contract; native shell code is no longer a product requirement.
 
 ## App-Managed Paths
 
@@ -50,7 +50,7 @@ Default Linux paths:
 
 Developer and test runs may override paths with `--data-dir`, `--log-dir`, `HARNESS_APP_DATA_DIR`,
 or `HARNESS_APP_LOG_DIR`.
-Normal app usage should rely on app-managed defaults.
+Normal local usage should rely on app-managed defaults.
 
 ## Runtime Config
 
@@ -82,7 +82,7 @@ This is what removes the need for Docker, Node, `pnpm`, or repo-local shell expo
 
 ## Secret Store
 
-macOS v1 stores local app secrets in Keychain. The stable Harness secret names are:
+On macOS, the local runtime stores secrets in Keychain. The stable Harness secret names are:
 
 - `github_token`, mapped to `GITHUB_TOKEN`
 - `linear_api_key`, mapped to `LINEAR_API_KEY`
@@ -98,7 +98,7 @@ python3 -m modules.local_runtime --json secrets delete github_token
 ```
 
 Secret status output is redacted. It reports configured, missing, unavailable, and error states without returning token values.
-Existing environment variables win over Keychain values so native developer `.env.local` workflows still work.
+Existing environment variables win over Keychain values so developer `.env.local` workflows still work.
 
 Provider selection is platform-aware. Darwin uses `macos-keychain`; Linux is reserved for the `linux-secret-service` boundary even though the Linux provider is still deferred.
 
@@ -106,11 +106,11 @@ See [app-managed-secrets.md](app-managed-secrets.md).
 
 ## Guided Setup
 
-`harness setup status --json` is the app-renderable onboarding contract.
+`harness setup status --json` is the machine-readable setup contract.
 It converts `harness doctor --json` into setup items with purpose, requirements, validation status, and next actions.
 
-Default onboarding requires only the local Harness runtime.
-Missing GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the app selects a workflow that requires one of them:
+Default setup requires only the local Harness runtime.
+Missing GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the selected workflow requires one of them:
 
 ```bash
 python3 -m modules.local_runtime --json setup status
@@ -126,15 +126,15 @@ The current workflow gates are:
 - `repair-dispatch`: requires a desktop-agent ingress/executor bridge.
 
 Setup items use the app-managed secret boundary.
-The GitHub and Linear items tell the app which named secret to store and how Harness validates it; they do not ask normal users to edit env files.
+The GitHub and Linear items tell the operator which named secret to store and how Harness validates it; they do not ask operators to edit env files.
 The ingress/executor item stays client-neutral and describes the bridge as compatible with OpenClaw, Hermes, Codex, or future desktop-agent clients.
 
 See [guided-integration-setup.md](guided-integration-setup.md).
 
 ## Dashboard Assets
 
-The local app dashboard is a prebuilt static bundle served by the Python backend.
-It is not a second server process and it is not a Node runtime embedded in the app package.
+The local static dashboard is a prebuilt bundle served by the Python backend.
+It is not a second server process and it is not a Node runtime embedded in a native app package.
 
 Developer builds produce the local bundle with:
 
@@ -142,7 +142,7 @@ Developer builds produce the local bundle with:
 pnpm build:dashboard:local
 ```
 
-Packaged builds should copy that bundle into `dashboard_assets_dir`, or set `HARNESS_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `harness serve`.
+Future packaged CLI/web builds should copy that bundle into `dashboard_assets_dir`, or set `HARNESS_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `harness serve`.
 
 When the configured directory contains `index.html`, the backend mounts it at:
 
@@ -156,10 +156,10 @@ The dashboard calls the same-origin local Harness API. If the backend is unavail
 
 ## Status And Health
 
-The backend exposes two app-shell-safe probes:
+The backend exposes two runtime-safe probes:
 
 - `GET /health`: canonical backend and storage health.
-- `GET /runtime/status`: local app runtime status envelope that includes mode, API base URL,
+- `GET /runtime/status`: local runtime status envelope that includes mode, API base URL,
   store backend, secret provider, schema readiness, and app-managed paths.
 
 `harness status --json` calls the local health endpoint and returns:
@@ -194,8 +194,8 @@ Current checks cover:
 - GitHub credential setup state
 - Linear credential setup state
 - ingress/executor bridge setup state
-- notification permission state reported by the app shell
-- Launch at Login state reported by the app shell
+- optional notification permission state reported by a wrapper shell
+- optional launch-at-login state reported by a wrapper shell
 - selected workspace folder availability
 
 The local API check is a warning when the runtime is stopped.
@@ -228,10 +228,10 @@ It is still useful for foreground debugging and for the background process launc
 `harness stop` reads the PID file and sends `SIGTERM`.
 Missing or stale PID files are treated as already stopped because the desired state is satisfied.
 
-`harness recover` is the app-facing repair action for crashed, stale, or degraded runtime state.
+`harness recover` is the runtime repair action for crashed, stale, or degraded runtime state.
 It stops an unhealthy PID-backed process when possible, clears stale PID files, starts a fresh runtime, waits for health, and reports the same user-facing JSON shape as `start`.
 
-The local API binds to loopback by default. Network exposure is out of scope for the local app v1 contract.
+The local API binds to loopback by default. Network exposure is out of scope for the local runtime contract.
 
 `harness open` should open the dashboard URL by default:
 

@@ -1,12 +1,12 @@
 # Setup Doctor Contract
 
-`harness doctor --json` is the local app setup report.
-The menu-bar app and onboarding flow should render this JSON directly instead of parsing logs or backend exception text.
+`harness doctor --json` is the local runtime setup report.
+CLI tooling and any future packaging should render this JSON directly instead of parsing logs or backend exception text.
 For user-facing onboarding steps, prefer `harness setup status --json`, which maps these checks into guided setup items and workflow-specific blockers.
 
 The doctor is intentionally broader than `/health`.
 `/health` reports whether the backend is alive.
-`doctor` explains whether the local app is set up well enough for normal users to understand what is missing and what to do next.
+`doctor` explains whether the local runtime is set up well enough for operators to understand what is missing and what to do next.
 
 ## Check Shape
 
@@ -62,14 +62,13 @@ The current doctor covers:
 - `linear_connection`: Linear credential setup state.
 - `execution_substrate`: Symphony-compatible execution-substrate availability.
 - `ingress_executor`: legacy desktop-agent bridge setup state for the current OpenClaw-shaped adapter wiring, without making OpenClaw the product boundary.
-- `notification_permission`: notification permission state reported by the app shell.
-- `launch_at_login`: launch-at-login state reported by the app shell.
+- `notification_permission`: optional notification permission state reported by a wrapper shell.
+- `launch_at_login`: optional launch-at-login state reported by a wrapper shell.
 - `workspace_folders`: configured local workspace folder availability.
 
-## App Shell Inputs
+## Optional Shell Inputs
 
-Some checks depend on facts owned by the native app shell.
-Until the Swift app owns these directly, the CLI reads these environment variables:
+Some checks can accept facts from an optional shell or wrapper. The native macOS shell is deprecated, but the CLI still reads these environment variables when present:
 
 - `HARNESS_NOTIFICATION_PERMISSION`: `authorized`, `denied`, or `not_determined`.
 - `HARNESS_LAUNCH_AT_LOGIN`: `enabled` or `disabled`.

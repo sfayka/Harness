@@ -1,6 +1,8 @@
 # Documentation Readiness Checklist
 
-Use this checklist before calling Harness local-app documentation release-ready.
+This checklist captured the older local-app documentation release pass. The native macOS app is now deprecated; use this file as historical evidence, not as the active release checklist.
+
+Current documentation readiness should prove the CLI/runtime contract, backend API, web dashboard, deterministic dry runs, and hosted/local verification paths. Developer ID signing, notarization, DMG production, Launch at Login, and native first-run onboarding are no longer release blockers.
 
 ## Verified In This Pass
 
@@ -17,9 +19,9 @@ Use this checklist before calling Harness local-app documentation release-ready.
 - [x] Fresh macOS first-run walkthrough reaches local SQLite-backed dashboard readiness. See [macos-first-run-walkthrough-2026-04-23.md](macos-first-run-walkthrough-2026-04-23.md).
 - [x] Final onboarding screenshots are captured and referenced from the local quickstart.
 
-## Still Required Before Official Release
+## Historical macOS Release Items
 
 - [x] Run the gated live reset smoke with real GitHub and Linear dry-run targets. See [live-reset-smoke-2026-04-23.md](live-reset-smoke-2026-04-23.md).
-- [ ] Verify a Developer ID signed and notarized DMG, not only the ad-hoc internal package.
+- [ ] Verify a Developer ID signed and notarized DMG, not only the ad-hoc internal package. Deprecated with the native macOS app pivot; no longer required for the supported Harness path.
   Current local blocker: `security find-identity -v -p codesigning` reports `0 valid identities found`, so this machine cannot produce a Developer ID signed DMG yet. See [macos-notarization-readiness-2026-04-24.md](macos-notarization-readiness-2026-04-24.md).
 - [x] Re-run every reader-facing command after the final app UI and installer flow land. See [reader-command-verification-2026-04-27.md](reader-command-verification-2026-04-27.md).

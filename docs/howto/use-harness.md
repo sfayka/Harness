@@ -14,10 +14,10 @@ Run:
 curl -sS http://127.0.0.1:8000/health
 ```
 
-For the packaged local app, use the runtime status command instead:
+For local CLI/runtime operation, use the runtime status command:
 
 ```bash
-harness status --json
+python3 -m modules.local_runtime --json status
 ```
 
 ## Open The Dashboard
@@ -32,7 +32,7 @@ Developer dashboard:
 http://127.0.0.1:3000/tasks
 ```
 
-Packaged local app dashboard:
+Local static dashboard:
 
 ```text
 http://127.0.0.1:8765/dashboard/tasks/

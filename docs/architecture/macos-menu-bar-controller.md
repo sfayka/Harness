@@ -1,5 +1,7 @@
 # macOS Menu-Bar Controller
 
+Status: deprecated. Harness now supports CLI + API + web dashboard as the operator surface; this document remains historical context for the legacy Swift shell.
+
 The macOS menu-bar controller is the first native Harness app shell.
 It gives daily operators a small status surface even when the full dashboard is closed.
 

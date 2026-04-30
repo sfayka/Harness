@@ -1,14 +1,14 @@
 # Guided Integration Setup
 
-`harness setup status --json` is the local app onboarding contract.
-It turns the lower-level setup doctor into user-facing setup items that a normal desktop app can render directly.
+`harness setup status --json` is the local runtime setup contract.
+It turns the lower-level setup doctor into user-facing setup items that CLI/web flows and future packaging can render directly.
 
 The setup contract is intentionally client-neutral.
 Harness can integrate with OpenClaw, Hermes, Codex, or a future desktop-agent client, but Harness must not become architecturally tied to one of them.
 
 ## Command
 
-From a packaged app, expose:
+From a future packaged CLI, expose:
 
 ```bash
 harness setup status
@@ -20,12 +20,12 @@ From a repo checkout, use:
 python3 -m modules.local_runtime --json setup status
 ```
 
-The command exits with `0` when onboarding can finish.
+The command exits with `0` when setup can finish.
 It exits with setup-required when a required item is missing for the selected workflow.
 
-## Default Onboarding
+## Default Setup
 
-Default onboarding only requires the local Harness runtime:
+Default setup only requires the local Harness runtime:
 
 - writable app data and log directories
 - app-managed runtime config
@@ -35,8 +35,8 @@ Default onboarding only requires the local Harness runtime:
 Missing GitHub, Linear, execution-substrate, and legacy ingress/executor setup appears as incomplete optional work.
 Those integrations become blockers only when the user selects a workflow that needs them.
 
-Warnings for API stopped, dashboard assets, notifications, or Launch at Login are actionable, but they do not block runtime-only onboarding.
-The app can start the API when live progress is needed, and notification/startup preferences remain user choices.
+Warnings for API stopped, dashboard assets, notifications, or launch-at-login wrapper state are actionable, but they do not block runtime-only setup.
+The CLI can start the API when live progress is needed, and notification/startup preferences remain wrapper-level choices.
 
 ## Workflow Requirements
 
@@ -54,7 +54,7 @@ Current workflow gates:
 - `linear-sync` requires Linear coordination.
 - `repair-dispatch` requires the execution substrate.
 
-Multiple `--workflow` flags can be passed when the app needs to validate a combined workflow.
+Multiple `--workflow` flags can be passed when the operator needs to validate a combined workflow.
 
 ## Setup Items
 
@@ -96,7 +96,7 @@ The top-level payload includes:
 
 GitHub and Linear credentials must be stored through the app-managed secret boundary.
 The setup contract names the secret to store and exposes the redacted validation status.
-It must not ask normal users to edit env files.
+It must not ask operators to edit env files.
 
 Current secret names:
 

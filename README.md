@@ -39,6 +39,7 @@ In hosted Vercel runtimes, the reset slice is not allowed to take the whole back
 - An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
 
 Harness is not a PM tool, an agent runtime, or a chatbot UI.
+Harness is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app under `apps/macos/HarnessApp` remains legacy/experimental code while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
 Client-specific ingress adapters are also intentionally narrow. The repo currently includes an OpenClaw-shaped ingress translator, but the same restriction applies to Hermes or any future desktop agent client: it can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If a client wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If it also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
 On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only attention projection for external supervisors and Symphony-compatible runner adapters. It surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, waiting on canonical GitHub sync, or stale. `GET /execution-substrate/intents` provides the runner-facing filtered view of only the Symphony-compatible continuation intents. Neither endpoint authorizes actions on its own, and neither replaces canonical reevaluation, execution-substrate event ingestion, completion-claim, or GitHub sync paths.
@@ -172,14 +173,14 @@ See:
 ### Frontend
 
 - Next.js 16 app in [`app/`](app) with shared dashboard components in [`components/`](components).
-- Root route redirects to `/tasks` in normal Next mode. The static local-app export renders the tasks view at `/dashboard/` so the packaged dashboard has a working entrypoint.
+- Root route redirects to `/tasks` in normal Next mode. The static local dashboard export renders the tasks view at `/dashboard/` so a Python-served local dashboard has a working entrypoint.
 - Main working views:
   - `/tasks`
   - `/verification`
   - `/reconciliation`
   - `/reviews`
 - Frontend reads backend data through the Next proxy route at [`app/api/harness/[...path]/route.ts`](app/api/harness/[...path]/route.ts).
-- Local app builds can also export the dashboard as static assets under `/dashboard` with [`scripts/build-local-dashboard.mjs`](scripts/build-local-dashboard.mjs). That packageable path serves the dashboard from the Python backend and calls the same-origin Harness API directly, so normal users do not need Node or `pnpm`.
+- Local CLI/web builds can also export the dashboard as static assets under `/dashboard` with [`scripts/build-local-dashboard.mjs`](scripts/build-local-dashboard.mjs). That packageable path serves the dashboard from the Python backend and calls the same-origin Harness API directly, so operators do not need Node or `pnpm`.
 - The frontend requires a reachable backend, either through the hosted Next proxy or the local same-origin API. If the backend is missing or unreachable, the UI shows an error; it does not silently switch to fake live data.
 
 ### Backend
@@ -213,16 +214,16 @@ See:
 - Store selection is controlled by `HARNESS_STORE_BACKEND`.
 - Supported backends:
   - `file` for local JSON-backed development.
-  - `sqlite` for durable local app state without Docker or hosted services.
+  - `sqlite` for durable local CLI/web state without Docker or hosted services.
   - `postgres` for durable hosted state.
 - Postgres storage is implemented in [`modules/store.py`](modules/store.py) and bootstrapped with [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql).
 - SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
 - The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
-- The local app runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
+- The local runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
 - App-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
 - Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
 - Setup doctor output is documented in [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md).
-- The macOS menu-bar app can request optional notifications and delivers attention alerts from canonical Harness queue/setup surfaces; delivery is reversible from Settings and never reads SQLite directly.
+- The deprecated macOS menu-bar app remains legacy code only; supported local operation should use the CLI/runtime contract and web dashboard.
 
 ## Hosted Deployment Target
 
@@ -256,7 +257,7 @@ Backend inspection routes:
 - `GET /tasks/<task_id>/read-model`: canonical detail surface for current task truth.
 - `GET /tasks/<task_id>/timeline`: canonical audit timeline.
 - `GET /supervision/queue`: canonical autonomous-supervision triage surface.
-- `GET /runtime/status`: local app runtime status envelope for menu-bar polling.
+- `GET /runtime/status`: local runtime status envelope for CLI/web packaging and automation.
 
 For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
 
@@ -279,11 +280,11 @@ Backend storage environment variables:
 - `HARNESS_STORE_BACKEND`
   - Supported values: `file`, `sqlite`, `postgres`
   - Default in [`.env.example`](.env.example): `file`
-  - Self-contained local app mode should use `sqlite`
+  - Self-contained local CLI/web mode should use `sqlite`
   - Hosted Vercel deployments auto-select `postgres` when managed Postgres connection variables are present
 - `HARNESS_SQLITE_PATH`
   - Optional explicit SQLite database file path when `HARNESS_STORE_BACKEND=sqlite`
-  - macOS local app default: `~/Library/Application Support/Harness/harness.db`
+  - macOS local default: `~/Library/Application Support/Harness/harness.db`
   - Linux default: `$XDG_DATA_HOME/harness/harness.db`, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset
   - If `HARNESS_STORE_ROOT` is set and `HARNESS_SQLITE_PATH` is not, Harness uses `<HARNESS_STORE_ROOT>/harness.db`
 - Postgres connection string
@@ -313,7 +314,7 @@ If the reset verifier rejects a claim and the repair callback itself cannot be d
 
 The `OPENCLAW_*` variable names remain because the current repo-owned repair receiver adapter is OpenClaw-specific today. They should be treated as implementation details, not as the architectural boundary.
 
-For native local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the current repo-owned OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
+For local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the current repo-owned OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
 
 Relevant supporting files:
 
@@ -348,9 +349,9 @@ export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
-SQLite mode creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in the local database. This is the intended persistence base for the self-contained local app.
+SQLite mode creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in the local database. This is the intended persistence base for self-contained local CLI/web usage.
 
-Run the local app runtime contract from a repo checkout:
+Run the local runtime contract from a repo checkout:
 
 ```bash
 python3 -m modules.local_runtime --json init
@@ -364,9 +365,9 @@ python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
 
-Packaged builds should expose the same contract as `harness init`, `harness start`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness recover`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so normal users do not need Docker, Node, `pnpm`, or repo-local shell exports.
+Future packaged CLI builds should expose the same contract as `harness init`, `harness start`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness recover`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so operators do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
-Build the packageable dashboard assets for the local app path:
+Build the packageable dashboard assets for the local CLI/web path:
 
 ```bash
 pnpm build:dashboard:local
@@ -374,7 +375,7 @@ pnpm build:dashboard:local
 
 The output lives in `dist/local-dashboard/`. When `HARNESS_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API.
 
-Store app-managed secrets for packaged local app usage:
+Store app-managed secrets for local CLI/web usage:
 
 ```bash
 printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
@@ -382,9 +383,9 @@ printf '%s' "$LINEAR_API_KEY" | python3 -m modules.local_runtime --json secrets 
 python3 -m modules.local_runtime --json secrets status --require github_token
 ```
 
-The secrets command reports setup state without printing token values. Developer `.env.local` mode remains supported for native local development, but packaged app onboarding should use the secret store instead of asking users to edit env files.
+The secrets command reports setup state without printing token values. Developer `.env.local` mode remains supported for local development, but normal local CLI/web usage should prefer the secret store instead of asking operators to edit env files.
 
-Use guided setup status for the onboarding flow:
+Use guided setup status for CLI/web setup:
 
 ```bash
 python3 -m modules.local_runtime --json setup status
@@ -393,27 +394,22 @@ python3 -m modules.local_runtime --json setup status --workflow linear-sync
 python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
 ```
 
-Default onboarding only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
+Default setup only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
-The native macOS app shell starts under [`apps/macos/HarnessApp`](apps/macos/HarnessApp). It is a SwiftPM menu-bar app that reads runtime/task state through the local CLI and API contracts, not through direct SQLite access. It opens first-run onboarding automatically, exposes setup again from the menu bar, controls Launch at Login through `SMAppService`, supervises the backend through app-managed `start`/`stop`/`recover` commands, and opens the full local dashboard inside an app window while keeping browser/copy-URL fallbacks for debugging. Build and launch development builds with:
+The native macOS app shell under [`apps/macos/HarnessApp`](apps/macos/HarnessApp) is deprecated as a supported product surface. Do not treat the Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Harness path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend.
+
+The legacy development commands still exist for compatibility, but they are not part of the recommended operator path:
 
 ```bash
 ./script/build_and_run.sh
-```
-
-Build a distributable self-contained app bundle and DMG with:
-
-```bash
 ./script/package_macos_app.sh
 ```
 
-That release path bundles the native app, a frozen `harness` runtime, and prebuilt dashboard assets into `dist/macos-release/Harness.app` and `dist/macos-release/Harness.dmg`. Normal users should not need a repo checkout, Python, Node, `pnpm`, or Docker after install.
+No new product work should depend on those commands. Normal Harness operation should be CLI + API + web dashboard.
 
-Linux shell work remains deferred, but the reusable backend/CLI/dashboard boundaries are now documented in [`docs/architecture/linux-portability-contract.md`](docs/architecture/linux-portability-contract.md).
+See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md), [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md), and [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md). The older macOS architecture notes remain for historical context only.
 
-See [`docs/architecture/macos-menu-bar-controller.md`](docs/architecture/macos-menu-bar-controller.md), [`docs/architecture/macos-onboarding-assistant.md`](docs/architecture/macos-onboarding-assistant.md), [`docs/architecture/macos-daemon-lifecycle.md`](docs/architecture/macos-daemon-lifecycle.md), [`docs/architecture/macos-dashboard-window.md`](docs/architecture/macos-dashboard-window.md), [`docs/architecture/macos-packaging.md`](docs/architecture/macos-packaging.md), and [`docs/architecture/linux-portability-contract.md`](docs/architecture/linux-portability-contract.md).
-
-`backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for native local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
+`backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
 Run the backend with Postgres:
 

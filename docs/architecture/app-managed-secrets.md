@@ -1,11 +1,11 @@
 # App-Managed Secrets
 
-Harness local app builds must not ask normal users to edit `.env.local`.
+Harness local CLI/web usage must not ask operators to edit `.env.local`.
 Non-secret runtime config lives in `config.json`; tokens and integration credentials live behind the app-managed secret provider.
 
 ## Secret Provider
 
-macOS v1 uses Keychain through the Harness service namespace:
+On macOS, the local runtime uses Keychain through the Harness service namespace:
 
 ```text
 com.knoxanalytics.harness.local-runtime
@@ -20,19 +20,19 @@ Current secret names:
 - `linear_api_key`: maps to `LINEAR_API_KEY`
 - `repair_callback_bearer_token`: maps to `OPENCLAW_REPAIR_BEARER_TOKEN`
 
-The `OPENCLAW_REPAIR_BEARER_TOKEN` env name remains the current concrete repair-adapter variable. It is not the product boundary. The stable local-app boundary is the named Harness secret.
+The `OPENCLAW_REPAIR_BEARER_TOKEN` env name remains the current concrete repair-adapter variable. It is not the product boundary. The stable local runtime boundary is the named Harness secret.
 
 Provider selection is platform-aware at the Python boundary:
 
 - `macos-keychain` on Darwin
 - `linux-secret-service` as the deferred Linux provider contract
-- `unsupported-<platform>` on other local-app platforms until a provider exists
+- `unsupported-<platform>` on other local platforms until a provider exists
 
 Linux Secret Service support is not implemented in this slice. The important part is that the runtime no longer hard-codes the macOS provider name into status or environment surfaces.
 
 ## CLI Contract
 
-The packaged app can call the same command surface that developers can run from a checkout:
+Future packaged CLI/web builds can call the same command surface that developers can run from a checkout:
 
 ```bash
 python3 -m modules.local_runtime --json secrets status
@@ -43,11 +43,9 @@ python3 -m modules.local_runtime --json secrets delete github_token
 
 `secrets status` never prints secret values. When a workflow requires a credential, pass `--require <name>` so missing or unavailable credentials return a setup-required exit code instead of looking like a healthy state.
 
-`secrets set` intentionally requires `--value-stdin` so users and app shells do not put tokens in shell history.
+`secrets set` intentionally requires `--value-stdin` so operators and wrapper shells do not put tokens in shell history.
 
-The future native macOS shell should prefer the Keychain APIs directly when storing user-entered tokens.
-Use the same service value above and the Harness secret name as the Keychain account.
-The Python CLI exists as a portable contract and developer fallback; the native app does not need to shell out to store secrets.
+The native macOS shell is deprecated. New credential flows should use the portable CLI/runtime contract unless a future packaging decision explicitly introduces a different shell boundary.
 
 ## Runtime Behavior
 
@@ -55,9 +53,9 @@ The Python CLI exists as a portable contract and developer fallback; the native 
 
 Existing environment variables win. This preserves developer mode:
 
-- repo-root `.env.local` remains valid for native local development
+- repo-root `.env.local` remains valid for local development
 - exported shell variables remain valid for CI and one-off debugging
-- app-managed Keychain secrets are the normal packaged-app path
+- app-managed Keychain secrets are the normal macOS local-runtime path
 
 Missing secrets do not block the local API from starting because GitHub, Linear, and executor integrations are optional until a chosen workflow needs them.
 Workflows that need a credential should call `secrets status --require <name>` or surface the integration-specific setup error.
@@ -67,7 +65,7 @@ Workflows that need a credential should call `secrets status --require <name>` o
 - Do not write token values to `config.json`.
 - Do not write token values to logs.
 - Do not return token values from CLI JSON.
-- Do not teach packaged-app users to edit `.env.local`.
+- Do not teach operators to edit `.env.local` for normal local setup.
 - Do not couple the secret model to OpenClaw or Hermes. Use Harness secret names and map them to current env vars at the runtime boundary.
 
 ## Linux Portability

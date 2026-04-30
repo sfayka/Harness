@@ -14,6 +14,7 @@ Harness sits underneath the user-facing and agent-facing work surface as the sys
 - GitHub is the source of truth for code artifacts such as pull requests and commits.
 - Executors such as Codex are workers.
 - A Symphony-like execution substrate may schedule isolated executor runs, but it is not completion truth.
+- The supported Harness operator surfaces are the CLI, backend API, and web dashboard.
 - The workflow substrate provides persistence, resumability, and coordination state for Harness itself.
 
 Stated another way:
@@ -103,6 +104,7 @@ flowchart LR
 
 - Desktop agent clients do not become the durable orchestrator.
 - Harness does not become the user interface.
+- Harness does not become a native desktop-app product; the deprecated macOS shell must not own core behavior.
 - Linear owns work coordination and structured work records, not completion enforcement semantics.
 - GitHub owns artifact evidence records, not lifecycle policy.
 - Executors do not own planning, routing, or lifecycle policy.

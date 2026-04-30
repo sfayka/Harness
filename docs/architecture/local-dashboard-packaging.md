@@ -1,13 +1,13 @@
 # Local Dashboard Packaging
 
-The local Harness app should not ask normal users to install Node, `pnpm`, or a developer checkout just to inspect task progress.
+The local Harness dashboard path should not ask operators to install Node, `pnpm`, or keep a developer checkout just to inspect task progress.
 
-Harness packages the dashboard as static assets for local app builds and serves those assets from the local Python runtime at `/dashboard`.
+Harness can package the dashboard as static assets and serve those assets from the local Python runtime at `/dashboard`.
 The dashboard still reads canonical Harness APIs. It does not get a separate local truth store and it does not fall back to sample data when the backend is unavailable.
 
 ## Decision
 
-Use a prebuilt static dashboard bundle for the local app path.
+Use a prebuilt static dashboard bundle for local CLI/web operation.
 
 The local dashboard build:
 
@@ -19,7 +19,7 @@ The local dashboard build:
 
 The normal hosted and developer dashboard build remains a Next.js app. It keeps `app/api/harness/[...path]/route.ts` so hosted deployments can proxy dashboard reads through the web service.
 
-This split is intentional. The local app path does not need a Node server because it talks to the same-origin Python API. The hosted path still benefits from the Next proxy because Vercel owns the web/backend service boundary.
+This split is intentional. The local static-dashboard path does not need a Node server because it talks to the same-origin Python API. The hosted path still benefits from the Next proxy because Vercel owns the web/backend service boundary.
 
 ## Build Artifact
 
@@ -67,20 +67,20 @@ Expected local routes:
 
 The same process serves the canonical API routes such as `GET /tasks`, `GET /tasks/<task_id>/read-model`, and `GET /runtime/status`.
 
-## Packaged App Contract
+## Local Packaging Contract
 
-Packaged macOS and Linux shells should either:
+A future packaged CLI/web distribution should either:
 
 - place the prebuilt dashboard bundle at the configured `dashboard_assets_dir`
 - set `HARNESS_DASHBOARD_ASSETS_DIR` before starting the Harness runtime
 
-The app should open:
+The operator-facing launcher should open:
 
 ```text
 http://127.0.0.1:<runtime-port>/dashboard
 ```
 
-Closing the dashboard window must not stop the runtime. The menu-bar or tray shell remains responsible for process control.
+Closing a browser tab or optional dashboard window must not stop the runtime. Runtime control belongs to the CLI/runtime contract.
 
 ## Validation
 
