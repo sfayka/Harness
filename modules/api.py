@@ -1838,6 +1838,10 @@ def _legacy_execution_continuation_payload(
         "surface": "legacy_direct_dispatch",
         "compatibility_mode": True,
         "preferred_execution_surface": "execution_substrate",
+        "execution_transport_status": "disabled",
+        "live_dispatch_enabled": False,
+        "completion_authority": "harness_verification",
+        "runner_completion_is_truth": False,
     }
     if status is not None:
         payload["status"] = int(status)
@@ -3951,14 +3955,7 @@ class HarnessApiService:
                 reason=reason,
             )
             response_payload["execution_continuation"] = deepcopy(execution_continuation)
-            response_payload["automatic_dispatch"] = {
-                "attempted": False,
-                "dispatchable": False,
-                "reason": reason,
-                "surface": "legacy_direct_dispatch",
-                "compatibility_mode": True,
-                "preferred_execution_surface": "execution_substrate",
-            }
+            response_payload["automatic_dispatch"] = deepcopy(execution_continuation)
         return status, response_payload
 
     def submit_linear_ingress(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -4228,14 +4225,7 @@ class HarnessApiService:
                     reason=reason,
                 )
                 response_payload["execution_continuation"] = deepcopy(execution_continuation)
-                response_payload["automatic_dispatch"] = {
-                    "attempted": False,
-                    "dispatchable": False,
-                    "reason": reason,
-                    "surface": "legacy_direct_dispatch",
-                    "compatibility_mode": True,
-                    "preferred_execution_surface": "execution_substrate",
-                }
+                response_payload["automatic_dispatch"] = deepcopy(execution_continuation)
         return status, response_payload
 
     def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -4501,6 +4491,10 @@ class HarnessApiService:
                 "dispatch_surface": "legacy_direct_dispatch",
                 "compatibility_mode": True,
                 "preferred_execution_surface": "execution_substrate",
+                "execution_transport_status": "disabled",
+                "live_dispatch_enabled": False,
+                "completion_authority": "harness_verification",
+                "runner_completion_is_truth": False,
                 "execution_substrate_events_endpoint": f"/tasks/{task_id}/execution-substrate-events",
                 "executor": executor,
                 "execution_parameters": dict(execution_parameters),
@@ -4537,6 +4531,10 @@ class HarnessApiService:
                 "dispatch_surface": "legacy_direct_dispatch",
                 "compatibility_mode": True,
                 "preferred_execution_surface": "execution_substrate",
+                "execution_transport_status": "disabled",
+                "live_dispatch_enabled": False,
+                "completion_authority": "harness_verification",
+                "runner_completion_is_truth": False,
                 "execution_substrate_events_endpoint": f"/tasks/{task_id}/execution-substrate-events",
             }
         return status, response_payload
