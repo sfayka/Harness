@@ -14,11 +14,21 @@ For this architecture, a desktop agent client such as OpenClaw, Hermes, or a fut
 
 ### Harness
 
-The control plane and reliability layer responsible for normalizing work, delegating execution, verifying completion, and enforcing lifecycle correctness.
+The current repository and codebase name for the acceptance layer.
+
+`Harness` should no longer be treated as the long-term product name. Use it when referring to current code, APIs, historical docs, or repository paths. Product positioning should move toward the acceptance-layer name selected in ADR 0006.
+
+### Proofline
+
+The recommended working product name for the acceptance layer.
+
+Proofline is responsible for deciding whether AI-assisted software work has crossed the evidence and reconciliation line required for acceptance. It wraps execution tools, but it is not an executor.
 
 ### Control Plane
 
 The part of the system that decides what work exists, who owns it, what state it is in, and what should happen next.
+
+Use carefully. The durable product direction is narrower than a broad control plane: acceptance, verification, reconciliation, and lifecycle enforcement.
 
 ### Structured Work
 
@@ -120,6 +130,12 @@ The policy-driven decision about whether a claimed completed state should be acc
 
 Harness owns completion enforcement. Linear may display the result, but it does not replace that policy function.
 
+### Acceptance Layer
+
+The product role above execution tools that determines whether intended work, artifact evidence, external facts, and review policy line up.
+
+The acceptance layer can request repair or retry work. It does not perform the worker execution itself.
+
 ## Terms To Avoid Or Use Carefully
 
 ### Agent
@@ -144,5 +160,6 @@ Avoid as a system-wide architecture term. Use `structured work state`, `workflow
 - Name modules by responsibility, not by vendor.
 - Separate business state from runtime state in naming.
 - Use `executor` as the abstraction and `Codex` as one implementation.
+- Use `acceptance layer`, `verification`, `evidence`, and `reconciliation` for product language instead of broad executor-orchestration language.
 - Use `verification` or `evidence` instead of vague claims like `done` when artifact checks are required.
 - Use `Linear` when referring to the work surface or structured-work system of record, not as a synonym for the Harness control plane.

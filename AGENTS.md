@@ -4,7 +4,9 @@ This file is for coding agents and automated contributors working in this reposi
 
 ## Repository Purpose
 
-Harness is a control plane and reliability layer for AI-assisted work. It evaluates whether structured work is actually complete, evidence-backed, reconciled with external systems, and safe to accept.
+Harness is the current repository name for an acceptance layer for AI-assisted work. The recommended product rename is Proofline, documented in `docs/adrs/0006-product-rename-and-acceptance-layer.md`.
+
+The system evaluates whether structured work is actually complete, evidence-backed, reconciled with external systems, and safe to accept.
 
 Work surfaces and ingress clients sit above Harness. Harness owns verification, reconciliation, lifecycle enforcement, persistence of task truth, and inspection surfaces.
 
@@ -31,6 +33,7 @@ Harness is not:
 
 - a PM tool
 - an agent runtime
+- an execution scheduler
 - a chatbot UI
 - a replacement for Linear coordination
 - a native desktop-app product
@@ -45,7 +48,33 @@ Do not casually turn this repo into:
 - a mutation-heavy dashboard app
 - a tightly coupled OpenClaw runtime extension
 - a native macOS app distribution project
+- a competing Symphony or Codex orchestration layer
 - a fake demo system that hides whether data is live or sample
+
+## Acceptance-Layer Direction
+
+Use `docs/architecture/acceptance-layer-inventory.md` as the product-scope filter.
+
+Keep work that strengthens:
+
+- canonical work contracts
+- GitHub artifact proof
+- Linear reconciliation
+- completion-claim validation
+- lifecycle enforcement
+- sticky manual review gates
+- read-model and timeline inspection
+- advisory execution-substrate boundaries
+
+Freeze or delete work that primarily builds:
+
+- custom runner daemons
+- always-on Linear polling
+- Codex workspace management
+- unbounded retry behavior
+- native desktop shell features
+- broad planner intelligence
+- mutation-heavy dashboard workflows
 
 ## Operator Surface Direction
 
