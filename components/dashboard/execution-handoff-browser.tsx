@@ -244,6 +244,23 @@ export function ExecutionHandoffBrowser() {
                       />
                     </div>
 
+                    {entry.completion_validation_summary && (
+                      <div className="rounded-md border border-border bg-muted/50 p-3">
+                        <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                          Completion Validation
+                        </p>
+                        <p className="mt-2 text-sm text-foreground">
+                          {entry.completion_validation_summary.summary}
+                        </p>
+                        <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                          <span>Status: {entry.completion_validation_summary.status.replaceAll("_", " ")}</span>
+                          <span>Intent: {entry.completion_validation_summary.intent_status.replaceAll("_", " ")}</span>
+                          <span>Evidence: {entry.completion_validation_summary.evidence_status.replaceAll("_", " ")}</span>
+                          <span>Accepted: {entry.completion_validation_summary.completion_accepted ? "yes" : "no"}</span>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="rounded-md border border-border bg-muted/50 p-3">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Runner Prohibitions
