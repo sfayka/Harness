@@ -265,6 +265,14 @@ Backend inspection routes:
 - `GET /supervision/queue`: canonical autonomous-supervision triage surface.
 - `GET /runtime/status`: local runtime status envelope for CLI/web packaging and automation.
 
+The first field to inspect for claimed completion is `completion_validation_summary`, exposed on both `GET /tasks` and `GET /tasks/<task_id>/read-model`. It separates `completion_claimed` from `completion_accepted` and projects whether the claim matches user intent, has sufficient evidence, is blocked by reconciliation, or requires manual review. Agents and dashboards must not report work as done from executor narrative alone; completion is operator-safe only when Proofline reports accepted completion with matched intent and sufficient evidence.
+
+The local CLI reads the same canonical store:
+
+```bash
+python3 -m modules.proofline_runtime --json inspect task <task-id>
+```
+
 For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
 
 Within `execution_summary`, `attempt_count` is the number of recorded canonical execution attempts. `total_attempts` may be higher when retry/evaluation history exists without a new execution-attempt record, but it must never undercount the recorded execution attempts already attached to the task.

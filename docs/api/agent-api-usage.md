@@ -26,6 +26,8 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - `GET /execution-substrate/transport-status`: read-only transport posture for the Symphony-compatible execution substrate
 - `GET /execution-substrate/handoffs`: read-only preview of rendered Symphony-compatible handoff payloads
 
+For claimed completion, inspect `completion_validation_summary` on `GET /tasks` or `GET /tasks/<task_id>/read-model` before presenting the work as done. That projection is the compact verdict for validation of agentic completion against user intent and evidence. It separates `completion_claimed` from `completion_accepted`, reports intent and evidence status, and preserves review or reconciliation blockers. Executor summaries, runner messages, and Linear comments are advisory until this summary says the claim has been accepted.
+
 `GET /supervision/queue` is projection-only. It does not create work, mutate task state, or authorize follow-up actions. It exists so an ingress-side supervisor can poll Harness for the tasks that currently need intervention without rebuilding policy client-side from raw task payloads.
 
 `GET /execution-substrate/intents` is also projection-only. It filters the supervision queue down to entries that carry `execution_substrate_intent`, so a Symphony-compatible runner can poll only the work that belongs to the execution substrate. The response is advisory and still points completion authority back to Harness verification.
@@ -44,6 +46,12 @@ Queue entries are derived from canonical read-model and timeline truth and curre
 - `stale_active_task`
 
 OpenClaw, Hermes, Symphony, or another supervisor may use those entries to decide what to inspect next, but the actual task mutation still has to go back through canonical submission, execution-substrate event ingestion, GitHub sync, completion-claim, or reevaluation paths.
+
+When a local operator needs the same state through the CLI, use:
+
+```bash
+python3 -m modules.proofline_runtime --json inspect task <task-id>
+```
 
 The repository now includes a thin example supervisor loop in [`modules/connectors/openclaw_supervisor.py`](../../modules/connectors/openclaw_supervisor.py). That file is the current concrete OpenClaw-shaped example, not an architectural requirement. It does not mutate review, clarification, or proof decisions on its own. It only:
 
