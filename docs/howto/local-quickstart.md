@@ -2,13 +2,15 @@
 
 ## Goal
 
-Get Harness running locally, prove the runtime is healthy, and open the dashboard that shows canonical task state.
+Get Proofline running locally, prove the runtime is healthy, and open the dashboard that shows canonical task state.
+
+Proofline is the product name. During the staged rename, checkout commands, environment variables, runtime paths, and stored evidence still use the Harness compatibility namespace. Do not rename those local identifiers by hand.
 
 ## Supported Local Path
 
 The supported local operator path is CLI + web dashboard. The native macOS app is deprecated and should not be used as the normal install or validation path.
 
-Use this path when you are developing Harness or validating a PR.
+Use this path when you are developing the current Harness implementation or validating a PR.
 
 ```bash
 python3 -m pip install -r requirements.txt

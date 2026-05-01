@@ -1,6 +1,8 @@
-# Configure Harness
+# Configure Proofline
 
-Harness has two configuration paths: local runtime configuration for CLI/web usage, and repo-root `.env.local` for developer and CI-style runs.
+Proofline has two configuration paths: local runtime configuration for CLI/web usage, and repo-root `.env.local` for developer and CI-style runs.
+
+The active implementation still uses the Harness compatibility namespace for commands, environment variables, paths, and secret names. Keep those identifiers exactly as documented until a tested Proofline alias exists.
 
 ## Local Runtime Configuration
 
@@ -12,7 +14,7 @@ The local runtime writes non-secret runtime configuration to:
 
 Secrets do not belong in that file. Store local credentials through the runtime-managed secret boundary exposed by the CLI.
 
-Stable Harness secret names:
+Stable compatibility secret names:
 
 - `github_token`, mapped to `GITHUB_TOKEN`
 - `linear_api_key`, mapped to `LINEAR_API_KEY`
@@ -54,7 +56,7 @@ The current concrete repair receiver is still OpenClaw-shaped, so some operation
 - `OPENCLAW_CONFIG_PATH`
 - `OPENCLAW_STATE_DIR`
 
-Those names are implementation details. Harness itself should stay client-neutral: OpenClaw, Hermes, Codex, or a future desktop agent can fill the same role if it speaks the Harness API boundaries.
+Those names are implementation details. Proofline itself should stay client-neutral: OpenClaw, Hermes, Codex, or a future desktop agent can fill the same role if it speaks the canonical acceptance-layer API boundaries.
 
 For hosted repair dispatch, `OPENCLAW_BASE_URL` must point at a receiver reachable from the hosted runtime. A loopback value such as `http://127.0.0.1:18789` only works for local development.
 

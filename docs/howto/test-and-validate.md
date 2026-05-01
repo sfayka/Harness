@@ -1,6 +1,8 @@
-# Test And Validate Harness
+# Test And Validate Proofline
 
-Validation should prove three things: the service starts, the dashboard reads live Harness APIs, and completion claims are accepted only when evidence is good enough.
+Validation should prove three things: the service starts, the dashboard reads live Proofline APIs through the current Harness compatibility routes, and completion claims are accepted only when evidence is good enough.
+
+Command examples intentionally keep the Harness compatibility namespace until tested Proofline aliases exist. Do not rename `HARNESS_*` variables, runtime module paths, or stored evidence fields locally.
 
 ## Fast Local Baseline
 
@@ -33,7 +35,7 @@ python3 -m modules.local_runtime --json stop
 
 The dashboard asset export matters for checkout validation. Without it, the runtime can still be healthy, but `doctor` will warn that the embedded dashboard cannot render packaged UI assets.
 
-A future packaged CLI should expose the same contract as `harness ...`. The native macOS app package is deprecated and is not part of the normal validation path.
+A future packaged CLI should expose the same contract as a compatibility `harness ...` command and, later, a tested Proofline alias. The native macOS app package is deprecated and is not part of the normal validation path.
 
 ## Deterministic Reset Proofs
 
@@ -52,7 +54,7 @@ python3 -m modules.execution_substrate_dryrun intent-consumer
 python3 -m modules.execution_substrate_dryrun handoff
 ```
 
-These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work. The `handoff` command renders the payload Harness would hand to a Symphony-compatible runner through the disabled transport boundary while keeping `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, and `safe_to_execute_live=false`.
+These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work. The `handoff` command renders the payload Proofline would hand to a Symphony-compatible runner through the disabled transport boundary while keeping `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, and `safe_to_execute_live=false`.
 
 ## Local Live Smoke
 
