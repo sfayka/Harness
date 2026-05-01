@@ -194,8 +194,8 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         ),
         what_user_needs=(
             "A local Symphony checkout or another Symphony-compatible runner.",
-            "A built runner binary that Harness can find through HARNESS_SYMPHONY_BIN, SYMPHONY_BIN, PATH, "
-            "or the Knox Infrastructure checkout convention.",
+            "A built runner binary that Proofline can find through PROOFLINE_SYMPHONY_BIN, "
+            "HARNESS_SYMPHONY_BIN, SYMPHONY_BIN, PATH, or the Knox Infrastructure checkout convention.",
             "A workflow contract such as WORKFLOW.md before any live runner is enabled.",
         ),
         how_harness_validates=(
@@ -210,7 +210,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
                 kind="connection",
                 label="Connect Symphony",
                 description=(
-                    "Install or build Symphony, then set HARNESS_SYMPHONY_BIN if the binary is not on PATH."
+                    "Install or build Symphony, then set PROOFLINE_SYMPHONY_BIN if the binary is not on PATH."
                 ),
                 command="mise exec -- mix build",
             ),

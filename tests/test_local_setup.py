@@ -42,7 +42,7 @@ def healthy_runtime_doctor_payload(
         check(
             "execution_substrate",
             substrate_status,
-            next_action="Install/build Symphony and set HARNESS_SYMPHONY_BIN if the binary is not on PATH.",
+            next_action="Install/build Symphony and set PROOFLINE_SYMPHONY_BIN if the binary is not on PATH.",
         ),
         check(
             "ingress_executor",

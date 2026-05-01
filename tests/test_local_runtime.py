@@ -122,7 +122,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
                 os.environ,
                 {
                     "HARNESS_DASHBOARD_ASSETS_DIR": str(dashboard_dir),
-                    "HARNESS_SYMPHONY_BIN": sys.executable,
+                    "PROOFLINE_SYMPHONY_BIN": sys.executable,
                     "OPENCLAW_BASE_URL": "http://127.0.0.1:18789",
                     "HARNESS_NOTIFICATION_PERMISSION": "authorized",
                     "HARNESS_LAUNCH_AT_LOGIN": "enabled",
@@ -183,6 +183,31 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertFalse(check.details["live_dispatch_enabled"])
         self.assertEqual(check.details["completion_authority"], "harness_verification")
         self.assertFalse(check.details["runner_completion_is_truth"])
+
+    def test_execution_substrate_prefers_proofline_symphony_bin_alias(self) -> None:
+        preferred_binary = self.data_path / "preferred-symphony"
+        fallback_binary = self.data_path / "fallback-symphony"
+        preferred_binary.write_text("#!/bin/sh\n", encoding="utf-8")
+        fallback_binary.write_text("#!/bin/sh\n", encoding="utf-8")
+        preferred_binary.chmod(0o755)
+        fallback_binary.chmod(0o755)
+
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_SYMPHONY_BIN": str(preferred_binary),
+                "HARNESS_SYMPHONY_BIN": str(fallback_binary),
+            },
+            clear=True,
+        ):
+            check = _check_execution_substrate()
+
+        self.assertEqual(check.status, "pass")
+        self.assertEqual(check.details["binary"], str(preferred_binary))
+        self.assertEqual(
+            check.details["checked_candidates"][:2],
+            [str(preferred_binary), str(fallback_binary)],
+        )
 
     def test_doctor_fails_when_configured_workspace_folder_is_missing(self) -> None:
         self._run_cli("init")

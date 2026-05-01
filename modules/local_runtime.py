@@ -61,6 +61,7 @@ ENV_NOTIFICATION_PERMISSION = "HARNESS_NOTIFICATION_PERMISSION"
 ENV_LAUNCH_AT_LOGIN = "HARNESS_LAUNCH_AT_LOGIN"
 ENV_WORKSPACE_FOLDERS = "HARNESS_WORKSPACE_FOLDERS"
 ENV_SYMPHONY_BIN = "HARNESS_SYMPHONY_BIN"
+ENV_PROOFLINE_SYMPHONY_BIN = "PROOFLINE_SYMPHONY_BIN"
 
 
 class LocalRuntimeError(ValueError):
@@ -831,7 +832,7 @@ def _secret_status_to_check(code: str, status: SecretStatus) -> RuntimeCheck:
 
 def _symphony_binary_candidates() -> list[Path]:
     candidates: list[Path] = []
-    for env_var in (ENV_SYMPHONY_BIN, "SYMPHONY_BIN"):
+    for env_var in (ENV_PROOFLINE_SYMPHONY_BIN, ENV_SYMPHONY_BIN, "SYMPHONY_BIN"):
         configured = _clean_env_value(env_var)
         if configured:
             candidates.append(Path(configured).expanduser())
@@ -886,7 +887,7 @@ def _check_execution_substrate() -> RuntimeCheck:
             "until Symphony or a compatible substrate is installed."
         ),
         next_action=(
-            "Install/build Symphony and set HARNESS_SYMPHONY_BIN if the binary is not on PATH."
+            "Install/build Symphony and set PROOFLINE_SYMPHONY_BIN if the binary is not on PATH."
         ),
         details={
             "preferred_runner": "symphony",

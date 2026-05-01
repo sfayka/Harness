@@ -76,6 +76,7 @@ Some checks can accept facts from an optional shell or wrapper. The native macOS
 
 Execution-substrate checks read:
 
+- `PROOFLINE_SYMPHONY_BIN`
 - `HARNESS_SYMPHONY_BIN`
 - `SYMPHONY_BIN`
 - `symphony` on `PATH`
