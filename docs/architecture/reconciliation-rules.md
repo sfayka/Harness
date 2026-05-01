@@ -4,7 +4,7 @@
 
 Define how Harness reconciles internal task state with external systems of record and artifact systems.
 
-Harness is a reliability/control-plane system. A task is not trustworthy merely because an executor reported success or because one external system looks consistent in isolation. Harness must compare internal lifecycle state, evidence state, and external system state and then represent any mismatch explicitly.
+Proofline is a reliability/control-plane system. A task is not trustworthy merely because an executor reported success or because one external system looks consistent in isolation. Proofline must compare internal lifecycle state, evidence state, and external system state and then represent any mismatch explicitly.
 
 Completion is provisional until reconciliation passes.
 

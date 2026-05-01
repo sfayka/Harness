@@ -2,15 +2,15 @@
 
 ## Purpose
 
-Define the canonical verification and completion enforcement contract for Harness.
+Define the canonical verification and completion enforcement contract for Proofline.
 
-Harness is a reliability/control-plane system. Completion is not accepted because an executor reported success. Completion is a control-plane decision made by evaluating runtime facts, artifact evidence, acceptance criteria, and reconciliation results.
+Proofline is a reliability/control-plane system. Completion is not accepted because an executor reported success. Completion is a control-plane decision made by evaluating runtime facts, artifact evidence, acceptance criteria, and reconciliation results.
 
 Verification is therefore the policy layer that decides whether a task outcome is trustworthy enough to remain completed.
 
 ## Verification Role
 
-Verification consumes the facts produced by other modules and applies Harness completion policy to them.
+Verification consumes the facts produced by other modules and applies Proofline completion policy to them.
 
 It is responsible for:
 
@@ -76,11 +76,11 @@ Verification consumes:
 
 These records determine whether completion has the required evidentiary support.
 
-Caller-submitted evidence is not allowed to self-attest final trust. In particular, a completion claim cannot force a repository-backed PR artifact into `verification_status=verified` and then rely on that same caller-set state to satisfy completion policy. Harness must either verify the artifact through reconciliation or leave it unverified.
+Caller-submitted evidence is not allowed to self-attest final trust. In particular, a completion claim cannot force a repository-backed PR artifact into `verification_status=verified` and then rely on that same caller-set state to satisfy completion policy. Proofline must either verify the artifact through reconciliation or leave it unverified.
 
 ### Reconciliation Results
 
-Verification consumes reconciliation results that compare Harness state to external systems.
+Verification consumes reconciliation results that compare Proofline state to external systems.
 
 Initial scope includes:
 
@@ -98,7 +98,7 @@ These criteria define what the task must satisfy in system terms.
 
 Artifacts and reconciliation support completion, but they do not replace task-specific acceptance criteria.
 
-Required acceptance criteria must also be concrete enough for automatic completion. Criteria such as "it works", "done", or other generic quality claims are not strong enough on their own to justify a terminal success decision. Harness may allow such tasks to exist, but verification should escalate them to explicit human review rather than auto-completing on vague criteria.
+Required acceptance criteria must also be concrete enough for automatic completion. Criteria such as "it works", "done", or other generic quality claims are not strong enough on their own to justify a terminal success decision. Proofline may allow such tasks to exist, but verification should escalate them to explicit human review rather than auto-completing on vague criteria.
 
 Reevaluation also must not preload terminal evidence state as a side channel. If a request is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise present completion evidence as already settled.
 
@@ -297,7 +297,7 @@ This distinction must remain explicit.
 - reconciliation is non-blocking
 - verification policy accepts the result
 
-If these collapse into one concept, Harness stops being a reliability layer.
+If these collapse into one concept, Proofline stops being a reliability layer.
 
 ## Insufficient Evidence Versus External Mismatch
 
@@ -428,7 +428,7 @@ The boundary between runtime and verification must remain strict.
 
 Runtime may say "the worker says it finished."
 
-Verification decides whether Harness believes that should count.
+Verification decides whether Proofline believes that should count.
 
 ## Reconciliation Versus Verification
 
@@ -436,7 +436,7 @@ Reconciliation and verification are related but not identical.
 
 ### Reconciliation Owns
 
-- comparing Harness records against GitHub and Linear facts
+- comparing Proofline records against GitHub and Linear facts
 - classifying mismatch conditions
 - reporting whether blocking contradictions exist
 

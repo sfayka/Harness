@@ -27,7 +27,7 @@ A future executor adapter is a different concern:
 
 Keeping those concerns separate protects the core design:
 
-- Harness remains the control plane
+- Proofline remains the control plane
 - the desktop agent client remains replaceable
 - completion remains evidence-backed instead of executor-declared
 
