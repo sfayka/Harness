@@ -55,10 +55,10 @@ For local static-dashboard validation, build the dashboard assets and serve them
 ```bash
 pnpm build:dashboard:local
 export PROOFLINE_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard"
-python3 -m modules.local_runtime --json init
-python3 -m modules.local_runtime --json start
-python3 -m modules.local_runtime --json status
-python3 -m modules.local_runtime --json stop
+python3 -m modules.proofline_runtime --json init
+python3 -m modules.proofline_runtime --json start
+python3 -m modules.proofline_runtime --json status
+python3 -m modules.proofline_runtime --json stop
 ```
 
 The Proofline-named alias is available for the same local runtime contract:

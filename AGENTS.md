@@ -84,7 +84,7 @@ The native macOS app and packaging scripts have been removed from the active tre
 
 Keep reusable runtime pieces in portable Python/TypeScript surfaces:
 
-- `python3 -m modules.local_runtime ...`
+- `python3 -m modules.proofline_runtime ...`
 - hosted/local backend APIs
 - the Next.js dashboard
 - static local dashboard assets served by the Python backend

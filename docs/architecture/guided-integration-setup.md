@@ -1,6 +1,6 @@
 # Guided Integration Setup
 
-`harness setup status --json` is the local runtime setup contract.
+`proofline setup status --json` is the local runtime setup contract.
 It turns the lower-level setup doctor into user-facing setup items that CLI/web flows and future packaging can render directly.
 
 The setup contract is intentionally client-neutral.
@@ -11,13 +11,13 @@ Harness can integrate with OpenClaw, Hermes, Codex, or a future desktop-agent cl
 From a future packaged CLI, expose:
 
 ```bash
-harness setup status
+proofline setup status
 ```
 
 From a repo checkout, use:
 
 ```bash
-python3 -m modules.local_runtime --json setup status
+python3 -m modules.proofline_runtime --json setup status
 ```
 
 The command exits with `0` when setup can finish.
@@ -43,9 +43,9 @@ The CLI can start the API when live progress is needed. Notification and startup
 Use `--workflow` when a user selects a workflow that requires an external integration:
 
 ```bash
-python3 -m modules.local_runtime --json setup status --workflow github-proof
-python3 -m modules.local_runtime --json setup status --workflow linear-sync
-python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
+python3 -m modules.proofline_runtime --json setup status --workflow github-proof
+python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
+python3 -m modules.proofline_runtime --json setup status --workflow repair-dispatch
 ```
 
 Current workflow gates:
@@ -107,8 +107,8 @@ Current secret names:
 CLI fallback examples use stdin so tokens do not land in shell history:
 
 ```bash
-printf '%s' "$TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
-printf '%s' "$TOKEN" | python3 -m modules.local_runtime --json secrets set linear_api_key --value-stdin
+printf '%s' "$TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+printf '%s' "$TOKEN" | python3 -m modules.proofline_runtime --json secrets set linear_api_key --value-stdin
 ```
 
 The execution-substrate item should name Symphony as the preferred runner without giving it completion authority.
@@ -120,7 +120,7 @@ The current doctor still recognizes OpenClaw-shaped adapter variables because th
 ## Validation Source
 
 Guided setup does not create a second validation system.
-It consumes `harness doctor --json` and maps existing checks into onboarding items.
+It consumes `proofline doctor --json` and maps existing checks into onboarding items.
 
 Current mapping:
 

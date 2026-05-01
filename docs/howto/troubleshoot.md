@@ -33,9 +33,9 @@ The dashboard should report backend errors honestly. It should not silently swit
 Run:
 
 ```bash
-python3 -m modules.local_runtime --json doctor
-python3 -m modules.local_runtime --json status
-python3 -m modules.local_runtime --json recover
+python3 -m modules.proofline_runtime --json doctor
+python3 -m modules.proofline_runtime --json status
+python3 -m modules.proofline_runtime --json recover
 ```
 
 Check:
@@ -75,4 +75,4 @@ Proofline treats worker-reported success as advisory. If evidence is missing, st
 
 ## Native macOS App Issues
 
-The native macOS app is deprecated and is not the supported operator path. Prefer `python3 -m modules.local_runtime ...` plus the web dashboard for local operation. Do not spend debugging time on signing, notarization, Launch at Login, or notification problems unless a task explicitly reopens the native app decision.
+The native macOS app is deprecated and is not the supported operator path. Prefer `python3 -m modules.proofline_runtime ...` plus the web dashboard for local operation. Do not spend debugging time on signing, notarization, Launch at Login, or notification problems unless a task explicitly reopens the native app decision.

@@ -366,15 +366,15 @@ SQLite mode creates the database and schema automatically, enables WAL mode and 
 Run the local runtime contract from a repo checkout:
 
 ```bash
-python3 -m modules.local_runtime --json init
-python3 -m modules.local_runtime --json start
-python3 -m modules.local_runtime --json status
-python3 -m modules.local_runtime serve
-python3 -m modules.local_runtime --json doctor
-python3 -m modules.local_runtime --json setup status
-python3 -m modules.local_runtime --json secrets status
-python3 -m modules.local_runtime --json recover
-python3 -m modules.local_runtime --json stop
+python3 -m modules.proofline_runtime --json init
+python3 -m modules.proofline_runtime --json start
+python3 -m modules.proofline_runtime --json status
+python3 -m modules.proofline_runtime serve
+python3 -m modules.proofline_runtime --json doctor
+python3 -m modules.proofline_runtime --json setup status
+python3 -m modules.proofline_runtime --json secrets status
+python3 -m modules.proofline_runtime --json recover
+python3 -m modules.proofline_runtime --json stop
 ```
 
 The Proofline-named module entrypoint is also available:
@@ -396,9 +396,9 @@ The output lives in `dist/local-dashboard/`. When `PROOFLINE_DASHBOARD_ASSETS_DI
 Store runtime-managed secrets for local CLI/web usage:
 
 ```bash
-printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
-printf '%s' "$LINEAR_API_KEY" | python3 -m modules.local_runtime --json secrets set linear_api_key --value-stdin
-python3 -m modules.local_runtime --json secrets status --require github_token
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+printf '%s' "$LINEAR_API_KEY" | python3 -m modules.proofline_runtime --json secrets set linear_api_key --value-stdin
+python3 -m modules.proofline_runtime --json secrets status --require github_token
 ```
 
 The secrets command reports setup state without printing token values. Developer `.env.local` mode remains supported for local development, but normal local CLI/web usage should prefer the secret store instead of asking operators to edit env files.
@@ -406,10 +406,10 @@ The secrets command reports setup state without printing token values. Developer
 Use guided setup status for CLI/web setup:
 
 ```bash
-python3 -m modules.local_runtime --json setup status
-python3 -m modules.local_runtime --json setup status --workflow github-proof
-python3 -m modules.local_runtime --json setup status --workflow linear-sync
-python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
+python3 -m modules.proofline_runtime --json setup status
+python3 -m modules.proofline_runtime --json setup status --workflow github-proof
+python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
+python3 -m modules.proofline_runtime --json setup status --workflow repair-dispatch
 ```
 
 Default setup only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).

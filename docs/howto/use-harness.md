@@ -19,7 +19,7 @@ curl -sS http://127.0.0.1:8000/health
 For local CLI/runtime operation, use the runtime status command:
 
 ```bash
-python3 -m modules.local_runtime --json status
+python3 -m modules.proofline_runtime --json status
 ```
 
 ## Open The Dashboard

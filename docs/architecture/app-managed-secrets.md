@@ -35,10 +35,10 @@ Linux Secret Service support is not implemented in this slice. The important par
 Future packaged CLI/web builds can call the same command surface that developers can run from a checkout:
 
 ```bash
-python3 -m modules.local_runtime --json secrets status
-python3 -m modules.local_runtime --json secrets status --require github_token
-printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
-python3 -m modules.local_runtime --json secrets delete github_token
+python3 -m modules.proofline_runtime --json secrets status
+python3 -m modules.proofline_runtime --json secrets status --require github_token
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+python3 -m modules.proofline_runtime --json secrets delete github_token
 ```
 
 `secrets status` never prints secret values. When a workflow requires a credential, pass `--require <name>` so missing or unavailable credentials return a setup-required exit code instead of looking like a healthy state.
@@ -49,7 +49,7 @@ The native macOS shell is deprecated. New credential flows should use the portab
 
 ## Runtime Behavior
 
-`harness start` and `harness serve` apply runtime-managed config, then load available runtime-managed secrets into process environment variables before starting the backend.
+`proofline start` and `proofline serve` apply runtime-managed config, then load available runtime-managed secrets into process environment variables before starting the backend. Compatibility `harness ...` commands may keep doing the same during the staged rename.
 
 Existing environment variables win. This preserves developer mode:
 

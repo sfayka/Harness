@@ -104,15 +104,15 @@ If `PROOFLINE_SQLITE_PATH` and `HARNESS_SQLITE_PATH` are unset, the runtime uses
 A future packaged CLI can expose this contract as a compatibility `harness` command and, later, a Proofline alias. From a repo checkout, use the module entry point:
 
 ```bash
-python3 -m modules.local_runtime --json init
-python3 -m modules.local_runtime --json status
-python3 -m modules.local_runtime --json start
-python3 -m modules.local_runtime serve
-python3 -m modules.local_runtime --json doctor
-python3 -m modules.local_runtime --json setup status
-python3 -m modules.local_runtime --json secrets status
-python3 -m modules.local_runtime --json recover
-python3 -m modules.local_runtime --json stop
+python3 -m modules.proofline_runtime --json init
+python3 -m modules.proofline_runtime --json status
+python3 -m modules.proofline_runtime --json start
+python3 -m modules.proofline_runtime serve
+python3 -m modules.proofline_runtime --json doctor
+python3 -m modules.proofline_runtime --json setup status
+python3 -m modules.proofline_runtime --json secrets status
+python3 -m modules.proofline_runtime --json recover
+python3 -m modules.proofline_runtime --json stop
 ```
 
 For new docs and local checks, prefer the Proofline-named module alias:
@@ -136,9 +136,9 @@ Default macOS paths:
 Local CLI/web secrets use the runtime-managed secret store instead of `.env.local`:
 
 ```bash
-printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
-printf '%s' "$LINEAR_API_KEY" | python3 -m modules.local_runtime --json secrets set linear_api_key --value-stdin
-python3 -m modules.local_runtime --json secrets status
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+printf '%s' "$LINEAR_API_KEY" | python3 -m modules.proofline_runtime --json secrets set linear_api_key --value-stdin
+python3 -m modules.proofline_runtime --json secrets status
 ```
 
 Secret status output is redacted. Use `--require <secret-name>` when a selected workflow cannot run without that credential.
@@ -147,7 +147,7 @@ Developer mode can still use repo-root `.env.local`.
 Run setup doctor to get machine-readable setup status:
 
 ```bash
-python3 -m modules.local_runtime --json doctor
+python3 -m modules.proofline_runtime --json doctor
 ```
 
 Doctor checks report `status`, `impact`, and `next_action` for runtime health, SQLite, dashboard assets, GitHub and Linear credentials, desktop-agent bridge wiring, notifications, launch-at-login, and configured workspace folders. Warnings are actionable but do not block the local runtime. Failures indicate configured setup that cannot be trusted.
@@ -155,10 +155,10 @@ Doctor checks report `status`, `impact`, and `next_action` for runtime health, S
 Run guided setup for user-facing onboarding items:
 
 ```bash
-python3 -m modules.local_runtime --json setup status
-python3 -m modules.local_runtime --json setup status --workflow github-proof
-python3 -m modules.local_runtime --json setup status --workflow linear-sync
-python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
+python3 -m modules.proofline_runtime --json setup status
+python3 -m modules.proofline_runtime --json setup status --workflow github-proof
+python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
+python3 -m modules.proofline_runtime --json setup status --workflow repair-dispatch
 ```
 
 Default onboarding only requires the local runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work until the selected workflow needs it. The ingress/executor setup copy should stay client-neutral: OpenClaw, Hermes, Codex, and future desktop-agent clients are all treated as compatible bridges, not Harness architecture dependencies.

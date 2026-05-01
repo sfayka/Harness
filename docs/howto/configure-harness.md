@@ -23,9 +23,9 @@ Stable compatibility secret names:
 From a checkout, the same contract is available through the CLI:
 
 ```bash
-python3 -m modules.local_runtime --json secrets status
-printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
-python3 -m modules.local_runtime --json secrets status --require github_token
+python3 -m modules.proofline_runtime --json secrets status
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+python3 -m modules.proofline_runtime --json secrets status --require github_token
 ```
 
 Secret status output is redacted. It should never print token values.

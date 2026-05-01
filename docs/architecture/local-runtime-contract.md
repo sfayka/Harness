@@ -8,23 +8,23 @@ Any packaging or shell around this contract should not import backend internals,
 Packaged builds should expose these commands as `harness`. In a repo checkout, run the same contract with:
 
 ```bash
-python3 -m modules.local_runtime <command>
+python3 -m modules.proofline_runtime <command>
 ```
 
 Commands:
 
-- `harness init`
-- `harness start`
-- `harness serve`
-- `harness status`
-- `harness doctor`
-- `harness setup status`
-- `harness open`
-- `harness stop`
-- `harness recover`
-- `harness secrets status`
-- `harness secrets set <name> --value-stdin`
-- `harness secrets delete <name>`
+- `proofline init`
+- `proofline start`
+- `proofline serve`
+- `proofline status`
+- `proofline doctor`
+- `proofline setup status`
+- `proofline open`
+- `proofline stop`
+- `proofline recover`
+- `proofline secrets status`
+- `proofline secrets set <name> --value-stdin`
+- `proofline secrets delete <name>`
 
 The CLI supports `--json` for automation and future packaging. JSON output is the supported local runtime contract; native shell code is no longer a product requirement.
 
@@ -54,7 +54,7 @@ Normal local usage should rely on runtime-managed defaults.
 
 ## Runtime Config
 
-`harness init` writes non-secret config to `config.json` and initializes the SQLite schema.
+`proofline init` writes non-secret config to `config.json` and initializes the SQLite schema.
 Secrets do not belong in this file.
 GitHub, Linear, and ingress/executor credentials move through the runtime-managed secret store.
 
@@ -64,7 +64,7 @@ The first schema stores:
 - SQLite database path
 - data, dashboard asset, runtime, PID, and log paths
 
-`harness start` and `harness serve` apply the config to the backend process through environment variables before startup:
+`proofline start` and `proofline serve` apply the config to the backend process through environment variables before startup:
 
 - `HARNESS_STORE_BACKEND=sqlite`
 - `HARNESS_SQLITE_PATH=<app-data>/harness.db`
@@ -92,10 +92,10 @@ On macOS, the local runtime stores secrets in Keychain. The stable Harness secre
 From a repo checkout, use:
 
 ```bash
-python3 -m modules.local_runtime --json secrets status
-python3 -m modules.local_runtime --json secrets status --require github_token
-printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin
-python3 -m modules.local_runtime --json secrets delete github_token
+python3 -m modules.proofline_runtime --json secrets status
+python3 -m modules.proofline_runtime --json secrets status --require github_token
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+python3 -m modules.proofline_runtime --json secrets delete github_token
 ```
 
 Secret status output is redacted. It reports configured, missing, unavailable, and error states without returning token values.
@@ -107,17 +107,17 @@ See [app-managed-secrets.md](app-managed-secrets.md).
 
 ## Guided Setup
 
-`harness setup status --json` is the machine-readable setup contract.
-It converts `harness doctor --json` into setup items with purpose, requirements, validation status, and next actions.
+`proofline setup status --json` is the machine-readable setup contract.
+It converts `proofline doctor --json` into setup items with purpose, requirements, validation status, and next actions.
 
 Default setup requires only the local Harness runtime.
 Missing GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the selected workflow requires one of them:
 
 ```bash
-python3 -m modules.local_runtime --json setup status
-python3 -m modules.local_runtime --json setup status --workflow github-proof
-python3 -m modules.local_runtime --json setup status --workflow linear-sync
-python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
+python3 -m modules.proofline_runtime --json setup status
+python3 -m modules.proofline_runtime --json setup status --workflow github-proof
+python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
+python3 -m modules.proofline_runtime --json setup status --workflow repair-dispatch
 ```
 
 The current workflow gates are:
@@ -143,7 +143,7 @@ Developer builds produce the local bundle with:
 pnpm build:dashboard:local
 ```
 
-Future packaged CLI/web builds should copy that bundle into `dashboard_assets_dir`, or set `PROOFLINE_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `harness serve`.
+Future packaged CLI/web builds should copy that bundle into `dashboard_assets_dir`, or set `PROOFLINE_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `proofline serve`.
 
 When the configured directory contains `index.html`, the backend mounts it at:
 
@@ -163,7 +163,7 @@ The backend exposes two runtime-safe probes:
 - `GET /runtime/status`: local runtime status envelope that includes mode, API base URL,
   store backend, secret provider, schema readiness, and runtime-managed paths.
 
-`harness status --json` calls the local health endpoint and returns:
+`proofline status --json` calls the local health endpoint and returns:
 
 - `status=running` when the local API is healthy.
 - `status=stopped` when no health endpoint responds.
@@ -172,7 +172,7 @@ The backend exposes two runtime-safe probes:
 
 ## Doctor Checks
 
-`harness doctor --json` returns checks with this shape:
+`proofline doctor --json` returns checks with this shape:
 
 ```json
 {
@@ -217,24 +217,24 @@ All CLI failures should produce operator-readable messages. Stack traces are not
 
 ## Process Lifecycle
 
-`harness start` is the local lifecycle command.
-It initializes the runtime if needed, starts `harness serve` as a runtime-managed background process, waits for `/health`, and then returns JSON the CLI or wrapper can render.
+`proofline start` is the local lifecycle command.
+It initializes the runtime if needed, starts `proofline serve` as a runtime-managed background process, waits for `/health`, and then returns JSON the CLI or wrapper can render.
 If the runtime is already healthy, `start` exits successfully without launching a duplicate process.
 If the PID file is stale, `start` removes it and starts a fresh runtime.
 If the configured port is already owned by a non-Harness process, `start` fails with `status=port_conflict` and an explicit next action.
 
-`harness serve` runs the backend in the foreground, writes a PID file, appends runtime output to `harness.log`, and removes the PID file on clean exit.
-It is still useful for foreground debugging and for the background process launched by `harness start`.
+`proofline serve` runs the backend in the foreground, writes a PID file, appends runtime output to `harness.log`, and removes the PID file on clean exit.
+It is still useful for foreground debugging and for the background process launched by `proofline start`.
 
-`harness stop` reads the PID file and sends `SIGTERM`.
+`proofline stop` reads the PID file and sends `SIGTERM`.
 Missing or stale PID files are treated as already stopped because the desired state is satisfied.
 
-`harness recover` is the runtime repair action for crashed, stale, or degraded runtime state.
+`proofline recover` is the runtime repair action for crashed, stale, or degraded runtime state.
 It stops an unhealthy PID-backed process when possible, clears stale PID files, starts a fresh runtime, waits for health, and reports the same user-facing JSON shape as `start`.
 
 The local API binds to loopback by default. Network exposure is out of scope for the local runtime contract.
 
-`harness open` should open the dashboard URL by default:
+`proofline open` should open the dashboard URL by default:
 
 ```text
 http://127.0.0.1:<runtime-port>/dashboard
