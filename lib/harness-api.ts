@@ -409,7 +409,7 @@ async function fetchJson(path: string): Promise<unknown> {
   });
 
   if (!response.ok) {
-    let message = `Harness API request failed with ${response.status}`;
+    let message = `Proofline API request failed with ${response.status}`;
     try {
       const payload = (await response.json()) as { error?: string };
       if (payload.error) {

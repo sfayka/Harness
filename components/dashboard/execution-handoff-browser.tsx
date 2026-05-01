@@ -44,7 +44,7 @@ export function ExecutionHandoffBrowser() {
         tone: "text-warning",
       },
       {
-        label: "Harness Authority",
+        label: "Proofline Authority",
         value: transportStatus?.completion_authority === "harness_verification" ? 1 : 0,
         icon: ShieldCheck,
         tone: "text-success",
@@ -99,7 +99,7 @@ export function ExecutionHandoffBrowser() {
                 </h1>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Read-only preview of Symphony-compatible handoff payloads from the Harness supervision queue.
+                Read-only preview of Symphony-compatible handoff payloads from the Proofline supervision queue.
               </p>
             </div>
             <button
@@ -147,7 +147,7 @@ export function ExecutionHandoffBrowser() {
                   </div>
                   <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
                     {transportStatus?.message ||
-                      "Harness has not returned execution transport posture yet."}
+                      "Proofline has not returned execution transport posture yet."}
                   </p>
                 </div>
                 <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:min-w-[28rem]">
@@ -188,7 +188,7 @@ export function ExecutionHandoffBrowser() {
             </Card>
           ) : isLoading ? (
             <div className="rounded-lg border border-border bg-card p-8 text-sm text-muted-foreground">
-              Loading execution handoffs from Harness...
+              Loading execution handoffs from Proofline...
             </div>
           ) : handoffs.length === 0 ? (
             <Card>
@@ -197,7 +197,7 @@ export function ExecutionHandoffBrowser() {
                   No execution handoffs returned
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Harness did not return any runner-facing handoff previews from the current supervision queue.
+                  Proofline did not return any runner-facing handoff previews from the current supervision queue.
                 </p>
               </CardContent>
             </Card>

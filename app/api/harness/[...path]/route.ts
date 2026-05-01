@@ -17,7 +17,7 @@ export async function GET(
     return NextResponse.json(
       {
         error:
-          "Harness API base URL could not be resolved. Set HARNESS_API_BASE_URL locally or deploy behind Vercel Services.",
+          "Proofline API base URL could not be resolved. Set HARNESS_API_BASE_URL locally or deploy behind Vercel Services.",
       },
       { status: 503 },
     );
@@ -45,7 +45,7 @@ export async function GET(
   } catch (error) {
     return NextResponse.json(
       {
-        error: `Harness API proxy could not reach ${upstreamUrl.origin}: ${
+        error: `Proofline API proxy could not reach ${upstreamUrl.origin}: ${
           error instanceof Error ? error.message : "unknown error"
         }`,
       },

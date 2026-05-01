@@ -98,7 +98,7 @@ export function ReconciliationCard({
       status: hasMismatches && systemHasMismatch("github", mismatchCategories) ? "mismatch" : inferGithubState(evidence, timeline) ? "ok" : "missing",
     },
     {
-      name: "Harness",
+      name: "Proofline",
       state: currentStatus ?? summary.harness_state,
       status: hasMismatches && systemHasMismatch("harness", mismatchCategories) ? "mismatch" : (currentStatus ?? summary.harness_state) ? "ok" : "unknown",
     },

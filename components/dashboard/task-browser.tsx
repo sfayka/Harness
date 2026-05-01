@@ -60,7 +60,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
     scopeLabel: "Inventory",
     emptyTitle: "No tasks returned",
     emptyDescription:
-      "Harness did not return any tasks from the configured backend.",
+      "Proofline did not return any tasks from the configured backend.",
     filterTask: () => true,
     sortTasks: (tasks) =>
       [...tasks].sort(
@@ -76,7 +76,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
     scopeLabel: "Verification Lens",
     emptyTitle: "No verification records returned",
     emptyDescription:
-      "Harness did not return any tasks with verification context yet.",
+      "Proofline did not return any tasks with verification context yet.",
     filterTask: (task) =>
       task.verification_summary !== null ||
       task.current_status === "executing" ||
@@ -166,7 +166,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
     scopeLabel: "Reconciliation Lens",
     emptyTitle: "No reconciliation results returned",
     emptyDescription:
-      "Harness did not return any tasks with reconciliation summaries yet.",
+      "Proofline did not return any tasks with reconciliation summaries yet.",
     filterTask: (task) => task.reconciliation_summary !== null,
     sortTasks: (tasks) =>
       [...tasks].sort((left, right) => {
@@ -240,7 +240,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
     scopeLabel: "Manual Review Queue",
     emptyTitle: "No reviews returned",
     emptyDescription:
-      "Harness did not return any tasks with manual review activity yet.",
+      "Proofline did not return any tasks with manual review activity yet.",
     filterTask: (task) =>
       task.review_summary.status !== "none" ||
       task.review_summary.request_count > 0 ||
@@ -398,7 +398,7 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
           setLoadError(
             error instanceof Error
               ? error.message
-              : "Tasks could not be loaded from Harness.",
+              : "Tasks could not be loaded from Proofline.",
           );
         }
       } finally {
@@ -479,7 +479,7 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
       setLoadError(
         error instanceof Error
           ? error.message
-          : "Tasks could not be loaded from Harness.",
+          : "Tasks could not be loaded from Proofline.",
       );
     } finally {
       setIsLoadingTasks(false);
@@ -588,7 +588,7 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-foreground">
-                        Harness data could not be loaded
+                        Proofline data could not be loaded
                       </p>
                       <p className="text-sm text-muted-foreground">{loadError}</p>
                     </div>
@@ -597,7 +597,7 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
               </Card>
             ) : isLoadingTasks ? (
               <div className="rounded-lg border border-border bg-card p-8 text-sm text-muted-foreground">
-                Loading tasks from Harness...
+                Loading tasks from Proofline...
               </div>
             ) : filteredTasks.length === 0 ? (
               <Card>
