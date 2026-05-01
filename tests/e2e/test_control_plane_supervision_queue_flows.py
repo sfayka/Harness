@@ -33,10 +33,13 @@ class ControlPlaneSupervisionQueueFlowTests(RuntimeApiTestCase):
         self.assertEqual(entries[review.task_id]["attention_type"], "review_required")
         self.assertEqual(entries[review.task_id]["suggested_action"], "resolve_review_gate")
         self.assertFalse(entries[review.task_id]["stale"])
+        self.assertEqual(entries[review.task_id]["completion_validation_summary"]["status"], "review_required")
+        self.assertFalse(entries[review.task_id]["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(entries[retryable.task_id]["attention_type"], "retryable_failure")
         self.assertEqual(entries[retryable.task_id]["suggested_action"], "retry_or_redispatch")
         self.assertTrue(entries[retryable.task_id]["retry_eligible"])
         self.assertEqual(entries[retryable.task_id]["failure_state"], "retryable")
+        self.assertEqual(entries[retryable.task_id]["completion_validation_summary"]["status"], "blocked")
 
     def test_supervision_queue_clears_review_attention_after_manual_resolution(self) -> None:
         review = self.create_evaluate_scenario({"request": to_jsonable(build_demo_request("review_required"))})

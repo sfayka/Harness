@@ -65,10 +65,13 @@ class HarnessSupervisionServiceTests(unittest.TestCase):
         review_item = queue[review_response["task_envelope"]["id"]]
         self.assertEqual(review_item["attention_type"], "review_required")
         self.assertEqual(review_item["suggested_action"], "resolve_review_gate")
+        self.assertEqual(review_item["completion_validation_summary"]["status"], "review_required")
+        self.assertFalse(review_item["completion_validation_summary"]["completion_accepted"])
 
         clarification_item = queue[clarification_response["task_envelope"]["id"]]
         self.assertEqual(clarification_item["attention_type"], "clarification_required")
         self.assertEqual(clarification_item["suggested_action"], "collect_clarification")
+        self.assertEqual(clarification_item["completion_validation_summary"]["status"], "pending")
 
     def test_queue_surfaces_retryable_and_invalid_execution_attention(self) -> None:
         retry_payload = _request_payload("blocked_insufficient_evidence")

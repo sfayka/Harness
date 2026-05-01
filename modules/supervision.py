@@ -36,6 +36,7 @@ class SupervisionQueueEntry:
     clarification_status: str
     failure_state: str
     retry_eligible: bool
+    completion_validation_summary: dict[str, Any] | None
     execution_substrate_intent: dict[str, Any] | None
 
 
@@ -266,6 +267,11 @@ class HarnessSupervisionService:
                         clarification_status=str(((task.get("clarification_summary") or {}).get("status")) or "none"),
                         failure_state=str(((task.get("failure_summary") or {}).get("state")) or "clear"),
                         retry_eligible=bool(((task.get("execution_summary") or {}).get("retry_eligible"))),
+                        completion_validation_summary=(
+                            dict(task.get("completion_validation_summary"))
+                            if isinstance(task.get("completion_validation_summary"), dict)
+                            else None
+                        ),
                         execution_substrate_intent=execution_substrate_intent,
                     )
                 )
