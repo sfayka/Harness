@@ -249,6 +249,21 @@ class PostgresDatabaseUrlResolutionTests(unittest.TestCase):
         self.assertIsInstance(store, PostgresHarnessStore)
         self.assertEqual(store.database_url, "postgresql://env-vercel")
 
+    def test_build_harness_store_prefers_proofline_backend_alias(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_STORE_BACKEND": "postgres",
+                "HARNESS_STORE_BACKEND": "file",
+                "POSTGRES_URL": "postgresql://env-vercel",
+            },
+            clear=True,
+        ):
+            store = build_harness_store()
+
+        self.assertIsInstance(store, PostgresHarnessStore)
+        self.assertEqual(store.database_url, "postgresql://env-vercel")
+
     def test_build_harness_store_defaults_to_postgres_in_vercel_when_database_url_is_available(self) -> None:
         with patch.dict(
             os.environ,
@@ -291,6 +306,25 @@ class SQLiteDatabasePathResolutionTests(unittest.TestCase):
 
         self.assertEqual(resolved, Path("/env/harness.db"))
 
+    def test_prefers_proofline_sqlite_path_environment_variable(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_SQLITE_PATH": "/env/proofline.db",
+                "HARNESS_SQLITE_PATH": "/env/harness.db",
+            },
+            clear=True,
+        ):
+            resolved = resolve_sqlite_database_path()
+
+        self.assertEqual(resolved, Path("/env/proofline.db"))
+
+    def test_uses_proofline_store_root_when_no_explicit_sqlite_path_is_set(self) -> None:
+        with patch.dict(os.environ, {"PROOFLINE_STORE_ROOT": "/tmp/proofline-store"}, clear=True):
+            resolved = resolve_sqlite_database_path()
+
+        self.assertEqual(resolved, Path("/tmp/proofline-store/harness.db"))
+
     def test_uses_store_root_when_no_explicit_sqlite_path_is_set(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             resolved = resolve_sqlite_database_path(store_root="/tmp/harness-store")
@@ -322,6 +356,20 @@ class SQLiteDatabasePathResolutionTests(unittest.TestCase):
         with patch.dict(
             os.environ,
             {"HARNESS_STORE_BACKEND": "sqlite", "HARNESS_SQLITE_PATH": database_path},
+            clear=True,
+        ):
+            store = build_harness_store()
+
+        self.assertIsInstance(store, SQLiteHarnessStore)
+        self.assertEqual(store.database_path, Path(database_path))
+
+    def test_build_harness_store_accepts_sqlite_backend_from_proofline_aliases(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        database_path = str(Path(temp_dir.name) / "proofline.db")
+        with patch.dict(
+            os.environ,
+            {"PROOFLINE_STORE_BACKEND": "sqlite", "PROOFLINE_SQLITE_PATH": database_path},
             clear=True,
         ):
             store = build_harness_store()

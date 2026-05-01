@@ -217,7 +217,7 @@ See:
 
 ### Persistence
 
-- Store selection is controlled by `HARNESS_STORE_BACKEND`.
+- Store selection is controlled by `PROOFLINE_STORE_BACKEND`, with `HARNESS_STORE_BACKEND` retained as a compatibility fallback.
 - Supported backends:
   - `file` for local JSON-backed development.
   - `sqlite` for durable local CLI/web state without Docker or hosted services.
@@ -246,7 +246,7 @@ The hosted backend health endpoint is expected at:
 
 - `GET /backend/health`
 
-The dashboard derives its backend route automatically from the Vercel deployment URL and the `/backend` route prefix. Hosted deployments should not require a manually configured `HARNESS_API_BASE_URL` when both services live inside the same Vercel project.
+The dashboard derives its backend route automatically from the Vercel deployment URL and the `/backend` route prefix. Hosted deployments should not require a manually configured `PROOFLINE_API_BASE_URL` or `HARNESS_API_BASE_URL` when both services live inside the same Vercel project.
 
 ## Key Views And Routes
 
@@ -275,24 +275,30 @@ That chronology rule also applies to current-run binding outside the read model.
 
 ## Storage And Environment
 
-Required frontend environment variable:
+Optional frontend/backend API override:
 
-- `HARNESS_API_BASE_URL`
+- `PROOFLINE_API_BASE_URL`
   - Local example: `http://127.0.0.1:8000`
   - Hosted use: local override only; same-project Vercel deployments always derive the backend route automatically and ignore stale hosted overrides
+- `HARNESS_API_BASE_URL`
+  - Compatibility fallback when `PROOFLINE_API_BASE_URL` is unset
 
 Backend storage environment variables:
 
-- `HARNESS_STORE_BACKEND`
+- `PROOFLINE_STORE_BACKEND`
   - Supported values: `file`, `sqlite`, `postgres`
   - Default in [`.env.example`](.env.example): `file`
   - Self-contained local CLI/web mode should use `sqlite`
   - Hosted Vercel deployments auto-select `postgres` when managed Postgres connection variables are present
-- `HARNESS_SQLITE_PATH`
-  - Optional explicit SQLite database file path when `HARNESS_STORE_BACKEND=sqlite`
+- `HARNESS_STORE_BACKEND`
+  - Compatibility fallback when `PROOFLINE_STORE_BACKEND` is unset
+- `PROOFLINE_SQLITE_PATH`
+  - Optional explicit SQLite database file path when `PROOFLINE_STORE_BACKEND=sqlite`
   - macOS local default: `~/Library/Application Support/Harness/harness.db`
   - Linux default: `$XDG_DATA_HOME/harness/harness.db`, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset
-  - If `HARNESS_STORE_ROOT` is set and `HARNESS_SQLITE_PATH` is not, Harness uses `<HARNESS_STORE_ROOT>/harness.db`
+  - If `PROOFLINE_STORE_ROOT` is set and `PROOFLINE_SQLITE_PATH` is not, Proofline uses `<PROOFLINE_STORE_ROOT>/harness.db`
+- `HARNESS_SQLITE_PATH` and `HARNESS_STORE_ROOT`
+  - Compatibility fallbacks when the Proofline-named storage variables are unset
 - Postgres connection string
   - Harness resolves this in order from `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, then `POSTGRES_URL_NO_SSL`
   - `DATABASE_URL` remains the explicit portable override
@@ -350,8 +356,8 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 Run the backend with SQLite local persistence:
 
 ```bash
-export HARNESS_STORE_BACKEND=sqlite
-export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
+export PROOFLINE_STORE_BACKEND=sqlite
+export PROOFLINE_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
@@ -411,7 +417,7 @@ See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runt
 Run the backend with Postgres:
 
 ```bash
-export HARNESS_STORE_BACKEND=postgres
+export PROOFLINE_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
@@ -419,7 +425,7 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 For a local environment pulled from a Vercel-managed Neon project, `POSTGRES_URL` also works without additional remapping:
 
 ```bash
-export HARNESS_STORE_BACKEND=postgres
+export PROOFLINE_STORE_BACKEND=postgres
 export POSTGRES_URL=postgresql://...
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
@@ -436,7 +442,7 @@ cp .env.example .env.local
 Set:
 
 ```bash
-HARNESS_API_BASE_URL=http://127.0.0.1:8000
+PROOFLINE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 Run the frontend:

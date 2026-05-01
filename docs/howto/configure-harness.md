@@ -40,14 +40,18 @@ Common local variables:
 - `LINEAR_API_KEY`
 - `PROOFLINE_API_BASE_URL=http://127.0.0.1:8000`
 - `HARNESS_API_BASE_URL=http://127.0.0.1:8000`
+- `PROOFLINE_STORE_BACKEND=file`
+- `PROOFLINE_STORE_BACKEND=sqlite`
+- `PROOFLINE_SQLITE_PATH=/absolute/path/to/harness.db`
+- `PROOFLINE_STORE_BACKEND=postgres`
 - `HARNESS_STORE_BACKEND=file`
-- `HARNESS_STORE_BACKEND=sqlite`
 - `HARNESS_SQLITE_PATH=/absolute/path/to/harness.db`
-- `HARNESS_STORE_BACKEND=postgres`
 - `DATABASE_URL`
 - `POSTGRES_URL`
 
 `PROOFLINE_API_BASE_URL` is preferred for the dashboard/backend proxy override. `HARNESS_API_BASE_URL` remains a compatibility fallback for existing local files and deployments. Hosted same-project Vercel deployments still derive the backend route automatically and ignore either explicit override.
+
+`PROOFLINE_STORE_BACKEND`, `PROOFLINE_STORE_ROOT`, and `PROOFLINE_SQLITE_PATH` are preferred for local/backend storage selection. `HARNESS_STORE_BACKEND`, `HARNESS_STORE_ROOT`, and `HARNESS_SQLITE_PATH` remain compatibility fallbacks.
 
 ## Desktop-Agent Bridge Wiring
 
@@ -68,14 +72,14 @@ For hosted repair dispatch, `OPENCLAW_BASE_URL` must point at a receiver reachab
 Use SQLite for self-contained local CLI/web state:
 
 ```bash
-export HARNESS_STORE_BACKEND=sqlite
-export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
+export PROOFLINE_STORE_BACKEND=sqlite
+export PROOFLINE_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
 ```
 
 Use Postgres for hosted or team deployments:
 
 ```bash
-export HARNESS_STORE_BACKEND=postgres
+export PROOFLINE_STORE_BACKEND=postgres
 export POSTGRES_URL=postgresql://...
 ```
 

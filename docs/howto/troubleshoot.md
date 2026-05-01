@@ -8,6 +8,7 @@ During the staged rename, most runtime identifiers still say Harness. Treat `HAR
 
 Check:
 
+- `PROOFLINE_STORE_BACKEND`
 - `HARNESS_STORE_BACKEND`
 - `DATABASE_URL` or `POSTGRES_URL` for hosted mode
 - reset service startup logs

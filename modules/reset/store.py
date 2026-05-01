@@ -13,6 +13,8 @@ from typing import Any, Iterator, Protocol, cast
 from .contracts import ResetVerificationContract
 from modules.store import (
     POSTGRES_DATABASE_URL_ENV_VARS,
+    STORE_BACKEND_ENV_VARS,
+    STORE_ROOT_ENV_VARS,
     StoreError,
     resolve_postgres_database_url,
     resolve_sqlite_database_path,
@@ -43,6 +45,16 @@ RESET_CONTRACTS_SCHEMA_STATEMENTS = (
         ON reset_contracts (updated_at DESC)
     """,
 )
+RESET_STORE_BACKEND_ENV_VARS = ("PROOFLINE_RESET_STORE_BACKEND", "HARNESS_RESET_STORE_BACKEND")
+RESET_STORE_ROOT_ENV_VARS = ("PROOFLINE_RESET_STORE_ROOT", "HARNESS_RESET_STORE_ROOT")
+
+
+def _first_configured_env(env_vars: tuple[str, ...]) -> str:
+    for env_var in env_vars:
+        value = os.environ.get(env_var)
+        if value and value.strip():
+            return value
+    return ""
 SQLITE_RESET_CONTRACTS_SCHEMA_STATEMENTS = (
     """
     CREATE TABLE IF NOT EXISTS reset_contracts (
@@ -372,8 +384,8 @@ def build_reset_store(
     resolved_database_url = resolve_postgres_database_url(database_url)
     configured_backend = (
         store_backend
-        or os.environ.get("HARNESS_RESET_STORE_BACKEND")
-        or os.environ.get("HARNESS_STORE_BACKEND")
+        or _first_configured_env(RESET_STORE_BACKEND_ENV_VARS)
+        or _first_configured_env(STORE_BACKEND_ENV_VARS)
         or ""
     ).strip().lower()
     if configured_backend:
@@ -388,14 +400,14 @@ def build_reset_store(
     if backend == "postgres":
         return PostgresResetStore(resolved_database_url)
     if backend == "sqlite":
-        explicit_reset_root = store_root or os.environ.get("HARNESS_RESET_STORE_ROOT")
+        explicit_reset_root = store_root or _first_configured_env(RESET_STORE_ROOT_ENV_VARS)
         return SQLiteResetStore(resolve_sqlite_database_path(store_root=explicit_reset_root))
 
-    explicit_reset_root = store_root or os.environ.get("HARNESS_RESET_STORE_ROOT")
+    explicit_reset_root = store_root or _first_configured_env(RESET_STORE_ROOT_ENV_VARS)
     if explicit_reset_root:
         return FileBackedResetStore(explicit_reset_root)
 
-    shared_root = os.environ.get("HARNESS_STORE_ROOT")
+    shared_root = _first_configured_env(STORE_ROOT_ENV_VARS)
     if shared_root:
         return FileBackedResetStore(shared_root)
 

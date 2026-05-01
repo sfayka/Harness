@@ -52,6 +52,38 @@ class ResetStoreResolutionTests(unittest.TestCase):
 
         self.assertIsInstance(store, FileBackedResetStore)
 
+    def test_build_reset_store_prefers_proofline_reset_backend_alias(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_RESET_STORE_BACKEND": "file",
+                "HARNESS_RESET_STORE_BACKEND": "postgres",
+                "VERCEL_URL": "harness-preview.vercel.app",
+                "POSTGRES_URL": "postgresql://env-vercel",
+            },
+            clear=True,
+        ):
+            store = build_reset_store(store_root="/tmp/proofline-reset-test")
+
+        self.assertIsInstance(store, FileBackedResetStore)
+
+    def test_build_reset_store_uses_proofline_shared_backend_alias(self) -> None:
+        temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir.cleanup)
+        database_path = str(Path(temp_dir.name) / "proofline.db")
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_STORE_BACKEND": "sqlite",
+                "PROOFLINE_SQLITE_PATH": database_path,
+            },
+            clear=True,
+        ):
+            store = build_reset_store()
+
+        self.assertIsInstance(store, SQLiteResetStore)
+        self.assertEqual(store.database_path, Path(database_path))
+
     def test_build_reset_store_honors_sqlite_backend(self) -> None:
         temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(temp_dir.cleanup)

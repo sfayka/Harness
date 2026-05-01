@@ -88,14 +88,16 @@ That loopback-style fallback is only appropriate for local development. Do not c
 To run the backend against SQLite local persistence:
 
 ```bash
-export HARNESS_STORE_BACKEND=sqlite
-export HARNESS_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
+export PROOFLINE_STORE_BACKEND=sqlite
+export PROOFLINE_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 SQLite mode is the intended persistence base for self-contained local CLI/web usage. It creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in one local database.
 
-If `HARNESS_SQLITE_PATH` is unset, the runtime uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
+`HARNESS_STORE_BACKEND`, `HARNESS_STORE_ROOT`, and `HARNESS_SQLITE_PATH` remain compatibility fallbacks. If both Proofline and Harness names are set, the Proofline-named storage override wins.
+
+If `PROOFLINE_SQLITE_PATH` and `HARNESS_SQLITE_PATH` are unset, the runtime uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
 
 ### Run The Local Runtime Contract
 
@@ -158,7 +160,7 @@ Default onboarding only requires the local runtime. GitHub, Linear, and ingress/
 To run the same backend against Postgres instead of the file-backed store:
 
 ```bash
-export HARNESS_STORE_BACKEND=postgres
+export PROOFLINE_STORE_BACKEND=postgres
 export DATABASE_URL=postgresql://...
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
@@ -166,7 +168,7 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 If you pull environment variables from a Vercel-managed Neon project, `POSTGRES_URL` also works directly:
 
 ```bash
-export HARNESS_STORE_BACKEND=postgres
+export PROOFLINE_STORE_BACKEND=postgres
 export POSTGRES_URL=postgresql://...
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```

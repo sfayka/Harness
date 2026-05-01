@@ -34,7 +34,10 @@ POSTGRES_DATABASE_URL_ENV_VARS = (
     "POSTGRES_PRISMA_URL",
     "POSTGRES_URL_NO_SSL",
 )
+STORE_BACKEND_ENV_VARS = ("PROOFLINE_STORE_BACKEND", "HARNESS_STORE_BACKEND")
+STORE_ROOT_ENV_VARS = ("PROOFLINE_STORE_ROOT", "HARNESS_STORE_ROOT")
 SQLITE_DATABASE_PATH_ENV_VAR = "HARNESS_SQLITE_PATH"
+SQLITE_DATABASE_PATH_ENV_VARS = ("PROOFLINE_SQLITE_PATH", SQLITE_DATABASE_PATH_ENV_VAR)
 SQLITE_SCHEMA_VERSION = 1
 SQLITE_SCHEMA_STATEMENTS = (
     """
@@ -298,6 +301,14 @@ def resolve_postgres_database_url(database_url: str | None = None) -> str:
     return ""
 
 
+def _first_configured_env(env_vars: tuple[str, ...]) -> str:
+    for env_var in env_vars:
+        value = os.environ.get(env_var)
+        if value and value.strip():
+            return value
+    return ""
+
+
 def resolve_sqlite_database_path(
     database_path: str | Path | None = None,
     *,
@@ -310,11 +321,11 @@ def resolve_sqlite_database_path(
     if database_path is not None and str(database_path).strip():
         return Path(database_path).expanduser()
 
-    env_path = os.environ.get(SQLITE_DATABASE_PATH_ENV_VAR)
+    env_path = _first_configured_env(SQLITE_DATABASE_PATH_ENV_VARS)
     if env_path and env_path.strip():
         return Path(env_path).expanduser()
 
-    root = store_root or os.environ.get("HARNESS_STORE_ROOT")
+    root = store_root or _first_configured_env(STORE_ROOT_ENV_VARS)
     if root is not None and str(root).strip():
         return Path(root).expanduser() / "harness.db"
 
@@ -345,11 +356,11 @@ class PostgresHarnessStore(HarnessStore):
 
     def __init__(self, database_url: str) -> None:
         if psycopg is None or Jsonb is None or UniqueViolation is None:
-            raise StoreError("psycopg is required for HARNESS_STORE_BACKEND=postgres")
+            raise StoreError("psycopg is required for PROOFLINE_STORE_BACKEND=postgres")
         if not database_url.strip():
             supported_envs = ", ".join(POSTGRES_DATABASE_URL_ENV_VARS)
             raise StoreError(
-                "A Postgres connection string is required for HARNESS_STORE_BACKEND=postgres "
+                "A Postgres connection string is required for PROOFLINE_STORE_BACKEND=postgres "
                 f"(checked: {supported_envs})"
             )
         self.database_url = database_url
@@ -548,7 +559,7 @@ class SQLiteHarnessStore(HarnessStore):
 
     def __init__(self, database_path: str | Path) -> None:
         if not str(database_path).strip():
-            raise StoreError("A SQLite database path is required for HARNESS_STORE_BACKEND=sqlite")
+            raise StoreError("A SQLite database path is required for PROOFLINE_STORE_BACKEND=sqlite")
         self.database_path = Path(database_path).expanduser()
         try:
             self.database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -798,7 +809,7 @@ def build_harness_store(
     """Construct the configured persistence backend for the API process."""
 
     resolved_database_url = resolve_postgres_database_url(database_url)
-    configured_backend = (store_backend or os.environ.get("HARNESS_STORE_BACKEND") or "").strip().lower()
+    configured_backend = (store_backend or _first_configured_env(STORE_BACKEND_ENV_VARS) or "").strip().lower()
     if configured_backend:
         backend = configured_backend
     elif database_url and database_url.strip():
@@ -809,13 +820,13 @@ def build_harness_store(
         backend = "file"
 
     if backend == "file":
-        resolved_store_root = Path(store_root or os.environ.get("HARNESS_STORE_ROOT") or ".harness-store")
+        resolved_store_root = Path(store_root or _first_configured_env(STORE_ROOT_ENV_VARS) or ".harness-store")
         return FileBackedHarnessStore(resolved_store_root)
     if backend == "postgres":
         return PostgresHarnessStore(resolved_database_url)
     if backend == "sqlite":
         return SQLiteHarnessStore(resolve_sqlite_database_path(sqlite_path, store_root=store_root))
-    raise StoreError(f"Unsupported HARNESS_STORE_BACKEND {backend!r}; expected 'file', 'postgres', or 'sqlite'")
+    raise StoreError(f"Unsupported store backend {backend!r}; expected 'file', 'postgres', or 'sqlite'")
 
 
 __all__ = [
@@ -826,8 +837,11 @@ __all__ = [
     "HarnessStore",
     "PostgresHarnessStore",
     "POSTGRES_DATABASE_URL_ENV_VARS",
+    "STORE_BACKEND_ENV_VARS",
+    "STORE_ROOT_ENV_VARS",
     "SQLiteHarnessStore",
     "SQLITE_DATABASE_PATH_ENV_VAR",
+    "SQLITE_DATABASE_PATH_ENV_VARS",
     "SQLITE_SCHEMA_VERSION",
     "StoreError",
     "TaskEnvelopeAlreadyExistsError",
