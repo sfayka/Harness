@@ -20,10 +20,14 @@ def healthy_runtime_doctor_payload(
         check("log_dir", "pass"),
         check("config", "pass"),
         check("sqlite", "pass"),
-        check("api_health", "warn", next_action="Start Harness from the app or run `harness serve`."),
+        check("api_health", "warn", next_action="Run `harness start` or `harness serve`."),
         check("dashboard", "warn", next_action="Install packaged dashboard assets."),
-        check("notification_permission", "warn", next_action="Complete the notifications setup step."),
-        check("launch_at_login", "warn", next_action="Complete the Launch at Login setup step."),
+        check(
+            "notification_permission",
+            "warn",
+            next_action="No action needed unless a wrapper shell is responsible for local notifications.",
+        ),
+        check("launch_at_login", "warn", next_action="No action needed for CLI/web usage."),
         check("workspace_folders", "pass"),
         check(
             "github_connection",
@@ -95,6 +99,9 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertFalse(items["linear"]["required"])
         self.assertFalse(items["execution_substrate"]["required"])
         self.assertFalse(items["ingress_executor"]["required"])
+        runtime_text = str(items["local_runtime"])
+        self.assertNotIn("Harness app", runtime_text)
+        self.assertNotIn("menu-bar", runtime_text)
 
     def test_selected_workflow_makes_integration_setup_required(self) -> None:
         payload = build_guided_setup_status(

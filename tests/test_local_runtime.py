@@ -167,6 +167,8 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(checks["launch_at_login"]["status"], "pass")
         self.assertEqual(checks["workspace_folders"]["status"], "pass")
         self.assertIn("harness serve", checks["api_health"]["next_action"])
+        self.assertNotIn("Harness app", json.dumps(payload))
+        self.assertNotIn("menu-bar", json.dumps(payload))
         self.assertTrue(all(check.get("impact") for check in payload["checks"]))
         self.assertTrue(all(check.get("next_action") for check in payload["checks"]))
 

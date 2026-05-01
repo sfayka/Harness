@@ -1,4 +1,4 @@
-"""Guided setup contract for the local Harness app."""
+"""Guided setup contract for the local Harness runtime."""
 
 from __future__ import annotations
 
@@ -82,17 +82,17 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         title="Local Harness runtime",
         category="core",
         purpose=(
-            "Runs Harness locally with app-managed config, SQLite persistence, local logs, "
+            "Runs Harness locally with managed config, SQLite persistence, local logs, "
             "and the dashboard/API served from the local backend."
         ),
         what_user_needs=(
-            "Writable app data and log folders.",
-            "Initialized app-managed config and SQLite database.",
-            "A running local API when the menu-bar summary or dashboard needs live progress.",
+            "Writable local data and log folders.",
+            "Initialized managed config and SQLite database.",
+            "A running local API when CLI/web inspection needs live progress.",
         ),
         how_harness_validates=(
             "Harness checks writable app folders, config readability, SQLite schema readiness, "
-            "API health, dashboard assets, app-reported permissions, and selected workspace folders."
+            "API health, dashboard assets, optional wrapper-reported permissions, and selected workspace folders."
         ),
         doctor_check_codes=(
             "app_data_dir",
@@ -121,8 +121,8 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             ),
         ),
         notes=(
-            "API and dashboard warnings do not block onboarding; the app can start the runtime when needed.",
-            "Notifications and Launch at Login are encouraged app-shell choices, not hard requirements.",
+            "API and dashboard warnings do not block setup; the CLI can start the runtime when needed.",
+            "Notifications and Launch at Login are optional wrapper-shell choices, not Harness requirements.",
         ),
     ),
     SetupItemDefinition(
@@ -135,10 +135,10 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         ),
         what_user_needs=(
             "A GitHub account or token with access to the repositories Harness should verify.",
-            "The packaged app should store the credential through its app-managed secret provider.",
+            "Store the credential through the managed secret provider.",
         ),
         how_harness_validates=(
-            "Harness checks the redacted status of the app-managed `github_token` secret through the setup doctor."
+            "Harness checks the redacted status of the managed `github_token` secret through the setup doctor."
         ),
         doctor_check_codes=("github_connection",),
         completion_check_codes=("github_connection",),
@@ -164,10 +164,10 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         ),
         what_user_needs=(
             "A Linear API key or app authorization for the workspace Harness should coordinate with.",
-            "The packaged app should store the credential through its app-managed secret provider.",
+            "Store the credential through the managed secret provider.",
         ),
         how_harness_validates=(
-            "Harness checks the redacted status of the app-managed `linear_api_key` secret through the setup doctor."
+            "Harness checks the redacted status of the managed `linear_api_key` secret through the setup doctor."
         ),
         doctor_check_codes=("linear_connection",),
         completion_check_codes=("linear_connection",),
@@ -246,7 +246,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
                 kind="connection",
                 label="Connect desktop-agent bridge",
                 description=(
-                    "Connect OpenClaw, Hermes, Codex, or another compatible client through the app setup flow."
+                    "Connect OpenClaw, Hermes, Codex, or another compatible client through CLI/web setup."
                 ),
             ),
             SetupAction(
@@ -278,7 +278,7 @@ def build_guided_setup_status(
     *,
     selected_workflows: Iterable[str] = (),
 ) -> dict[str, Any]:
-    """Build the app-renderable guided onboarding status from doctor output."""
+    """Build the guided setup status from doctor output."""
 
     workflows = _normalize_workflows(selected_workflows)
     required_item_ids = {"local_runtime"}
@@ -457,7 +457,7 @@ def _next_action(
 ) -> str:
     if status == "complete":
         if definition.id == "local_runtime":
-            return "No setup action is required to finish onboarding. Start Harness when live progress is needed."
+            return "No setup action is required. Start Harness when live progress is needed."
         return "No action needed."
 
     failing_check = next((check for check in checks if check.get("status") == "fail"), None)
@@ -473,9 +473,9 @@ def _next_action(
     if definition.setup_actions:
         action = definition.setup_actions[0]
         if action.command:
-            return f"Run `{action.command}` or complete the equivalent app setup step."
+            return f"Run `{action.command}` or complete the equivalent setup step."
         return action.description
-    return "Open Harness setup and complete this item."
+    return "Complete this item through the CLI or configured operator surface."
 
 
 def _summarize_check(check: dict[str, Any]) -> dict[str, Any]:
