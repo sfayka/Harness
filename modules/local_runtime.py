@@ -188,7 +188,7 @@ def resolve_runtime_paths(
     platform_name: str | None = None,
     home: str | Path | None = None,
 ) -> RuntimePaths:
-    """Resolve app-managed local runtime paths."""
+    """Resolve managed local runtime paths."""
 
     current_platform = platform_name or sys.platform
     home_path = Path(home).expanduser() if home is not None else Path.home()
@@ -578,8 +578,8 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 code="config",
                 status="fail",
                 message=str(error),
-                impact="Harness cannot start reliably until app-managed config exists and is readable.",
-                next_action="Run `harness init` from the app bundle or CLI.",
+                impact="Harness cannot start reliably until local runtime config exists and is readable.",
+                next_action="Run `harness init` from the CLI.",
             )
         )
     else:
@@ -640,14 +640,14 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 status="pass" if api_running else "warn",
                 message="Local API is healthy." if api_running else "Local API is not running.",
                 impact=(
-                    "The menu-bar app and dashboard can read Harness state."
+                    "The CLI and dashboard can read Harness state."
                     if api_running
-                    else "The app can still run setup checks, but live task status and the dashboard are unavailable."
+                    else "Setup checks can still run, but live task status and the dashboard are unavailable."
                 ),
                 next_action=(
                     "No action needed."
                     if api_running
-                    else "Start Harness from the app or run `harness serve`."
+                    else "Run `harness start` or `harness serve`."
                 ),
                 details={
                     "api_base_url": config.base_url,
@@ -976,9 +976,9 @@ def _check_notification_permission() -> RuntimeCheck:
     return RuntimeCheck(
         code="notification_permission",
         status="warn",
-        message="Notification permission has not been reported by the app shell.",
-        impact="Harness can run, but the app has not confirmed whether attention alerts can be delivered.",
-        next_action="Open the Harness app and complete the notifications setup step.",
+        message="Notification permission has not been reported by a wrapper shell.",
+        impact="Harness can run, but no wrapper has confirmed whether attention alerts can be delivered.",
+        next_action="No action needed unless a wrapper shell is responsible for local notifications.",
         details={"permission": permission},
     )
 
@@ -1000,15 +1000,15 @@ def _check_launch_at_login() -> RuntimeCheck:
             status="warn",
             message="Launch at Login is disabled.",
             impact="Harness will only run after the user starts it manually.",
-            next_action="Enable Launch at Login from the Harness app if you want background supervision after login.",
+            next_action="No action needed unless a wrapper shell is responsible for startup after login.",
             details={"state": state},
         )
     return RuntimeCheck(
         code="launch_at_login",
         status="warn",
-        message="Launch at Login state has not been reported by the app shell.",
+        message="Launch at Login state has not been reported by a wrapper shell.",
         impact="Harness can run, but automatic startup has not been confirmed.",
-        next_action="Open the Harness app and complete the Launch at Login setup step.",
+        next_action="No action needed for CLI/web usage.",
         details={"state": state},
     )
 
@@ -1039,7 +1039,7 @@ def _check_workspace_folders() -> RuntimeCheck:
             status="fail",
             message="One or more configured workspace folders are unavailable.",
             impact="Workflows that need local repository or artifact inspection may fail.",
-            next_action="Reconnect the missing folders from the Harness app or remove stale workspace folder entries.",
+            next_action="Reconnect the missing folders through your wrapper shell or remove stale workspace folder entries.",
             details=details,
         )
     return RuntimeCheck(
@@ -1174,7 +1174,7 @@ def _open_url(url: str) -> None:
 
 
 def build_runtime_status_payload(health_payload: dict[str, Any]) -> dict[str, Any]:
-    """Build the stable backend endpoint payload used by the app shell."""
+    """Build the stable backend endpoint payload used by local runtime clients."""
 
     base_url = os.environ.get(ENV_RUNTIME_BASE_URL)
     if not base_url:
@@ -1263,12 +1263,12 @@ def build_parser() -> argparse.ArgumentParser:
     recover_parser = subparsers.add_parser("recover", help="Recover a stale, crashed, or degraded local runtime")
     recover_parser.add_argument("--timeout", default=10.0, type=float, help="Recovery startup timeout in seconds")
 
-    setup_parser = subparsers.add_parser("setup", help="Guide local onboarding and optional integration setup")
+    setup_parser = subparsers.add_parser("setup", help="Guide local runtime and optional integration setup")
     setup_subparsers = setup_parser.add_subparsers(dest="setup_command", required=True)
 
     setup_status_parser = setup_subparsers.add_parser(
         "status",
-        help="Report guided setup state for the local app onboarding flow",
+        help="Report guided setup state for CLI/web setup flows",
     )
     setup_status_parser.add_argument(
         "--workflow",
