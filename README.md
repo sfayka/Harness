@@ -4,6 +4,8 @@ Proofline is the acceptance layer for AI-assisted software work.
 
 `Harness` remains the current repository, CLI, API, and codebase name during the staged rename. Do not mechanically rename packages, routes, commands, or contracts yet. See [`docs/adrs/0006-product-rename-and-acceptance-layer.md`](docs/adrs/0006-product-rename-and-acceptance-layer.md).
 
+The rename migration plan is in [`docs/architecture/proofline-rename-migration.md`](docs/architecture/proofline-rename-migration.md). Product surfaces may say Proofline while compatibility identifiers still use Harness.
+
 Proofline does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
 
 The strategic inventory for the pivot is in [`docs/architecture/acceptance-layer-inventory.md`](docs/architecture/acceptance-layer-inventory.md). The short version: keep verification, reconciliation, lifecycle enforcement, evidence policy, Linear/GitHub alignment, manual review, and inspection surfaces; wrap Symphony/Codex/Hermes/OpenClaw as advisory execution or ingress layers; freeze or delete duplicated executor/runtime/product-shell work.

@@ -84,4 +84,6 @@ Stop investing in:
 
 ## Follow-Up
 
-Create a rename migration plan after this ADR lands. The first implementation PR should update product copy and docs only. Code/package renames should wait until the acceptance-layer inventory has removed or frozen the duplicate execution surfaces.
+The migration plan lives in [proofline-rename-migration.md](../architecture/proofline-rename-migration.md).
+
+The first implementation PRs should update product copy, docs, and visible dashboard labels only. Code/package renames should wait until aliases, tests, deployment checks, and rollback steps exist.
