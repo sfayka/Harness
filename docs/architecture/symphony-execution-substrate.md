@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Define how Harness should respond to OpenAI's Symphony project without weakening Harness's source-of-truth boundary.
+Define how Proofline should respond to OpenAI's Symphony project without weakening the acceptance-layer source-of-truth boundary.
 
-Symphony validates the need for a daemonized execution substrate that keeps Codex working on structured tasks. It does not replace Harness. Harness remains the control plane, verification layer, and lifecycle authority. A Symphony-like service may run work, retry work, preserve per-issue workspaces, and report execution facts. It must not decide whether work is complete.
+Symphony validates the need for a daemonized execution substrate that keeps Codex working on structured tasks. It does not replace Proofline. Proofline remains the control plane, verification layer, and lifecycle authority. A Symphony-like service may run work, retry work, preserve per-issue workspaces, and report execution facts. It must not decide whether work is complete.
 
 References:
 
@@ -16,13 +16,13 @@ References:
 
 ## Decision
 
-Harness should wrap a Symphony-like runner as an execution substrate.
+Proofline should wrap a Symphony-like runner as an execution substrate.
 
-Harness should not build a duplicate low-level daemon whose only purpose is to poll Linear, create workspaces, launch Codex, and keep attempts moving. Symphony's public spec is now the right shape for that lower layer.
+Proofline should not build a duplicate low-level daemon whose only purpose is to poll Linear, create workspaces, launch Codex, and keep attempts moving. Symphony's public spec is now the right shape for that lower layer.
 
 Local setup now reflects that decision. The `repair-dispatch` workflow requires an `execution_substrate` setup item, with Symphony as the preferred runner. The old `ingress_executor` setup item remains as a compatibility bridge for older OpenClaw/Hermes/Codex repair paths, but it is no longer the primary execution-scheduling requirement.
 
-Harness should also not collapse into Symphony. Symphony is a runner and tracker reader. Harness is the source of verified lifecycle truth.
+Proofline should also not collapse into Symphony. Symphony is a runner and tracker reader. Proofline is the source of verified lifecycle truth.
 
 The intended stack is:
 
@@ -31,11 +31,11 @@ Ambiguous product or software idea
         |
 Clarification and PRD/spec generation
         |
-Harness planning and decomposition
+Proofline planning and decomposition
         |
 Linear project, issue, and dependency graph
         |
-Harness dispatch policy and execution budgets
+Proofline dispatch policy and execution budgets
         |
 Symphony-like execution substrate
         |
@@ -43,7 +43,7 @@ Codex / Codex Cloud / future workers
         |
 GitHub commits, pull requests, CI, reviews, artifacts
         |
-Harness verification, reconciliation, manual review, completion authority
+Proofline verification, reconciliation, manual review, completion authority
 ```
 
 This preserves the current source-of-truth model:
@@ -52,11 +52,11 @@ This preserves the current source-of-truth model:
 - GitHub is the source of truth for executed code artifacts.
 - Executors are replaceable workers.
 - A Symphony-like runner is an execution scheduler.
-- Harness is the source of truth for verified lifecycle state.
+- Proofline is the source of truth for verified lifecycle state.
 
 ## What Symphony Validates
 
-Symphony validates the parts of the Harness thesis that were most likely to become operational bottlenecks:
+Symphony validates the parts of the Proofline thesis that were most likely to become operational bottlenecks:
 
 - Work should be represented in a structured work surface before agents execute it.
 - Long-running agent execution should be daemonized instead of driven by manual terminal supervision.
@@ -65,17 +65,17 @@ Symphony validates the parts of the Harness thesis that were most likely to beco
 - Multiple agent runs require bounded concurrency, retry state, and operator-visible runtime status.
 - Execution summaries are not enough; systems need artifacts, logs, and handoff states.
 
-The important strategic implication is that Harness should spend less effort on bespoke executor scheduling and more effort on the things Symphony intentionally does not own: clarification, decomposition, verification, reconciliation, lifecycle policy, manual review, and project-level completion.
+The important strategic implication is that Proofline should spend less effort on bespoke executor scheduling and more effort on the things Symphony intentionally does not own: clarification, decomposition, verification, reconciliation, lifecycle policy, manual review, and project-level completion.
 
-## What Harness Should Borrow
+## What Proofline Should Borrow
 
-Harness should adopt these Symphony concepts either directly or through compatible abstractions:
+Proofline should adopt these Symphony concepts either directly or through compatible abstractions:
 
-- Repo-owned execution workflow contract, initially `WORKFLOW.md` or a Harness-specific profile that can generate one.
+- Repo-owned execution workflow contract, initially `WORKFLOW.md` or a Proofline-specific profile that can generate one.
 - Per-issue or per-task deterministic workspace roots.
 - Bounded concurrency by repository, project, executor class, and risk level.
 - Poll/reconcile loop for eligible Linear issues.
-- Stop active runs when Linear state, dependency state, or Harness policy makes the issue ineligible.
+- Stop active runs when Linear state, dependency state, or Proofline policy makes the issue ineligible.
 - Retry queue with attempt count, retry reason, due time, and exponential backoff.
 - Stall and timeout detection based on heartbeats and progress facts.
 - Runtime snapshot with running sessions, retrying sessions, rate-limit state, token usage, and seconds running.
@@ -83,40 +83,40 @@ Harness should adopt these Symphony concepts either directly or through compatib
 - Dynamic tool exposure for privileged integrations so worker sessions do not receive raw broad-scope tokens.
 - Workflow prompt construction that receives issue context, attempt context, and prior handoff context.
 
-These are execution-substrate concerns. They should feed Harness with advisory events and artifact references, not canonical lifecycle decisions.
+These are execution-substrate concerns. They should feed Proofline with advisory events and artifact references, not canonical lifecycle decisions.
 
-## What Harness Must Not Copy
+## What Proofline Must Not Copy
 
-Harness must not copy the parts of a high-trust Symphony deployment that assume the runner and agents can mutate truth safely.
+Proofline must not copy the parts of a high-trust Symphony deployment that assume the runner and agents can mutate truth safely.
 
 Do not copy:
 
 - Agent-authored Linear state as completion truth.
-- Agent-authored acceptance criteria changes after PRD/spec approval without Harness or human review.
+- Agent-authored acceptance criteria changes after PRD/spec approval without Proofline or human review.
 - Automatic move to `Done` as a runner success state.
 - Auto-merge as a default behavior.
 - Unbounded retry loops.
-- In-memory runner state as durable Harness truth.
-- Broad raw Linear or GitHub mutation tools inside worker sessions without Harness-owned audit and policy boundaries.
+- In-memory runner state as durable Proofline truth.
+- Broad raw Linear or GitHub mutation tools inside worker sessions without Proofline-owned audit and policy boundaries.
 - Runner success summaries as completion evidence.
 - Silent recovery from external mismatches.
 
-The safe rule is simple: the runner may reach a handoff state; Harness decides whether the handoff is acceptable.
+The safe rule is simple: the runner may reach a handoff state; Proofline decides whether the handoff is acceptable.
 
 ## Boundary Model
 
 ### Symphony-Like Runner Owns
 
-- Polling for eligible work when delegated by Harness policy.
+- Polling for eligible work when delegated by Proofline policy.
 - Creating or reusing isolated workspaces.
 - Launching Codex or another selected executor.
 - Passing workflow prompts and attempt context.
 - Observing heartbeats, stalls, timeouts, and worker exits.
-- Scheduling execution-level retries within Harness-provided budgets.
+- Scheduling execution-level retries within Proofline-provided budgets.
 - Emitting normalized execution events and artifact references.
 - Cleaning up or preserving workspaces according to configured policy.
 
-### Harness Owns
+### Proofline Owns
 
 - Clarification interviews and missing-information handling.
 - PRD or PRD-like spec approval state.
@@ -143,17 +143,17 @@ Linear does not decide whether artifact-backed completion should be trusted.
 
 - Branches, commits, pull requests, changed files, CI status, reviews, and merge state.
 
-GitHub stores artifact facts. It does not decide Harness lifecycle state.
+GitHub stores artifact facts. It does not decide Proofline lifecycle state.
 
 ## Runner Event Contract
 
-The runner integration should emit advisory events into Harness. These events should be append-only and attempt-scoped.
+The runner integration should emit advisory events into Proofline. These events should be append-only and attempt-scoped.
 
 The first in-code contract lives in [`modules/contracts/execution_substrate.py`](../../modules/contracts/execution_substrate.py). It intentionally models runner events as advisory input, not as lifecycle authority.
 
-Harness accepts these events through `POST /tasks/<task_id>/execution-substrate-events`. That endpoint appends validated runner events to `observability.execution_metadata.execution_substrate_events` and projects them into the read-model and timeline. It does not run verification, mutate Linear or GitHub, or authorize a lifecycle transition.
+Proofline accepts these events through the current Harness compatibility route `POST /tasks/<task_id>/execution-substrate-events`. That endpoint appends validated runner events to `observability.execution_metadata.execution_substrate_events` and projects them into the read-model and timeline. It does not run verification, mutate Linear or GitHub, or authorize a lifecycle transition.
 
-The deterministic local dry run lives in [`modules/execution_substrate_dryrun.py`](../../modules/execution_substrate_dryrun.py). It simulates a Symphony-style event stream against a disposable local task and proves that runner handoff remains advisory until Harness verification runs. It also includes an intent-consumer dry run that creates a local retryable task, polls the execution-substrate intent queue, and records advisory runner events without starting Symphony or touching live work.
+The deterministic local dry run lives in [`modules/execution_substrate_dryrun.py`](../../modules/execution_substrate_dryrun.py). It simulates a Symphony-style event stream against a disposable local task and proves that runner handoff remains advisory until Proofline verification runs. It also includes an intent-consumer dry run that creates a local retryable task, polls the execution-substrate intent queue, and records advisory runner events without starting Symphony or touching live work.
 
 Run the two local substrate dry runs with:
 
@@ -163,17 +163,17 @@ python3 -m modules.execution_substrate_dryrun intent-consumer
 python3 -m modules.execution_substrate_dryrun handoff
 ```
 
-These commands write a JSON summary to stdout. They use disposable local stores, do not start Symphony, do not read live Linear or GitHub state, and do not authorize task completion. The `handoff` command renders the Symphony-compatible payload through the disabled transport boundary and marks `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, and `safe_to_execute_live=false`. They exist to make the execution-substrate boundary testable before Harness connects a real Symphony runner.
+These commands write a JSON summary to stdout. They use disposable local stores, do not start Symphony, do not read live Linear or GitHub state, and do not authorize task completion. The `handoff` command renders the Symphony-compatible payload through the disabled transport boundary and marks `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, and `safe_to_execute_live=false`. They exist to make the execution-substrate boundary testable before Proofline connects a real Symphony runner.
 
-The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Harness pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. Harness also exposes `GET /execution-substrate/intents` as a runner-facing filtered projection of those intents. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
+The supervision queue now also exposes `execution_substrate_intent` for attention items that should be continued by a Symphony-compatible runner. This is the replacement for Proofline pretending to be the runner in the normal path. A supervisor can submit that intent to Symphony, and Symphony reports back through `POST /tasks/<task_id>/execution-substrate-events`. Proofline also exposes `GET /execution-substrate/intents` as a runner-facing filtered projection of those intents. The old direct `/tasks/<task_id>/dispatch` behavior remains only as a compatibility and deterministic-test path.
 
-Runner-facing intents are also part of the in-code execution-substrate contract. Supervision builds them through `build_execution_substrate_intent` rather than hand-writing arbitrary queue payloads. A valid intent must remain advisory, must preserve `completion_authority=harness_verification`, and must explicitly prohibit marking Harness complete, moving Linear to Done as truth, or auto-merging without policy. This gives a Symphony adapter a stable handoff shape while keeping Harness above the runner as the verification boundary.
+Runner-facing intents are also part of the in-code execution-substrate contract. Supervision builds them through `build_execution_substrate_intent` rather than hand-writing arbitrary queue payloads. A valid intent must remain advisory, must preserve `completion_authority=harness_verification`, and must explicitly prohibit marking Proofline complete, moving Linear to Done as truth, or auto-merging without policy. This gives a Symphony adapter a stable handoff shape while keeping Proofline above the runner as the verification boundary.
 
-The first Symphony adapter lives in [`modules/adapters/symphony`](../../modules/adapters/symphony). It only renders a validated intent into an inert Symphony-compatible handoff payload. It does not start Symphony, poll Linear, launch Codex, mutate GitHub, or consume live work. Its purpose is to pin the Harness-to-runner payload shape before adding any daemon transport. The same package exposes `DisabledSymphonyExecutionTransport` as the explicit live-transport boundary: it can preview the handoff, but `dispatch()` raises until Harness has a separate live execution policy.
+The first Symphony adapter lives in [`modules/adapters/symphony`](../../modules/adapters/symphony). It only renders a validated intent into an inert Symphony-compatible handoff payload. It does not start Symphony, poll Linear, launch Codex, mutate GitHub, or consume live work. Its purpose is to pin the Proofline-to-runner payload shape before adding any daemon transport. The same package exposes `DisabledSymphonyExecutionTransport` as the explicit live-transport boundary: it can preview the handoff, but `dispatch()` raises until Proofline has a separate live execution policy.
 
-Harness exposes `GET /execution-substrate/handoffs` as a read-only preview of those rendered handoffs. The endpoint renders from the current supervision intent queue, marks `dispatch_enabled=false`, and does not start or contact Symphony. It exists so operators and future runners can inspect the exact payload shape before any live execution transport is enabled.
+Proofline exposes `GET /execution-substrate/handoffs` as a read-only preview of those rendered handoffs. The endpoint renders from the current supervision intent queue, marks `dispatch_enabled=false`, and does not start or contact Symphony. It exists so operators and future runners can inspect the exact payload shape before any live execution transport is enabled.
 
-That preview surface is protected by the execution-substrate contract validator. A valid preview must remain `advisory_only=true`, `dispatch_enabled=false`, `completion_authority=harness_verification`, `mode=render_only`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. It must also carry the required runner prohibitions: no marking Harness complete, no treating Linear Done as truth, and no auto-merge without policy. Future live Symphony transport should add a separate execution path rather than weakening this read-only preview contract.
+That preview surface is protected by the execution-substrate contract validator. A valid preview must remain `advisory_only=true`, `dispatch_enabled=false`, `completion_authority=harness_verification`, `mode=render_only`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. It must also carry the required runner prohibitions: no marking Proofline complete, no treating Linear Done as truth, and no auto-merge without policy. Future live Symphony transport should add a separate execution path rather than weakening this read-only preview contract.
 
 The disabled live-transport posture is also an explicit contract. `modules/contracts/execution_substrate.py` owns the canonical disabled Symphony-compatible policy used by `GET /execution-substrate/transport-status`: `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, `completion_authority=harness_verification`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. New live transport work must introduce a separate policy-gated path rather than changing these guardrail fields opportunistically.
 
@@ -195,7 +195,7 @@ Initial event family:
 - `run_cancelled`
 - `run_completed_by_executor`
 
-These names are intentionally execution-facing. None of them mean Harness has accepted completion.
+These names are intentionally execution-facing. None of them mean Proofline has accepted completion.
 
 Required event fields:
 
@@ -223,11 +223,11 @@ Required artifact reference fields when the runner reports artifacts:
 - `reported_at`
 - `verification_status`
 
-Runner-reported artifact references start as unverified unless they come from a separate trusted sync path, such as Harness-controlled GitHub API readback.
+Runner-reported artifact references start as unverified unless they come from a separate trusted sync path, such as Proofline-controlled GitHub API readback.
 
 ## TaskEnvelope Impact
 
-Harness should add a canonical execution-substrate surface to `TaskEnvelope`, or formalize the same shape under existing observability fields before schema expansion.
+Proofline should add a canonical execution-substrate surface to `TaskEnvelope`, or formalize the same shape under existing observability fields before schema expansion.
 
 Proposed `execution` section:
 
@@ -268,23 +268,23 @@ Do not add this schema field casually before Phase 1 proves the minimum data nee
 
 ## Linear Integration Impact
 
-Harness should treat Symphony's Linear usage as scheduling input, not lifecycle authority.
+Proofline should treat Symphony's Linear usage as scheduling input, not lifecycle authority.
 
 Recommended Linear model:
 
-- Harness-created or Harness-approved issues are executable.
+- Proofline-created or Proofline-approved issues are executable.
 - Agent-created follow-up issues enter `proposed` or `needs_triage` until accepted.
 - Runner may move issues to a handoff state such as `Human Review`.
 - Runner may add PR links and progress comments.
-- Runner may not mark work as Harness-verified complete.
+- Runner may not mark work as Proofline-verified complete.
 - Runner may not rewrite accepted acceptance criteria without review.
-- Harness writes back verification status separately, either as labels, comments, custom fields, or a dedicated status convention.
+- Proofline writes back verification status separately, either as labels, comments, custom fields, or a dedicated status convention.
 
-Linear dependencies should gate runner dispatch. A runner should not start a dependent issue simply because it appears active if Harness or Linear blockers are unresolved.
+Linear dependencies should gate runner dispatch. A runner should not start a dependent issue simply because it appears active if Proofline or Linear blockers are unresolved.
 
 ## Retry Model Impact
 
-Harness should split retry causes instead of treating all continuation as the same loop.
+Proofline should split retry causes instead of treating all continuation as the same loop.
 
 Retry classes:
 
@@ -292,7 +292,7 @@ Retry classes:
 - `repair_retry`: missing PR, missing commit, stale branch readback, CI status unavailable.
 - `spec_retry`: unclear task, missing acceptance criteria, contradictory scope.
 - `verification_retry`: GitHub, Linear, CI, or review facts unavailable.
-- `policy_retry`: allowed redispatch after manual review or Harness recovery.
+- `policy_retry`: allowed redispatch after manual review or Proofline recovery.
 
 Each class needs separate budgets:
 
@@ -320,7 +320,7 @@ Add an execution-substrate section or view that shows:
 - current Linear state
 - reported artifacts
 - GitHub verification state
-- Harness lifecycle state
+- Proofline lifecycle state
 - blocking mismatch reasons
 - budget consumption
 
@@ -328,7 +328,7 @@ The UI copy and read-model contract should preserve this distinction:
 
 - `Executor says done` means advisory handoff.
 - `Artifacts verified` means GitHub/CI/review facts satisfy the relevant evidence contract.
-- `Harness complete` means lifecycle acceptance passed verification and reconciliation.
+- `Proofline complete` means lifecycle acceptance passed verification and reconciliation.
 
 No dashboard surface should display a runner handoff as final project completion.
 
@@ -336,7 +336,7 @@ No dashboard surface should display a runner handoff as final project completion
 
 Runner handoff should trigger reevaluation. It should not complete work.
 
-For code-bearing work, Harness must independently fetch and validate:
+For code-bearing work, Proofline must independently fetch and validate:
 
 - repository
 - branch
@@ -355,7 +355,7 @@ Completion can be accepted only when:
 - required artifacts are present and coherent
 - required checks pass
 - manual review gates are resolved
-- Linear state and Harness state do not have a blocking mismatch
+- Linear state and Proofline state do not have a blocking mismatch
 - dependency and project rollup gates are satisfied
 
 Project-level `done` is stricter than task-level completion. A project may report done only when all required child tasks, validation tasks, dependencies, and review gates are complete.
@@ -368,11 +368,11 @@ These rules apply before any live Symphony-style runner is enabled against real 
 2. No automatic merge in Phase 1 or Phase 2.
 3. No agent-written Linear completion truth.
 4. No unbounded retries.
-5. No runner state as Harness canonical state.
+5. No runner state as Proofline canonical state.
 6. No broad raw mutation tokens inside worker sessions unless mediated, scoped, and audited.
 7. No silent mock or fallback data in dashboard execution state.
 8. No acceptance criteria rewrites after approval without explicit review.
-9. No worker-created issues entering the executable DAG without Harness or human acceptance.
+9. No worker-created issues entering the executable DAG without Proofline or human acceptance.
 10. No executor summary accepted without independent artifact verification.
 
 ## Phase 0: Documentation And Design Only
@@ -401,24 +401,24 @@ Exit criteria:
 
 - The architecture boundary is documented.
 - The next disposable-repo trial is specified.
-- Future implementation agents can tell which code belongs in Harness and which belongs in the runner layer.
+- Future implementation agents can tell which code belongs in Proofline and which belongs in the runner layer.
 
 ## Phase 1: Local Dry Run / Disposable Repo Trial
 
-Goal: prove the runner/Harness boundary without operational risk.
+Goal: prove the runner/Proofline boundary without operational risk.
 
 Scope:
 
 - Use a disposable repository.
 - Use fake Linear data or a non-production test project.
 - Run a Symphony-like loop locally or simulate its event stream.
-- Capture runner events into Harness as advisory execution facts.
+- Capture runner events into Proofline as advisory execution facts.
 - Exercise workspace creation, session start, heartbeat, handoff, stall, timeout, and retry events.
-- Verify that Harness refuses to convert runner success into completion without GitHub artifact readback.
+- Verify that Proofline refuses to convert runner success into completion without GitHub artifact readback.
 
 Required proof:
 
-- A runner handoff triggers Harness reevaluation.
+- A runner handoff triggers Proofline reevaluation.
 - Missing artifacts block completion.
 - Valid GitHub readback can satisfy evidence policy.
 - Retry budget exhaustion stops automatic continuation.
@@ -438,11 +438,11 @@ Scope:
 
 - One selected repository.
 - One selected Linear project or label.
-- Harness-approved executable issues only.
+- Proofline-approved executable issues only.
 - Runner may move issues to a handoff state, not `Done`.
 - Runner may attach PR links and progress comments.
-- Harness independently reads GitHub artifacts.
-- Harness writes verified status back to Linear.
+- Proofline independently reads GitHub artifacts.
+- Proofline writes verified status back to Linear.
 - Manual approval required before merge.
 
 Required controls:
@@ -457,18 +457,18 @@ Required controls:
 Exit criteria:
 
 - Real Linear issue can be executed into a PR handoff.
-- Harness blocks completion when proof is missing or contradictory.
-- Harness accepts completion only after evidence and reconciliation pass.
-- No runner path can mark Harness task `completed` directly.
+- Proofline blocks completion when proof is missing or contradictory.
+- Proofline accepts completion only after evidence and reconciliation pass.
+- No runner path can mark a Proofline task `completed` directly.
 
-## Phase 3: Productionized Harness Execution Substrate
+## Phase 3: Productionized Proofline Execution Substrate
 
-Goal: make Symphony-like execution a replaceable substrate under Harness.
+Goal: make Symphony-like execution a replaceable substrate under Proofline.
 
 Scope:
 
 - Hardened runner adapter.
-- Persisted dispatch, attempt, retry, and event state in Harness.
+- Persisted dispatch, attempt, retry, and event state in Proofline.
 - Project-level DAG orchestration from approved specs into Linear.
 - Repair dispatch when verification fails.
 - Operator controls for pause, resume, cancel, redispatch, and quarantine.
@@ -476,16 +476,16 @@ Scope:
 
 Possible future auto-merge:
 
-Auto-merge should remain off by default. It may become a policy-gated capability only for explicitly low-risk work after Harness proves:
+Auto-merge should remain off by default. It may become a policy-gated capability only for explicitly low-risk work after Proofline proves:
 
 - required CI checks pass
 - review requirements pass or are waived by policy
 - PR branch and commit match the current execution attempt
-- no blocking Linear/GitHub/Harness mismatch exists
+- no blocking Linear/GitHub/Proofline mismatch exists
 - rollback or repair path is defined
 - audit trail records the reason merge was allowed
 
-## Duplicative Harness Areas To Revisit
+## Duplicative Proofline Areas To Revisit
 
 After Phase 0 is merged, review these areas for code that should wrap a Symphony-like substrate instead of duplicating one:
 
@@ -496,7 +496,7 @@ After Phase 0 is merged, review these areas for code that should wrap a Symphony
 - stale supervision loops that only keep workers busy
 - dashboard runtime status that lacks runner/session semantics
 
-Do not remove verification, reconciliation, completion-claim interception, manual review, TaskEnvelope validation, or GitHub artifact validation. Those are Harness core.
+Do not remove verification, reconciliation, completion-claim interception, manual review, TaskEnvelope validation, or GitHub artifact validation. Those are Proofline core.
 
 ## Recommended Next Implementation PR
 
@@ -509,4 +509,4 @@ After this design PR merges, the next PR should be a dry-run runner-event ingest
 - Do not run Symphony against live work.
 - Do not mutate Linear or GitHub.
 
-That PR moves Harness toward a Symphony-compatible architecture without creating operational risk.
+That PR moves Proofline toward a Symphony-compatible architecture without creating operational risk.

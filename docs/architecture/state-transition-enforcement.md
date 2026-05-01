@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Define the canonical state transition enforcement rules for Harness.
+Define the canonical state transition enforcement rules for Proofline.
 
-Harness is a reliability/control-plane system. Lifecycle states are enforced control-plane states, not informational labels or worker hints.
+Proofline is a reliability/control-plane system. Lifecycle states are enforced control-plane states, not informational labels or worker hints.
 
 A state transition is valid only when:
 

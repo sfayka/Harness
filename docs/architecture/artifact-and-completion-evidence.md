@@ -4,7 +4,7 @@
 
 Define the canonical model for execution artifacts and completion evidence in Harness.
 
-Harness is a reliability/control-plane system. Executor-reported success is advisory. Completion is only trustworthy when the task's evidence policy is satisfied by verifiable artifacts.
+Proofline is a reliability/control-plane system. Executor-reported success is advisory. Completion is only trustworthy when the task's evidence policy is satisfied by verifiable artifacts.
 
 ## Design Goals
 

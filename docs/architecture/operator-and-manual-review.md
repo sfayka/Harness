@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Define the canonical operator and manual review contract for Harness.
+Define the canonical operator and manual review contract for Proofline.
 
-Harness is a reliability/control-plane system. Human intervention is allowed, but it must occur through explicit, auditable control-plane surfaces rather than informal overrides.
+Proofline is a reliability/control-plane system. Human intervention is allowed, but it must occur through explicit, auditable control-plane surfaces rather than informal overrides.
 
 Manual review is therefore a governed decision path, not an escape hatch.
 

@@ -4,7 +4,7 @@
 
 Define the canonical contract for planner behavior in Harness.
 
-Harness is a reliability/control-plane system. The planner is not a freeform reasoning agent. It is a bounded module that transforms sufficiently defined task contracts into a structured, reviewable execution plan.
+Proofline is a reliability/control-plane system. The planner is not a freeform reasoning agent. It is a bounded module that transforms sufficiently defined task contracts into a structured, reviewable execution plan.
 
 ## Planner Role
 

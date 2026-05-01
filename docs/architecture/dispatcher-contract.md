@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Define the canonical contract for dispatcher behavior in Harness.
+Define the canonical contract for dispatcher behavior in Proofline.
 
-Harness is a reliability/control-plane system. The dispatcher is the module that takes planned tasks, decides which worker class should handle them, records that assignment, and initiates execution through the execution gateway.
+Proofline is a reliability/control-plane system. The dispatcher is the module that takes planned tasks, decides which worker class should handle them, records that assignment, and initiates execution through the execution gateway.
 
 The dispatcher is not the planner, not the runtime, and not the verifier.
 
@@ -12,9 +12,9 @@ The dispatcher is not the planner, not the runtime, and not the verifier.
 
 The dispatcher converts planned task structure into auditable assignment decisions.
 
-Assignment truth starts here, not at ingress. New task creation and ingress adapters may declare task intent, planning state, dependencies, and clarification blockers, but they must not persist `assigned_executor` or create a task directly in `assigned`. If upstream systems want a task routed quickly, they may hand off a task as `dispatch_ready`, but Harness still owns the actual assignment decision.
+Assignment truth starts here, not at ingress. New task creation and ingress adapters may declare task intent, planning state, dependencies, and clarification blockers, but they must not persist `assigned_executor` or create a task directly in `assigned`. If upstream systems want a task routed quickly, they may hand off a task as `dispatch_ready`, but Proofline still owns the actual assignment decision.
 
-Symphony changes the implementation target for dispatch. Harness should make policy and assignment decisions, then hand execution scheduling to a Symphony-compatible substrate. Harness should not grow an always-on runner that duplicates Symphony's polling, workspace, session, and retry responsibilities.
+Symphony changes the implementation target for dispatch. Proofline should make policy and assignment decisions, then hand execution scheduling to a Symphony-compatible substrate. Proofline should not grow an always-on runner that duplicates Symphony's polling, workspace, session, and retry responsibilities.
 
 It is responsible for:
 
@@ -88,7 +88,7 @@ The dispatcher must not begin normal dispatch from:
 - `failed`
 - `canceled`
 
-Automatic post-ingestion dispatch follows the same rule. A task that is merely `planned` is not dispatchable just because it looks non-terminal; planning and clarification gates must be cleared and the task must enter `dispatch_ready` first. While Harness still exposes legacy direct dispatch for compatibility, API responses now describe that follow-up under `execution_continuation`; the older `automatic_dispatch` field is a compatibility alias, not the preferred execution-substrate contract.
+Automatic post-ingestion dispatch follows the same rule. A task that is merely `planned` is not dispatchable just because it looks non-terminal; planning and clarification gates must be cleared and the task must enter `dispatch_ready` first. While Proofline still exposes legacy direct dispatch for compatibility, API responses now describe that follow-up under `execution_continuation`; the older `automatic_dispatch` field is a compatibility alias, not the preferred execution-substrate contract.
 
 ### Clarification Preconditions
 
@@ -136,7 +136,7 @@ The dispatcher must not override verification or reconciliation policy by starti
 The dispatcher receives:
 
 - one canonical `TaskEnvelope` that is ready for dispatch
-- optional dispatch policy directives supplied by Harness core
+- optional dispatch policy directives supplied by Proofline core
 - executor inventory or worker capability facts supplied by integration layers
 
 ### Required TaskEnvelope Inputs
@@ -165,7 +165,7 @@ The dispatcher must not require executor-native request shapes as canonical inpu
 
 ### Optional Dispatch Directives
 
-Harness core may provide directives such as:
+Proofline core may provide directives such as:
 
 - permitted executor classes
 - forbidden executor classes
@@ -431,7 +431,7 @@ Redispatch may choose:
 - the same worker instance
 - a different worker instance
 
-Policy for when redispatch is allowed belongs to Harness core.
+Policy for when redispatch is allowed belongs to Proofline core.
 
 The dispatcher applies that policy. It does not invent it.
 

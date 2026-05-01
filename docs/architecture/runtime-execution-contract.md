@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Define the canonical runtime execution contract for Harness.
+Define the canonical runtime execution contract for Proofline.
 
-Harness is a reliability/control-plane system. The runtime coordinates execution after dispatch, preserves durable in-flight state, records execution events, and feeds normalized execution facts back into the control plane.
+Proofline is a reliability/control-plane system. The runtime coordinates execution after dispatch, preserves durable in-flight state, records execution events, and feeds normalized execution facts back into the control plane.
 
 The runtime is not the planner, not the dispatcher, and not the verifier.
 
-A Symphony-like runner is one possible runtime or execution-substrate implementation. It may poll eligible work, create isolated workspaces, launch Codex sessions, detect stalls, and report handoffs. It still emits advisory execution facts only. Harness remains responsible for verification, reconciliation, manual review, and lifecycle acceptance.
+A Symphony-like runner is one possible runtime or execution-substrate implementation. It may poll eligible work, create isolated workspaces, launch Codex sessions, detect stalls, and report handoffs. It still emits advisory execution facts only. Proofline remains responsible for verification, reconciliation, manual review, and lifecycle acceptance.
 
 ## Runtime Role
 
@@ -368,14 +368,14 @@ Each retry should remain traceable through:
 
 ## Invalid Execution Attempts
 
-Harness distinguishes a failed execution attempt from an invalid execution attempt.
+Proofline distinguishes a failed execution attempt from an invalid execution attempt.
 
 - failed attempt: the executor actually ran and reported an unsuccessful terminal outcome
 - invalid execution attempt: the executor claimed success, but the current run did not produce the minimum proof needed to trust that claim as a real code-bearing attempt
 
 For the current implemented policy, a code-bearing successful attempt must provide coherent current-run repository and branch context, plus commit context unless that commit can be recovered safely during governed reconciliation.
 
-Some failures in that gate are stricter than a generic invalid attempt. Harness treats them as executor-side contract violations rather than as retryable malformed output:
+Some failures in that gate are stricter than a generic invalid attempt. Proofline treats them as executor-side contract violations rather than as retryable malformed output:
 
 - reserved shared branches such as `work`
 - missing branch identity for a delegated code-bearing run
@@ -389,25 +389,25 @@ These do not authorize reconciliation. They are rejected before reconciliation b
 Examples of `invalid_execution_attempt`:
 
 - no repository/branch/commit context for the current run
-- repository or branch context is missing, so Harness cannot recover commit identity later
+- repository or branch context is missing, so Proofline cannot recover commit identity later
 - conflicting repo/branch/commit values inside the attempt payload
 - malformed success-shaped output that cannot identify the current execution attempt coherently
 
-A narrow exception exists for `missing_pr_after_execution`: if repository and branch identity are present but commit SHA is still absent, Harness may allow the completion claim to enter reconciliation so the handler can resolve the current branch head SHA before PR lookup. That exception does not relax the requirement for repository and branch identity, and it does not authorize terminal success on its own.
+A narrow exception exists for `missing_pr_after_execution`: if repository and branch identity are present but commit SHA is still absent, Proofline may allow the completion claim to enter reconciliation so the handler can resolve the current branch head SHA before PR lookup. That exception does not relax the requirement for repository and branch identity, and it does not authorize terminal success on its own.
 
 This is intentionally earlier than reconciliation.
 
-- invalid execution attempt means Harness does not yet trust that a real current-run execution exists
-- reconciliation means Harness trusts the run happened and is now trying to recover or validate missing external artifacts for that run
+- invalid execution attempt means Proofline does not yet trust that a real current-run execution exists
+- reconciliation means Proofline trusts the run happened and is now trying to recover or validate missing external artifacts for that run
 
 The control-plane policy is:
 
 1. execution completes and reports success
-2. Harness validates the execution attempt shape
-3. if the attempt violates the execution contract, Harness fails it explicitly without treating it as flaky progress
+2. Proofline validates the execution attempt shape
+3. if the attempt violates the execution contract, Proofline fails it explicitly without treating it as flaky progress
 4. if valid, the claim can proceed to completion handling and, if needed, reconciliation
-5. if invalid and retry budget remains, Harness schedules a fresh execution attempt
-6. if invalid attempts exhaust the retry budget, Harness transitions the task to `failed`
+5. if invalid and retry budget remains, Proofline schedules a fresh execution attempt
+6. if invalid attempts exhaust the retry budget, Proofline transitions the task to `failed`
 
 This keeps routine executor misses out of manual review while preserving truthful completion boundaries.
 
@@ -415,7 +415,7 @@ This keeps routine executor misses out of manual review while preserving truthfu
 
 Represents runtime cancellation of an in-flight attempt under control-plane direction or policy.
 
-Cancellation of an attempt does not automatically imply top-level task `canceled`; Harness core still applies lifecycle policy.
+Cancellation of an attempt does not automatically imply top-level task `canceled`; Proofline core still applies lifecycle policy.
 
 ## Progress Reporting
 
@@ -453,7 +453,7 @@ Failure reporting should preserve:
 
 The runtime reports failure facts.
 
-Harness core decides whether the task becomes `failed`, `blocked`, reassigned, or retried.
+Proofline core decides whether the task becomes `failed`, `blocked`, reassigned, or retried.
 
 ## Retry Semantics
 
@@ -468,9 +468,9 @@ Retries should be represented through:
 
 Retry policy is not invented by the runtime.
 
-The runtime applies the policy given by Harness core or higher-level orchestration rules.
+The runtime applies the policy given by Proofline core or higher-level orchestration rules.
 
-When the runtime is backed by a Symphony-like daemon, retry state must still obey Harness budgets. A daemon loop may keep work moving only while a task, project, repository, and executor all remain within explicit retry, wall-clock, idle-time, and spend limits. Budget exhaustion must stop automatic continuation rather than letting the runner relaunch work forever.
+When the runtime is backed by a Symphony-like daemon, retry state must still obey Proofline budgets. A daemon loop may keep work moving only while a task, project, repository, and executor all remain within explicit retry, wall-clock, idle-time, and spend limits. Budget exhaustion must stop automatic continuation rather than letting the runner relaunch work forever.
 
 ## Budget Governance
 
@@ -509,7 +509,7 @@ Possible next actions include:
 
 The runtime may detect the issue.
 
-Harness core and dispatcher policy determine the correct consequence.
+Proofline core and dispatcher policy determine the correct consequence.
 
 ## Attachment Of Outputs And Artifacts
 

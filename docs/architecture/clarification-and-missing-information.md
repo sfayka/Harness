@@ -4,7 +4,7 @@
 
 Define how Harness represents tasks that cannot safely proceed because required information is missing, ambiguous, or incomplete.
 
-Harness is a reliability/control-plane system. It must not silently guess when required inputs are absent or unclear.
+Proofline is a reliability/control-plane system. It must not silently guess when required inputs are absent or unclear.
 
 ## Core Rule
 
