@@ -51,7 +51,7 @@ These are compatibility surfaces, not branding copy.
 
 | Identifier | Current Examples | Classification | Rename Rule |
 | --- | --- | --- | --- |
-| Product name | `Proofline` in README, dashboard labels, browser metadata, system context | current product name | Use for product-facing copy. |
+| Product name | `Proofline` in README, dashboard labels, browser metadata, backend API metadata, system context | current product name | Use for product-facing copy. |
 | Repository name | `Harness`, `sfayka/Harness`, local path segments | rename-later | Rename last, after deployment, Codex Cloud, local clone, and GitHub integration migration notes exist. |
 | CLI command shape | `python3 -m modules.proofline_runtime ...`, `python3 -m modules.local_runtime ...`, future packaged `proofline ...` command | alias-first | Prefer Proofline-named entrypoints for new docs. Keep local-runtime and future `harness ...` command shapes valid as compatibility aliases. |
 | Frontend package name | `proofline-dashboard` in `package.json` | migrated | Keep build, deployment, and local dashboard packaging checks in place so package-name coupling stays visible. |

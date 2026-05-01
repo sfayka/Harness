@@ -115,6 +115,12 @@ class FastApiBackendTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("store_backend", response.json())
 
+    def test_openapi_metadata_uses_proofline_product_name(self) -> None:
+        response = self.client.get("/openapi.json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["info"]["title"], "Proofline API")
+
     def test_runtime_status_route_returns_app_shell_contract(self) -> None:
         with patch.dict(
             os.environ,

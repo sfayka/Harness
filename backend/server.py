@@ -96,7 +96,7 @@ def create_app(
 ) -> FastAPI:
     service = HarnessApiService(store=store)
     reset_verifier = reset_service or _build_reset_service(store)
-    app = FastAPI(title="Harness API", version="0.1.0")
+    app = FastAPI(title="Proofline API", version="0.1.0")
 
     @app.get("/health")
     def health() -> JSONResponse:
