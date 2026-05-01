@@ -1,6 +1,8 @@
-# Troubleshoot Harness
+# Troubleshoot Proofline
 
 Troubleshooting should start with observable state: health response, runtime status, logs, configured paths, and the canonical task/read-model endpoints.
+
+During the staged rename, most runtime identifiers still say Harness. Treat `HARNESS_*` variables, `/api/harness` routes, local data paths, and module commands as compatibility surfaces, not stale instructions.
 
 ## Backend Starts But `/reset/*` Fails
 
@@ -41,7 +43,7 @@ Check:
 - `~/Library/Logs/Harness/harness.log`
 - whether another process owns `127.0.0.1:8765`
 
-If the PID file is stale, `recover` should clear it. If another process owns the port, Harness should report `port_conflict` with a concrete next action.
+If the PID file is stale, `recover` should clear it. If another process owns the port, Proofline should report `port_conflict` with a concrete next action.
 
 ## Reset Verifier Cannot Dispatch Repair
 
@@ -67,7 +69,7 @@ Check:
 - whether the proof belongs to the current run
 - whether a manual review gate is active
 
-Harness treats worker-reported success as advisory. If evidence is missing, stale, contradictory, or tied to the wrong run, the correct behavior is to block, retry, reconcile, or require review.
+Proofline treats worker-reported success as advisory. If evidence is missing, stale, contradictory, or tied to the wrong run, the correct behavior is to block, retry, reconcile, or require review.
 
 ## Native macOS App Issues
 

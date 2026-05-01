@@ -1,8 +1,10 @@
 # Local Development
 
-This guide covers the practical local and container runbook for Harness.
+This guide covers the practical local and container runbook for the current Harness implementation of Proofline.
 
-For a reader-facing install and validation path, start with [Local Quickstart](../howto/local-quickstart.md), [Use Harness](../howto/use-harness.md), and [Test And Validate Harness](../howto/test-and-validate.md).
+For a reader-facing install and validation path, start with [Local Quickstart](../howto/local-quickstart.md), [Use Proofline](../howto/use-harness.md), and [Test And Validate Proofline](../howto/test-and-validate.md).
+
+Proofline is the product name. The local development surface still uses Harness compatibility identifiers for Python modules, environment variables, runtime paths, API proxy routes, and persisted state. Keep those identifiers stable unless a change adds tested aliases and a rollback path.
 
 ## Prerequisites
 
@@ -91,11 +93,11 @@ python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 
 SQLite mode is the intended persistence base for self-contained local CLI/web usage. It creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in one local database.
 
-If `HARNESS_SQLITE_PATH` is unset, Harness uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
+If `HARNESS_SQLITE_PATH` is unset, the runtime uses the platform local-data default: `~/Library/Application Support/Harness/harness.db` on macOS, `$XDG_DATA_HOME/harness/harness.db` on Linux, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset.
 
 ### Run The Local Runtime Contract
 
-A future packaged CLI can expose this contract as `harness`. From a repo checkout, use the module entry point:
+A future packaged CLI can expose this contract as a compatibility `harness` command and, later, a Proofline alias. From a repo checkout, use the module entry point:
 
 ```bash
 python3 -m modules.local_runtime --json init
@@ -280,7 +282,7 @@ The normal hosted/developer dashboard still uses `pnpm dev` or `pnpm build` and 
 
 ### Removed macOS Package Path
 
-The native macOS package path has been removed from the active tree. Do not use Developer ID signing, notarization, DMG output, or a Swift app shell as the normal Harness validation or release path unless a future task explicitly reopens the native app decision.
+The native macOS package path has been removed from the active tree. Do not use Developer ID signing, notarization, DMG output, or a Swift app shell as the normal Proofline validation or release path unless a future task explicitly reopens the native app decision.
 
 The reusable packaging work that remains relevant is the static dashboard bundle plus the local runtime contract above.
 

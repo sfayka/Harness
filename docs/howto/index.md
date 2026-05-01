@@ -7,10 +7,10 @@ During the staged rename, product surfaces say Proofline while commands, environ
 ## Start Here
 
 - [Local Quickstart](local-quickstart.md)
-- [Configure Harness](configure-harness.md)
-- [Use Harness](use-harness.md)
-- [Test And Validate](test-and-validate.md)
-- [Troubleshoot](troubleshoot.md)
+- [Configure Proofline](configure-harness.md)
+- [Use Proofline](use-harness.md)
+- [Test And Validate Proofline](test-and-validate.md)
+- [Troubleshoot Proofline](troubleshoot.md)
 
 ## Source-Of-Truth References
 

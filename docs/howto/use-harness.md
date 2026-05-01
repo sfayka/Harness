@@ -1,6 +1,8 @@
-# Use Harness
+# Use Proofline
 
-This guide shows the day-one operator loop: start Harness, inspect the current task truth, and validate that the verifier is enforcing evidence instead of accepting claims on trust.
+This guide shows the day-one operator loop: start Proofline, inspect the current task truth, and validate that the verifier is enforcing evidence instead of accepting claims on trust.
+
+Current command examples still use the Harness implementation namespace. That is expected during the staged rename; the product surface is Proofline, while the runtime module, API route names, and stored evidence remain compatibility identifiers.
 
 ## Check Backend Health
 
@@ -22,7 +24,7 @@ python3 -m modules.local_runtime --json status
 
 ## Open The Dashboard
 
-The dashboard reads canonical Harness APIs. It should show real backend errors when the API is unavailable, not sample data pretending to be live.
+The dashboard reads canonical Proofline APIs through the current Harness compatibility routes. It should show real backend errors when the API is unavailable, not sample data pretending to be live.
 
 ![Local dashboard task list](images/local-dashboard-tasks.png)
 
@@ -44,7 +46,7 @@ Open a task detail panel and check the verification, reconciliation, evidence, a
 
 ![Local dashboard task detail](images/local-dashboard-task-detail.png)
 
-The important question is not whether an agent said the work was complete. The important question is whether Harness has enough current evidence to accept that claim.
+The important question is not whether an agent said the work was complete. The important question is whether Proofline has enough current evidence to accept that claim.
 
 ## Watch Review Surfaces
 
