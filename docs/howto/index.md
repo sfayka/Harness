@@ -1,6 +1,6 @@
-# Harness How-To Index
+# Proofline How-To Index
 
-Start here if you want to install, configure, use, and validate Harness without reading every architecture note first.
+Start here if you want to install, configure, use, and validate Proofline without reading every architecture note first.
 
 ## Start Here
 
@@ -20,4 +20,4 @@ Start here if you want to install, configure, use, and validate Harness without 
 - [Vercel + Neon Deployment](../setup/vercel-neon.md)
 - [Operator Demo Walkthrough](../demo/operator-walkthrough.md)
 
-The older native macOS app and packaging notes were moved to `docs/archive/macos/` as historical context. They are not the recommended Harness path.
+The older native macOS app and packaging notes were moved to `docs/archive/macos/` as historical context. They are not the recommended Proofline path.
