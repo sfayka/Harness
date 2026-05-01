@@ -6,23 +6,25 @@ Define the top-level system model before implementation so future modules do not
 
 ## System Framing
 
-Harness sits underneath the user-facing and agent-facing work surface as the system that enforces correctness.
+Proofline sits underneath the user-facing and agent-facing work surface as the system that enforces correctness.
+
+`Harness` remains the current repository, API, CLI, and codebase name during the staged rename. This document uses Proofline for the product role and Harness only when referring to current implementation surfaces.
 
 - A desktop agent client such as OpenClaw, Hermes, or a future equivalent is the ingress layer.
 - Linear is the human-and-agent work surface and the source of truth for structured work.
-- Harness is the control plane and reliability layer beneath that work surface.
+- Proofline is the acceptance layer beneath that work surface.
 - GitHub is the source of truth for code artifacts such as pull requests and commits.
 - Executors such as Codex are workers.
 - A Symphony-like execution substrate may schedule isolated executor runs, but it is not completion truth.
-- The supported Harness operator surfaces are the CLI, backend API, and web dashboard.
-- The workflow substrate provides persistence, resumability, and coordination state for Harness itself.
+- The supported operator surfaces are the CLI, backend API, and web dashboard.
+- The workflow substrate provides persistence, resumability, and coordination state for the acceptance layer itself.
 
 Stated another way:
 
 - Linear is the source of truth for intended work.
 - GitHub is the source of truth for executed artifacts.
 - Symphony-like runners are execution schedulers.
-- Harness is the source of truth for verified state and lifecycle correctness.
+- Proofline is the source of truth for verified state and lifecycle correctness.
 
 ## Context Diagram
 
@@ -33,7 +35,7 @@ An editable Excalidraw version also lives in [system-context.excalidraw](system-
 flowchart LR
     U["User"] --> O["Desktop Agent Client\nIngress and clarification"]
     O --> L["Linear\nWork surface and structured work source of truth"]
-    L --> H["Harness\nControl plane and reliability layer"]
+    L --> H["Proofline\nAcceptance layer"]
     H --> G["GitHub\nArtifact evidence source of truth"]
     H --> S["Workflow substrate\nPersistence and resumability"]
     H --> R["Execution substrate\nSymphony-like runner"]
@@ -53,10 +55,10 @@ flowchart LR
 - hands validated work into Harness
 - presents progress and results back to the user
 
-### Harness
+### Proofline
 
 - consumes validated or synchronized work from ingress and work-surface systems
-- translates that work into canonical control-plane contracts
+- translates that work into canonical acceptance contracts
 - decomposes work into manageable tasks when needed
 - delegates execution to replaceable workers
 - enforces explicit lifecycle semantics, including blocked, in-review, and failed states
@@ -104,7 +106,7 @@ flowchart LR
 
 - Desktop agent clients do not become the durable orchestrator.
 - Harness does not become the user interface.
-- Harness does not become a native desktop-app product; the deprecated macOS shell must not own core behavior.
+- Proofline does not become a native desktop-app product; the deprecated macOS shell must not own core behavior.
 - Linear owns work coordination and structured work records, not completion enforcement semantics.
 - GitHub owns artifact evidence records, not lifecycle policy.
 - Executors do not own planning, routing, or lifecycle policy.
@@ -119,7 +121,7 @@ flowchart LR
 - executor implementations can change without changing Harness core planning logic
 - runner implementations can change if they emit the same advisory execution-substrate events
 - workflow technology can change if Harness state transitions are modeled explicitly
-- model-native reasoning improvements do not displace Harness as long as correctness, evidence, and auditability remain Harness-owned concerns
+- model-native reasoning improvements do not displace Proofline as long as correctness, evidence, and auditability remain acceptance-layer concerns
 
 ## Related Documents
 

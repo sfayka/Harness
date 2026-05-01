@@ -1,10 +1,10 @@
-# Harness
+# Proofline
 
-Harness is the current repository name for what should become an acceptance layer for AI-assisted software work.
+Proofline is the acceptance layer for AI-assisted software work.
 
-The recommended product rename is **Proofline**. The rename should happen deliberately, starting with product language and docs before package, CLI, API, or repository names change. See [`docs/adrs/0006-product-rename-and-acceptance-layer.md`](docs/adrs/0006-product-rename-and-acceptance-layer.md).
+`Harness` remains the current repository, CLI, API, and codebase name during the staged rename. Do not mechanically rename packages, routes, commands, or contracts yet. See [`docs/adrs/0006-product-rename-and-acceptance-layer.md`](docs/adrs/0006-product-rename-and-acceptance-layer.md).
 
-It does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
+Proofline does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
 
 The strategic inventory for the pivot is in [`docs/architecture/acceptance-layer-inventory.md`](docs/architecture/acceptance-layer-inventory.md). The short version: keep verification, reconciliation, lifecycle enforcement, evidence policy, Linear/GitHub alignment, manual review, and inspection surfaces; wrap Symphony/Codex/Hermes/OpenClaw as advisory execution or ingress layers; freeze or delete duplicated executor/runtime/product-shell work.
 
@@ -16,7 +16,7 @@ That reset slice is the current fastest path to something operationally useful:
 
 - A client such as OpenClaw, Hermes, or a future equivalent may still own intake, PRD generation, decomposition, and Linear issue creation.
 - Symphony is now the preferred execution substrate for runner/scheduler behavior: polling structured work, creating isolated workspaces, launching Codex, retrying stalled attempts, and reporting advisory execution events.
-- Harness owns verification contracts, GitHub proof validation, retry budgeting, and Linear truth updates.
+- Proofline owns verification contracts, GitHub proof validation, retry budgeting, and Linear truth updates.
 - Linear is the operator UI for V1.
 - GitHub is the proof source for code-bearing completion.
 
@@ -34,7 +34,7 @@ These routes intentionally coexist with the older TaskEnvelope routes so the nar
 
 In hosted Vercel runtimes, the reset slice is not allowed to take the whole backend down during startup. When Postgres is available, `/reset/*` now persists contracts there so multi-request verification survives cold starts. If no database URL is available, the fallback remains writable temp storage, and if even that cannot be created, `/reset/*` fails explicitly instead of crashing `/backend/health` and `/backend/tasks` during import.
 
-## What Harness Is
+## What Proofline Is
 
 - A Python acceptance-layer backend that evaluates canonical `TaskEnvelope` submissions.
 - A read-only Next.js dashboard over canonical inspection APIs.
@@ -42,15 +42,15 @@ In hosted Vercel runtimes, the reset slice is not allowed to take the whole back
 - A thin integration boundary around Linear/manual/client-specific ingress adapters and GitHub/Linear fact inputs.
 - An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
 
-Harness is not a PM tool, an agent runtime, a scheduler, an execution workbench, or a chatbot UI.
-Harness is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app and macOS packaging scripts have been removed from the active tree while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
+Proofline is not a PM tool, an agent runtime, a scheduler, an execution workbench, or a chatbot UI.
+Proofline is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app and macOS packaging scripts have been removed from the active tree while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
 Client-specific ingress adapters are also intentionally narrow. The repo currently includes an OpenClaw-shaped ingress translator, but the same restriction applies to Hermes or any future desktop agent client: it can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If a client wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If it also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
 On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only attention projection for external supervisors and Symphony-compatible runner adapters. It surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, waiting on canonical GitHub sync, or stale. `GET /execution-substrate/intents` provides the runner-facing filtered view of only the Symphony-compatible continuation intents. Neither endpoint authorizes actions on its own, and neither replaces canonical reevaluation, execution-substrate event ingestion, completion-claim, or GitHub sync paths.
 
-On the execution side, Symphony has replaced the parts of Harness that were trending toward runner ownership. Harness should not maintain its own always-on scheduler for polling Linear, managing Codex workspaces, and retrying agent sessions. The existing stub, Codex Cloud, and OpenClaw-shaped dispatch paths are compatibility and test surfaces while Harness moves toward a Symphony-compatible substrate adapter. Harness still owns the final trust boundary.
+On the execution side, Symphony has replaced the parts of this codebase that were trending toward runner ownership. Proofline should not maintain its own always-on scheduler for polling Linear, managing Codex workspaces, and retrying agent sessions. The existing stub, Codex Cloud, and OpenClaw-shaped dispatch paths are compatibility and test surfaces while the system moves toward a Symphony-compatible substrate adapter. Proofline still owns the final trust boundary.
 
-OpenAI's Symphony project gives Harness a clearer lower-level execution-substrate target. Harness should not duplicate a runner whose only job is to poll structured work, create isolated workspaces, launch Codex, and retry stalled attempts. A Symphony-like runner belongs underneath Harness as an advisory scheduler. Harness remains above it as the final verification and trust boundary. The design pivot is documented in [`docs/architecture/symphony-execution-substrate.md`](docs/architecture/symphony-execution-substrate.md).
+OpenAI's Symphony project gives Proofline a clearer lower-level execution-substrate target. Proofline should not duplicate a runner whose only job is to poll structured work, create isolated workspaces, launch Codex, and retry stalled attempts. A Symphony-like runner belongs underneath Proofline as an advisory scheduler. Proofline remains above it as the final verification and trust boundary. The design pivot is documented in [`docs/architecture/symphony-execution-substrate.md`](docs/architecture/symphony-execution-substrate.md).
 
 The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
 
@@ -400,9 +400,9 @@ python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
 
 Default setup only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
-The native macOS app shell and packaging scripts have been removed from the active tree. Do not treat a Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Harness path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend. Normal Harness operation should be CLI + API + web dashboard.
+The native macOS app shell and packaging scripts have been removed from the active tree. Do not treat a Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Proofline path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend. Normal operation should be CLI + API + web dashboard.
 
-See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md), [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md), and [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md). The older macOS architecture notes remain for historical context only.
+See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md), [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md), and [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md). The older macOS architecture notes live under [`docs/archive/macos/`](docs/archive/macos/) for historical context only.
 
 `backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
 
