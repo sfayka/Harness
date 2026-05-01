@@ -24,6 +24,8 @@ The recommended working product name for the acceptance layer.
 
 Proofline is responsible for deciding whether AI-assisted software work has crossed the evidence and reconciliation line required for acceptance. It wraps execution tools, but it is not an executor.
 
+The staged rename rules live in [proofline-rename-migration.md](proofline-rename-migration.md).
+
 ### Control Plane
 
 The part of the system that decides what work exists, who owns it, what state it is in, and what should happen next.
