@@ -14,7 +14,7 @@ This is a staged compatibility migration, not a mechanical rename.
 
 - repository path and GitHub repository
 - Python module names
-- Next.js package name
+- Next.js package name `proofline-dashboard`
 - CLI examples based on `python3 -m modules.local_runtime`
 - API proxy route `app/api/proofline/[...path]`, with `app/api/harness/[...path]` retained as a compatibility alias
 - environment variables such as `PROOFLINE_API_BASE_URL`, with `HARNESS_API_BASE_URL` retained as a compatibility alias
@@ -54,7 +54,7 @@ These are compatibility surfaces, not branding copy.
 | Product name | `Proofline` in README, dashboard labels, browser metadata, system context | current product name | Use for product-facing copy. |
 | Repository name | `Harness`, `sfayka/Harness`, local path segments | rename-later | Rename last, after deployment, Codex Cloud, local clone, and GitHub integration migration notes exist. |
 | CLI command shape | `python3 -m modules.local_runtime ...`, future `harness ...` examples | alias-first | Do not introduce a Proofline command until existing commands are documented and tested as compatibility aliases. |
-| Frontend package name | `harness-dashboard` in `package.json` | rename-later | Rename only after build, deployment, and local dashboard packaging checks prove no package-name coupling. |
+| Frontend package name | `proofline-dashboard` in `package.json` | migrated | Keep build, deployment, and local dashboard packaging checks in place so package-name coupling stays visible. |
 | Next.js proxy route | `app/api/proofline/[...path]`, `app/api/harness/[...path]` | alias-first | The Proofline route is the dashboard default. Keep the Harness route as a compatibility alias until external links and deployments have migrated. Both routes must share the same backend proxy behavior. |
 | API base env vars | `PROOFLINE_API_BASE_URL`, `NEXT_PUBLIC_PROOFLINE_API_BASE_URL`, `HARNESS_API_BASE_URL`, `NEXT_PUBLIC_HARNESS_API_BASE_URL` | alias-first | Prefer Proofline-named overrides when both are present. Keep Harness-named overrides valid as compatibility fallbacks. Hosted same-project Vercel routing still takes precedence over either explicit override. |
 | Storage env vars | `PROOFLINE_STORE_BACKEND`, `PROOFLINE_STORE_ROOT`, `PROOFLINE_SQLITE_PATH`, `PROOFLINE_RESET_STORE_BACKEND`, `PROOFLINE_RESET_STORE_ROOT`, plus Harness-named fallbacks | alias-first | Prefer Proofline-named storage overrides when both names are present. Keep Harness-named overrides valid as compatibility fallbacks. |
