@@ -1,8 +1,12 @@
 # Harness
 
-Harness is a control plane and reliability layer for AI-assisted work.
+Harness is the current repository name for what should become an acceptance layer for AI-assisted software work.
+
+The recommended product rename is **Proofline**. The rename should happen deliberately, starting with product language and docs before package, CLI, API, or repository names change. See [`docs/adrs/0006-product-rename-and-acceptance-layer.md`](docs/adrs/0006-product-rename-and-acceptance-layer.md).
 
 It does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
+
+The strategic inventory for the pivot is in [`docs/architecture/acceptance-layer-inventory.md`](docs/architecture/acceptance-layer-inventory.md). The short version: keep verification, reconciliation, lifecycle enforcement, evidence policy, Linear/GitHub alignment, manual review, and inspection surfaces; wrap Symphony/Codex/Hermes/OpenClaw as advisory execution or ingress layers; freeze or delete duplicated executor/runtime/product-shell work.
 
 ## Reset Slice
 
@@ -32,13 +36,13 @@ In hosted Vercel runtimes, the reset slice is not allowed to take the whole back
 
 ## What Harness Is
 
-- A Python control-plane backend that evaluates canonical `TaskEnvelope` submissions.
+- A Python acceptance-layer backend that evaluates canonical `TaskEnvelope` submissions.
 - A read-only Next.js dashboard over canonical inspection APIs.
 - A persistence layer for task snapshots and append-only evaluation history.
 - A thin integration boundary around Linear/manual/client-specific ingress adapters and GitHub/Linear fact inputs.
 - An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
 
-Harness is not a PM tool, an agent runtime, or a chatbot UI.
+Harness is not a PM tool, an agent runtime, a scheduler, an execution workbench, or a chatbot UI.
 Harness is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app under `apps/macos/HarnessApp` remains legacy/experimental code while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
 Client-specific ingress adapters are also intentionally narrow. The repo currently includes an OpenClaw-shaped ingress translator, but the same restriction applies to Hermes or any future desktop agent client: it can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If a client wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If it also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
