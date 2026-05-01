@@ -32,7 +32,8 @@ from modules.local_setup import (
     available_workflow_ids,
     build_guided_setup_status,
 )
-from modules.store import SQLiteHarnessStore, StoreError
+from modules.read_model import HarnessReadModelService
+from modules.store import SQLiteHarnessStore, StoreError, TaskEnvelopeNotFoundError
 
 
 APP_NAME = "Harness"
@@ -1195,6 +1196,29 @@ def open_runtime(config: RuntimeConfig, *, launch: bool = True) -> tuple[int, di
     }
 
 
+def inspect_task(paths: RuntimePaths, *, task_id: str) -> tuple[int, dict[str, Any]]:
+    config = load_runtime_config(paths)
+    store = SQLiteHarnessStore(config.database_path)
+    read_model_service = HarnessReadModelService(store=store)
+    try:
+        read_model = read_model_service.build_task_read_model(task_id)
+    except TaskEnvelopeNotFoundError:
+        return EXIT_RUNTIME_ERROR, {
+            "status": "not_found",
+            "error": f"Task {task_id!r} was not found in the local Proofline store.",
+            "task_id": task_id,
+            "paths": _paths_payload(config),
+        }
+    task_payload = asdict(read_model)
+    return EXIT_OK, {
+        "status": "ok",
+        "task_id": task_id,
+        "completion_validation_summary": task_payload.get("completion_validation_summary"),
+        "task": task_payload,
+        "paths": _paths_payload(config),
+    }
+
+
 def _open_url(url: str) -> None:
     system_name = platform.system()
     if system_name not in {"Darwin", "Linux"}:
@@ -1295,6 +1319,15 @@ def build_parser(*, prog: str = "harness", product_name: str = "Harness") -> arg
 
     recover_parser = subparsers.add_parser("recover", help="Recover a stale, crashed, or degraded local runtime")
     recover_parser.add_argument("--timeout", default=10.0, type=float, help="Recovery startup timeout in seconds")
+
+    inspect_parser = subparsers.add_parser("inspect", help="Inspect canonical local Proofline state")
+    inspect_subparsers = inspect_parser.add_subparsers(dest="inspect_command", required=True)
+
+    inspect_task_parser = inspect_subparsers.add_parser(
+        "task",
+        help="Inspect a task read model, including completion validation",
+    )
+    inspect_task_parser.add_argument("task_id", help="Task identifier to inspect")
 
     setup_parser = subparsers.add_parser("setup", help="Guide local runtime and optional integration setup")
     setup_subparsers = setup_parser.add_subparsers(dest="setup_command", required=True)
@@ -1403,6 +1436,8 @@ def main(
         if args.command == "recover":
             exit_code, payload = recover_runtime(paths, timeout_seconds=args.timeout)
             return _emit(payload, as_json=args.as_json, exit_code=exit_code)
+        if args.command == "inspect":
+            return _handle_inspect_command(paths, args, as_json=args.as_json)
         if args.command == "setup":
             return _handle_setup_command(paths, args, as_json=args.as_json)
         if args.command == "secrets":
@@ -1422,6 +1457,13 @@ def main(
 
     parser.error(f"Unsupported command {args.command!r}")
     return EXIT_RUNTIME_ERROR
+
+
+def _handle_inspect_command(paths: RuntimePaths, args: argparse.Namespace, *, as_json: bool) -> int:
+    if args.inspect_command == "task":
+        exit_code, payload = inspect_task(paths, task_id=args.task_id)
+        return _emit(payload, as_json=as_json, exit_code=exit_code)
+    raise LocalRuntimeError(f"Unsupported inspect command {args.inspect_command!r}.")
 
 
 def _handle_setup_command(paths: RuntimePaths, args: argparse.Namespace, *, as_json: bool) -> int:
@@ -1511,6 +1553,20 @@ def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -
                 print(f"- {item.get('id')}: {item.get('status')} ({marker})")
                 if item.get("next_action"):
                     print(f"  next_action: {item.get('next_action')}")
+    completion_validation = payload.get("completion_validation_summary")
+    if isinstance(completion_validation, dict):
+        print("completion_validation:")
+        for key in (
+            "status",
+            "intent_status",
+            "evidence_status",
+            "completion_claimed",
+            "completion_accepted",
+            "manual_review_status",
+            "summary",
+        ):
+            if key in completion_validation:
+                print(f"- {key}: {completion_validation.get(key)}")
     return exit_code
 
 

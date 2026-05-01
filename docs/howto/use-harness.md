@@ -48,6 +48,14 @@ Open a task detail panel and check the verification, reconciliation, evidence, a
 
 The important question is not whether an agent said the work was complete. The important question is whether Proofline has enough current evidence to accept that claim.
 
+The CLI can inspect the same canonical local store without going through the browser:
+
+```bash
+python3 -m modules.proofline_runtime --json inspect task <task-id>
+```
+
+For claimed completion, start with `completion_validation_summary`. Treat the task as actually done only when it reports `completion_claimed=true`, `completion_accepted=true`, `intent_status=matched`, and `evidence_status=sufficient`. If it reports `blocked`, `review_required`, `pending`, `insufficient`, or `invalid`, Proofline is telling you the work still needs evidence, reconciliation, repair, or explicit review.
+
 ## Watch Review Surfaces
 
 Manual review is explicit state. A task that needs review should show up as review-required instead of collapsing into a generic failure or silently completing.

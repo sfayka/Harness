@@ -10,6 +10,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from modules.api import HarnessApiService, _to_jsonable
+from modules.demo_cases import build_demo_request
 from modules.local_secrets import InMemorySecretStore, LinuxSecretServiceSecretStore
 from modules.local_runtime import (
     DEFAULT_API_PORT,
@@ -27,6 +29,7 @@ from modules.local_runtime import (
     stop_runtime,
     _check_execution_substrate,
 )
+from modules.store import SQLiteHarnessStore
 
 
 class LocalRuntimeCliTests(unittest.TestCase):
@@ -325,6 +328,34 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertTrue(items["github"]["required"])
         self.assertEqual(items["github"]["secret_names"], ["github_token"])
         self.assertNotIn("ghp_secret", json.dumps(payload))
+
+    def test_inspect_task_reads_canonical_completion_validation_summary(self) -> None:
+        self._run_cli("init")
+        store = SQLiteHarnessStore(self.data_path / "harness.db")
+        service = HarnessApiService(store=store)
+        submit_status, submit_payload = service.evaluate(
+            {"request": _to_jsonable(build_demo_request("accepted_completion"))}
+        )
+        task_id = submit_payload["task_envelope"]["id"]
+
+        exit_code, payload = self._run_cli("inspect", "task", task_id)
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["task_id"], task_id)
+        self.assertEqual(payload["completion_validation_summary"]["status"], "accepted")
+        self.assertTrue(payload["completion_validation_summary"]["completion_accepted"])
+        self.assertEqual(payload["task"]["completion_validation_summary"], payload["completion_validation_summary"])
+
+    def test_inspect_missing_task_reports_not_found_without_traceback(self) -> None:
+        self._run_cli("init")
+
+        exit_code, payload = self._run_cli("inspect", "task", "missing-task")
+
+        self.assertEqual(exit_code, EXIT_RUNTIME_ERROR)
+        self.assertEqual(payload["status"], "not_found")
+        self.assertIn("missing-task", payload["error"])
+        self.assertNotIn("Traceback", json.dumps(payload))
 
 
 class LocalRuntimeProcessTests(unittest.TestCase):
