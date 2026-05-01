@@ -1221,10 +1221,10 @@ def _paths_payload(config: RuntimeConfig) -> dict[str, str]:
     }
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(*, prog: str = "harness", product_name: str = "Harness") -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="harness",
-        description="Control the local Harness runtime.",
+        prog=prog,
+        description=f"Control the local {product_name} runtime.",
     )
     parser.add_argument("--data-dir", help="Override the runtime-managed data directory")
     parser.add_argument("--log-dir", help="Override the runtime-managed log directory")
@@ -1239,16 +1239,16 @@ def build_parser() -> argparse.ArgumentParser:
     init_parser.add_argument("--port", default=DEFAULT_API_PORT, type=int, help="Port for the local API")
     init_parser.add_argument("--force", action="store_true", help="Rewrite config with the supplied defaults")
 
-    serve_parser = subparsers.add_parser("serve", help="Run the local Harness API in the foreground")
+    serve_parser = subparsers.add_parser("serve", help=f"Run the local {product_name} API in the foreground")
     serve_parser.add_argument("--host", help="Temporary host override for this process")
     serve_parser.add_argument("--port", type=int, help="Temporary port override for this process")
 
-    start_parser = subparsers.add_parser("start", help="Start the local Harness API as a runtime-managed process")
+    start_parser = subparsers.add_parser("start", help=f"Start the local {product_name} API as a runtime-managed process")
     start_parser.add_argument("--host", help="Temporary host override for this process")
     start_parser.add_argument("--port", type=int, help="Temporary port override for this process")
     start_parser.add_argument("--timeout", default=10.0, type=float, help="Startup timeout in seconds")
 
-    status_parser = subparsers.add_parser("status", help="Check whether the local Harness runtime is healthy")
+    status_parser = subparsers.add_parser("status", help=f"Check whether the local {product_name} runtime is healthy")
     status_parser.add_argument(
         "--timeout",
         default=DEFAULT_REQUEST_TIMEOUT_SECONDS,
@@ -1259,14 +1259,14 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser = subparsers.add_parser("doctor", help="Run local setup checks with remediation hints")
     doctor_parser.set_defaults(command="doctor")
 
-    open_parser = subparsers.add_parser("open", help="Open the local Harness dashboard or API URL")
+    open_parser = subparsers.add_parser("open", help=f"Open the local {product_name} dashboard or API URL")
     open_parser.add_argument(
         "--print-url",
         action="store_true",
         help="Print the URL without launching a browser",
     )
 
-    stop_parser = subparsers.add_parser("stop", help="Gracefully stop the local Harness runtime")
+    stop_parser = subparsers.add_parser("stop", help=f"Gracefully stop the local {product_name} runtime")
     stop_parser.add_argument("--timeout", default=10.0, type=float, help="Shutdown timeout in seconds")
 
     recover_parser = subparsers.add_parser("recover", help="Recover a stale, crashed, or degraded local runtime")
@@ -1287,7 +1287,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Treat integrations for the selected workflow as required",
     )
 
-    secrets_parser = subparsers.add_parser("secrets", help="Manage runtime-managed Harness secrets")
+    secrets_parser = subparsers.add_parser("secrets", help=f"Manage runtime-managed {product_name} secrets")
     secrets_subparsers = secrets_parser.add_subparsers(dest="secret_command", required=True)
 
     secrets_status_parser = secrets_subparsers.add_parser(
@@ -1320,8 +1320,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
+def main(
+    argv: list[str] | None = None,
+    *,
+    prog: str = "harness",
+    product_name: str = "Harness",
+) -> int:
+    parser = build_parser(prog=prog, product_name=product_name)
     args = parser.parse_args(argv)
     paths = resolve_runtime_paths(data_dir=args.data_dir, log_dir=args.log_dir)
 

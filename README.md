@@ -377,7 +377,13 @@ python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
 
-Future packaged CLI builds should expose the same contract as `harness init`, `harness start`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness recover`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in runtime-managed local directories so operators do not need Docker, Node, `pnpm`, or repo-local shell exports.
+The Proofline-named module entrypoint is also available:
+
+```bash
+python3 -m modules.proofline_runtime --json status
+```
+
+Future packaged CLI builds should expose the same contract as `proofline init`, `proofline start`, `proofline serve`, `proofline status`, `proofline doctor`, `proofline setup status`, `proofline open`, `proofline recover`, `proofline stop`, and `proofline secrets ...`. A compatibility `harness ...` command can remain during the migration. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in runtime-managed local directories so operators do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
 Build the packageable dashboard assets for the local CLI/web path:
 

@@ -61,6 +61,12 @@ python3 -m modules.local_runtime --json status
 python3 -m modules.local_runtime --json stop
 ```
 
+The Proofline-named alias is available for the same local runtime contract:
+
+```bash
+python3 -m modules.proofline_runtime --json status
+```
+
 Without packaged dashboard assets, the runtime can still be healthy, but `/dashboard` cannot render the static UI.
 
 ## What Good Looks Like

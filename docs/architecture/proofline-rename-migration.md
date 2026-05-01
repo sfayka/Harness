@@ -15,7 +15,7 @@ This is a staged compatibility migration, not a mechanical rename.
 - repository path and GitHub repository
 - Python module names
 - Next.js package name `proofline-dashboard`
-- CLI examples based on `python3 -m modules.local_runtime`
+- CLI examples based on `python3 -m modules.proofline_runtime`, with `python3 -m modules.local_runtime` retained as a compatibility entrypoint
 - API proxy route `app/api/proofline/[...path]`, with `app/api/harness/[...path]` retained as a compatibility alias
 - environment variables such as `PROOFLINE_API_BASE_URL`, with `HARNESS_API_BASE_URL` retained as a compatibility alias
 - persisted runtime fields such as `harness_state`
@@ -53,7 +53,7 @@ These are compatibility surfaces, not branding copy.
 | --- | --- | --- | --- |
 | Product name | `Proofline` in README, dashboard labels, browser metadata, system context | current product name | Use for product-facing copy. |
 | Repository name | `Harness`, `sfayka/Harness`, local path segments | rename-later | Rename last, after deployment, Codex Cloud, local clone, and GitHub integration migration notes exist. |
-| CLI command shape | `python3 -m modules.local_runtime ...`, future `harness ...` examples | alias-first | Do not introduce a Proofline command until existing commands are documented and tested as compatibility aliases. |
+| CLI command shape | `python3 -m modules.proofline_runtime ...`, `python3 -m modules.local_runtime ...`, future packaged `proofline ...` command | alias-first | Prefer Proofline-named entrypoints for new docs. Keep local-runtime and future `harness ...` command shapes valid as compatibility aliases. |
 | Frontend package name | `proofline-dashboard` in `package.json` | migrated | Keep build, deployment, and local dashboard packaging checks in place so package-name coupling stays visible. |
 | Next.js proxy route | `app/api/proofline/[...path]`, `app/api/harness/[...path]` | alias-first | The Proofline route is the dashboard default. Keep the Harness route as a compatibility alias until external links and deployments have migrated. Both routes must share the same backend proxy behavior. |
 | API base env vars | `PROOFLINE_API_BASE_URL`, `NEXT_PUBLIC_PROOFLINE_API_BASE_URL`, `HARNESS_API_BASE_URL`, `NEXT_PUBLIC_HARNESS_API_BASE_URL` | alias-first | Prefer Proofline-named overrides when both are present. Keep Harness-named overrides valid as compatibility fallbacks. Hosted same-project Vercel routing still takes precedence over either explicit override. |
@@ -63,7 +63,7 @@ These are compatibility surfaces, not branding copy.
 | Secret/service namespace | `com.knoxanalytics.harness.local-runtime`, Keychain/service labels | alias-first | Do not rename until migration preserves existing stored secrets or documents an explicit migration command. |
 | Persisted schema fields | `harness_state`, `source_system=harness`, artifact metadata like `harness-task-id` | stable compatibility | Do not rename in-place. Add new projection fields only if old fields remain readable. |
 | Task contract name | `TaskEnvelope` | stable | Do not rename unless schema versioning, docs, adapter mappings, and tests are updated together. |
-| Python modules | `modules.local_runtime`, `modules.evaluation`, `modules.contracts.*` | rename-later | Keep until external imports, scripts, tests, and docs have aliases. |
+| Python modules | `modules.proofline_runtime`, `modules.local_runtime`, `modules.evaluation`, `modules.contracts.*` | alias-first | Add thin Proofline aliases only where they reduce operator confusion without changing canonical contract names. Keep existing imports valid. |
 | API routes | `/tasks`, `/reset/*`, `/sync/github`, `/execution-substrate/*`, `/ingress/*` | stable public surface | Do not rename for branding. Add only additive aliases with tests if a product need appears. |
 | Demo and proof artifacts | `docs/demo/*`, `HARNESS-DRYRUN`, historical JSON payloads | historical evidence | Do not rewrite historical proof for branding. |
 | ADRs and archive docs | old Harness/macOS decision records | historical evidence | Preserve original terms except for short framing notes when needed. |

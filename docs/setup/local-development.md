@@ -115,6 +115,12 @@ python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
 
+For new docs and local checks, prefer the Proofline-named module alias:
+
+```bash
+python3 -m modules.proofline_runtime --json status
+```
+
 The runtime contract uses runtime-managed config, SQLite state, PID files, dashboard assets, and logs. A future packaged CLI should not require Docker, Node, `pnpm`, or repo-local shell exports.
 Use `start` and `recover` for local background lifecycle control.
 Use `serve` only when you intentionally want a foreground backend for debugging.
