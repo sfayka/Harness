@@ -34,6 +34,8 @@ For claimed completion, inspect `completion_validation_summary` on `GET /tasks` 
 
 `GET /execution-substrate/transport-status` is the operator-readable transport guardrail. It currently reports `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, `completion_authority=harness_verification`, `runner_completion_is_truth=false`, and `safe_to_execute_live=false`. That endpoint is posture, not permission. A live Symphony transport must add a separate policy-gated execution path instead of changing this status silently.
 
+`GET /execution-substrate/intents` and `GET /execution-substrate/handoffs` preserve the source supervision entry's `completion_validation_summary` next to each intent or handoff. This is inspection context for the adapter and operator. It does not let the runner decide completion, and it does not change the rendered Symphony-compatible handoff's `completion_authority`.
+
 `GET /execution-substrate/handoffs` renders the handoff payloads for current execution-substrate intents without starting Symphony, mutating GitHub, updating Linear, or trusting runner completion. It exists for inspection and future adapter development.
 
 Queue entries are derived from canonical read-model and timeline truth and currently classify:

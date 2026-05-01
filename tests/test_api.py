@@ -5480,6 +5480,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         intent_entry = intent_payload["intents"][0]
         self.assertEqual(intent_entry["task_id"], response["task_envelope"]["id"])
         self.assertEqual(intent_entry["attention_type"], "retryable_failure")
+        self.assertEqual(intent_entry["completion_validation_summary"]["status"], "blocked")
+        self.assertFalse(intent_entry["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(intent_entry["intent"]["intent_type"], "retry_execution")
         self.assertEqual(intent_entry["intent"]["completion_authority"], "harness_verification")
 
@@ -5505,6 +5507,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         handoff_entry = preview_payload["handoffs"][0]
         self.assertEqual(handoff_entry["task_id"], response["task_envelope"]["id"])
         self.assertEqual(handoff_entry["attention_type"], "retryable_failure")
+        self.assertEqual(handoff_entry["completion_validation_summary"]["status"], "blocked")
+        self.assertFalse(handoff_entry["completion_validation_summary"]["completion_accepted"])
         handoff = handoff_entry["handoff"]
         self.assertEqual(handoff["mode"], "render_only")
         self.assertEqual(handoff["intent"]["intent_type"], "retry_execution")

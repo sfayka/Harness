@@ -4571,6 +4571,9 @@ class HarnessApiService:
                     "attention_type": str(entry.get("attention_type") or ""),
                     "current_status": str(entry.get("current_status") or ""),
                     "last_activity_at": entry.get("last_activity_at"),
+                    "completion_validation_summary": deepcopy(entry.get("completion_validation_summary"))
+                    if isinstance(entry.get("completion_validation_summary"), dict)
+                    else None,
                     "intent": deepcopy(intent),
                 }
             )
@@ -4620,6 +4623,9 @@ class HarnessApiService:
                     "attention_type": str(entry.get("attention_type") or ""),
                     "current_status": str(entry.get("current_status") or ""),
                     "last_activity_at": entry.get("last_activity_at"),
+                    "completion_validation_summary": deepcopy(entry.get("completion_validation_summary"))
+                    if isinstance(entry.get("completion_validation_summary"), dict)
+                    else None,
                     "handoff": adapter.render_handoff(
                         execution_substrate_intent_from_dict(intent_payload_entry)
                     ).to_dict(),
