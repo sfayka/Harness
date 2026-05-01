@@ -1,6 +1,6 @@
 # macOS Dashboard Window
 
-Status: deprecated. Harness now supports the web dashboard directly; this document remains historical context for the legacy Swift shell.
+Status: historical. Harness now supports the web dashboard directly. The Swift shell and related scripts have been removed from the active tree; commands and paths below are preserved only as historical design context.
 
 The macOS dashboard window provides the full Harness inspection surface inside the native app.
 It is opened from the menu bar and embeds the same local dashboard served by the app-managed Harness runtime.

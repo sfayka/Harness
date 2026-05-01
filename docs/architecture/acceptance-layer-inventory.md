@@ -63,7 +63,7 @@ These may stay for now, but new product work should not accumulate here.
 
 | Area | Current Homes | Freeze Rule |
 | --- | --- | --- |
-| Native macOS shell | `apps/macos/HarnessApp`, `script/build_and_run.sh`, `script/package_macos_app.sh`, macOS architecture docs | No new native features, signing, notarization, Launch at Login, notifications, or onboarding. Delete or archive later. |
+| Historical macOS docs | macOS architecture and release notes | No new native features, signing, notarization, Launch at Login, notifications, or onboarding. Archive later. |
 | Legacy direct dispatch paths | direct dispatch/test paths around old executor flow | Keep deterministic tests and compatibility only. New dispatch should target execution-substrate intents. |
 | Planner/decomposition experiments | `modules/goal_to_work.py`, `modules/prd_ingestion.py`, `modules/prd_breakdown.py`, planner docs | Freeze until the acceptance boundary is stronger. Linear/Codex/Symphony may cover enough of this layer. |
 | Demo/simulator surfaces | `modules/demo_*`, `modules/simulator.py`, `modules/runtime_scenario_builders.py` | Keep only when they prove acceptance semantics honestly. Do not let demos bypass canonical APIs. |
@@ -76,8 +76,8 @@ Do not delete these in the inventory PR. Deletion should be a narrow follow-up w
 
 | Candidate | Reason | Required Before Delete |
 | --- | --- | --- |
-| Native macOS app tree | It is no longer a supported surface and creates validation noise. | Confirm docs, scripts, and tests no longer reference it as active. Archive historical docs or mark them clearly. |
-| macOS packaging scripts | They encode a product path that is now rejected. | Confirm no release/check script invokes them. |
+| Native macOS app tree | Removed from the active tree after this inventory because it was no longer a supported surface and created validation noise. | Do not reintroduce unless the product decision is explicitly reopened. |
+| macOS packaging scripts | Removed from the active tree because they encoded a rejected product path. | Do not reintroduce unless the product decision is explicitly reopened. |
 | Historical macOS architecture docs | They are stale implementation guidance. | Move to `docs/archive/` or mark historical in-place before removal. |
 | OpenClaw-specific naming in canonical docs | The role is client-neutral. | Keep concrete adapter docs, but remove OpenClaw as a default product anchor. |
 | Broad planner/runtime language in README | It suggests Harness owns too much of the lifecycle. | Replace with acceptance-layer positioning and link to this inventory. |

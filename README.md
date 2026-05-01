@@ -43,7 +43,7 @@ In hosted Vercel runtimes, the reset slice is not allowed to take the whole back
 - An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
 
 Harness is not a PM tool, an agent runtime, a scheduler, an execution workbench, or a chatbot UI.
-Harness is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app under `apps/macos/HarnessApp` remains legacy/experimental code while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
+Harness is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app and macOS packaging scripts have been removed from the active tree while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
 Client-specific ingress adapters are also intentionally narrow. The repo currently includes an OpenClaw-shaped ingress translator, but the same restriction applies to Hermes or any future desktop agent client: it can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If a client wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If it also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
 
 On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only attention projection for external supervisors and Symphony-compatible runner adapters. It surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, waiting on canonical GitHub sync, or stale. `GET /execution-substrate/intents` provides the runner-facing filtered view of only the Symphony-compatible continuation intents. Neither endpoint authorizes actions on its own, and neither replaces canonical reevaluation, execution-substrate event ingestion, completion-claim, or GitHub sync paths.
@@ -227,7 +227,7 @@ See:
 - Runtime-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
 - Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
 - Setup doctor output is documented in [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md).
-- The deprecated macOS menu-bar app remains legacy code only; supported local operation should use the CLI/runtime contract and web dashboard.
+- The deprecated macOS menu-bar app has been removed from the active tree; supported local operation should use the CLI/runtime contract and web dashboard.
 
 ## Hosted Deployment Target
 
@@ -400,19 +400,7 @@ python3 -m modules.local_runtime --json setup status --workflow repair-dispatch
 
 Default setup only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
-The native macOS app shell under [`apps/macos/HarnessApp`](apps/macos/HarnessApp) is deprecated as a supported product surface. Do not treat the Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Harness path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend.
-
-The legacy development commands still exist for compatibility, but they are not part of the recommended operator path:
-
-```bash
-HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 \
-./script/build_and_run.sh
-
-HARNESS_ENABLE_DEPRECATED_MACOS_APP=1 \
-./script/package_macos_app.sh
-```
-
-Without `HARNESS_ENABLE_DEPRECATED_MACOS_APP=1`, those scripts fail fast with a deprecation message. No new product work should depend on them. Normal Harness operation should be CLI + API + web dashboard.
+The native macOS app shell and packaging scripts have been removed from the active tree. Do not treat a Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Harness path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend. Normal Harness operation should be CLI + API + web dashboard.
 
 See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md), [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md), and [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md). The older macOS architecture notes remain for historical context only.
 

@@ -80,7 +80,7 @@ Freeze or delete work that primarily builds:
 
 Harness is now CLI + API + web dashboard first.
 
-The native macOS app under `apps/macos/HarnessApp` is legacy/experimental code. Do not add new native macOS features, packaging work, notarization work, menu-bar behavior, notification behavior, or onboarding behavior unless a task explicitly reopens that product decision.
+The native macOS app and packaging scripts have been removed from the active tree. Do not reintroduce native macOS features, packaging work, notarization work, menu-bar behavior, notification behavior, or onboarding behavior unless a task explicitly reopens that product decision.
 
 Keep reusable runtime pieces in portable Python/TypeScript surfaces:
 
@@ -89,7 +89,7 @@ Keep reusable runtime pieces in portable Python/TypeScript surfaces:
 - the Next.js dashboard
 - static local dashboard assets served by the Python backend
 
-If existing macOS code needs to remain buildable while it is still in the tree, keep fixes minimal and compatibility-focused. Do not make Harness core depend on Swift, AppKit, `.app` bundle layout, Keychain-only semantics, Launch at Login, or macOS notification APIs.
+Do not make Harness core depend on Swift, AppKit, `.app` bundle layout, Keychain-only semantics, Launch at Login, or macOS notification APIs.
 
 ## Invariants That Must Not Be Broken
 

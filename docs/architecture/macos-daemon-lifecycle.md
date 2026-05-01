@@ -1,6 +1,6 @@
 # macOS Daemon Lifecycle
 
-Status: deprecated. Harness now supports CLI/runtime control directly; this document remains historical context for the legacy Swift shell.
+Status: historical. Harness now supports CLI/runtime control directly. The Swift shell and related scripts have been removed from the active tree; commands and paths below are preserved only as historical design context.
 
 Harness v1 uses an app-managed lifecycle, not a standalone LaunchAgent.
 

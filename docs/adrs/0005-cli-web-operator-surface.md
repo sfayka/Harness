@@ -22,7 +22,7 @@ The operational loop Harness needs to support is simpler:
 
 Harness will treat CLI + API + web dashboard as the supported operator surface.
 
-The native macOS app under `apps/macos/HarnessApp` is deprecated legacy/experimental code. It may remain in the repository temporarily, but it is not an active product direction.
+The native macOS app and packaging scripts are not active product surfaces and have been removed from the active tree.
 
 Do not add new native macOS app features, packaging work, signing/notarization work, notification behavior, Launch at Login behavior, or Swift onboarding flows unless this decision is explicitly reopened.
 
@@ -42,4 +42,4 @@ The tradeoff is less native desktop polish. That is acceptable because Harness's
 
 ## Follow-Up
 
-Future cleanup should remove native macOS references from active setup/release docs first, then decide whether to archive or delete `apps/macos/HarnessApp` and related scripts once no active validation depends on them.
+Future cleanup should archive historical macOS design and release notes once no active documentation depends on them.

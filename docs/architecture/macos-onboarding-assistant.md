@@ -1,6 +1,6 @@
 # macOS Onboarding Assistant
 
-Status: deprecated. Harness now supports CLI + web setup/inspection as the operator path; this document remains historical context for the legacy Swift shell.
+Status: historical. Harness now supports CLI + web setup/inspection as the operator path. The Swift shell and related scripts have been removed from the active tree; commands and paths below are preserved only as historical design context.
 
 The macOS onboarding assistant is the first-run path for normal users.
 It exists so a user can get to a healthy local Harness runtime without terminal commands, Docker, Python setup, Node, `pnpm`, repo cloning, or env-file editing.
