@@ -496,6 +496,10 @@ function mapStringArray(value: unknown): string[] {
 }
 
 function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
+  const completionValidationSummary =
+    entry.completion_validation_summary && typeof entry.completion_validation_summary === "object"
+      ? (entry.completion_validation_summary as Record<string, unknown>)
+      : null;
   const handoff =
     entry.handoff && typeof entry.handoff === "object"
       ? (entry.handoff as Record<string, unknown>)
@@ -526,6 +530,33 @@ function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
     attention_type: String(entry.attention_type ?? ""),
     current_status: String(entry.current_status ?? ""),
     last_activity_at: (entry.last_activity_at as string | null | undefined) ?? null,
+    completion_validation_summary: completionValidationSummary
+      ? {
+          status: String(completionValidationSummary.status ?? "pending") as Task["completion_validation_summary"]["status"],
+          summary: String(completionValidationSummary.summary ?? "No completion validation summary is available."),
+          intent_status: String(completionValidationSummary.intent_status ?? "pending") as Task["completion_validation_summary"]["intent_status"],
+          evidence_status: String(completionValidationSummary.evidence_status ?? "pending") as Task["completion_validation_summary"]["evidence_status"],
+          reconciliation_status: String(completionValidationSummary.reconciliation_status ?? "pending"),
+          completion_claimed: Boolean(completionValidationSummary.completion_claimed),
+          completion_accepted: Boolean(completionValidationSummary.completion_accepted),
+          manual_review_status:
+            (completionValidationSummary.manual_review_status as string | null | undefined) ?? null,
+          automatic_completion_safe: Boolean(completionValidationSummary.automatic_completion_safe),
+          verification_outcome: String(completionValidationSummary.verification_outcome ?? "not_evaluated"),
+          reasons: Array.isArray(completionValidationSummary.reasons)
+            ? completionValidationSummary.reasons.map(String)
+            : [],
+          required_criteria_count: Number(completionValidationSummary.required_criteria_count ?? 0),
+          concrete_required_criteria_count: Number(completionValidationSummary.concrete_required_criteria_count ?? 0),
+          required_artifact_types: Array.isArray(completionValidationSummary.required_artifact_types)
+            ? completionValidationSummary.required_artifact_types.map(String)
+            : [],
+          validated_artifact_ids: Array.isArray(completionValidationSummary.validated_artifact_ids)
+            ? completionValidationSummary.validated_artifact_ids.map(String)
+            : [],
+          validated_artifact_count: Number(completionValidationSummary.validated_artifact_count ?? 0),
+        }
+      : null,
     handoff: {
       adapter: String(handoff.adapter ?? ""),
       mode: String(handoff.mode ?? ""),

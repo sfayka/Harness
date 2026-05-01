@@ -29,6 +29,24 @@ test("maps execution substrate handoff previews from Harness", async () => {
             attention_type: "retryable_failure",
             current_status: "blocked",
             last_activity_at: null,
+            completion_validation_summary: {
+              status: "blocked",
+              summary: "Completion was claimed, but Proofline has not validated it against intent and evidence.",
+              intent_status: "not_validated",
+              evidence_status: "insufficient",
+              reconciliation_status: "pending",
+              completion_claimed: true,
+              completion_accepted: false,
+              manual_review_status: "none",
+              automatic_completion_safe: false,
+              verification_outcome: "insufficient_evidence",
+              reasons: ["Completion evidence is missing a verified pull request."],
+              required_criteria_count: 2,
+              concrete_required_criteria_count: 2,
+              required_artifact_types: ["pull_request"],
+              validated_artifact_ids: [],
+              validated_artifact_count: 0,
+            },
             handoff: {
               adapter: "symphony-execution-substrate",
               mode: "render_only",
@@ -79,6 +97,9 @@ test("maps execution substrate handoff previews from Harness", async () => {
   assert.equal(preview.dispatch_enabled, false);
   assert.equal(preview.completion_authority, "harness_verification");
   assert.equal(preview.handoffs[0].handoff.mode, "render_only");
+  assert.equal(preview.handoffs[0].completion_validation_summary?.status, "blocked");
+  assert.equal(preview.handoffs[0].completion_validation_summary?.completion_accepted, false);
+  assert.equal(preview.handoffs[0].completion_validation_summary?.evidence_status, "insufficient");
   assert.equal(preview.handoffs[0].handoff.metadata.safe_to_execute_live, false);
   assert.equal(
     preview.handoffs[0].handoff.callback.events_endpoint,

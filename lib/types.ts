@@ -228,6 +228,7 @@ export interface ExecutionSubstrateHandoff {
   attention_type: string;
   current_status: string;
   last_activity_at: string | null;
+  completion_validation_summary: CompletionValidationSummary | null;
   handoff: {
     adapter: string;
     mode: string;
