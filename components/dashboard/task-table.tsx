@@ -341,11 +341,15 @@ function TaskIdentityCell({
 }
 
 function StrictVerificationBadge({ task }: { task: Task }) {
-  const summary = task.verification_summary;
-  const isAccepted = summary?.completion_accepted ?? false;
-  const label = summary ? (isAccepted ? "Accepted" : "Rejected") : "Not evaluated";
+  const summary = task.completion_validation_summary;
+  const isAccepted = summary.completion_accepted;
+  const label = isAccepted
+    ? "Accepted"
+    : summary.completion_claimed
+      ? "Not accepted"
+      : "Not claimed";
   const severity = getSeverityClasses(
-    summary ? getVerificationSeverity(isAccepted ? "accepted" : "rejected") : "neutral",
+    getVerificationSeverity(isAccepted ? "accepted" : summary.completion_claimed ? "rejected" : "pending"),
   );
 
   return (
@@ -386,11 +390,12 @@ function StrictReconciliationBadge({ task }: { task: Task }) {
 }
 
 function StrictEvidenceBadge({ task }: { task: Task }) {
-  const summary = task.verification_summary;
-  const isSufficient =
-    summary?.evidence_is_sufficient ?? summary?.evidence_sufficient ?? false;
+  const evidenceStatus = task.completion_validation_summary.evidence_status;
+  const isSufficient = evidenceStatus === "sufficient";
   const severity = getSeverityClasses(
-    getEvidenceSeverity(summary ? isSufficient : null),
+    evidenceStatus === "pending" || evidenceStatus === "not_required"
+      ? "neutral"
+      : getEvidenceSeverity(isSufficient),
   );
 
   return (
@@ -398,23 +403,29 @@ function StrictEvidenceBadge({ task }: { task: Task }) {
       className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ${severity.soft}`}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${severity.dot}`} />
-      {!summary ? "No evidence status" : isSufficient ? "Sufficient" : "Insufficient"}
+      {evidenceStatus.replaceAll("_", " ")}
     </span>
   );
 }
 
 function DerivedOutcomeBadge({ task }: { task: Task }) {
+  const validation = task.completion_validation_summary;
   const hasBlockingOutcome =
     task.current_status === "blocked" ||
     task.current_status === "in_review" ||
     task.current_status === "failed" ||
-    task.verification_summary?.result === "rejected" ||
+    validation.status === "blocked" ||
+    validation.status === "review_required" ||
+    validation.status === "failed" ||
+    validation.status === "canceled" ||
     task.reconciliation_summary?.blocking === true ||
     (task.reconciliation_summary !== null &&
       (task.reconciliation_summary.result !== "no_mismatch" ||
         (task.reconciliation_summary.mismatch_categories?.length ?? 0) > 0));
   const isSafe =
-    task.verification_summary?.result === "accepted" &&
+    validation.completion_accepted &&
+    validation.intent_status === "matched" &&
+    validation.evidence_status === "sufficient" &&
     (task.reconciliation_summary === null ||
       (task.reconciliation_summary.result === "no_mismatch" &&
         task.reconciliation_summary.blocking === false &&

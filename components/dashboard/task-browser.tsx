@@ -85,14 +85,15 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
     sortTasks: (tasks) =>
       [...tasks].sort((left, right) => {
         const rank = (task: Task) => {
-          switch (task.verification_summary?.result) {
-            case "rejected":
+          switch (task.completion_validation_summary.status) {
+            case "failed":
+            case "canceled":
               return 0;
-            case "insufficient_evidence":
+            case "blocked":
               return 1;
-            case "pending":
+            case "review_required":
               return 2;
-            case "deferred":
+            case "pending":
               return 3;
             case "accepted":
               return 4;
@@ -115,7 +116,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
       {
         label: "Accepted Completion",
         value: tasks.filter(
-          (task) => task.verification_summary?.completion_accepted,
+          (task) => task.completion_validation_summary.completion_accepted,
         ).length,
         icon: CheckCircle2,
         tone: "success",
@@ -124,8 +125,8 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
         label: "Rejected",
         value: tasks.filter(
           (task) =>
-            task.verification_summary !== null &&
-            !task.verification_summary.completion_accepted,
+            task.completion_validation_summary.completion_claimed &&
+            !task.completion_validation_summary.completion_accepted,
         ).length,
         icon: XCircle,
         tone: "failure",
@@ -139,12 +140,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
       {
         label: "Evidence Insufficient",
         value: tasks.filter((task) => {
-          const summary = task.verification_summary;
-          return (
-            summary?.result === "insufficient_evidence" ||
-            summary?.evidence_sufficient === false ||
-            summary?.evidence_is_sufficient === false
-          );
+          return task.completion_validation_summary.evidence_status === "insufficient";
         }).length,
         icon: AlertTriangle,
         tone: "warning",
@@ -152,7 +148,7 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
       {
         label: "Evidence Invalid",
         value: tasks.filter(
-          (task) => task.verification_summary?.evidence_is_valid === false,
+          (task) => task.completion_validation_summary.evidence_status === "invalid",
         ).length,
         icon: XCircle,
         tone: "failure",

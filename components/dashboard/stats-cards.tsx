@@ -14,13 +14,14 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ tasks }: StatsCardsProps) {
-  // System truth states - derived from verification and reconciliation
+  // System truth states - derived from canonical completion validation and reconciliation.
   const stats = {
-    // Verified & Accepted: completed + verification accepted + no reconciliation mismatches
     verifiedAccepted: tasks.filter(
       (t) =>
         t.current_status === "completed" &&
-        t.verification_summary?.result === "accepted" &&
+        t.completion_validation_summary.completion_accepted &&
+        t.completion_validation_summary.intent_status === "matched" &&
+        t.completion_validation_summary.evidence_status === "sufficient" &&
         (!t.reconciliation_summary ||
           t.reconciliation_summary.result === "no_mismatch")
     ).length,
@@ -37,28 +38,26 @@ export function StatsCards({ tasks }: StatsCardsProps) {
     invalidContradicted: tasks.filter(
       (t) =>
         t.current_status === "failed" ||
-        t.verification_summary?.result === "rejected" ||
+        t.completion_validation_summary.status === "failed" ||
+        t.completion_validation_summary.status === "canceled" ||
+        t.completion_validation_summary.evidence_status === "invalid" ||
         t.reconciliation_summary?.result === "contradictory_facts" ||
         t.reconciliation_summary?.result === "wrong_target"
     ).length,
 
-    // Review Required: explicit review requested OR insufficient evidence
     reviewRequired: tasks.filter(
       (t) =>
         t.current_status === "in_review" ||
         t.review_summary.status === "requested" ||
-        t.verification_summary?.result === "insufficient_evidence"
+        t.completion_validation_summary.status === "review_required"
     ).length,
 
-    // Pending Verification: in progress states awaiting verification
     pendingVerification: tasks.filter(
       (t) =>
         (t.current_status === "executing" ||
           t.current_status === "completed" ||
           t.current_status === "in_review") &&
-        (!t.verification_summary ||
-          t.verification_summary.result === "pending" ||
-          t.verification_summary.result === "deferred")
+        t.completion_validation_summary.status === "pending"
     ).length,
   };
 
