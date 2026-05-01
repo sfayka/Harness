@@ -35,8 +35,8 @@ Default setup only requires the local Harness runtime:
 Missing GitHub, Linear, execution-substrate, and legacy ingress/executor setup appears as incomplete optional work.
 Those integrations become blockers only when the user selects a workflow that needs them.
 
-Warnings for API stopped, dashboard assets, notifications, or launch-at-login wrapper state are actionable, but they do not block runtime-only setup.
-The CLI can start the API when live progress is needed, and notification/startup preferences remain wrapper-level choices.
+Warnings for API stopped or missing dashboard assets are actionable, but they do not block runtime-only setup.
+The CLI can start the API when live progress is needed. Notification and startup-after-login preferences are wrapper-level choices and do not create default setup warnings.
 
 ## Workflow Requirements
 

@@ -24,10 +24,10 @@ def healthy_runtime_doctor_payload(
         check("dashboard", "warn", next_action="Install packaged dashboard assets."),
         check(
             "notification_permission",
-            "warn",
-            next_action="No action needed unless a wrapper shell is responsible for local notifications.",
+            "pass",
+            next_action="No action needed.",
         ),
-        check("launch_at_login", "warn", next_action="No action needed for CLI/web usage."),
+        check("launch_at_login", "pass", next_action="No action needed."),
         check("workspace_folders", "pass"),
         check(
             "github_connection",
