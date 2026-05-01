@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define how Proofline should respond to OpenAI's Symphony project without weakening the acceptance-layer source-of-truth boundary.
+Define how Proofline should respond to OpenAI's Symphony project without weakening the validation boundary between agentic completion claims, user intent, and evidence.
 
 Symphony validates the need for a daemonized execution substrate that keeps Codex working on structured tasks. It does not replace Proofline. Proofline remains the control plane, verification layer, and lifecycle authority. A Symphony-like service may run work, retry work, preserve per-issue workspaces, and report execution facts. It must not decide whether work is complete.
 

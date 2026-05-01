@@ -63,7 +63,7 @@ The current concrete repair receiver is still OpenClaw-shaped, so some operation
 - `OPENCLAW_CONFIG_PATH`
 - `OPENCLAW_STATE_DIR`
 
-Those names are implementation details. Proofline itself should stay client-neutral: OpenClaw, Hermes, Codex, or a future desktop agent can fill the same role if it speaks the canonical acceptance-layer API boundaries.
+Those names are implementation details. Proofline itself should stay client-neutral: OpenClaw, Hermes, Codex, or a future desktop agent can fill the same role if it speaks the canonical validation boundary for user intent, evidence, and completion claims.
 
 For hosted repair dispatch, `OPENCLAW_BASE_URL` must point at a receiver reachable from the hosted runtime. A loopback value such as `http://127.0.0.1:18789` only works for local development.
 

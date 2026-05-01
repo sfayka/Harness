@@ -2,20 +2,20 @@
 
 ## Purpose
 
-Harness should now be treated as the working repository name for an acceptance layer, not as an execution product.
+Harness should now be treated as the working repository name for Proofline: validation of agentic completion against user intent and evidence, not an execution product.
 
-Codex, Symphony, Hermes, OpenClaw, and adjacent agent systems are absorbing runner features quickly. That is not a reason to broaden this repo. It is the reason to narrow it. The durable product is the system that decides whether AI-assisted software work is acceptable, evidence-backed, reconciled, and safe to call complete.
+Codex, Symphony, Hermes, OpenClaw, and adjacent agent systems are absorbing runner features quickly. That is not a reason to broaden this repo. It is the reason to narrow it. The durable product is the system that decides whether agent-reported completion matches user intent, evidence, external facts, and review policy.
 
 This inventory classifies the current repository into four buckets:
 
-- `keep`: core acceptance-layer capability.
+- `keep`: core completion-validation capability.
 - `wrap`: useful only behind a boundary to an external system.
 - `freeze`: keep working for compatibility, but do not expand.
 - `delete`: remove after a separate cleanup PR proves no active path depends on it.
 
 ## Decision Rule
 
-Keep a module only if it answers at least one acceptance-layer question:
+Keep a module only if it answers at least one completion-validation question:
 
 1. What was supposed to happen?
 2. What actually happened?
@@ -34,14 +34,14 @@ These are the product.
 | --- | --- | --- |
 | Canonical work contract | `schemas/task_envelope.schema.json`, `modules/contracts/`, `modules/intake/`, `docs/architecture/task-envelope.md` | Defines the work and evidence contract that execution tools must satisfy. |
 | Lifecycle enforcement | `modules/evaluation.py`, `modules/contracts/task_envelope_lifecycle.py`, `modules/contracts/task_envelope_enforcement.py`, state-transition docs | Prevents worker, Linear, or dashboard claims from bypassing policy. |
-| Verification and evidence policy | `modules/contracts/task_envelope_verification.py`, `modules/contracts/task_envelope_evidence.py`, `docs/architecture/verification-and-completion-enforcement.md`, `docs/architecture/artifact-and-completion-evidence.md` | This is the acceptance boundary. |
+| Verification and evidence policy | `modules/contracts/task_envelope_verification.py`, `modules/contracts/task_envelope_evidence.py`, `docs/architecture/verification-and-completion-enforcement.md`, `docs/architecture/artifact-and-completion-evidence.md` | This is the validation boundary between claimed completion, user intent, and evidence. |
 | Reconciliation | `modules/contracts/task_envelope_reconciliation.py`, `modules/reconciliation_runtime.py`, reset reconciliation paths | Detects mismatches across Linear, GitHub, executor claims, and stored lifecycle state. |
 | GitHub proof validation | `modules/connectors/github_artifact_validation.py`, `modules/connectors/github_facts.py`, `modules/reset/github_verifier.py` | GitHub remains the artifact truth for code-bearing work. |
 | Linear truth alignment | `modules/connectors/linear_facts.py`, `modules/connectors/linear_ingress.py`, `modules/reset/linear_client.py`, `docs/architecture/linear-harness-boundary.md` | Linear is the visible structured-work surface, but not completion truth. |
 | Manual review gates | `modules/contracts/task_envelope_review.py`, review endpoints/read-model fields | Human acceptance remains explicit and sticky. |
 | Completion-claim ingestion | completion-claim endpoint paths, execution advisory contracts, attempt validation | Worker claims are useful input only after Harness applies proof policy. |
 | Read model and timeline | `modules/read_model.py`, `GET /tasks`, `GET /tasks/<task_id>/read-model`, `GET /tasks/<task_id>/timeline` | Operators need inspectable acceptance state, not worker narrative. |
-| Reset verifier slice | `modules/reset/`, `/reset/*` routes | It is the narrowest working expression of the acceptance-layer product. |
+| Reset verifier slice | `modules/reset/`, `/reset/*` routes | It is the narrowest working expression of the completion-validation product. |
 | Local CLI/API/web runtime | `modules/local_runtime.py`, `modules/local_setup.py`, `docs/architecture/local-runtime-contract.md` | The supported operator surfaces for inspection and local verification. Keep it portable. |
 
 ## Wrap
@@ -80,7 +80,7 @@ Do not delete these in the inventory PR. Deletion should be a narrow follow-up w
 | macOS packaging scripts | Removed from the active tree because they encoded a rejected product path. | Do not reintroduce unless the product decision is explicitly reopened. |
 | Historical macOS architecture docs | Archived under `docs/archive/macos/` because they were stale implementation guidance. | Do not move back into active docs unless the product decision is explicitly reopened. |
 | OpenClaw-specific naming in canonical docs | The role is client-neutral. | Keep concrete adapter docs, but remove OpenClaw as a default product anchor. |
-| Broad planner/runtime language in README | It suggests Harness owns too much of the lifecycle. | Replace with acceptance-layer positioning and link to this inventory. |
+| Broad planner/runtime language in README | It suggests Harness owns too much of the lifecycle. | Replace with completion-validation positioning and link to this inventory. |
 
 ## What Not To Build
 
@@ -103,23 +103,23 @@ The product boundary should look like this:
 ```text
 Linear intended work
         |
-Acceptance contract
+Intent and evidence contract
         |
 Symphony/Codex/Hermes/OpenClaw execution adapters
         |
 GitHub artifacts and runner events
         |
-Acceptance verification, reconciliation, manual review
+Completion validation, reconciliation, manual review
         |
 Linear/GitHub/dashboard projections of accepted state
 ```
 
-The layer in the middle may change every month. The acceptance boundary should not.
+The layer in the middle may change every month. The validation boundary between claimed completion, user intent, and evidence should not.
 
 ## Immediate PR Sequence
 
 1. Land this inventory and rename ADR.
-2. Retarget README and AGENTS language from "Harness control plane" toward the acceptance-layer name once the new name is accepted.
+2. Retarget README and AGENTS language from "Harness control plane" toward Proofline's completion-validation role once the new name is accepted.
 3. Keep archived macOS docs out of active setup, architecture, and release guidance.
 4. Mark direct dispatch paths as compatibility-only in code comments and docs.
 5. Keep strengthening completion-claim, GitHub sync, Linear reconciliation, and manual-review enforcement.

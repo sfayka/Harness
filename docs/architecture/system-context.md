@@ -17,7 +17,7 @@ Proofline sits underneath the user-facing and agent-facing work surface as the s
 - Executors such as Codex are workers.
 - A Symphony-like execution substrate may schedule isolated executor runs, but it is not completion truth.
 - The supported operator surfaces are the CLI, backend API, and web dashboard.
-- The workflow substrate provides persistence, resumability, and coordination state for the acceptance layer itself.
+- The workflow substrate provides persistence, resumability, and coordination state for Proofline's validation boundary.
 
 Stated another way:
 
@@ -121,7 +121,7 @@ flowchart LR
 - executor implementations can change without changing Harness core planning logic
 - runner implementations can change if they emit the same advisory execution-substrate events
 - workflow technology can change if Harness state transitions are modeled explicitly
-- model-native reasoning improvements do not displace Proofline as long as correctness, evidence, and auditability remain acceptance-layer concerns
+- model-native reasoning improvements do not displace Proofline as long as correctness, evidence, auditability, and user-intent alignment remain validation concerns
 
 ## Related Documents
 

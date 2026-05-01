@@ -14,15 +14,15 @@ For this architecture, a desktop agent client such as OpenClaw, Hermes, or a fut
 
 ### Harness
 
-The current repository and codebase name for the acceptance layer.
+The current repository and codebase name for the validation boundary.
 
-`Harness` should no longer be treated as the long-term product name. Use it when referring to current code, APIs, historical docs, or repository paths. Product positioning should move toward the acceptance-layer name selected in ADR 0006.
+`Harness` should no longer be treated as the long-term product name. Use it when referring to current code, APIs, historical docs, or repository paths. Product positioning should move toward the Proofline name and the agentic completion validation definition in ADR 0006.
 
 ### Proofline
 
-The recommended working product name for the acceptance layer.
+The recommended working product name for validation of agentic completion against user intent and evidence.
 
-Proofline is responsible for deciding whether AI-assisted software work has crossed the evidence and reconciliation line required for acceptance. It wraps execution tools, but it is not an executor.
+Proofline is responsible for deciding whether an agent's claimed completion matches the user's intent, the task contract, current evidence, and reconciliation facts. It wraps execution tools, but it is not an executor.
 
 The staged rename rules live in [proofline-rename-migration.md](proofline-rename-migration.md).
 
@@ -134,7 +134,7 @@ Harness owns completion enforcement. Linear may display the result, but it does 
 
 ### Acceptance Layer
 
-The product role above execution tools that determines whether intended work, artifact evidence, external facts, and review policy line up.
+Legacy shorthand for Proofline's role above execution tools. Prefer the more precise phrase: validation of agentic completion against user intent and evidence.
 
 The acceptance layer can request repair or retry work. It does not perform the worker execution itself.
 
@@ -162,6 +162,6 @@ Avoid as a system-wide architecture term. Use `structured work state`, `workflow
 - Name modules by responsibility, not by vendor.
 - Separate business state from runtime state in naming.
 - Use `executor` as the abstraction and `Codex` as one implementation.
-- Use `acceptance layer`, `verification`, `evidence`, and `reconciliation` for product language instead of broad executor-orchestration language.
+- Use `agentic completion validation`, `user intent`, `evidence`, and `reconciliation` for product language instead of broad executor-orchestration language.
 - Use `verification` or `evidence` instead of vague claims like `done` when artifact checks are required.
 - Use `Linear` when referring to the work surface or structured-work system of record, not as a synonym for the Harness control plane.
