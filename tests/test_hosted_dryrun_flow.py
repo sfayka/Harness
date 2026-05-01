@@ -16,6 +16,7 @@ from modules.hosted_dryrun_flow import (
     build_completion_claim_request,
     build_github_sync_request,
     build_linear_ingress_payload,
+    build_operator_summary,
     _build_ssl_context,
     ensure_expected_file_present,
     ensure_pull_request_matches_session,
@@ -137,6 +138,28 @@ class HostedDryRunFlowTests(unittest.TestCase):
         self.assertEqual(payload["github"]["pull_request"]["reviewDecision"], "approved")
         self.assertEqual(payload["github"]["branch"]["name"], "codex/dryrun-proof")
         self.assertEqual(payload["github"]["files"][0]["filename"], "docs/dry-run-proof.md")
+
+    def test_operator_summary_promotes_completion_validation_verdict(self) -> None:
+        completion_validation = {
+            "status": "accepted",
+            "completion_claimed": True,
+            "completion_accepted": True,
+            "intent_status": "matched",
+            "evidence_status": "sufficient",
+        }
+
+        summary = build_operator_summary(
+            self.session,
+            read_model={"task": {"completion_validation_summary": completion_validation}},
+            timeline={"timeline": []},
+            evaluations={"evaluations": []},
+        )
+
+        self.assertEqual(summary["completion_validation_summary"], completion_validation)
+        self.assertEqual(
+            summary["completion_validation_summary"],
+            summary["read_model"]["task"]["completion_validation_summary"],
+        )
 
     def test_expected_file_presence_check_fails_fast(self) -> None:
         with self.assertRaises(DryRunFlowError):

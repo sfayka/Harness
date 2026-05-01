@@ -668,12 +668,19 @@ def build_operator_summary(
     timeline: dict[str, Any],
     evaluations: dict[str, Any],
 ) -> dict[str, Any]:
+    task = read_model.get("task") if isinstance(read_model.get("task"), dict) else {}
+    completion_validation_summary = (
+        task.get("completion_validation_summary")
+        if isinstance(task.get("completion_validation_summary"), dict)
+        else None
+    )
     return {
         "task_id": session.task_id,
         "dashboard_url": session.dashboard_url,
         "read_model_url": f"{session.harness_base_url}/tasks/{session.task_id}/read-model",
         "timeline_url": f"{session.harness_base_url}/tasks/{session.task_id}/timeline",
         "evaluations_url": f"{session.harness_base_url}/tasks/{session.task_id}/evaluations",
+        "completion_validation_summary": completion_validation_summary,
         "read_model": read_model,
         "timeline": timeline,
         "evaluations": evaluations,
