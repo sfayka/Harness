@@ -10,7 +10,7 @@ Proposed
 
 That changes the naming problem and the product problem at the same time.
 
-The product should not compete with Codex, Symphony, Hermes, or OpenClaw as an execution workbench. Those systems will keep adding scheduling, workspace, retry, and agent ergonomics. The durable product here is the acceptance boundary above them: the system that refuses to call work complete until intent, evidence, external facts, and review policy line up.
+The product should not compete with Codex, Symphony, Hermes, or OpenClaw as an execution workbench. Those systems will keep adding scheduling, workspace, retry, and agent ergonomics. The durable product here is validation of agentic completion against user intent and evidence: the system that refuses to call work complete until intent, evidence, external facts, and review policy line up.
 
 ## Decision
 
@@ -25,13 +25,13 @@ The name fits the new positioning:
 - it does not sound like an agent runtime, IDE, scheduler, or PM tool
 - it gives the product a distinct vocabulary while preserving the existing repository during migration
 
-Until the rename is executed, `Harness` remains the repository and codebase name. Product docs should start describing the system as an acceptance layer and avoid expanding the old Harness brand.
+Until the rename is executed, `Harness` remains the repository and codebase name. Product docs should describe the system as agentic completion validation against user intent and evidence, and avoid expanding the old Harness brand.
 
 ## Product Boundary
 
 Proofline is:
 
-- an acceptance layer for AI-assisted software work
+- validation of agentic completion against user intent and evidence
 - a verifier of task contracts, GitHub artifacts, Linear state, CI/review facts, and manual-review decisions
 - a reconciliation authority when intended work and artifact truth disagree
 - a source of accepted lifecycle state

@@ -8,7 +8,7 @@ This is a staged compatibility migration, not a mechanical rename.
 
 ## Current State
 
-`Proofline` is now the product-facing name for the acceptance layer.
+`Proofline` is now the product-facing name for validation of agentic completion against user intent and evidence.
 
 `Harness` remains the active implementation name for:
 
@@ -30,7 +30,7 @@ Those identifiers are allowed to remain until a compatibility alias exists and t
 3. Contract names do not change casually.
 4. Historical evidence is not rewritten.
 5. Deployment and local setup must survive every step.
-6. No step may weaken the acceptance-layer boundary.
+6. No step may weaken the validation boundary between agentic completion claims, user intent, and evidence.
 
 ## Do Not Rename Yet
 

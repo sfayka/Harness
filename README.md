@@ -1,12 +1,12 @@
 # Proofline
 
-Proofline is the acceptance layer for AI-assisted software work.
+Proofline validates agentic completion against user intent and evidence.
 
 `Harness` remains the current repository, CLI, API, and codebase name during the staged rename. Do not mechanically rename packages, routes, commands, or contracts yet. See [`docs/adrs/0006-product-rename-and-acceptance-layer.md`](docs/adrs/0006-product-rename-and-acceptance-layer.md).
 
 The rename migration plan is in [`docs/architecture/proofline-rename-migration.md`](docs/architecture/proofline-rename-migration.md). Product surfaces may say Proofline while compatibility identifiers still use Harness.
 
-Proofline does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating canonical task state, evidence, reconciliation facts, and explicit review decisions.
+Proofline does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating whether the claimed result matches the user's intent, the agreed task contract, current evidence, reconciliation facts, and explicit review decisions.
 
 The strategic inventory for the pivot is in [`docs/architecture/acceptance-layer-inventory.md`](docs/architecture/acceptance-layer-inventory.md). The short version: keep verification, reconciliation, lifecycle enforcement, evidence policy, Linear/GitHub alignment, manual review, and inspection surfaces; wrap Symphony/Codex/Hermes/OpenClaw as advisory execution or ingress layers; freeze or delete duplicated executor/runtime/product-shell work.
 
@@ -38,7 +38,7 @@ In hosted Vercel runtimes, the reset slice is not allowed to take the whole back
 
 ## What Proofline Is
 
-- A Python acceptance-layer backend that evaluates canonical `TaskEnvelope` submissions.
+- A Python validation backend that evaluates canonical `TaskEnvelope` submissions against user intent and evidence.
 - A read-only Next.js dashboard over canonical inspection APIs.
 - A persistence layer for task snapshots and append-only evaluation history.
 - A thin integration boundary around Linear/manual/client-specific ingress adapters and GitHub/Linear fact inputs.

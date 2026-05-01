@@ -6,13 +6,13 @@ Define the top-level system model before implementation so future modules do not
 
 ## System Framing
 
-Proofline sits underneath the user-facing and agent-facing work surface as the system that enforces correctness.
+Proofline sits underneath the user-facing and agent-facing work surface as the system that validates agentic completion against user intent and evidence.
 
 `Harness` remains the current repository, API, CLI, and codebase name during the staged rename. This document uses Proofline for the product role and Harness only when referring to current implementation surfaces.
 
 - A desktop agent client such as OpenClaw, Hermes, or a future equivalent is the ingress layer.
 - Linear is the human-and-agent work surface and the source of truth for structured work.
-- Proofline is the acceptance layer beneath that work surface.
+- Proofline validates completion claims against user intent and evidence.
 - GitHub is the source of truth for code artifacts such as pull requests and commits.
 - Executors such as Codex are workers.
 - A Symphony-like execution substrate may schedule isolated executor runs, but it is not completion truth.

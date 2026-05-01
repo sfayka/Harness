@@ -4,7 +4,7 @@
 
 Define the canonical verification and completion enforcement contract for Proofline.
 
-Proofline is a reliability/control-plane system. Completion is not accepted because an executor reported success. Completion is a control-plane decision made by evaluating runtime facts, artifact evidence, acceptance criteria, and reconciliation results.
+Proofline validates agentic completion against user intent and evidence. Completion is not accepted because an executor reported success. Completion is a control-plane decision made by evaluating the user's intent, runtime facts, artifact evidence, acceptance criteria, and reconciliation results.
 
 Verification is therefore the policy layer that decides whether a task outcome is trustworthy enough to remain completed.
 

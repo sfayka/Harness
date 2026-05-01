@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Proofline | Acceptance Layer for AI-Assisted Work",
+  title: "Proofline | Agentic Completion Validation",
   description:
-    "The acceptance layer that determines what is actually true about AI-driven work. Verification, reconciliation, and evidence-backed completion.",
+    "Validation of agentic completion against user intent and evidence.",
 };
 
 export const viewport: Viewport = {
