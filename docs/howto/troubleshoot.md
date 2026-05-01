@@ -2,7 +2,7 @@
 
 Troubleshooting should start with observable state: health response, runtime status, logs, configured paths, and the canonical task/read-model endpoints.
 
-During the staged rename, most runtime identifiers still say Harness. Treat `HARNESS_*` variables, `/api/harness` routes, local data paths, and module commands as compatibility surfaces, not stale instructions.
+During the staged rename, most runtime identifiers still say Harness. Treat `HARNESS_*` variables, `/api/harness` compatibility routes, local data paths, and module commands as compatibility surfaces, not stale instructions. New dashboard traffic should use `/api/proofline`.
 
 ## Backend Starts But `/reset/*` Fails
 
@@ -22,7 +22,7 @@ Check:
 - `HARNESS_API_BASE_URL`
 - backend reachability
 - whether the hosted dashboard is using the same-project `/backend` route
-- browser network errors against `/api/harness` or same-origin local API routes
+- browser network errors against `/api/proofline`, `/api/harness`, or same-origin local API routes
 
 The dashboard should report backend errors honestly. It should not silently switch to fake live data.
 

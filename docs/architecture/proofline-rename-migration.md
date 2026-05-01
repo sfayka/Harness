@@ -16,7 +16,7 @@ This is a staged compatibility migration, not a mechanical rename.
 - Python module names
 - Next.js package name
 - CLI examples based on `python3 -m modules.local_runtime`
-- API proxy route `app/api/harness/[...path]`
+- API proxy route `app/api/proofline/[...path]`, with `app/api/harness/[...path]` retained as a compatibility alias
 - environment variables such as `HARNESS_API_BASE_URL`
 - persisted runtime fields such as `harness_state`
 - existing docs, demos, tests, and historical artifacts that refer to the implementation
@@ -55,7 +55,7 @@ These are compatibility surfaces, not branding copy.
 | Repository name | `Harness`, `sfayka/Harness`, local path segments | rename-later | Rename last, after deployment, Codex Cloud, local clone, and GitHub integration migration notes exist. |
 | CLI command shape | `python3 -m modules.local_runtime ...`, future `harness ...` examples | alias-first | Do not introduce a Proofline command until existing commands are documented and tested as compatibility aliases. |
 | Frontend package name | `harness-dashboard` in `package.json` | rename-later | Rename only after build, deployment, and local dashboard packaging checks prove no package-name coupling. |
-| Next.js proxy route | `app/api/harness/[...path]` | alias-first | Keep existing route. A future Proofline route must proxy to the same backend behavior and have tests before adoption. |
+| Next.js proxy route | `app/api/proofline/[...path]`, `app/api/harness/[...path]` | alias-first | The Proofline route is the dashboard default. Keep the Harness route as a compatibility alias until external links and deployments have migrated. Both routes must share the same backend proxy behavior. |
 | API base env vars | `HARNESS_API_BASE_URL`, `HARNESS_STORE_BACKEND`, `HARNESS_SQLITE_PATH`, `HARNESS_RUNTIME_*` | alias-first | Keep old env vars valid. Add Proofline aliases only if precedence and conflict behavior are documented and tested. |
 | Secret/service namespace | `com.knoxanalytics.harness.local-runtime`, Keychain/service labels | alias-first | Do not rename until migration preserves existing stored secrets or documents an explicit migration command. |
 | Persisted schema fields | `harness_state`, `source_system=harness`, artifact metadata like `harness-task-id` | stable compatibility | Do not rename in-place. Add new projection fields only if old fields remain readable. |

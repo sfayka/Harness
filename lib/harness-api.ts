@@ -9,7 +9,7 @@ import type {
   VerificationStatus,
 } from "@/lib/types";
 
-const proxyBasePath = "/api/harness";
+const proxyBasePath = "/api/proofline";
 const localStaticApiBasePath = "";
 
 declare global {

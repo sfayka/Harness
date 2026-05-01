@@ -14,7 +14,7 @@ test.afterEach(() => {
 
 test("maps execution substrate handoff previews from Harness", async () => {
   globalThis.fetch = async (url) => {
-    assert.equal(url, "/api/harness/execution-substrate/handoffs");
+    assert.equal(url, "/api/proofline/execution-substrate/handoffs");
     return new Response(
       JSON.stringify({
         generated_at: "2026-04-30T15:00:00Z",
@@ -88,7 +88,7 @@ test("maps execution substrate handoff previews from Harness", async () => {
 
 test("maps execution substrate transport status from Harness", async () => {
   globalThis.fetch = async (url) => {
-    assert.equal(url, "/api/harness/execution-substrate/transport-status");
+    assert.equal(url, "/api/proofline/execution-substrate/transport-status");
     return new Response(
       JSON.stringify({
         generated_at: "2026-04-30T16:50:00Z",
