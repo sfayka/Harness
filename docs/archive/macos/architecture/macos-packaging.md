@@ -7,7 +7,7 @@ Harness is no longer pursuing a native macOS app as a supported product surface.
 Issue #328 is the line between a developer bundle and a distributable local Harness app.
 The goal is not "make Swift build." The goal is "ship a normal macOS app that does not depend on a repo checkout, Python install, Node install, or Docker."
 
-This document is macOS-specific on purpose. The cross-platform guardrails that keep this package work from polluting Harness core live in [linux-portability-contract.md](linux-portability-contract.md).
+This document is macOS-specific on purpose. The cross-platform guardrails that keep this package work from polluting Harness core live in [linux-portability-contract.md](../../../architecture/linux-portability-contract.md).
 
 ## Package Shape
 

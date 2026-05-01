@@ -651,7 +651,6 @@ Source-of-truth references:
 - [`docs/architecture/module-boundaries.md`](docs/architecture/module-boundaries.md)
 - [`docs/architecture/task-envelope.md`](docs/architecture/task-envelope.md)
 - [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md)
-- [`docs/architecture/macos-packaging.md`](docs/architecture/macos-packaging.md)
 - [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md)
 - [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md)
 - [`docs/setup/local-development.md`](docs/setup/local-development.md)
