@@ -59,7 +59,7 @@
 - `docs/howto/images/health-check-response.png`
   Create as screenshot assets referenced directly by the new how-to docs.
 
-- `docs/release/documentation-readiness-checklist.md`
+- `docs/archive/macos/release/documentation-readiness-checklist.md`
   Create as the final ship gate for docs completeness and verification evidence.
 
 ### Task 1: Run The Documentation Reality Audit Against The Current Product
@@ -503,7 +503,7 @@ git commit -m "docs: add screenshot-backed usage guide"
 ### Task 6: Run The Final Release Documentation QA Pass
 
 **Files:**
-- Create: `docs/release/documentation-readiness-checklist.md`
+- Create: `docs/archive/macos/release/documentation-readiness-checklist.md`
 - Modify: `README.md`
 - Modify: `docs/howto/index.md`
 - Modify: `docs/howto/local-quickstart.md`
@@ -559,7 +559,7 @@ Check:
 - `docs/howto/test-and-validate.md`
 - `docs/howto/use-harness.md`
 - `docs/howto/troubleshoot.md`
-- `docs/release/documentation-readiness-checklist.md`
+- `docs/archive/macos/release/documentation-readiness-checklist.md`
 
 Expected:
 - all internal links resolve
@@ -568,6 +568,6 @@ Expected:
 - [ ] **Step 4: Commit the release QA pass**
 
 ```bash
-git add README.md docs/howto docs/release/documentation-readiness-checklist.md
+git add README.md docs/howto docs/archive/macos/release/documentation-readiness-checklist.md
 git commit -m "docs: add release-readiness documentation checklist"
 ```

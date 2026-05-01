@@ -63,7 +63,7 @@ These may stay for now, but new product work should not accumulate here.
 
 | Area | Current Homes | Freeze Rule |
 | --- | --- | --- |
-| Historical macOS docs | macOS architecture and release notes | No new native features, signing, notarization, Launch at Login, notifications, or onboarding. Archive later. |
+| Archived macOS docs | `docs/archive/macos/` | Historical reference only. No new native features, signing, notarization, Launch at Login, notifications, or onboarding. |
 | Legacy direct dispatch paths | direct dispatch/test paths around old executor flow | Keep deterministic tests and compatibility only. New dispatch should target execution-substrate intents. |
 | Planner/decomposition experiments | `modules/goal_to_work.py`, `modules/prd_ingestion.py`, `modules/prd_breakdown.py`, planner docs | Freeze until the acceptance boundary is stronger. Linear/Codex/Symphony may cover enough of this layer. |
 | Demo/simulator surfaces | `modules/demo_*`, `modules/simulator.py`, `modules/runtime_scenario_builders.py` | Keep only when they prove acceptance semantics honestly. Do not let demos bypass canonical APIs. |
@@ -78,7 +78,7 @@ Do not delete these in the inventory PR. Deletion should be a narrow follow-up w
 | --- | --- | --- |
 | Native macOS app tree | Removed from the active tree after this inventory because it was no longer a supported surface and created validation noise. | Do not reintroduce unless the product decision is explicitly reopened. |
 | macOS packaging scripts | Removed from the active tree because they encoded a rejected product path. | Do not reintroduce unless the product decision is explicitly reopened. |
-| Historical macOS architecture docs | They are stale implementation guidance. | Move to `docs/archive/` or mark historical in-place before removal. |
+| Historical macOS architecture docs | Archived under `docs/archive/macos/` because they were stale implementation guidance. | Do not move back into active docs unless the product decision is explicitly reopened. |
 | OpenClaw-specific naming in canonical docs | The role is client-neutral. | Keep concrete adapter docs, but remove OpenClaw as a default product anchor. |
 | Broad planner/runtime language in README | It suggests Harness owns too much of the lifecycle. | Replace with acceptance-layer positioning and link to this inventory. |
 
@@ -120,6 +120,6 @@ The layer in the middle may change every month. The acceptance boundary should n
 
 1. Land this inventory and rename ADR.
 2. Retarget README and AGENTS language from "Harness control plane" toward the acceptance-layer name once the new name is accepted.
-3. Archive or delete native macOS app code and packaging docs in a separate PR.
+3. Keep archived macOS docs out of active setup, architecture, and release guidance.
 4. Mark direct dispatch paths as compatibility-only in code comments and docs.
 5. Keep strengthening completion-claim, GitHub sync, Linear reconciliation, and manual-review enforcement.

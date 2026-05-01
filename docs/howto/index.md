@@ -20,4 +20,4 @@ Start here if you want to install, configure, use, and validate Harness without 
 - [Vercel + Neon Deployment](../setup/vercel-neon.md)
 - [Operator Demo Walkthrough](../demo/operator-walkthrough.md)
 
-The older native macOS app and packaging notes remain in the repository as legacy context, but they are no longer the recommended Harness path.
+The older native macOS app and packaging notes were moved to `docs/archive/macos/` as historical context. They are not the recommended Harness path.

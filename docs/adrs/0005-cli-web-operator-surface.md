@@ -42,4 +42,4 @@ The tradeoff is less native desktop polish. That is acceptable because Harness's
 
 ## Follow-Up
 
-Future cleanup should archive historical macOS design and release notes once no active documentation depends on them.
+Historical macOS design and release notes now live under `docs/archive/macos/` and should remain out of active setup, architecture, and release guidance unless this product decision is explicitly reopened.
