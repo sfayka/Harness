@@ -423,7 +423,7 @@ export const mockTasks: Task[] = [
       harness_state: "failed",
       mismatches: [
         "Linear marked done but no evidence in GitHub",
-        "Harness detected failure state",
+        "Proofline detected failure state",
       ],
       evaluated_at: "2024-01-17T10:35:00Z",
     },

@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Harness | Control Plane for AI-Assisted Work",
+  title: "Proofline | Acceptance Layer for AI-Assisted Work",
   description:
-    "The reliability layer that determines what is actually true about AI-driven work. Verification, reconciliation, and evidence-backed completion.",
+    "The acceptance layer that determines what is actually true about AI-driven work. Verification, reconciliation, and evidence-backed completion.",
 };
 
 export const viewport: Viewport = {

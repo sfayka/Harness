@@ -23,7 +23,7 @@ export function DashboardHeader() {
               <Activity className="h-4 w-4 text-background" />
             </div>
             <span className="text-lg font-semibold tracking-tight">
-              Harness
+              Proofline
             </span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
