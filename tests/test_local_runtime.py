@@ -346,6 +346,11 @@ class LocalRuntimeProcessTests(unittest.TestCase):
             observed["proofline_sqlite_path"] = os.environ.get("PROOFLINE_SQLITE_PATH")
             observed["store_backend"] = os.environ.get("HARNESS_STORE_BACKEND")
             observed["sqlite_path"] = os.environ.get("HARNESS_SQLITE_PATH")
+            observed["proofline_runtime_mode"] = os.environ.get("PROOFLINE_RUNTIME_MODE")
+            observed["proofline_runtime_base_url"] = os.environ.get("PROOFLINE_RUNTIME_BASE_URL")
+            observed["proofline_runtime_config_path"] = os.environ.get("PROOFLINE_RUNTIME_CONFIG_PATH")
+            observed["proofline_runtime_data_dir"] = os.environ.get("PROOFLINE_RUNTIME_DATA_DIR")
+            observed["proofline_runtime_log_path"] = os.environ.get("PROOFLINE_RUNTIME_LOG_PATH")
             observed["runtime_mode"] = os.environ.get("HARNESS_RUNTIME_MODE")
             observed["proofline_dashboard_assets_dir"] = os.environ.get("PROOFLINE_DASHBOARD_ASSETS_DIR")
             observed["dashboard_assets_dir"] = os.environ.get("HARNESS_DASHBOARD_ASSETS_DIR")
@@ -373,6 +378,11 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertEqual(observed["proofline_sqlite_path"], str(self.paths.database_path))
         self.assertEqual(observed["store_backend"], "sqlite")
         self.assertEqual(observed["sqlite_path"], str(self.paths.database_path))
+        self.assertEqual(observed["proofline_runtime_mode"], "local-app")
+        self.assertEqual(observed["proofline_runtime_base_url"], "http://127.0.0.1:8765")
+        self.assertEqual(observed["proofline_runtime_config_path"], str(self.paths.config_path))
+        self.assertEqual(observed["proofline_runtime_data_dir"], str(self.paths.data_dir))
+        self.assertEqual(observed["proofline_runtime_log_path"], str(self.paths.log_path))
         self.assertEqual(observed["runtime_mode"], "local-app")
         self.assertEqual(observed["proofline_dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
         self.assertEqual(observed["dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
@@ -501,6 +511,33 @@ class LocalRuntimeProcessTests(unittest.TestCase):
         self.assertNotIn("-m", popen.call_args.args[0])
         self.assertIn("serve", popen.call_args.args[0])
 
+    def test_start_prefers_proofline_runtime_executable_alias(self) -> None:
+        class FakeProcess:
+            pid = 4444
+
+            def poll(self) -> None:
+                return None
+
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "PROOFLINE_RUNTIME_EXECUTABLE": "/opt/proofline/bin/proofline",
+                    "HARNESS_RUNTIME_EXECUTABLE": "/opt/harness/bin/harness",
+                },
+                clear=True,
+            ),
+            patch("modules.local_runtime.fetch_runtime_health", return_value=(None, None, "not running")),
+            patch("modules.local_runtime._port_available", return_value=(True, None)),
+            patch("modules.local_runtime._wait_for_runtime_health", return_value=True),
+            patch("modules.local_runtime.subprocess.Popen", return_value=FakeProcess()) as popen,
+        ):
+            exit_code, payload = start_runtime(self.paths)
+
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(payload["status"], "running")
+        self.assertEqual(popen.call_args.args[0][0], "/opt/proofline/bin/proofline")
+
     def test_recover_stops_unhealthy_pid_before_restart(self) -> None:
         class FakeProcess:
             pid = 6262
@@ -580,6 +617,38 @@ class LocalRuntimeContractTests(unittest.TestCase):
         self.assertEqual(payload["api_base_url"], "http://127.0.0.1:8765")
         self.assertEqual(payload["store_backend"], "sqlite")
         self.assertEqual(payload["paths"]["database_path"], "/tmp/harness/harness.db")
+
+    def test_backend_runtime_status_payload_prefers_proofline_runtime_environment(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_RUNTIME_MODE": "local-proofline",
+                "PROOFLINE_RUNTIME_BASE_URL": "http://127.0.0.1:9001",
+                "PROOFLINE_RUNTIME_CONFIG_PATH": "/tmp/proofline/config.json",
+                "PROOFLINE_RUNTIME_DATA_DIR": "/tmp/proofline",
+                "PROOFLINE_RUNTIME_LOG_PATH": "/tmp/proofline.log",
+                "HARNESS_RUNTIME_MODE": "local-harness",
+                "HARNESS_RUNTIME_BASE_URL": "http://127.0.0.1:8765",
+                "HARNESS_RUNTIME_CONFIG_PATH": "/tmp/harness/config.json",
+                "HARNESS_RUNTIME_DATA_DIR": "/tmp/harness",
+                "HARNESS_RUNTIME_LOG_PATH": "/tmp/harness.log",
+            },
+            clear=True,
+        ):
+            payload = build_runtime_status_payload(
+                {
+                    "status": "ok",
+                    "store_backend": "sqlite",
+                    "database_path": "/tmp/proofline/proofline.db",
+                    "database_schema_ready": True,
+                }
+            )
+
+        self.assertEqual(payload["mode"], "local-proofline")
+        self.assertEqual(payload["api_base_url"], "http://127.0.0.1:9001")
+        self.assertEqual(payload["paths"]["config_path"], "/tmp/proofline/config.json")
+        self.assertEqual(payload["paths"]["data_dir"], "/tmp/proofline")
+        self.assertEqual(payload["paths"]["log_path"], "/tmp/proofline.log")
 
 
 if __name__ == "__main__":

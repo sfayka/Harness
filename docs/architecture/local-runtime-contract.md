@@ -66,8 +66,17 @@ The first schema stores:
 
 `proofline start` and `proofline serve` apply the config to the backend process through environment variables before startup:
 
+- `PROOFLINE_STORE_BACKEND=sqlite`
+- `PROOFLINE_SQLITE_PATH=<app-data>/harness.db`
 - `HARNESS_STORE_BACKEND=sqlite`
-- `HARNESS_SQLITE_PATH=<app-data>/harness.db`
+- `HARNESS_SQLITE_PATH=<app-data>/harness.db` as a compatibility fallback
+- `PROOFLINE_RUNTIME_MODE=local-app`
+- `PROOFLINE_RUNTIME_CONFIG_PATH=<app-data>/config.json`
+- `PROOFLINE_RUNTIME_DATA_DIR=<app-data>`
+- `PROOFLINE_RUNTIME_LOG_PATH=<logs>/harness.log`
+- `PROOFLINE_RUNTIME_HOST=127.0.0.1`
+- `PROOFLINE_RUNTIME_PORT=8765`
+- `PROOFLINE_RUNTIME_BASE_URL=http://127.0.0.1:8765`
 - `HARNESS_RUNTIME_MODE=local-app`
 - `HARNESS_RUNTIME_CONFIG_PATH=<app-data>/config.json`
 - `HARNESS_RUNTIME_DATA_DIR=<app-data>`
@@ -78,6 +87,8 @@ The first schema stores:
 - `PROOFLINE_DASHBOARD_ASSETS_DIR=<app-data>/dashboard`
 - `HARNESS_DASHBOARD_ASSETS_DIR=<app-data>/dashboard` as a compatibility fallback
 - runtime-managed secrets, when present, mapped to their backend environment variables
+
+When both Proofline and Harness runtime names are present, the status endpoint and subprocess launcher prefer `PROOFLINE_RUNTIME_*`.
 
 This is what removes the need for Docker, Node, `pnpm`, or repo-local shell exports for the backend runtime.
 

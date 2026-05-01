@@ -54,6 +54,14 @@ ENV_RUNTIME_HOST = "HARNESS_RUNTIME_HOST"
 ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
 ENV_RUNTIME_EXECUTABLE = "HARNESS_RUNTIME_EXECUTABLE"
+ENV_PROOFLINE_RUNTIME_MODE = "PROOFLINE_RUNTIME_MODE"
+ENV_PROOFLINE_RUNTIME_CONFIG_PATH = "PROOFLINE_RUNTIME_CONFIG_PATH"
+ENV_PROOFLINE_RUNTIME_DATA_DIR = "PROOFLINE_RUNTIME_DATA_DIR"
+ENV_PROOFLINE_RUNTIME_LOG_PATH = "PROOFLINE_RUNTIME_LOG_PATH"
+ENV_PROOFLINE_RUNTIME_HOST = "PROOFLINE_RUNTIME_HOST"
+ENV_PROOFLINE_RUNTIME_PORT = "PROOFLINE_RUNTIME_PORT"
+ENV_PROOFLINE_RUNTIME_BASE_URL = "PROOFLINE_RUNTIME_BASE_URL"
+ENV_PROOFLINE_RUNTIME_EXECUTABLE = "PROOFLINE_RUNTIME_EXECUTABLE"
 ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
 ENV_PROOFLINE_DASHBOARD_ASSETS_DIR = "PROOFLINE_DASHBOARD_ASSETS_DIR"
 ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
@@ -314,6 +322,13 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     os.environ["PROOFLINE_SQLITE_PATH"] = str(config.database_path)
     os.environ["HARNESS_STORE_BACKEND"] = "sqlite"
     os.environ["HARNESS_SQLITE_PATH"] = str(config.database_path)
+    os.environ[ENV_PROOFLINE_RUNTIME_MODE] = "local-app"
+    os.environ[ENV_PROOFLINE_RUNTIME_CONFIG_PATH] = str(config_path)
+    os.environ[ENV_PROOFLINE_RUNTIME_DATA_DIR] = str(config.data_dir)
+    os.environ[ENV_PROOFLINE_RUNTIME_LOG_PATH] = str(config.log_path)
+    os.environ[ENV_PROOFLINE_RUNTIME_HOST] = config.host
+    os.environ[ENV_PROOFLINE_RUNTIME_PORT] = str(config.port)
+    os.environ[ENV_PROOFLINE_RUNTIME_BASE_URL] = config.base_url
     os.environ[ENV_RUNTIME_MODE] = "local-app"
     os.environ[ENV_RUNTIME_CONFIG_PATH] = str(config_path)
     os.environ[ENV_RUNTIME_DATA_DIR] = str(config.data_dir)
@@ -403,7 +418,7 @@ def runtime_subprocess_command(
     host: str | None = None,
     port: int | None = None,
 ) -> list[str]:
-    runtime_executable = _clean_env_value(ENV_RUNTIME_EXECUTABLE)
+    runtime_executable = _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_EXECUTABLE, ENV_RUNTIME_EXECUTABLE)
     if runtime_executable:
         command = [runtime_executable]
     elif runtime_is_frozen():
@@ -1070,6 +1085,14 @@ def _clean_env_value(name: str) -> str | None:
     return stripped or None
 
 
+def _first_runtime_env_value(*names: str) -> str | None:
+    for name in names:
+        value = _clean_env_value(name)
+        if value is not None:
+            return value
+    return None
+
+
 def serve_runtime(paths: RuntimePaths, *, host: str | None = None, port: int | None = None) -> int:
     config, _ = init_runtime(paths, host=host or DEFAULT_API_HOST, port=port or DEFAULT_API_PORT)
     if host or port:
@@ -1186,24 +1209,24 @@ def _open_url(url: str) -> None:
 def build_runtime_status_payload(health_payload: dict[str, Any]) -> dict[str, Any]:
     """Build the stable backend endpoint payload used by local runtime clients."""
 
-    base_url = os.environ.get(ENV_RUNTIME_BASE_URL)
+    base_url = _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_BASE_URL, ENV_RUNTIME_BASE_URL)
     if not base_url:
-        host = os.environ.get(ENV_RUNTIME_HOST, DEFAULT_API_HOST)
-        port = os.environ.get(ENV_RUNTIME_PORT, str(DEFAULT_API_PORT))
+        host = _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_HOST, ENV_RUNTIME_HOST) or DEFAULT_API_HOST
+        port = _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_PORT, ENV_RUNTIME_PORT) or str(DEFAULT_API_PORT)
         base_url = f"http://{host}:{port}"
 
     return {
         "status": "running" if health_payload.get("status") == "ok" else "degraded",
-        "mode": os.environ.get(ENV_RUNTIME_MODE, "developer"),
+        "mode": _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_MODE, ENV_RUNTIME_MODE) or "developer",
         "secret_provider": os.environ.get(ENV_SECRET_PROVIDER),
         "api_base_url": base_url,
         "store_backend": health_payload.get("store_backend"),
         "database_schema_ready": health_payload.get("database_schema_ready"),
         "paths": {
-            "config_path": os.environ.get(ENV_RUNTIME_CONFIG_PATH),
-            "data_dir": os.environ.get(ENV_RUNTIME_DATA_DIR),
+            "config_path": _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_CONFIG_PATH, ENV_RUNTIME_CONFIG_PATH),
+            "data_dir": _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_DATA_DIR, ENV_RUNTIME_DATA_DIR),
             "database_path": health_payload.get("database_path"),
-            "log_path": os.environ.get(ENV_RUNTIME_LOG_PATH),
+            "log_path": _first_runtime_env_value(ENV_PROOFLINE_RUNTIME_LOG_PATH, ENV_RUNTIME_LOG_PATH),
         },
         "health": health_payload,
     }
