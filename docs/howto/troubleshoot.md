@@ -2,7 +2,7 @@
 
 Troubleshooting should start with observable state: health response, runtime status, logs, configured paths, and the canonical task/read-model endpoints.
 
-During the staged rename, most runtime identifiers still say Harness. Treat `HARNESS_*` variables, `/api/harness` compatibility routes, local data paths, and module commands as compatibility surfaces, not stale instructions. New dashboard traffic should use `/api/proofline`.
+During the staged rename, some runtime identifiers still say Harness. Treat `HARNESS_*` variables, `/api/harness` compatibility routes, local data paths, and stored evidence fields as compatibility surfaces, not stale instructions. New dashboard traffic should use `/api/proofline`, and checkout runtime commands should use `modules.proofline_runtime`.
 
 ## Backend Starts But `/reset/*` Fails
 

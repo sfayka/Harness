@@ -2,7 +2,7 @@
 
 This guide shows the day-one operator loop: start Proofline, inspect the current task truth, and validate that the verifier is enforcing evidence instead of accepting claims on trust.
 
-Current command examples still use the Harness implementation namespace. That is expected during the staged rename; the product surface is Proofline, while the runtime module, API route names, and stored evidence remain compatibility identifiers.
+Command examples use the Proofline runtime entrypoint. Harness-named routes, data paths, and stored evidence remain compatibility identifiers during the staged rename.
 
 ## Check Backend Health
 

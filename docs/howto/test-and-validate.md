@@ -2,7 +2,7 @@
 
 Validation should prove three things: the service starts, the dashboard reads live Proofline APIs through the current Harness compatibility routes, and completion claims are accepted only when evidence is good enough.
 
-Command examples intentionally keep the Harness compatibility namespace until tested Proofline aliases exist. Do not rename `HARNESS_*` variables, runtime module paths, or stored evidence fields locally.
+Command examples use tested Proofline runtime and storage aliases where they exist. Keep `HARNESS_*` compatibility variables, route aliases, local data paths, and stored evidence fields working until the rename migration guide explicitly retires them.
 
 ## Fast Local Baseline
 
@@ -35,7 +35,7 @@ python3 -m modules.proofline_runtime --json stop
 
 The dashboard asset export matters for checkout validation. Without it, the runtime can still be healthy, but `doctor` will warn that the embedded dashboard cannot render packaged UI assets.
 
-A future packaged CLI should expose the same contract as a compatibility `harness ...` command and, later, a tested Proofline alias. The native macOS app package is deprecated and is not part of the normal validation path.
+A future packaged CLI should expose this same contract as `proofline ...` and may keep `harness ...` as a compatibility alias. The native macOS app package is deprecated and is not part of the normal validation path.
 
 ## Deterministic Reset Proofs
 

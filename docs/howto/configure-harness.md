@@ -2,7 +2,7 @@
 
 Proofline has two configuration paths: local runtime configuration for CLI/web usage, and repo-root `.env.local` for developer and CI-style runs.
 
-The active implementation still uses the Harness compatibility namespace for commands, environment variables, paths, and secret names. Keep those identifiers exactly as documented until a tested Proofline alias exists.
+Use Proofline-named commands and environment variables where this guide lists them. Harness-named variables, paths, service names, and stored evidence fields remain compatibility surfaces during the staged rename and should not be removed until the migration guide says they are safe to retire.
 
 ## Local Runtime Configuration
 
