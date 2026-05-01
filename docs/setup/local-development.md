@@ -44,8 +44,10 @@ cp .env.example .env.local
 Set:
 
 ```bash
-HARNESS_API_BASE_URL=http://127.0.0.1:8000
+PROOFLINE_API_BASE_URL=http://127.0.0.1:8000
 ```
+
+`HARNESS_API_BASE_URL` remains a compatibility fallback. If both names are set, the Proofline-named override wins in local frontend/proxy resolution.
 
 Frontend validation:
 
@@ -370,7 +372,7 @@ See [`docs/setup/vercel-neon.md`](vercel-neon.md) for the default hosted runbook
 
 ## Local Vs Hosted Behavior
 
-Local frontend development can still use `HARNESS_API_BASE_URL` as an explicit override.
+Local frontend development should use `PROOFLINE_API_BASE_URL` as the explicit override. `HARNESS_API_BASE_URL` remains supported as a compatibility fallback.
 
 Hosted deployments running behind the same Vercel project derive the backend route automatically from the deployment URL and the `/backend` route prefix.
 
