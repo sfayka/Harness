@@ -408,7 +408,7 @@ def _missing_status(definition: SecretDefinition, *, required: bool) -> SecretSt
         message=f"{definition.label} is not configured.",
         next_action=(
             f"Connect {definition.label} during setup or run "
-            f"`harness secrets set {definition.name} --value-stdin`."
+            f"`proofline secrets set {definition.name} --value-stdin`."
         ),
     )
 

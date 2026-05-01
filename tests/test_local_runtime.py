@@ -84,7 +84,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, EXIT_SETUP_REQUIRED)
         self.assertEqual(payload["status"], "uninitialized")
-        self.assertIn("harness init", payload["next_action"])
+        self.assertIn("proofline init", payload["next_action"])
 
     def test_status_reports_stopped_when_health_is_unreachable(self) -> None:
         self._run_cli("init")
@@ -166,7 +166,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(checks["notification_permission"]["status"], "pass")
         self.assertEqual(checks["launch_at_login"]["status"], "pass")
         self.assertEqual(checks["workspace_folders"]["status"], "pass")
-        self.assertIn("harness serve", checks["api_health"]["next_action"])
+        self.assertIn("proofline serve", checks["api_health"]["next_action"])
         self.assertNotIn("Harness app", json.dumps(payload))
         self.assertNotIn("menu-bar", json.dumps(payload))
         self.assertTrue(all(check.get("impact") for check in payload["checks"]))

@@ -254,7 +254,7 @@ def create_default_config(
 def load_runtime_config(paths: RuntimePaths) -> RuntimeConfig:
     if not paths.config_path.exists():
         raise LocalRuntimeError(
-            f"Harness local runtime is not initialized at {paths.config_path}. Run `harness init` first.",
+            f"Proofline local runtime is not initialized at {paths.config_path}. Run `proofline init` first.",
             exit_code=EXIT_SETUP_REQUIRED,
         )
     try:
@@ -550,8 +550,8 @@ def recover_runtime(
 def uninitialized_status(paths: RuntimePaths) -> dict[str, Any]:
     return {
         "status": "uninitialized",
-        "error": f"Harness local runtime is not initialized at {paths.config_path}.",
-        "next_action": "Run `harness init`.",
+        "error": f"Proofline local runtime is not initialized at {paths.config_path}.",
+        "next_action": "Run `proofline init`.",
         "paths": {
             "data_dir": str(paths.data_dir),
             "log_dir": str(paths.log_dir),
@@ -583,7 +583,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 status="fail",
                 message=str(error),
                 impact="Harness cannot start reliably until local runtime config exists and is readable.",
-                next_action="Run `harness init` from the CLI.",
+                next_action="Run `proofline init` from the CLI.",
             )
         )
     else:
@@ -631,7 +631,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                     next_action=(
                         "No action needed."
                         if sqlite_ready
-                        else "Restart Harness after rerunning `harness init`."
+                        else "Restart Proofline after rerunning `proofline init`."
                     ),
                 )
             )
@@ -651,7 +651,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 next_action=(
                     "No action needed."
                     if api_running
-                    else "Run `harness start` or `harness serve`."
+                    else "Run `proofline start` or `proofline serve`."
                 ),
                 details={
                     "api_base_url": config.base_url,
@@ -667,7 +667,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 status="fail",
                 message="SQLite database has not been initialized.",
                 impact="Harness cannot store local task truth until setup creates the database.",
-                next_action="Run `harness init` from the app bundle or CLI.",
+                next_action="Run `proofline init` from the CLI.",
             )
         )
         checks.append(
@@ -676,7 +676,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 status="warn",
                 message="Local API cannot be checked before runtime initialization.",
                 impact="The app cannot report live task status until setup completes and the API starts.",
-                next_action="Run `harness init`, then start Harness.",
+                next_action="Run `proofline init`, then start Proofline.",
             )
         )
         checks.append(
@@ -685,7 +685,7 @@ def run_doctor(paths: RuntimePaths) -> tuple[int, dict[str, Any]]:
                 status="warn",
                 message="Dashboard assets cannot be checked before runtime initialization.",
                 impact="The dashboard window may not open until setup completes.",
-                next_action="Run `harness init`, then install packaged dashboard assets.",
+                next_action="Run `proofline init`, then install packaged dashboard assets.",
             )
         )
 
@@ -766,7 +766,7 @@ def _check_dashboard(config: RuntimeConfig, *, status_payload: dict[str, Any]) -
             status="warn",
             message="Dashboard assets are present, but the local API is not running.",
             impact="The dashboard window can be opened after Harness starts.",
-            next_action="Start Harness from the app or run `harness serve`.",
+            next_action="Start Proofline or run `proofline serve`.",
             details=details,
         )
 
@@ -787,7 +787,7 @@ def _check_dashboard(config: RuntimeConfig, *, status_payload: dict[str, Any]) -
         status="warn",
         message="Dashboard assets are present, but the dashboard route is not reachable.",
         impact="The dashboard window may fail to open or may show a backend error.",
-        next_action="Restart Harness and rerun doctor. If the problem continues, reinstall the dashboard assets.",
+        next_action="Restart Proofline and rerun doctor. If the problem continues, reinstall the dashboard assets.",
         details=details,
     )
 

@@ -20,7 +20,7 @@ def healthy_runtime_doctor_payload(
         check("log_dir", "pass"),
         check("config", "pass"),
         check("sqlite", "pass"),
-        check("api_health", "warn", next_action="Run `harness start` or `harness serve`."),
+        check("api_health", "warn", next_action="Run `proofline start` or `proofline serve`."),
         check("dashboard", "warn", next_action="Install packaged dashboard assets."),
         check(
             "notification_permission",
@@ -32,12 +32,12 @@ def healthy_runtime_doctor_payload(
         check(
             "github_connection",
             github_status,
-            next_action="Connect GitHub token during setup or run `harness secrets set github_token --value-stdin`.",
+            next_action="Connect GitHub token during setup or run `proofline secrets set github_token --value-stdin`.",
         ),
         check(
             "linear_connection",
             linear_status,
-            next_action="Connect Linear API key during setup or run `harness secrets set linear_api_key --value-stdin`.",
+            next_action="Connect Linear API key during setup or run `proofline secrets set linear_api_key --value-stdin`.",
         ),
         check(
             "execution_substrate",
@@ -116,7 +116,7 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertTrue(items["github"]["required"])
         self.assertTrue(items["github"]["blocks_onboarding"])
         self.assertEqual(items["github"]["secret_names"], ["github_token"])
-        self.assertIn("harness secrets set github_token --value-stdin", items["github"]["next_action"])
+        self.assertIn("proofline secrets set github_token --value-stdin", items["github"]["next_action"])
         self.assertNotIn("GITHUB_TOKEN=", str(items["github"]))
 
     def test_configured_integration_completes_required_workflow(self) -> None:

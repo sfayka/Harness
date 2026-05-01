@@ -1,4 +1,4 @@
-"""Guided setup contract for the local Harness runtime."""
+"""Guided setup contract for the local Proofline runtime."""
 
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ WORKFLOW_DEFINITIONS: tuple[SetupWorkflow, ...] = (
         id="repair-dispatch",
         label="Execution substrate dispatch",
         description=(
-            "Require a Symphony-compatible execution substrate before Harness can request repair "
+            "Require a Symphony-compatible execution substrate before Proofline can request repair "
             "or executor-backed work."
         ),
         required_items=("execution_substrate",),
@@ -79,10 +79,10 @@ WORKFLOW_DEFINITIONS_BY_ID = {workflow.id: workflow for workflow in WORKFLOW_DEF
 SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
     SetupItemDefinition(
         id="local_runtime",
-        title="Local Harness runtime",
+        title="Local Proofline runtime",
         category="core",
         purpose=(
-            "Runs Harness locally with managed config, SQLite persistence, local logs, "
+            "Runs Proofline locally with managed config, SQLite persistence, local logs, "
             "and the dashboard/API served from the local backend."
         ),
         what_user_needs=(
@@ -91,7 +91,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             "A running local API when CLI/web inspection needs live progress.",
         ),
         how_harness_validates=(
-            "Harness checks writable app folders, config readability, SQLite schema readiness, "
+            "Proofline checks writable app folders, config readability, SQLite schema readiness, "
             "API health, dashboard assets, optional wrapper-reported permissions, and selected workspace folders."
         ),
         doctor_check_codes=(
@@ -111,18 +111,18 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
                 kind="runtime",
                 label="Initialize local runtime",
                 description="Create runtime-managed config, logs, and the SQLite database.",
-                command="harness init",
+                command="proofline init",
             ),
             SetupAction(
                 kind="runtime",
-                label="Start Harness",
+                label="Start Proofline",
                 description="Start the local API when live status or the dashboard should be available.",
-                command="harness serve",
+                command="proofline serve",
             ),
         ),
         notes=(
             "API and dashboard warnings do not block setup; the CLI can start the runtime when needed.",
-            "Notifications and Launch at Login are optional wrapper-shell choices, not Harness requirements.",
+            "Notifications and Launch at Login are optional wrapper-shell choices, not Proofline requirements.",
         ),
     ),
     SetupItemDefinition(
@@ -130,15 +130,15 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         title="GitHub artifact verification",
         category="integration",
         purpose=(
-            "Lets Harness verify external execution proof such as repositories, branches, commits, "
+            "Lets Proofline verify external execution proof such as repositories, branches, commits, "
             "pull requests, and changed files instead of trusting an agent summary."
         ),
         what_user_needs=(
-            "A GitHub account or token with access to the repositories Harness should verify.",
+            "A GitHub account or token with access to the repositories Proofline should verify.",
             "Store the credential through the managed secret provider.",
         ),
         how_harness_validates=(
-            "Harness checks the redacted status of the managed `github_token` secret through the setup doctor."
+            "Proofline checks the redacted status of the managed `github_token` secret through the setup doctor."
         ),
         doctor_check_codes=("github_connection",),
         completion_check_codes=("github_connection",),
@@ -147,7 +147,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
                 kind="secret",
                 label="Connect GitHub",
                 description="Store the GitHub credential through the runtime-managed secret boundary.",
-                command="harness secrets set github_token --value-stdin",
+                command="proofline secrets set github_token --value-stdin",
                 secret_name="github_token",
                 stores_secret=True,
             ),
@@ -159,15 +159,15 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         title="Linear coordination",
         category="integration",
         purpose=(
-            "Lets Harness read and update Linear work state when a workflow uses Linear for coordination "
+            "Lets Proofline read and update Linear work state when a workflow uses Linear for coordination "
             "or reconciliation."
         ),
         what_user_needs=(
-            "A Linear API key or app authorization for the workspace Harness should coordinate with.",
+            "A Linear API key or app authorization for the workspace Proofline should coordinate with.",
             "Store the credential through the managed secret provider.",
         ),
         how_harness_validates=(
-            "Harness checks the redacted status of the managed `linear_api_key` secret through the setup doctor."
+            "Proofline checks the redacted status of the managed `linear_api_key` secret through the setup doctor."
         ),
         doctor_check_codes=("linear_connection",),
         completion_check_codes=("linear_connection",),
@@ -176,7 +176,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
                 kind="secret",
                 label="Connect Linear",
                 description="Store the Linear credential through the runtime-managed secret boundary.",
-                command="harness secrets set linear_api_key --value-stdin",
+                command="proofline secrets set linear_api_key --value-stdin",
                 secret_name="linear_api_key",
                 stores_secret=True,
             ),
@@ -188,9 +188,9 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         title="Execution substrate",
         category="integration",
         purpose=(
-            "Lets Harness hand executable work to a scheduler/runner layer. Symphony is the preferred "
+            "Lets Proofline hand executable work to a scheduler/runner layer. Symphony is the preferred "
             "substrate for polling structured work, creating isolated workspaces, launching Codex, "
-            "and reporting advisory execution events back to Harness."
+            "and reporting advisory execution events back to Proofline."
         ),
         what_user_needs=(
             "A local Symphony checkout or another Symphony-compatible runner.",
@@ -199,8 +199,8 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             "A workflow contract such as WORKFLOW.md before any live runner is enabled.",
         ),
         how_harness_validates=(
-            "Harness checks whether a Symphony-compatible runner binary is available. This only proves "
-            "the execution substrate is installed; Harness still treats runner output as advisory until "
+            "Proofline checks whether a Symphony-compatible runner binary is available. This only proves "
+            "the execution substrate is installed; Proofline still treats runner output as advisory until "
             "verification and reconciliation succeed."
         ),
         doctor_check_codes=("execution_substrate",),
@@ -217,7 +217,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         ),
         compatible_clients=("Symphony", "Symphony-compatible runners"),
         notes=(
-            "This replaces Harness-owned runner scheduling for new work. Harness still owns verification, reconciliation, and lifecycle truth.",
+            "This replaces Proofline-owned runner scheduling for new work. Proofline still owns verification, reconciliation, and lifecycle truth.",
             "A configured runner is not allowed to mark work complete directly.",
         ),
     ),
@@ -226,7 +226,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         title="Legacy ingress/executor bridge",
         category="compatibility",
         purpose=(
-            "Keeps older OpenClaw/Hermes/Codex bridge paths visible while Harness pivots execution "
+            "Keeps older OpenClaw/Hermes/Codex bridge paths visible while Proofline pivots execution "
             "scheduling to a Symphony-compatible substrate."
         ),
         what_user_needs=(
@@ -235,7 +235,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             "A callback bearer secret only when the selected bridge requires bearer-protected callbacks.",
         ),
         how_harness_validates=(
-            "Harness checks the configured desktop-agent bridge mode through the setup doctor. "
+            "Proofline checks the configured desktop-agent bridge mode through the setup doctor. "
             "Current adapter validation accepts a local CLI config/state pair or an HTTP bridge URL, "
             "but new execution-scheduling work should use the execution substrate item instead."
         ),
@@ -253,7 +253,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
                 kind="secret",
                 label="Store callback bearer token",
                 description="Only needed for bearer-protected repair callback workflows.",
-                command="harness secrets set repair_callback_bearer_token --value-stdin",
+                command="proofline secrets set repair_callback_bearer_token --value-stdin",
                 secret_name="repair_callback_bearer_token",
                 stores_secret=True,
             ),
@@ -262,7 +262,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
         compatible_clients=("OpenClaw", "Hermes", "Codex", "future desktop-agent clients"),
         notes=(
             "Compatibility path only; Symphony-compatible execution substrate is the preferred runner layer for new work.",
-            "OpenClaw-shaped environment variable names are adapter wiring, not Harness product boundaries.",
+            "OpenClaw-shaped environment variable names are adapter wiring, not Proofline product boundaries.",
         ),
     ),
 )
@@ -457,7 +457,7 @@ def _next_action(
 ) -> str:
     if status == "complete":
         if definition.id == "local_runtime":
-            return "No setup action is required. Start Harness when live progress is needed."
+            return "No setup action is required. Start Proofline when live progress is needed."
         return "No action needed."
 
     failing_check = next((check for check in checks if check.get("status") == "fail"), None)
