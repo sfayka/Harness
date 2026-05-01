@@ -1,8 +1,8 @@
 # macOS Packaging
 
-Status: deprecated.
+Status: historical.
 
-Harness is no longer pursuing a native macOS app as a supported product surface. This document remains as historical context for the Swift app and DMG path, not as an active implementation target. New work should prefer the CLI/runtime contract, backend API, and web dashboard.
+Harness is no longer pursuing a native macOS app as a supported product surface. The Swift app, packaging scripts, and packaging requirements have been removed from the active tree. This document remains as historical context for the Swift app and DMG path, not as an active implementation target. New work should prefer the CLI/runtime contract, backend API, and web dashboard.
 
 Issue #328 is the line between a developer bundle and a distributable local Harness app.
 The goal is not "make Swift build." The goal is "ship a normal macOS app that does not depend on a repo checkout, Python install, Node install, or Docker."
