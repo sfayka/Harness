@@ -1,4 +1,4 @@
-import type { VerificationSummary } from "@/lib/types";
+import type { CompletionValidationSummary, VerificationSummary } from "@/lib/types";
 import { getEvidenceSeverity, getSeverityClasses, getVerificationSeverity } from "@/lib/outcome-severity";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { VerificationBadge } from "@/components/ui/status-badge";
@@ -7,9 +7,10 @@ import { ShieldCheck, CheckCircle2, XCircle, FileSearch } from "lucide-react";
 
 interface VerificationCardProps {
   summary: VerificationSummary | null;
+  completionValidation?: CompletionValidationSummary | null;
 }
 
-export function VerificationCard({ summary }: VerificationCardProps) {
+export function VerificationCard({ summary, completionValidation }: VerificationCardProps) {
   if (!summary) {
     return (
       <Card>
@@ -23,9 +24,16 @@ export function VerificationCard({ summary }: VerificationCardProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            No verification evaluation has been performed yet.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">
+              No verification evaluation has been performed yet.
+            </p>
+            {completionValidation && (
+              <p className="text-sm text-foreground">
+                {completionValidation.summary}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
     );
@@ -51,6 +59,23 @@ export function VerificationCard({ summary }: VerificationCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
+          {completionValidation && (
+            <div className="rounded-md border border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                Completion validation
+              </p>
+              <p className="mt-1 text-sm text-foreground">
+                {completionValidation.summary}
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <span>Intent: {completionValidation.intent_status.replaceAll("_", " ")}</span>
+                <span>Evidence: {completionValidation.evidence_status.replaceAll("_", " ")}</span>
+                <span>Claimed: {completionValidation.completion_claimed ? "yes" : "no"}</span>
+                <span>Accepted: {completionValidation.completion_accepted ? "yes" : "no"}</span>
+              </div>
+            </div>
+          )}
+
           {/* Key indicators */}
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">

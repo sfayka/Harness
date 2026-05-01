@@ -132,6 +132,12 @@ The policy-driven decision about whether a claimed completed state should be acc
 
 Harness owns completion enforcement. Linear may display the result, but it does not replace that policy function.
 
+### Completion Validation Summary
+
+The canonical read-model projection that condenses intent, evidence, reconciliation, review, and verification state into one operator-readable answer about whether claimed completion has been accepted.
+
+This is a projection, not a mutation surface. It should make Proofline's core promise inspectable without letting the dashboard or a client invent its own completion truth.
+
 ### Acceptance Layer
 
 Legacy shorthand for Proofline's role above execution tools. Prefer the more precise phrase: validation of agentic completion against user intent and evidence.

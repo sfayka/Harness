@@ -32,11 +32,15 @@ class ControlPlaneTaskListSurfaceFlowTests(RuntimeApiTestCase):
         completed_entry = tasks[completed.task_id]
         self.assertEqual(completed_entry["current_status"], "completed")
         self.assertEqual(completed_entry["verification_summary"]["outcome"], "accepted_completion")
+        self.assertEqual(completed_entry["completion_validation_summary"]["status"], "accepted")
+        self.assertTrue(completed_entry["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(completed_entry["review_summary"]["status"], "none")
         self.assertIn("timeline", completed_entry)
 
         blocked_entry = tasks[blocked.task_id]
         self.assertEqual(blocked_entry["current_status"], "blocked")
+        self.assertEqual(blocked_entry["completion_validation_summary"]["status"], "pending")
+        self.assertFalse(blocked_entry["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(blocked_entry["clarification_summary"]["status"], "required")
         self.assertEqual(blocked_entry["clarification_summary"]["resume_target_status"], "dispatch_ready")
         self.assertEqual(blocked_entry["origin"]["source_system"], "manual")

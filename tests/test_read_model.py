@@ -179,6 +179,11 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "accepted_completion")
         self.assertEqual(payload["task"]["reconciliation_summary"]["outcome"], "no_mismatch")
         self.assertEqual(payload["task"]["evidence_summary"]["artifact_count"], 2)
+        self.assertEqual(payload["task"]["completion_validation_summary"]["status"], "accepted")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["intent_status"], "matched")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["evidence_status"], "sufficient")
+        self.assertTrue(payload["task"]["completion_validation_summary"]["completion_claimed"])
+        self.assertTrue(payload["task"]["completion_validation_summary"]["completion_accepted"])
         self.assertTrue(payload["task"]["coordination_summary"]["linear"]["record_found"])
         self.assertEqual(payload["task"]["evaluation_summary"]["count"], 1)
 
@@ -191,6 +196,11 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["task"]["current_status"], "blocked")
         self.assertEqual(payload["task"]["verification_summary"]["outcome"], "insufficient_evidence")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["status"], "blocked")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["intent_status"], "not_validated")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["evidence_status"], "insufficient")
+        self.assertTrue(payload["task"]["completion_validation_summary"]["completion_claimed"])
+        self.assertFalse(payload["task"]["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(payload["task"]["failure_summary"]["failure_type"], "evidence_insufficient")
         self.assertEqual(payload["task"]["failure_summary"]["failure_source"], "evaluation")
 
@@ -207,6 +217,10 @@ class HarnessReadModelServiceTests(unittest.TestCase):
         self.assertEqual(payload["task"]["failure_summary"]["state"], "review_required")
         self.assertFalse(payload["task"]["failure_summary"]["terminal"])
         self.assertFalse(payload["task"]["failure_summary"]["recoverable"])
+        self.assertEqual(payload["task"]["completion_validation_summary"]["status"], "review_required")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["intent_status"], "needs_review")
+        self.assertEqual(payload["task"]["completion_validation_summary"]["manual_review_status"], "requested")
+        self.assertFalse(payload["task"]["completion_validation_summary"]["automatic_completion_safe"])
         self.assertEqual(payload["task"]["execution_summary"]["failure_state"], "review_required")
 
     def test_read_model_clears_review_required_failure_projection_after_manual_resolution(self) -> None:

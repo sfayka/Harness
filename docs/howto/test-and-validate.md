@@ -74,3 +74,5 @@ This creates real throwaway Linear and GitHub artifacts in the configured dry-ru
 - live Linear issue identifiers for live smoke
 - live GitHub branch, commit, and PR artifacts for live smoke
 - canonical read-model, timeline, or reset contract state that matches external artifacts
+
+For completion claims, inspect `completion_validation_summary` on `GET /tasks` or `GET /tasks/<task_id>/read-model`. A task is not operator-accepted just because an executor said it finished. The validation summary should show `completion_claimed=true`, `completion_accepted=true`, `intent_status=matched`, and `evidence_status=sufficient` before the dashboard or CLI presents the work as actually done. If the summary reports `blocked`, `review_required`, `pending`, `insufficient`, or `invalid`, the task still needs evidence, reconciliation, repair, or explicit review.

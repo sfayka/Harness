@@ -27,6 +27,24 @@ test("maps read-model execution transport summary fields", async () => {
           },
           relationships: {},
           evidence_summary: {},
+          completion_validation_summary: {
+            status: "blocked",
+            summary: "Completion was claimed, but Proofline has not validated it against intent and evidence.",
+            intent_status: "not_validated",
+            evidence_status: "insufficient",
+            reconciliation_status: "pending",
+            completion_claimed: true,
+            completion_accepted: false,
+            manual_review_status: "none",
+            automatic_completion_safe: false,
+            verification_outcome: "insufficient_evidence",
+            reasons: ["Completion evidence is missing a verified pull request."],
+            required_criteria_count: 2,
+            concrete_required_criteria_count: 2,
+            required_artifact_types: ["pull_request"],
+            validated_artifact_ids: [],
+            validated_artifact_count: 0,
+          },
           review_summary: {},
           evaluation_summary: {},
           timestamps: {
@@ -67,4 +85,10 @@ test("maps read-model execution transport summary fields", async () => {
   assert.equal(task.execution_summary?.latest_live_dispatch_enabled, false);
   assert.equal(task.execution_summary?.latest_completion_authority, "harness_verification");
   assert.equal(task.execution_summary?.latest_runner_completion_is_truth, false);
+  assert.equal(task.completion_validation_summary.status, "blocked");
+  assert.equal(task.completion_validation_summary.intent_status, "not_validated");
+  assert.equal(task.completion_validation_summary.evidence_status, "insufficient");
+  assert.equal(task.completion_validation_summary.completion_claimed, true);
+  assert.equal(task.completion_validation_summary.completion_accepted, false);
+  assert.deepEqual(task.completion_validation_summary.required_artifact_types, ["pull_request"]);
 });

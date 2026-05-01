@@ -1,5 +1,29 @@
 import type { Task } from "./types";
 
+function completionValidationSummary(
+  overrides: Partial<Task["completion_validation_summary"]>,
+): Task["completion_validation_summary"] {
+  return {
+    status: "pending",
+    summary: "No completion claim has crossed Proofline validation yet.",
+    intent_status: "pending",
+    evidence_status: "pending",
+    reconciliation_status: "pending",
+    completion_claimed: false,
+    completion_accepted: false,
+    manual_review_status: "none",
+    automatic_completion_safe: false,
+    verification_outcome: "not_evaluated",
+    reasons: [],
+    required_criteria_count: 0,
+    concrete_required_criteria_count: 0,
+    required_artifact_types: [],
+    validated_artifact_ids: [],
+    validated_artifact_count: 0,
+    ...overrides,
+  };
+}
+
 export const mockTasks: Task[] = [
   {
     task_id: "TASK-001",
@@ -46,6 +70,23 @@ export const mockTasks: Task[] = [
       reasons: ["PR merged with passing CI", "All acceptance criteria met"],
       evaluated_at: "2024-01-15T14:32:00Z",
     },
+    completion_validation_summary: completionValidationSummary({
+      status: "accepted",
+      summary: "Completion is accepted: the claim matches user intent and required evidence.",
+      intent_status: "matched",
+      evidence_status: "sufficient",
+      reconciliation_status: "no_mismatch",
+      completion_claimed: true,
+      completion_accepted: true,
+      automatic_completion_safe: true,
+      verification_outcome: "accepted_completion",
+      reasons: ["PR merged with passing CI", "All acceptance criteria met"],
+      required_criteria_count: 2,
+      concrete_required_criteria_count: 2,
+      required_artifact_types: ["pull_request"],
+      validated_artifact_ids: ["art-001", "art-002", "art-003"],
+      validated_artifact_count: 3,
+    }),
     reconciliation_summary: {
       result: "no_mismatch",
       linear_state: "done",
@@ -166,6 +207,23 @@ export const mockTasks: Task[] = [
       ],
       evaluated_at: "2024-01-16T11:45:00Z",
     },
+    completion_validation_summary: completionValidationSummary({
+      status: "review_required",
+      summary: "Completion is not accepted until the active manual review gate is resolved.",
+      intent_status: "needs_review",
+      evidence_status: "insufficient",
+      reconciliation_status: "contradictory_facts",
+      completion_claimed: true,
+      manual_review_status: "requested",
+      verification_outcome: "insufficient_evidence",
+      reasons: [
+        "No PR found for claimed completion",
+        "Commit exists but not linked to PR",
+      ],
+      required_criteria_count: 2,
+      concrete_required_criteria_count: 2,
+      required_artifact_types: ["pull_request"],
+    }),
     reconciliation_summary: {
       result: "contradictory_facts",
       linear_state: "in_progress",
@@ -307,6 +365,18 @@ export const mockTasks: Task[] = [
       reasons: ["Awaiting deployment confirmation"],
       evaluated_at: "2024-01-17T08:00:00Z",
     },
+    completion_validation_summary: completionValidationSummary({
+      summary: "No completion claim has crossed Proofline validation yet.",
+      evidence_status: "pending",
+      reconciliation_status: "pending",
+      verification_outcome: "verification_deferred",
+      reasons: ["Awaiting deployment confirmation"],
+      required_criteria_count: 2,
+      concrete_required_criteria_count: 2,
+      required_artifact_types: ["pull_request", "log"],
+      validated_artifact_ids: ["art-020"],
+      validated_artifact_count: 1,
+    }),
     reconciliation_summary: {
       result: "pending",
       linear_state: "in_progress",
@@ -416,6 +486,20 @@ export const mockTasks: Task[] = [
       reasons: ["Executor failed with timeout", "No output artifacts generated"],
       evaluated_at: "2024-01-17T10:30:00Z",
     },
+    completion_validation_summary: completionValidationSummary({
+      status: "failed",
+      summary: "Completion is not accepted because the task is terminal without validated completion.",
+      intent_status: "not_accepted",
+      evidence_status: "insufficient",
+      reconciliation_status: "wrong_target",
+      completion_claimed: true,
+      manual_review_status: "resolved",
+      verification_outcome: "completion_rejected",
+      reasons: ["Executor failed with timeout", "No output artifacts generated"],
+      required_criteria_count: 2,
+      concrete_required_criteria_count: 2,
+      required_artifact_types: ["output"],
+    }),
     reconciliation_summary: {
       result: "wrong_target",
       linear_state: "done",
@@ -578,6 +662,10 @@ export const mockTasks: Task[] = [
       },
     },
     verification_summary: null,
+    completion_validation_summary: completionValidationSummary({
+      evidence_status: "pending",
+      required_artifact_types: ["pull_request"],
+    }),
     reconciliation_summary: null,
     review_summary: {
       status: "none",
@@ -664,6 +752,23 @@ export const mockTasks: Task[] = [
       reasons: ["PR merged", "Tests passing", "Documentation updated"],
       evaluated_at: "2024-01-13T16:00:00Z",
     },
+    completion_validation_summary: completionValidationSummary({
+      status: "accepted",
+      summary: "Completion is accepted: the claim matches user intent and required evidence.",
+      intent_status: "matched",
+      evidence_status: "sufficient",
+      reconciliation_status: "no_mismatch",
+      completion_claimed: true,
+      completion_accepted: true,
+      automatic_completion_safe: true,
+      verification_outcome: "accepted_completion",
+      reasons: ["PR merged", "Tests passing", "Documentation updated"],
+      required_criteria_count: 2,
+      concrete_required_criteria_count: 2,
+      required_artifact_types: ["pull_request"],
+      validated_artifact_ids: ["art-030", "art-031"],
+      validated_artifact_count: 2,
+    }),
     reconciliation_summary: {
       result: "no_mismatch",
       linear_state: "done",

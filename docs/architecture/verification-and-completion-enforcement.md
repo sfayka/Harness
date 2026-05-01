@@ -187,6 +187,33 @@ It should contain:
 
 These names are architecture-level semantics. Exact enum naming can be finalized later.
 
+## Completion Validation Summary
+
+The canonical read model exposes `completion_validation_summary` on both `GET /tasks` and `GET /tasks/<task_id>/read-model`.
+
+This summary is the operator-facing projection of the product promise: validation of agentic completion against user intent and evidence. It is derived from the task objective, acceptance criteria, completion evidence policy, verification result, reconciliation result, review state, and failure classification. It is read-only projection data; clients must not treat it as a mutation path or a second source of truth.
+
+The summary answers five concrete questions:
+
+- did an executor or runtime claim completion
+- did Proofline accept that completion claim
+- did the claim satisfy user intent strongly enough for automatic acceptance
+- is the required evidence sufficient, invalid, missing, or still pending
+- is reconciliation or manual review blocking acceptance
+
+Current fields include:
+
+- `status`: high-level validation state such as `accepted`, `blocked`, `review_required`, or `pending`
+- `intent_status`: whether the claim matched intent, needs review, is still pending, or was not validated
+- `evidence_status`: whether evidence is sufficient, insufficient, invalid, not required, or pending
+- `completion_claimed` and `completion_accepted`: the explicit separation between worker narrative and Proofline truth
+- `manual_review_status`: the current review-gate state
+- `automatic_completion_safe`: whether the acceptance-criteria assessment permits automatic terminal success
+- `reasons`: deduplicated policy, evidence, reconciliation, and failure reasons
+- artifact and criteria counts used for inspection
+
+This field should be the first dashboard and CLI surface operators inspect when they ask, "Is this actually done?" It intentionally does not replace the lower-level `verification_summary`, `evidence_summary`, `reconciliation_summary`, or `review_summary`; it aggregates them into one stable completion-validation verdict.
+
 ### Decision Summary
 
 The decision summary should explain in system terms:

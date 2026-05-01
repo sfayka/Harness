@@ -93,6 +93,31 @@ export interface VerificationSummary {
   evaluated_at: string;
 }
 
+export interface CompletionValidationSummary {
+  status:
+    | "accepted"
+    | "blocked"
+    | "review_required"
+    | "pending"
+    | "failed"
+    | "canceled";
+  summary: string;
+  intent_status: "matched" | "not_validated" | "needs_review" | "not_accepted" | "pending";
+  evidence_status: "sufficient" | "insufficient" | "invalid" | "not_required" | "pending";
+  reconciliation_status: string;
+  completion_claimed: boolean;
+  completion_accepted: boolean;
+  manual_review_status: string | null;
+  automatic_completion_safe: boolean;
+  verification_outcome: string;
+  reasons: string[];
+  required_criteria_count: number;
+  concrete_required_criteria_count: number;
+  required_artifact_types: string[];
+  validated_artifact_ids: string[];
+  validated_artifact_count: number;
+}
+
 export interface ReconciliationSummary {
   result: ReconciliationStatus;
   outcome?: string | null;
@@ -178,6 +203,7 @@ export interface Task {
     assignment_reason: string | null;
   } | null;
   evidence_summary: EvidenceSummary;
+  completion_validation_summary: CompletionValidationSummary;
   verification_summary: VerificationSummary | null;
   reconciliation_summary: ReconciliationSummary | null;
   review_summary: ReviewSummary;

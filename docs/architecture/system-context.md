@@ -35,7 +35,7 @@ An editable Excalidraw version also lives in [system-context.excalidraw](system-
 flowchart LR
     U["User"] --> O["Desktop Agent Client\nIngress and clarification"]
     O --> L["Linear\nWork surface and structured work source of truth"]
-    L --> H["Proofline\nAcceptance layer"]
+    L --> H["Proofline\nCompletion validation boundary"]
     H --> G["GitHub\nArtifact evidence source of truth"]
     H --> S["Workflow substrate\nPersistence and resumability"]
     H --> R["Execution substrate\nSymphony-like runner"]

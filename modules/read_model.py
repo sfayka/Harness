@@ -413,6 +413,113 @@ def _build_evidence_summary(task_envelope: TaskEnvelope) -> dict[str, Any]:
     }
 
 
+def _dedupe_reasons(reasons: list[Any]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for reason in reasons:
+        if reason is None:
+            continue
+        normalized = str(reason).strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(normalized)
+    return deduped
+
+
+def _build_completion_validation_summary(
+    *,
+    task_envelope: TaskEnvelope,
+    current_status: str,
+    evidence_summary: dict[str, Any],
+    verification_summary: dict[str, Any] | None,
+    reconciliation_summary: dict[str, Any] | None,
+    review_summary: dict[str, Any],
+    failure_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    objective = task_envelope.get("objective") if isinstance(task_envelope.get("objective"), dict) else {}
+    acceptance_criteria = [
+        item for item in objective.get("acceptance_criteria") or [] if isinstance(item, dict)
+    ]
+    verification = verification_summary if isinstance(verification_summary, dict) else {}
+    reconciliation = reconciliation_summary if isinstance(reconciliation_summary, dict) else {}
+    completion_evidence = dict(evidence_summary.get("completion_evidence") or {})
+    acceptance_assessment = (
+        verification.get("acceptance_criteria_assessment")
+        if isinstance(verification.get("acceptance_criteria_assessment"), dict)
+        else {}
+    )
+    failure = failure_summary if isinstance(failure_summary, dict) else {}
+
+    claimed_completion = bool(verification.get("claimed_completion"))
+    accepted_completion = bool(verification.get("accepted_completion"))
+    requires_review = bool(verification.get("requires_review")) or review_summary.get("status") == "requested"
+    evidence_is_valid = bool(verification.get("evidence_is_valid"))
+    evidence_is_sufficient = bool(verification.get("evidence_is_sufficient"))
+    verification_outcome = str(verification.get("outcome") or "not_evaluated")
+    reconciliation_status = str(reconciliation.get("status") or reconciliation.get("outcome") or "pending")
+    automatic_completion_safe = bool(acceptance_assessment.get("automatic_completion_safe")) and not requires_review
+
+    if accepted_completion:
+        status = "accepted"
+        intent_status = "matched"
+        summary = "Completion is accepted: the claim matches user intent and required evidence."
+    elif requires_review:
+        status = "review_required"
+        intent_status = "needs_review"
+        summary = "Completion is not accepted until the active manual review gate is resolved."
+    elif current_status in {"failed", "canceled"}:
+        status = current_status
+        intent_status = "not_accepted"
+        summary = "Completion is not accepted because the task is terminal without validated completion."
+    elif claimed_completion:
+        status = "blocked"
+        intent_status = "not_validated"
+        summary = "Completion was claimed, but Proofline has not validated it against intent and evidence."
+    else:
+        status = "pending"
+        intent_status = "pending"
+        summary = "No completion claim has crossed Proofline validation yet."
+
+    if evidence_is_sufficient:
+        evidence_status = "sufficient"
+    elif claimed_completion and not evidence_is_valid:
+        evidence_status = "invalid"
+    elif completion_evidence.get("policy") in {"not_applicable", "none"}:
+        evidence_status = "not_required"
+    elif completion_evidence.get("status") in {"deferred", "pending"}:
+        evidence_status = "pending"
+    else:
+        evidence_status = "insufficient"
+
+    reasons = _dedupe_reasons(
+        list(verification.get("reasons") or [])
+        + list(reconciliation.get("reasons") or [])
+        + ([failure.get("reason")] if failure.get("failure_type") not in (None, "none") else [])
+    )
+
+    return {
+        "status": status,
+        "summary": summary,
+        "intent_status": intent_status,
+        "evidence_status": evidence_status,
+        "reconciliation_status": reconciliation_status,
+        "completion_claimed": claimed_completion,
+        "completion_accepted": accepted_completion,
+        "manual_review_status": review_summary.get("status"),
+        "automatic_completion_safe": automatic_completion_safe,
+        "verification_outcome": verification_outcome,
+        "reasons": reasons,
+        "required_criteria_count": len(acceptance_criteria),
+        "concrete_required_criteria_count": int(
+            acceptance_assessment.get("concrete_required_criteria_count") or 0
+        ),
+        "required_artifact_types": list(completion_evidence.get("required_artifact_types") or []),
+        "validated_artifact_ids": list(completion_evidence.get("validated_artifact_ids") or []),
+        "validated_artifact_count": int(evidence_summary.get("validated_artifact_count") or 0),
+    }
+
+
 def _build_clarification_summary(task_envelope: TaskEnvelope) -> dict[str, Any] | None:
     clarification = task_envelope.get("clarification")
     if not isinstance(clarification, dict):
@@ -1022,6 +1129,7 @@ class TaskReadModel:
     assigned_executor: dict[str, Any] | None
     clarification_summary: dict[str, Any] | None
     evidence_summary: dict[str, Any]
+    completion_validation_summary: dict[str, Any]
     coordination_summary: dict[str, Any]
     verification_summary: dict[str, Any] | None
     reconciliation_summary: dict[str, Any] | None
@@ -1079,6 +1187,16 @@ class HarnessReadModelService:
             review_summary=review_summary,
             current_status=str(task.get("status") or ""),
         )
+        evidence_summary = _build_evidence_summary(task)
+        completion_validation_summary = _build_completion_validation_summary(
+            task_envelope=task,
+            current_status=str(task.get("status") or ""),
+            evidence_summary=evidence_summary,
+            verification_summary=verification_summary,
+            reconciliation_summary=reconciliation_summary,
+            review_summary=review_summary,
+            failure_summary=failure_summary,
+        )
         timeline = _build_timeline(task, records)
 
         return TaskReadModel(
@@ -1099,7 +1217,8 @@ class HarnessReadModelService:
                 review_summary=review_summary,
             ),
             clarification_summary=clarification_summary,
-            evidence_summary=_build_evidence_summary(task),
+            evidence_summary=evidence_summary,
+            completion_validation_summary=completion_validation_summary,
             coordination_summary={
                 "linear": dict(((task.get("coordination") or {}).get("linear") or {}))
                 if ((task.get("coordination") or {}).get("linear")) is not None
