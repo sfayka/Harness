@@ -305,7 +305,7 @@ def resolve_sqlite_database_path(
     platform_name: str | None = None,
     home: str | Path | None = None,
 ) -> Path:
-    """Resolve the SQLite DB path used by local app persistence."""
+    """Resolve the SQLite DB path used by local runtime persistence."""
 
     if database_path is not None and str(database_path).strip():
         return Path(database_path).expanduser()

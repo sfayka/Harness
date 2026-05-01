@@ -1,7 +1,7 @@
-# App-Managed Secrets
+# Runtime-Managed Secrets
 
 Harness local CLI/web usage must not ask operators to edit `.env.local`.
-Non-secret runtime config lives in `config.json`; tokens and integration credentials live behind the app-managed secret provider.
+Non-secret runtime config lives in `config.json`; tokens and integration credentials live behind the runtime-managed secret provider.
 
 ## Secret Provider
 
@@ -49,13 +49,13 @@ The native macOS shell is deprecated. New credential flows should use the portab
 
 ## Runtime Behavior
 
-`harness start` and `harness serve` apply app-managed config, then load available app-managed secrets into process environment variables before starting the backend.
+`harness start` and `harness serve` apply runtime-managed config, then load available runtime-managed secrets into process environment variables before starting the backend.
 
 Existing environment variables win. This preserves developer mode:
 
 - repo-root `.env.local` remains valid for local development
 - exported shell variables remain valid for CI and one-off debugging
-- app-managed Keychain secrets are the normal macOS local-runtime path
+- runtime-managed Keychain secrets are the normal macOS local-runtime path
 
 Missing secrets do not block the local API from starting because GitHub, Linear, and executor integrations are optional until a chosen workflow needs them.
 Workflows that need a credential should call `secrets status --require <name>` or surface the integration-specific setup error.

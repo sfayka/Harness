@@ -54,7 +54,7 @@ The current doctor covers:
 
 - `app_data_dir`: app data directory writability.
 - `log_dir`: log directory writability.
-- `config`: app-managed config presence and readability.
+- `config`: runtime-managed config presence and readability.
 - `sqlite`: SQLite database availability and schema readiness.
 - `api_health`: local API availability.
 - `dashboard`: packaged dashboard asset availability and dashboard HTTP route reachability when the API is running.

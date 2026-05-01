@@ -11,7 +11,7 @@ These pieces must remain reusable for a future Linux package:
 - Python runtime and backend entrypoints in `modules/local_runtime.py` and `backend.server`
 - SQLite schema, migrations, and store semantics
 - local CLI/process contract exposed as `harness ...`
-- app-managed config model and XDG-compatible data/log paths
+- runtime-managed config model and XDG-compatible data/log paths
 - static dashboard bundle and same-origin API behavior
 - doctor/setup data model and integration semantics
 
@@ -41,7 +41,7 @@ The backend and CLI should consume the same abstract outputs from these boundari
 As of the macOS packaging slice:
 
 - the runtime contract is Python, not Swift
-- app-managed paths already support macOS and Linux defaults
+- runtime-managed paths already support macOS and Linux defaults
 - the bundled dashboard is static and backend-served, not tied to a macOS web runtime
 - contract schema loading works from a repo checkout or bundled runtime
 - secret-provider selection is platform-aware in Python instead of hard-coding `macos-keychain`

@@ -10,7 +10,7 @@ The local runtime writes non-secret runtime configuration to:
 ~/Library/Application Support/Harness/config.json
 ```
 
-Secrets do not belong in that file. Store local credentials through the app-managed secret boundary exposed by the CLI.
+Secrets do not belong in that file. Store local credentials through the runtime-managed secret boundary exposed by the CLI.
 
 Stable Harness secret names:
 

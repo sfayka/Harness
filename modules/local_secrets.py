@@ -100,7 +100,7 @@ def get_secret_definition(name: str) -> SecretDefinition:
 
 
 class MacOSKeychainSecretStore:
-    """Store local app secrets in macOS Keychain through the `security` command."""
+    """Store local runtime secrets in macOS Keychain through the `security` command."""
 
     def __init__(
         self,
@@ -237,21 +237,21 @@ class UnsupportedPlatformSecretStore:
     def get_secret(self, name: str) -> str:
         definition = get_secret_definition(name)
         raise SecretProviderUnavailableError(
-            f"{definition.label} is unavailable because Harness does not have an app-managed secret provider "
+            f"{definition.label} is unavailable because Harness does not have a runtime-managed secret provider "
             f"for {self._platform_name}."
         )
 
     def set_secret(self, name: str, value: str) -> None:
         definition = get_secret_definition(name)
         raise SecretProviderUnavailableError(
-            f"{definition.label} cannot be stored because Harness does not have an app-managed secret provider "
+            f"{definition.label} cannot be stored because Harness does not have a runtime-managed secret provider "
             f"for {self._platform_name}."
         )
 
     def delete_secret(self, name: str) -> bool:
         get_secret_definition(name)
         raise SecretProviderUnavailableError(
-            f"Harness does not have an app-managed secret provider for {self._platform_name}."
+            f"Harness does not have a runtime-managed secret provider for {self._platform_name}."
         )
 
 
@@ -290,12 +290,12 @@ def create_secret_store(*, platform_name: str | None = None) -> SecretStore:
     return UnsupportedPlatformSecretStore(platform_name=resolved_platform)
 
 
-def load_app_managed_secrets_into_environment(
+def load_runtime_managed_secrets_into_environment(
     *,
     store: SecretStore | None = None,
     overwrite: bool = False,
 ) -> list[SecretStatus]:
-    """Populate missing runtime env vars from app-managed secrets.
+    """Populate missing runtime env vars from runtime-managed secrets.
 
     Existing environment variables win by default so developer env-file mode and
     explicitly exported variables keep working.
@@ -320,6 +320,16 @@ def load_app_managed_secrets_into_environment(
             os.environ[definition.env_var] = value
             statuses.append(_configured_status(definition, source=_provider_name(secret_store), required=False))
     return statuses
+
+
+def load_app_managed_secrets_into_environment(
+    *,
+    store: SecretStore | None = None,
+    overwrite: bool = False,
+) -> list[SecretStatus]:
+    """Backward-compatible alias for the pre-CLI/web naming."""
+
+    return load_runtime_managed_secrets_into_environment(store=store, overwrite=overwrite)
 
 
 def collect_secret_statuses(
@@ -364,7 +374,7 @@ def secret_status_payload(statuses: list[SecretStatus]) -> dict[str, object]:
         status = "ok"
     return {
         "status": status,
-        "provider": "app-managed-secret-store",
+        "provider": "runtime-managed-secret-store",
         "missing_required": missing_required,
         "secrets": [status_item.asdict() for status_item in statuses],
     }
@@ -414,7 +424,7 @@ def _unavailable_status(definition: SecretDefinition, message: str, *, required:
         source=None,
         required=required,
         message=message,
-        next_action="Use developer env-file mode or install a supported local app secret provider.",
+        next_action="Use developer env-file mode or install a supported local runtime secret provider.",
     )
 
 

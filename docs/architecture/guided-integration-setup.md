@@ -28,7 +28,7 @@ It exits with setup-required when a required item is missing for the selected wo
 Default setup only requires the local Harness runtime:
 
 - writable app data and log directories
-- app-managed runtime config
+- runtime-managed config
 - SQLite schema readiness
 - accessible selected workspace folders, if any were selected
 
@@ -94,7 +94,7 @@ The top-level payload includes:
 
 ## Integration Boundaries
 
-GitHub and Linear credentials must be stored through the app-managed secret boundary.
+GitHub and Linear credentials must be stored through the runtime-managed secret boundary.
 The setup contract names the secret to store and exposes the redacted validation status.
 It must not ask operators to edit env files.
 

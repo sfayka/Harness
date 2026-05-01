@@ -24,7 +24,7 @@ from modules.local_secrets import (
     LocalSecretError,
     SecretStatus,
     collect_secret_statuses,
-    load_app_managed_secrets_into_environment,
+    load_runtime_managed_secrets_into_environment,
     secret_status_payload,
 )
 from modules.local_setup import (
@@ -278,7 +278,7 @@ def init_runtime(
     port: int = DEFAULT_API_PORT,
     force: bool = False,
 ) -> tuple[RuntimeConfig, bool]:
-    """Create app-managed runtime directories, config, log file, and SQLite schema."""
+    """Create runtime-managed directories, config, log file, and SQLite schema."""
 
     paths.data_dir.mkdir(parents=True, exist_ok=True)
     paths.log_dir.mkdir(parents=True, exist_ok=True)
@@ -305,7 +305,7 @@ def init_runtime(
 
 
 def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> None:
-    """Apply app-managed runtime environment for backend startup."""
+    """Apply runtime-managed environment for backend startup."""
 
     secret_store = create_secret_store()
     os.environ["HARNESS_STORE_BACKEND"] = "sqlite"
@@ -318,10 +318,10 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     os.environ[ENV_RUNTIME_PORT] = str(config.port)
     os.environ[ENV_RUNTIME_BASE_URL] = config.base_url
     os.environ.setdefault(ENV_DASHBOARD_ASSETS_DIR, str(config.dashboard_assets_dir))
-    load_app_managed_secrets_into_environment(store=secret_store)
+    load_runtime_managed_secrets_into_environment(store=secret_store)
     os.environ.setdefault(
         ENV_SECRET_PROVIDER,
-        str(getattr(secret_store, "provider_name", "app-managed-secret-store")),
+        str(getattr(secret_store, "provider_name", "runtime-managed-secret-store")),
     )
 
 
@@ -444,7 +444,7 @@ def start_runtime(
     timeout_seconds: float = 10.0,
     force_restart: bool = False,
 ) -> tuple[int, dict[str, Any]]:
-    """Start the local runtime as an app-managed background process."""
+    """Start the local runtime as a runtime-managed background process."""
 
     config, _ = init_runtime(paths, host=host or DEFAULT_API_HOST, port=port or DEFAULT_API_PORT)
     if host or port:
@@ -538,7 +538,7 @@ def recover_runtime(
     *,
     timeout_seconds: float = 10.0,
 ) -> tuple[int, dict[str, Any]]:
-    """Recover the app-managed runtime after stale PID, crash, or degraded health."""
+    """Recover the runtime-managed process after stale PID, crash, or degraded health."""
 
     return start_runtime(paths, timeout_seconds=timeout_seconds, force_restart=True)
 
@@ -1217,8 +1217,8 @@ def build_parser() -> argparse.ArgumentParser:
         prog="harness",
         description="Control the local Harness runtime.",
     )
-    parser.add_argument("--data-dir", help="Override the app-managed data directory")
-    parser.add_argument("--log-dir", help="Override the app-managed log directory")
+    parser.add_argument("--data-dir", help="Override the runtime-managed data directory")
+    parser.add_argument("--log-dir", help="Override the runtime-managed log directory")
     parser.add_argument("--json", action="store_true", dest="as_json", help="Emit machine-readable JSON output")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -1234,7 +1234,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--host", help="Temporary host override for this process")
     serve_parser.add_argument("--port", type=int, help="Temporary port override for this process")
 
-    start_parser = subparsers.add_parser("start", help="Start the local Harness API as an app-managed process")
+    start_parser = subparsers.add_parser("start", help="Start the local Harness API as a runtime-managed process")
     start_parser.add_argument("--host", help="Temporary host override for this process")
     start_parser.add_argument("--port", type=int, help="Temporary port override for this process")
     start_parser.add_argument("--timeout", default=10.0, type=float, help="Startup timeout in seconds")
@@ -1278,12 +1278,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Treat integrations for the selected workflow as required",
     )
 
-    secrets_parser = subparsers.add_parser("secrets", help="Manage app-managed Harness secrets")
+    secrets_parser = subparsers.add_parser("secrets", help="Manage runtime-managed Harness secrets")
     secrets_subparsers = secrets_parser.add_subparsers(dest="secret_command", required=True)
 
     secrets_status_parser = secrets_subparsers.add_parser(
         "status",
-        help="Report configured and missing app-managed secrets without printing values",
+        help="Report configured and missing runtime-managed secrets without printing values",
     )
     secrets_status_parser.add_argument(
         "--require",
@@ -1294,7 +1294,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     secrets_set_parser = secrets_subparsers.add_parser(
         "set",
-        help="Store a secret in the app-managed secret provider",
+        help="Store a secret in the runtime-managed secret provider",
     )
     secrets_set_parser.add_argument("name", help="Secret name")
     secrets_set_parser.add_argument(
@@ -1305,7 +1305,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     secrets_delete_parser = secrets_subparsers.add_parser(
         "delete",
-        help="Delete a stored app-managed secret",
+        help="Delete a stored runtime-managed secret",
     )
     secrets_delete_parser.add_argument("name", help="Secret name")
 
@@ -1415,7 +1415,7 @@ def _handle_secrets_command(args: argparse.Namespace, *, as_json: bool) -> int:
             {
                 "status": "stored",
                 "secret": args.name,
-                "message": "Secret stored in the app-managed secret provider.",
+                "message": "Secret stored in the runtime-managed secret provider.",
             },
             as_json=as_json,
         )
