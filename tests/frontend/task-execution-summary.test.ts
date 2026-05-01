@@ -12,7 +12,7 @@ test.afterEach(() => {
 test("maps read-model execution transport summary fields", async () => {
   const responses = new Map<string, unknown>([
     [
-      "/api/harness/tasks/task-1/read-model",
+      "/api/proofline/tasks/task-1/read-model",
       {
         task: {
           task_id: "task-1",
@@ -46,7 +46,7 @@ test("maps read-model execution transport summary fields", async () => {
         },
       },
     ],
-    ["/api/harness/tasks/task-1/timeline", { timeline: [] }],
+    ["/api/proofline/tasks/task-1/timeline", { timeline: [] }],
   ]);
 
   globalThis.fetch = async (url) => {

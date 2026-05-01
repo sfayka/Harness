@@ -19,10 +19,10 @@ test.afterEach(() => {
   resetEnvironment();
 });
 
-test("uses the Next proxy by default", () => {
+test("uses the Proofline Next proxy by default", () => {
   resetEnvironment();
 
-  assert.equal(resolveDashboardApiBasePath(), "/api/harness");
+  assert.equal(resolveDashboardApiBasePath(), "/api/proofline");
 });
 
 test("uses same-origin API paths for local static dashboard builds", () => {
