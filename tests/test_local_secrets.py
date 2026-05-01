@@ -14,7 +14,7 @@ from modules.local_secrets import (
     SecretProviderUnavailableError,
     UnsupportedPlatformSecretStore,
     collect_secret_statuses,
-    load_app_managed_secrets_into_environment,
+    load_runtime_managed_secrets_into_environment,
     secret_status_payload,
 )
 
@@ -110,7 +110,7 @@ class LocalSecretStatusTests(unittest.TestCase):
         with self.assertRaises(SecretProviderUnavailableError):
             store.get_secret("github_token")
 
-    def test_loads_app_managed_secrets_into_missing_environment_vars(self) -> None:
+    def test_loads_runtime_managed_secrets_into_missing_environment_vars(self) -> None:
         store = InMemorySecretStore(
             {
                 "github_token": "ghp_secret",
@@ -119,7 +119,7 @@ class LocalSecretStatusTests(unittest.TestCase):
         )
 
         with patch.dict(os.environ, {}, clear=True):
-            statuses = load_app_managed_secrets_into_environment(store=store)
+            statuses = load_runtime_managed_secrets_into_environment(store=store)
 
             self.assertEqual(os.environ["GITHUB_TOKEN"], "ghp_secret")
             self.assertEqual(os.environ["LINEAR_API_KEY"], "lin_secret")
@@ -129,11 +129,11 @@ class LocalSecretStatusTests(unittest.TestCase):
         self.assertEqual(status_by_name["github_token"].source, "memory")
         self.assertEqual(status_by_name["repair_callback_bearer_token"].status, "missing")
 
-    def test_existing_environment_vars_win_over_app_managed_secrets(self) -> None:
+    def test_existing_environment_vars_win_over_runtime_managed_secrets(self) -> None:
         store = InMemorySecretStore({"github_token": "keychain-secret"})
 
         with patch.dict(os.environ, {"GITHUB_TOKEN": "env-secret"}, clear=True):
-            load_app_managed_secrets_into_environment(store=store)
+            load_runtime_managed_secrets_into_environment(store=store)
 
             self.assertEqual(os.environ["GITHUB_TOKEN"], "env-secret")
 

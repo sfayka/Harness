@@ -50,13 +50,13 @@ Default Linux paths:
 
 Developer and test runs may override paths with `--data-dir`, `--log-dir`, `HARNESS_APP_DATA_DIR`,
 or `HARNESS_APP_LOG_DIR`.
-Normal local usage should rely on app-managed defaults.
+Normal local usage should rely on runtime-managed defaults.
 
 ## Runtime Config
 
 `harness init` writes non-secret config to `config.json` and initializes the SQLite schema.
 Secrets do not belong in this file.
-GitHub, Linear, and ingress/executor credentials move through the app-managed secret store.
+GitHub, Linear, and ingress/executor credentials move through the runtime-managed secret store.
 
 The first schema stores:
 
@@ -76,7 +76,7 @@ The first schema stores:
 - `HARNESS_RUNTIME_PORT=8765`
 - `HARNESS_RUNTIME_BASE_URL=http://127.0.0.1:8765`
 - `HARNESS_DASHBOARD_ASSETS_DIR=<app-data>/dashboard`
-- app-managed secrets, when present, mapped to their backend environment variables
+- runtime-managed secrets, when present, mapped to their backend environment variables
 
 This is what removes the need for Docker, Node, `pnpm`, or repo-local shell exports for the backend runtime.
 
@@ -125,7 +125,7 @@ The current workflow gates are:
 - `linear-sync`: requires Linear coordination.
 - `repair-dispatch`: requires a desktop-agent ingress/executor bridge.
 
-Setup items use the app-managed secret boundary.
+Setup items use the runtime-managed secret boundary.
 The GitHub and Linear items tell the operator which named secret to store and how Harness validates it; they do not ask operators to edit env files.
 The ingress/executor item stays client-neutral and describes the bridge as compatible with OpenClaw, Hermes, Codex, or future desktop-agent clients.
 
@@ -160,7 +160,7 @@ The backend exposes two runtime-safe probes:
 
 - `GET /health`: canonical backend and storage health.
 - `GET /runtime/status`: local runtime status envelope that includes mode, API base URL,
-  store backend, secret provider, schema readiness, and app-managed paths.
+  store backend, secret provider, schema readiness, and runtime-managed paths.
 
 `harness status --json` calls the local health endpoint and returns:
 
@@ -216,8 +216,8 @@ All CLI failures should produce operator-readable messages. Stack traces are not
 
 ## Process Lifecycle
 
-`harness start` is the app-facing lifecycle command.
-It initializes the runtime if needed, starts `harness serve` as an app-managed background process, waits for `/health`, and then returns JSON the app can render.
+`harness start` is the local lifecycle command.
+It initializes the runtime if needed, starts `harness serve` as a runtime-managed background process, waits for `/health`, and then returns JSON the CLI or wrapper can render.
 If the runtime is already healthy, `start` exits successfully without launching a duplicate process.
 If the PID file is stale, `start` removes it and starts a fresh runtime.
 If the configured port is already owned by a non-Harness process, `start` fails with `status=port_conflict` and an explicit next action.

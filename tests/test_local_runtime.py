@@ -55,7 +55,7 @@ class LocalRuntimeCliTests(unittest.TestCase):
             )
         return exit_code, json.loads(stdout.getvalue())
 
-    def test_init_creates_app_managed_config_sqlite_database_and_log(self) -> None:
+    def test_init_creates_runtime_managed_config_sqlite_database_and_log(self) -> None:
         exit_code, payload = self._run_cli("init")
 
         config_path = self.data_path / "config.json"
@@ -499,7 +499,7 @@ class LocalRuntimeProcessTests(unittest.TestCase):
 
 
 class LocalRuntimeContractTests(unittest.TestCase):
-    def test_resolves_macos_app_managed_paths(self) -> None:
+    def test_resolves_macos_runtime_managed_paths(self) -> None:
         paths = resolve_runtime_paths(platform_name="darwin", home="/Users/sean")
 
         self.assertEqual(paths.data_dir, Path("/Users/sean/Library/Application Support/Harness"))
@@ -508,7 +508,7 @@ class LocalRuntimeContractTests(unittest.TestCase):
         self.assertEqual(paths.database_path, paths.data_dir / "harness.db")
         self.assertEqual(paths.dashboard_assets_dir, paths.data_dir / "dashboard")
 
-    def test_resolves_linux_app_managed_paths(self) -> None:
+    def test_resolves_linux_runtime_managed_paths(self) -> None:
         with patch.dict(
             os.environ,
             {"XDG_DATA_HOME": "/tmp/xdg-data", "XDG_STATE_HOME": "/tmp/xdg-state"},

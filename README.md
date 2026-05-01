@@ -220,7 +220,7 @@ See:
 - SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
 - The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
 - The local runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
-- App-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
+- Runtime-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
 - Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
 - Setup doctor output is documented in [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md).
 - The deprecated macOS menu-bar app remains legacy code only; supported local operation should use the CLI/runtime contract and web dashboard.
@@ -365,7 +365,7 @@ python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
 
-Future packaged CLI builds should expose the same contract as `harness init`, `harness start`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness recover`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in app-managed local directories so operators do not need Docker, Node, `pnpm`, or repo-local shell exports.
+Future packaged CLI builds should expose the same contract as `harness init`, `harness start`, `harness serve`, `harness status`, `harness doctor`, `harness setup status`, `harness open`, `harness recover`, `harness stop`, and `harness secrets ...`. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in runtime-managed local directories so operators do not need Docker, Node, `pnpm`, or repo-local shell exports.
 
 Build the packageable dashboard assets for the local CLI/web path:
 
@@ -375,7 +375,7 @@ pnpm build:dashboard:local
 
 The output lives in `dist/local-dashboard/`. When `HARNESS_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API.
 
-Store app-managed secrets for local CLI/web usage:
+Store runtime-managed secrets for local CLI/web usage:
 
 ```bash
 printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin

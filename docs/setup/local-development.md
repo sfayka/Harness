@@ -109,7 +109,7 @@ python3 -m modules.local_runtime --json recover
 python3 -m modules.local_runtime --json stop
 ```
 
-The runtime contract uses app-managed config, SQLite state, PID files, dashboard assets, and logs. A future packaged CLI should not require Docker, Node, `pnpm`, or repo-local shell exports.
+The runtime contract uses runtime-managed config, SQLite state, PID files, dashboard assets, and logs. A future packaged CLI should not require Docker, Node, `pnpm`, or repo-local shell exports.
 Use `start` and `recover` for local background lifecycle control.
 Use `serve` only when you intentionally want a foreground backend for debugging.
 
@@ -121,7 +121,7 @@ Default macOS paths:
 - `~/Library/Application Support/Harness/runtime/harness.pid`
 - `~/Library/Logs/Harness/harness.log`
 
-Local CLI/web secrets use the app-managed secret store instead of `.env.local`:
+Local CLI/web secrets use the runtime-managed secret store instead of `.env.local`:
 
 ```bash
 printf '%s' "$GITHUB_TOKEN" | python3 -m modules.local_runtime --json secrets set github_token --value-stdin

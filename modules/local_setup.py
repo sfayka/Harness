@@ -110,7 +110,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             SetupAction(
                 kind="runtime",
                 label="Initialize local runtime",
-                description="Create app-managed config, logs, and the SQLite database.",
+                description="Create runtime-managed config, logs, and the SQLite database.",
                 command="harness init",
             ),
             SetupAction(
@@ -146,7 +146,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             SetupAction(
                 kind="secret",
                 label="Connect GitHub",
-                description="Store the GitHub credential through the app-managed secret boundary.",
+                description="Store the GitHub credential through the runtime-managed secret boundary.",
                 command="harness secrets set github_token --value-stdin",
                 secret_name="github_token",
                 stores_secret=True,
@@ -175,7 +175,7 @@ SETUP_ITEM_DEFINITIONS: tuple[SetupItemDefinition, ...] = (
             SetupAction(
                 kind="secret",
                 label="Connect Linear",
-                description="Store the Linear credential through the app-managed secret boundary.",
+                description="Store the Linear credential through the runtime-managed secret boundary.",
                 command="harness secrets set linear_api_key --value-stdin",
                 secret_name="linear_api_key",
                 stores_secret=True,
