@@ -4,6 +4,7 @@ import { resolveHarnessApiBaseUrl } from "@/lib/harness-api-base";
 
 function getBaseUrl(): string | null {
   return resolveHarnessApiBaseUrl({
+    PROOFLINE_API_BASE_URL: process.env.PROOFLINE_API_BASE_URL,
     HARNESS_API_BASE_URL: process.env.HARNESS_API_BASE_URL,
     VERCEL_URL: process.env.VERCEL_URL,
   });
@@ -18,7 +19,7 @@ export async function proxyProoflineApiRequest(
     return NextResponse.json(
       {
         error:
-          "Proofline API base URL could not be resolved. Set HARNESS_API_BASE_URL locally or deploy behind Vercel Services.",
+          "Proofline API base URL could not be resolved. Set PROOFLINE_API_BASE_URL or HARNESS_API_BASE_URL locally, or deploy behind Vercel Services.",
       },
       { status: 503 },
     );

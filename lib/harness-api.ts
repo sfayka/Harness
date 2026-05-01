@@ -32,7 +32,9 @@ export function resolveDashboardApiBasePath(): string {
     }
   }
 
-  const publicBaseUrl = process.env.NEXT_PUBLIC_HARNESS_API_BASE_URL?.trim();
+  const prooflinePublicBaseUrl = process.env.NEXT_PUBLIC_PROOFLINE_API_BASE_URL?.trim();
+  const harnessPublicBaseUrl = process.env.NEXT_PUBLIC_HARNESS_API_BASE_URL?.trim();
+  const publicBaseUrl = prooflinePublicBaseUrl || harnessPublicBaseUrl;
   if (publicBaseUrl) {
     return stripTrailingSlash(publicBaseUrl);
   }

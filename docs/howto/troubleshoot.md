@@ -19,6 +19,7 @@ Hosted `/reset/*` should fail explicitly if reset storage cannot initialize. It 
 
 Check:
 
+- `PROOFLINE_API_BASE_URL`
 - `HARNESS_API_BASE_URL`
 - backend reachability
 - whether the hosted dashboard is using the same-project `/backend` route

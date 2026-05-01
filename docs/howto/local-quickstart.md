@@ -22,7 +22,8 @@ Create repo-root `.env.local` when you need live GitHub or Linear validation:
 ```bash
 GITHUB_TOKEN=...
 LINEAR_API_KEY=...
-HARNESS_API_BASE_URL=http://127.0.0.1:8000
+PROOFLINE_API_BASE_URL=http://127.0.0.1:8000
+# HARNESS_API_BASE_URL remains a compatibility fallback.
 ```
 
 Start the backend:

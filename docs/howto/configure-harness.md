@@ -38,6 +38,7 @@ Common local variables:
 
 - `GITHUB_TOKEN`
 - `LINEAR_API_KEY`
+- `PROOFLINE_API_BASE_URL=http://127.0.0.1:8000`
 - `HARNESS_API_BASE_URL=http://127.0.0.1:8000`
 - `HARNESS_STORE_BACKEND=file`
 - `HARNESS_STORE_BACKEND=sqlite`
@@ -45,6 +46,8 @@ Common local variables:
 - `HARNESS_STORE_BACKEND=postgres`
 - `DATABASE_URL`
 - `POSTGRES_URL`
+
+`PROOFLINE_API_BASE_URL` is preferred for the dashboard/backend proxy override. `HARNESS_API_BASE_URL` remains a compatibility fallback for existing local files and deployments. Hosted same-project Vercel deployments still derive the backend route automatically and ignore either explicit override.
 
 ## Desktop-Agent Bridge Wiring
 
