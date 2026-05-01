@@ -3,9 +3,9 @@ version = 1
 name = "Harness"
 
 [setup]
-script = ""
+script = "python3 -m modules.local_runtime --json init"
 
 [[actions]]
 name = "Run"
 icon = "run"
-command = "./script/build_and_run.sh"
+command = "python3 -m modules.local_runtime --json start"
