@@ -47,9 +47,32 @@ Do not rename these in the next implementation PR:
 
 These are compatibility surfaces, not branding copy.
 
+## Compatibility Map
+
+| Identifier | Current Examples | Classification | Rename Rule |
+| --- | --- | --- | --- |
+| Product name | `Proofline` in README, dashboard labels, browser metadata, system context | current product name | Use for product-facing copy. |
+| Repository name | `Harness`, `sfayka/Harness`, local path segments | rename-later | Rename last, after deployment, Codex Cloud, local clone, and GitHub integration migration notes exist. |
+| CLI command shape | `python3 -m modules.local_runtime ...`, future `harness ...` examples | alias-first | Do not introduce a Proofline command until existing commands are documented and tested as compatibility aliases. |
+| Frontend package name | `harness-dashboard` in `package.json` | rename-later | Rename only after build, deployment, and local dashboard packaging checks prove no package-name coupling. |
+| Next.js proxy route | `app/api/harness/[...path]` | alias-first | Keep existing route. A future Proofline route must proxy to the same backend behavior and have tests before adoption. |
+| API base env vars | `HARNESS_API_BASE_URL`, `HARNESS_STORE_BACKEND`, `HARNESS_SQLITE_PATH`, `HARNESS_RUNTIME_*` | alias-first | Keep old env vars valid. Add Proofline aliases only if precedence and conflict behavior are documented and tested. |
+| Secret/service namespace | `com.knoxanalytics.harness.local-runtime`, Keychain/service labels | alias-first | Do not rename until migration preserves existing stored secrets or documents an explicit migration command. |
+| Persisted schema fields | `harness_state`, `source_system=harness`, artifact metadata like `harness-task-id` | stable compatibility | Do not rename in-place. Add new projection fields only if old fields remain readable. |
+| Task contract name | `TaskEnvelope` | stable | Do not rename unless schema versioning, docs, adapter mappings, and tests are updated together. |
+| Python modules | `modules.local_runtime`, `modules.evaluation`, `modules.contracts.*` | rename-later | Keep until external imports, scripts, tests, and docs have aliases. |
+| API routes | `/tasks`, `/reset/*`, `/sync/github`, `/execution-substrate/*`, `/ingress/*` | stable public surface | Do not rename for branding. Add only additive aliases with tests if a product need appears. |
+| Demo and proof artifacts | `docs/demo/*`, `HARNESS-DRYRUN`, historical JSON payloads | historical evidence | Do not rewrite historical proof for branding. |
+| ADRs and archive docs | old Harness/macOS decision records | historical evidence | Preserve original terms except for short framing notes when needed. |
+| Vercel/deployment identifiers | project names, route config, hosted env keys | blocked | Audit separately before any rename. Hosted availability matters more than brand cleanliness. |
+
+## Operator Naming Note
+
+During the migration, operators may see Proofline in product surfaces while commands, env vars, route paths, and stored evidence still say Harness. That is expected. Treat Proofline as the product name and Harness as the current compatibility namespace.
+
 ## Phase 1: Product Copy And UI
 
-Status: in progress.
+Status: complete for the first visible surfaces.
 
 Allowed changes:
 
@@ -68,7 +91,7 @@ Required validation:
 
 ## Phase 2: Documentation Compatibility Map
 
-Status: next.
+Status: in progress.
 
 Allowed changes:
 

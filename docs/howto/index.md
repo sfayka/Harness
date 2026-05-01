@@ -2,6 +2,8 @@
 
 Start here if you want to install, configure, use, and validate Proofline without reading every architecture note first.
 
+During the staged rename, product surfaces say Proofline while commands, environment variables, routes, and stored evidence may still use the Harness compatibility namespace. That is expected. See [Proofline Rename Migration](../architecture/proofline-rename-migration.md).
+
 ## Start Here
 
 - [Local Quickstart](local-quickstart.md)
