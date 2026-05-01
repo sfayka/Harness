@@ -44,16 +44,17 @@ The generated bundle expects to be served at:
 The generated JavaScript resolves API calls in this order:
 
 - `window.__HARNESS_DASHBOARD_CONFIG__.apiBaseUrl`, when an embedding shell provides it
-- `NEXT_PUBLIC_HARNESS_API_BASE_URL`, when an explicit public API URL is compiled in
+- `NEXT_PUBLIC_PROOFLINE_API_BASE_URL`, when an explicit public API URL is compiled in
+- `NEXT_PUBLIC_HARNESS_API_BASE_URL`, as a compatibility fallback
 - same-origin paths, when `NEXT_PUBLIC_HARNESS_DASHBOARD_MODE=local-static`
 - `/api/harness`, for the normal hosted/developer Next proxy mode
 
 ## Runtime Mount
 
-The Python backend mounts packaged assets when `HARNESS_DASHBOARD_ASSETS_DIR` points at a directory containing `index.html`.
+The Python backend mounts packaged assets when `PROOFLINE_DASHBOARD_ASSETS_DIR` points at a directory containing `index.html`. `HARNESS_DASHBOARD_ASSETS_DIR` remains a compatibility fallback.
 
 ```bash
-HARNESS_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard" \
+PROOFLINE_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard" \
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8765
 ```
 
@@ -72,7 +73,7 @@ The same process serves the canonical API routes such as `GET /tasks`, `GET /tas
 A future packaged CLI/web distribution should either:
 
 - place the prebuilt dashboard bundle at the configured `dashboard_assets_dir`
-- set `HARNESS_DASHBOARD_ASSETS_DIR` before starting the Harness runtime
+- set `PROOFLINE_DASHBOARD_ASSETS_DIR` before starting the Proofline runtime
 
 The operator-facing launcher should open:
 

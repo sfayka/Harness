@@ -385,7 +385,7 @@ Build the packageable dashboard assets for the local CLI/web path:
 pnpm build:dashboard:local
 ```
 
-The output lives in `dist/local-dashboard/`. When `HARNESS_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API.
+The output lives in `dist/local-dashboard/`. When `PROOFLINE_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API. `HARNESS_DASHBOARD_ASSETS_DIR` remains a compatibility fallback.
 
 Store runtime-managed secrets for local CLI/web usage:
 

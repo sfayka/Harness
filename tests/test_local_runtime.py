@@ -317,9 +317,12 @@ class LocalRuntimeProcessTests(unittest.TestCase):
 
         def fake_run_uvicorn(config) -> None:  # noqa: ANN001
             observed["pid_exists_during_run"] = config.pid_path.exists()
+            observed["proofline_store_backend"] = os.environ.get("PROOFLINE_STORE_BACKEND")
+            observed["proofline_sqlite_path"] = os.environ.get("PROOFLINE_SQLITE_PATH")
             observed["store_backend"] = os.environ.get("HARNESS_STORE_BACKEND")
             observed["sqlite_path"] = os.environ.get("HARNESS_SQLITE_PATH")
             observed["runtime_mode"] = os.environ.get("HARNESS_RUNTIME_MODE")
+            observed["proofline_dashboard_assets_dir"] = os.environ.get("PROOFLINE_DASHBOARD_ASSETS_DIR")
             observed["dashboard_assets_dir"] = os.environ.get("HARNESS_DASHBOARD_ASSETS_DIR")
             observed["secret_provider"] = os.environ.get("HARNESS_SECRET_PROVIDER")
             observed["github_token"] = os.environ.get("GITHUB_TOKEN")
@@ -341,9 +344,12 @@ class LocalRuntimeProcessTests(unittest.TestCase):
 
         self.assertEqual(exit_code, EXIT_OK)
         self.assertTrue(observed["pid_exists_during_run"])
+        self.assertEqual(observed["proofline_store_backend"], "sqlite")
+        self.assertEqual(observed["proofline_sqlite_path"], str(self.paths.database_path))
         self.assertEqual(observed["store_backend"], "sqlite")
         self.assertEqual(observed["sqlite_path"], str(self.paths.database_path))
         self.assertEqual(observed["runtime_mode"], "local-app")
+        self.assertEqual(observed["proofline_dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
         self.assertEqual(observed["dashboard_assets_dir"], str(self.paths.dashboard_assets_dir))
         self.assertEqual(observed["secret_provider"], "memory")
         self.assertEqual(observed["github_token"], "ghp_secret")

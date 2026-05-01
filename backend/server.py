@@ -16,7 +16,7 @@ from modules.store import HarnessStore
 
 load_native_local_env()
 
-DASHBOARD_ASSETS_DIR_ENV_VAR = "HARNESS_DASHBOARD_ASSETS_DIR"
+DASHBOARD_ASSETS_DIR_ENV_VARS = ("PROOFLINE_DASHBOARD_ASSETS_DIR", "HARNESS_DASHBOARD_ASSETS_DIR")
 
 
 def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
@@ -62,7 +62,14 @@ def _build_reset_service(store: HarnessStore | None) -> ResetVerificationService
 
 
 def _resolve_dashboard_assets_dir() -> Path | None:
-    configured = os.environ.get(DASHBOARD_ASSETS_DIR_ENV_VAR)
+    configured = next(
+        (
+            value
+            for env_var in DASHBOARD_ASSETS_DIR_ENV_VARS
+            if (value := os.environ.get(env_var)) and value.strip()
+        ),
+        None,
+    )
     if not configured or not configured.strip():
         return None
     assets_dir = Path(configured).expanduser()

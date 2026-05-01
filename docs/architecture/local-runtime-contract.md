@@ -75,7 +75,8 @@ The first schema stores:
 - `HARNESS_RUNTIME_HOST=127.0.0.1`
 - `HARNESS_RUNTIME_PORT=8765`
 - `HARNESS_RUNTIME_BASE_URL=http://127.0.0.1:8765`
-- `HARNESS_DASHBOARD_ASSETS_DIR=<app-data>/dashboard`
+- `PROOFLINE_DASHBOARD_ASSETS_DIR=<app-data>/dashboard`
+- `HARNESS_DASHBOARD_ASSETS_DIR=<app-data>/dashboard` as a compatibility fallback
 - runtime-managed secrets, when present, mapped to their backend environment variables
 
 This is what removes the need for Docker, Node, `pnpm`, or repo-local shell exports for the backend runtime.
@@ -142,7 +143,7 @@ Developer builds produce the local bundle with:
 pnpm build:dashboard:local
 ```
 
-Future packaged CLI/web builds should copy that bundle into `dashboard_assets_dir`, or set `HARNESS_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `harness serve`.
+Future packaged CLI/web builds should copy that bundle into `dashboard_assets_dir`, or set `PROOFLINE_DASHBOARD_ASSETS_DIR` to the installed bundle path before starting `harness serve`.
 
 When the configured directory contains `index.html`, the backend mounts it at:
 

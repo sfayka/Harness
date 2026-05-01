@@ -144,7 +144,7 @@ class FastApiBackendTests(unittest.TestCase):
         (dashboard_dir / "index.html").write_text("<h1>Dashboard Home</h1>", encoding="utf-8")
         (dashboard_dir / "tasks" / "index.html").write_text("<h1>Tasks</h1>", encoding="utf-8")
 
-        with patch.dict(os.environ, {"HARNESS_DASHBOARD_ASSETS_DIR": str(dashboard_dir)}, clear=False):
+        with patch.dict(os.environ, {"PROOFLINE_DASHBOARD_ASSETS_DIR": str(dashboard_dir)}, clear=False):
             client = TestClient(create_app(store=self.store, reset_service=self.reset_service))
 
         home = client.get("/dashboard/")
@@ -154,6 +154,19 @@ class FastApiBackendTests(unittest.TestCase):
         self.assertIn("Dashboard Home", home.text)
         self.assertEqual(tasks.status_code, 200)
         self.assertIn("Tasks", tasks.text)
+
+    def test_mounts_packaged_dashboard_assets_from_harness_fallback(self) -> None:
+        dashboard_dir = Path(self.temp_dir.name) / "dashboard-fallback"
+        dashboard_dir.mkdir(parents=True)
+        (dashboard_dir / "index.html").write_text("<h1>Fallback Dashboard</h1>", encoding="utf-8")
+
+        with patch.dict(os.environ, {"HARNESS_DASHBOARD_ASSETS_DIR": str(dashboard_dir)}, clear=False):
+            client = TestClient(create_app(store=self.store, reset_service=self.reset_service))
+
+        home = client.get("/dashboard/")
+
+        self.assertEqual(home.status_code, 200)
+        self.assertIn("Fallback Dashboard", home.text)
 
     def test_backend_stays_healthy_when_reset_startup_is_unavailable(self) -> None:
         with patch("backend.server.ResetVerificationService.from_env", side_effect=OSError("read-only file system")):

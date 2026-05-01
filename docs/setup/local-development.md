@@ -272,7 +272,7 @@ It does not use the Next proxy route and it does not fall back to sample data.
 Smoke it from a checkout:
 
 ```bash
-HARNESS_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard" \
+PROOFLINE_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard" \
 python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8765
 ```
 

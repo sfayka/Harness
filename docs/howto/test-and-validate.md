@@ -24,7 +24,7 @@ From a checkout:
 
 ```bash
 pnpm build:dashboard:local
-export HARNESS_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard"
+export PROOFLINE_DASHBOARD_ASSETS_DIR="$PWD/dist/local-dashboard"
 python3 -m modules.local_runtime --json init
 python3 -m modules.local_runtime --json start
 python3 -m modules.local_runtime --json status

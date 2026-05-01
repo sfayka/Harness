@@ -55,6 +55,7 @@ ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
 ENV_RUNTIME_EXECUTABLE = "HARNESS_RUNTIME_EXECUTABLE"
 ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
+ENV_PROOFLINE_DASHBOARD_ASSETS_DIR = "PROOFLINE_DASHBOARD_ASSETS_DIR"
 ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
 ENV_NOTIFICATION_PERMISSION = "HARNESS_NOTIFICATION_PERMISSION"
 ENV_LAUNCH_AT_LOGIN = "HARNESS_LAUNCH_AT_LOGIN"
@@ -308,6 +309,8 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     """Apply runtime-managed environment for backend startup."""
 
     secret_store = create_secret_store()
+    os.environ["PROOFLINE_STORE_BACKEND"] = "sqlite"
+    os.environ["PROOFLINE_SQLITE_PATH"] = str(config.database_path)
     os.environ["HARNESS_STORE_BACKEND"] = "sqlite"
     os.environ["HARNESS_SQLITE_PATH"] = str(config.database_path)
     os.environ[ENV_RUNTIME_MODE] = "local-app"
@@ -317,6 +320,7 @@ def apply_runtime_environment(config: RuntimeConfig, *, config_path: Path) -> No
     os.environ[ENV_RUNTIME_HOST] = config.host
     os.environ[ENV_RUNTIME_PORT] = str(config.port)
     os.environ[ENV_RUNTIME_BASE_URL] = config.base_url
+    os.environ.setdefault(ENV_PROOFLINE_DASHBOARD_ASSETS_DIR, str(config.dashboard_assets_dir))
     os.environ.setdefault(ENV_DASHBOARD_ASSETS_DIR, str(config.dashboard_assets_dir))
     load_runtime_managed_secrets_into_environment(store=secret_store)
     os.environ.setdefault(
@@ -731,7 +735,12 @@ def _check_writable_directory(code: str, path: Path, impact: str) -> RuntimeChec
 
 
 def _check_dashboard(config: RuntimeConfig, *, status_payload: dict[str, Any]) -> RuntimeCheck:
-    assets_dir = Path(os.environ.get(ENV_DASHBOARD_ASSETS_DIR) or config.dashboard_assets_dir).expanduser()
+    configured_assets_dir = (
+        os.environ.get(ENV_PROOFLINE_DASHBOARD_ASSETS_DIR)
+        or os.environ.get(ENV_DASHBOARD_ASSETS_DIR)
+        or config.dashboard_assets_dir
+    )
+    assets_dir = Path(configured_assets_dir).expanduser()
     dashboard_url = f"{config.base_url}/dashboard/"
     assets_ready = (assets_dir / "index.html").is_file()
     api_running = status_payload.get("status") == "running"
@@ -747,7 +756,7 @@ def _check_dashboard(config: RuntimeConfig, *, status_payload: dict[str, Any]) -
             status="warn",
             message=f"Dashboard assets are missing at {assets_dir}.",
             impact="The dashboard window cannot render until packaged assets are installed.",
-            next_action="Build or install the packaged dashboard assets, then set HARNESS_DASHBOARD_ASSETS_DIR if they are not in the default app data path.",
+            next_action="Build or install the packaged dashboard assets, then set PROOFLINE_DASHBOARD_ASSETS_DIR if they are not in the default app data path.",
             details=details,
         )
 
