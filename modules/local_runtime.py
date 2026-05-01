@@ -967,18 +967,18 @@ def _check_notification_permission() -> RuntimeCheck:
     if permission in {"denied", "disabled"}:
         return RuntimeCheck(
             code="notification_permission",
-            status="warn",
-            message="Notification permission is denied.",
-            impact="Harness can still run, but attention events will not appear as local notifications.",
-            next_action="Enable Harness notifications in system settings if you want attention alerts.",
+            status="pass",
+            message="Wrapper notification delivery is disabled.",
+            impact="Harness can run normally through CLI/web surfaces without local notifications.",
+            next_action="No action needed.",
             details={"permission": permission},
         )
     return RuntimeCheck(
         code="notification_permission",
-        status="warn",
-        message="Notification permission has not been reported by a wrapper shell.",
-        impact="Harness can run, but no wrapper has confirmed whether attention alerts can be delivered.",
-        next_action="No action needed unless a wrapper shell is responsible for local notifications.",
+        status="pass",
+        message="No wrapper notification delivery is configured.",
+        impact="Harness can run normally through CLI/web surfaces without local notifications.",
+        next_action="No action needed.",
         details={"permission": permission},
     )
 
@@ -997,18 +997,18 @@ def _check_launch_at_login() -> RuntimeCheck:
     if state in {"disabled", "false", "0", "no"}:
         return RuntimeCheck(
             code="launch_at_login",
-            status="warn",
-            message="Launch at Login is disabled.",
-            impact="Harness will only run after the user starts it manually.",
-            next_action="No action needed unless a wrapper shell is responsible for startup after login.",
+            status="pass",
+            message="Wrapper startup after login is disabled.",
+            impact="Harness can run normally through explicit CLI/web startup.",
+            next_action="No action needed.",
             details={"state": state},
         )
     return RuntimeCheck(
         code="launch_at_login",
-        status="warn",
-        message="Launch at Login state has not been reported by a wrapper shell.",
-        impact="Harness can run, but automatic startup has not been confirmed.",
-        next_action="No action needed for CLI/web usage.",
+        status="pass",
+        message="No wrapper startup after login is configured.",
+        impact="Harness can run normally through explicit CLI/web startup.",
+        next_action="No action needed.",
         details={"state": state},
     )
 

@@ -62,8 +62,8 @@ The current doctor covers:
 - `linear_connection`: Linear credential setup state.
 - `execution_substrate`: Symphony-compatible execution-substrate availability.
 - `ingress_executor`: legacy desktop-agent bridge setup state for the current OpenClaw-shaped adapter wiring, without making OpenClaw the product boundary.
-- `notification_permission`: optional notification permission state reported by a wrapper shell.
-- `launch_at_login`: optional launch-at-login state reported by a wrapper shell.
+- `notification_permission`: optional notification delivery state reported by a wrapper shell; unknown or disabled states are healthy for CLI/web usage.
+- `launch_at_login`: optional startup-after-login state reported by a wrapper shell; unknown or disabled states are healthy for CLI/web usage.
 - `workspace_folders`: configured local workspace folder availability.
 
 ## Optional Shell Inputs
