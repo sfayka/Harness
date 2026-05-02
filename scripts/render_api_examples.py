@@ -25,6 +25,7 @@ from modules.demo_cases import build_demo_request  # noqa: E402
 
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "examples" / "api"
+STABLE_EXAMPLE_TIMESTAMP = "2026-03-31T15:58:11.643227Z"
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -44,7 +45,7 @@ def _write_json(path: Path, payload: Any) -> None:
 
 
 def _create_task_example() -> dict[str, Any]:
-    return build_task_submission_payload(
+    payload = build_task_submission_payload(
         intent=OpenClawTaskIntent(
             task_id="task-openclaw-spike-1",
             title="Validate Harness API boundary from OpenClaw",
@@ -67,6 +68,10 @@ def _create_task_example() -> dict[str, Any]:
             agent_id="openclaw-assistant",
         ),
     )
+    task_envelope = payload["request"]["task_envelope"]
+    task_envelope["timestamps"]["created_at"] = STABLE_EXAMPLE_TIMESTAMP
+    task_envelope["timestamps"]["updated_at"] = STABLE_EXAMPLE_TIMESTAMP
+    return payload
 
 
 def render_examples(output_dir: Path) -> Path:

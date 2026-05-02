@@ -32,6 +32,9 @@
       "assigned_executor": null,
       "child_task_ids": [],
       "constraints": [],
+      "coordination": {
+        "linear": null
+      },
       "dependencies": [],
       "description": "Submit a task through the canonical Harness API boundary.",
       "extensions": {
@@ -81,6 +84,16 @@
       },
       "parent_task_id": null,
       "priority": "normal",
+      "reconciliation": {
+        "active_failure_type": null,
+        "attempts": [],
+        "failed_at": null,
+        "last_attempt_id": null,
+        "last_error": null,
+        "last_pr_url": null,
+        "resolved_at": null,
+        "status": "not_required"
+      },
       "required_capabilities": [],
       "status": "intake_ready",
       "status_history": [],
