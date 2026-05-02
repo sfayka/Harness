@@ -332,6 +332,13 @@ def execution_substrate_intent_to_dict(intent: ExecutionSubstrateIntent) -> dict
 def execution_substrate_intent_from_dict(payload: dict[str, Any]) -> ExecutionSubstrateIntent:
     """Deserialize and validate an execution-substrate intent payload."""
 
+    advisory_only = payload.get("advisory_only")
+    if advisory_only is not True:
+        raise ExecutionSubstrateValidationError("execution-substrate intent advisory_only must be the boolean true")
+    prohibited_actions = payload.get("prohibited_actions")
+    if not isinstance(prohibited_actions, (list, tuple)):
+        raise ExecutionSubstrateValidationError("execution-substrate intent prohibited_actions must be a list")
+
     intent = ExecutionSubstrateIntent(
         intent_type=ExecutionSubstrateIntentType(str(payload["intent_type"])),
         substrate_kind=str(payload["substrate_kind"]),
@@ -340,9 +347,9 @@ def execution_substrate_intent_from_dict(payload: dict[str, Any]) -> ExecutionSu
         reason=str(payload["reason"]),
         suggested_action=str(payload["suggested_action"]),
         events_endpoint=str(payload["events_endpoint"]),
-        advisory_only=bool(payload["advisory_only"]),
+        advisory_only=advisory_only,
         completion_authority=str(payload["completion_authority"]),
-        prohibited_actions=tuple(str(action) for action in payload["prohibited_actions"]),
+        prohibited_actions=tuple(str(action) for action in prohibited_actions),
         metadata=dict(payload["metadata"]) if isinstance(payload.get("metadata"), dict) else {},
     )
     return validate_execution_substrate_intent(intent)

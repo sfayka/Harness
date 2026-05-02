@@ -242,6 +242,40 @@ class ExecutionSubstrateEventTests(unittest.TestCase):
         ):
             validate_execution_substrate_intent(intent)
 
+    def test_intent_from_dict_rejects_string_advisory_only(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-1",
+            attention_type="retryable_failure",
+            suggested_action="retry_or_redispatch",
+            reason="Task is retryable.",
+        )
+        assert intent is not None
+        payload = execution_substrate_intent_to_dict(intent)
+        payload["advisory_only"] = "false"
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "advisory_only must be the boolean true",
+        ):
+            execution_substrate_intent_from_dict(payload)
+
+    def test_intent_from_dict_rejects_string_prohibited_actions(self) -> None:
+        intent = build_execution_substrate_intent(
+            task_id="task-1",
+            attention_type="retryable_failure",
+            suggested_action="retry_or_redispatch",
+            reason="Task is retryable.",
+        )
+        assert intent is not None
+        payload = execution_substrate_intent_to_dict(intent)
+        payload["prohibited_actions"] = "mark_harness_complete"
+
+        with self.assertRaisesRegex(
+            ExecutionSubstrateValidationError,
+            "prohibited_actions must be a list",
+        ):
+            execution_substrate_intent_from_dict(payload)
+
     def test_intent_rejects_missing_prohibited_actions(self) -> None:
         intent = ExecutionSubstrateIntent(
             intent_type=ExecutionSubstrateIntentType.RETRY_EXECUTION,
