@@ -11,6 +11,11 @@ Do not edit files in this directory manually. Re-run `python scripts/export_agen
 - `GET /tasks/<task_id>/read-model`: inspect current task truth
 - `GET /tasks/<task_id>/timeline`: inspect the auditable task timeline
 
+For claimed completion, inspect `completion_validation_summary` from successful
+persisted evaluation responses, `GET /tasks`, or `GET /tasks/<task_id>/read-model`.
+Treat executor completion as advisory until that summary reports accepted
+completion, matched intent, and sufficient evidence.
+
 ## Included Examples
 
 - `examples/create-task.json`: canonical `POST /tasks` submission example generated from the ingress/OpenClaw request builder
@@ -36,5 +41,5 @@ This bundle was generated from these Harness source files:
 ## Provenance
 
 - source repo: `Harness`
-- source commit: `9287fa2b089a282927202a28ef8b5204f565d009`
-- generated at: `2026-03-31T15:58:11Z`
+- source commit: `f04c7b8cc5d00d950f9a8a587d22309c8b191b01`
+- generated at: `2026-05-02T15:31:15Z`
