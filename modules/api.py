@@ -4288,9 +4288,12 @@ class HarnessApiService:
             completion_claim=latest_claim,
             execution_attempt=replay_attempt,
         ):
+            read_model = self.read_model_service.build_task_read_model(task_id)
+            completion_validation = read_model.completion_validation_summary
             return HTTPStatus.OK, {
                 "task_envelope": _to_jsonable(stored_task),
-                "accepted_completion": stored_task.get("status") == "completed",
+                "accepted_completion": bool(completion_validation.get("completion_accepted")),
+                "completion_validation_summary": deepcopy(completion_validation),
                 "requires_review": _review_gate_is_active(stored_task, existing_records),
                 "action": "completion_claim_replayed",
                 "replayed_claim_id": latest_claim.get("claim_id"),
@@ -4368,11 +4371,13 @@ class HarnessApiService:
 
         stored_task = self.store.update_task(updated_task)
         read_model = self.read_model_service.build_task_read_model(task_id)
+        completion_validation = read_model.completion_validation_summary
         return HTTPStatus.OK, {
             "task_envelope": _to_jsonable(stored_task),
             "execution_substrate_event": _to_jsonable(event),
             "execution_summary": read_model.execution_summary,
-            "accepted_completion": stored_task.get("status") == "completed",
+            "accepted_completion": bool(completion_validation.get("completion_accepted")),
+            "completion_validation_summary": deepcopy(completion_validation),
             "requires_review": _review_gate_is_active(
                 stored_task,
                 self.store.list_evaluation_records(task_id),

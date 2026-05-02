@@ -2626,20 +2626,18 @@ class HarnessApiServiceTests(unittest.TestCase):
         submit_status, submit_response = service.submit(submit_payload)
         task_id = submit_response["task_envelope"]["id"]
 
-        claim_status, claim_response = service.submit_completion_claim(
-            task_id,
-            {
-                "request": {
-                    **_completion_claim_payload(claim_id="claim-complete-1"),
-                    **_execution_attempt_payload(attempt_id="attempt-complete-1"),
-                    "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
-                    "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
-                    "external_facts": deepcopy(payload["request"]["external_facts"]),
-                    "acceptance_criteria_satisfied": True,
-                    "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
-                }
-            },
-        )
+        claim_payload = {
+            "request": {
+                **_completion_claim_payload(claim_id="claim-complete-1"),
+                **_execution_attempt_payload(attempt_id="attempt-complete-1"),
+                "new_artifacts": deepcopy(payload["request"]["linked_artifacts"]),
+                "completion_evidence": deepcopy(payload["request"]["completion_evidence"]),
+                "external_facts": deepcopy(payload["request"]["external_facts"]),
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+            }
+        }
+        claim_status, claim_response = service.submit_completion_claim(task_id, claim_payload)
         history_status, history_payload = service.get_evaluation_history(task_id)
         latest_request = history_payload["evaluations"][-1]["request"]
 
@@ -2651,6 +2649,23 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(latest_request["claimed_completion"])
         claims = latest_request["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
         self.assertEqual(claims[-1]["claim_id"], "claim-complete-1")
+
+        replay_payload = {
+            "request": {
+                **_completion_claim_payload(claim_id="claim-complete-1"),
+                **_execution_attempt_payload(attempt_id="attempt-complete-1"),
+                "external_facts": deepcopy(payload["request"]["external_facts"]),
+                "acceptance_criteria_satisfied": True,
+                "runtime_facts": deepcopy(payload["request"]["runtime_facts"]),
+            }
+        }
+        replay_status, replay_response = service.submit_completion_claim(task_id, replay_payload)
+
+        self.assertEqual(replay_status, 200)
+        self.assertEqual(replay_response["action"], "completion_claim_replayed")
+        self.assertTrue(replay_response["accepted_completion"])
+        self.assertEqual(replay_response["completion_validation_summary"]["status"], "accepted")
+        self.assertTrue(replay_response["completion_validation_summary"]["completion_accepted"])
 
     def test_service_completion_claim_canonicalizes_unresolved_conditions_into_clarification(self) -> None:
         submit_payload = {"request": {"task_envelope": deepcopy(_manual_happy_path_overlay_payload()["request"]["task_envelope"])}}
