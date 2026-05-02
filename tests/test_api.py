@@ -1111,6 +1111,8 @@ class HarnessApiServiceTests(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["status"], "completed")
+        self.assertEqual(payload["completion_validation_summary"]["status"], "accepted")
+        self.assertTrue(payload["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(payload["evaluation_record"]["task_id"], payload["task_envelope"]["id"])
 
         task_status, task_payload = self.service.get_task(payload["task_envelope"]["id"])
@@ -2644,6 +2646,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_status, 200)
         self.assertEqual(claim_status, 200)
         self.assertTrue(claim_response["accepted_completion"])
+        self.assertEqual(claim_response["completion_validation_summary"]["status"], "accepted")
+        self.assertTrue(claim_response["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(claim_response["task_envelope"]["status"], "completed")
         self.assertEqual(history_status, 200)
         self.assertTrue(latest_request["claimed_completion"])

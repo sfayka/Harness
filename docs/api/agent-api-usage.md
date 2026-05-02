@@ -26,7 +26,7 @@ For existing tasks, treat `POST /tasks/<task_id>/reevaluate` as the authoritativ
 - `GET /execution-substrate/transport-status`: read-only transport posture for the Symphony-compatible execution substrate
 - `GET /execution-substrate/handoffs`: read-only preview of rendered Symphony-compatible handoff payloads
 
-For claimed completion, inspect `completion_validation_summary` on `GET /tasks` or `GET /tasks/<task_id>/read-model` before presenting the work as done. That projection is the compact verdict for validation of agentic completion against user intent and evidence. It separates `completion_claimed` from `completion_accepted`, reports intent and evidence status, and preserves review or reconciliation blockers. Executor summaries, runner messages, and Linear comments are advisory until this summary says the claim has been accepted.
+For claimed completion, inspect `completion_validation_summary` on successful persisted evaluation responses, `GET /tasks`, or `GET /tasks/<task_id>/read-model` before presenting the work as done. That projection is the compact verdict for validation of agentic completion against user intent and evidence. It separates `completion_claimed` from `completion_accepted`, reports intent and evidence status, and preserves review or reconciliation blockers. Executor summaries, runner messages, and Linear comments are advisory until this summary says the claim has been accepted.
 
 `GET /supervision/queue` is projection-only. It does not create work, mutate task state, or authorize follow-up actions. It exists so an ingress-side supervisor can poll Harness for the tasks that currently need intervention without rebuilding policy client-side from raw task payloads.
 

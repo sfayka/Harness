@@ -3268,6 +3268,17 @@ class HarnessApiService:
             return adapter
         return StubExecutorAdapter()
 
+    def _attach_completion_validation_summary(
+        self,
+        task_id: str,
+        response_payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        read_model = self.read_model_service.build_task_read_model(task_id)
+        completion_validation = read_model.completion_validation_summary
+        response_payload["completion_validation_summary"] = deepcopy(completion_validation)
+        response_payload["accepted_completion"] = bool(completion_validation.get("completion_accepted"))
+        return response_payload
+
     def _build_postgres_health_payload(self, store: PostgresHarnessStore) -> dict[str, Any]:
         expected_tables = ("tasks", "evaluation_records")
         schema_ready = False
@@ -3958,7 +3969,7 @@ class HarnessApiService:
             )
             response_payload["execution_continuation"] = deepcopy(execution_continuation)
             response_payload["automatic_dispatch"] = deepcopy(execution_continuation)
-        return status, response_payload
+        return status, self._attach_completion_validation_summary(task_id, response_payload)
 
     def submit_linear_ingress(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
@@ -4116,7 +4127,7 @@ class HarnessApiService:
                 dispatch_trigger="manual_review_authorize_redispatch",
                 dispatch_policy_stage="post_review_reevaluation",
             )
-        return status, response_payload
+        return status, self._attach_completion_validation_summary(task_id, response_payload)
 
     def reevaluate(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
@@ -4228,7 +4239,7 @@ class HarnessApiService:
                 )
                 response_payload["execution_continuation"] = deepcopy(execution_continuation)
                 response_payload["automatic_dispatch"] = deepcopy(execution_continuation)
-        return status, response_payload
+        return status, self._attach_completion_validation_summary(task_id, response_payload)
 
     def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
@@ -4352,7 +4363,7 @@ class HarnessApiService:
         if record is not None:
             response_payload["evaluation_record"] = _serialize_evaluation_record(record)
         response_payload["requires_review"] = _review_gate_is_active(stored_task, updated_records)
-        return status, response_payload
+        return status, self._attach_completion_validation_summary(task_id, response_payload)
 
     def submit_execution_substrate_event(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         try:
