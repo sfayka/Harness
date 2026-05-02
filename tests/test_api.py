@@ -1376,6 +1376,8 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["task_envelope"]["origin"]["source_system"], "linear")
         self.assertEqual(payload["task_envelope"]["status"], "intake_ready")
+        self.assertEqual(payload["completion_validation_summary"]["status"], "pending")
+        self.assertFalse(payload["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(task_status, 200)
         self.assertEqual(task_payload["task"]["extensions"]["linear"]["issue_id"], f"lin-{payload['task_envelope']['id']}")
         self.assertEqual(history_status, 200)
@@ -2383,7 +2385,11 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(submit_status, 200)
         self.assertEqual(blocked_status, 200)
         self.assertEqual(resolved_status, 200)
+        self.assertEqual(blocked_response["completion_validation_summary"]["status"], "pending")
+        self.assertFalse(blocked_response["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(resolved_response["task_envelope"]["status"], "intake_ready")
+        self.assertEqual(resolved_response["completion_validation_summary"]["status"], "pending")
+        self.assertFalse(resolved_response["completion_validation_summary"]["completion_accepted"])
         clarification = resolved_response["task_envelope"]["clarification"]
         self.assertEqual(clarification["status"], "resolved")
         self.assertEqual(
