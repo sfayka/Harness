@@ -22,6 +22,9 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(result.event_statuses, (200, 200, 200, 200, 200))
         self.assertEqual(result.final_task_status, "intake_ready")
         self.assertFalse(result.accepted_completion)
+        self.assertEqual(result.completion_validation_summary["status"], "pending")
+        self.assertFalse(result.completion_validation_summary["completion_accepted"])
+        self.assertEqual(result.completion_validation_summary["intent_status"], "pending")
         self.assertEqual(result.substrate_event_count, 5)
         self.assertEqual(result.latest_event_type, "run_completed_by_executor")
         self.assertEqual(result.latest_runner_session_id, "symphony-dryrun-session-1")
@@ -38,6 +41,9 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(result.event_statuses, (200, 200))
         self.assertEqual(result.final_task_status, "blocked")
         self.assertFalse(result.accepted_completion)
+        self.assertEqual(result.completion_validation_summary["status"], "blocked")
+        self.assertFalse(result.completion_validation_summary["completion_accepted"])
+        self.assertEqual(result.completion_validation_summary["evidence_status"], "insufficient")
         self.assertEqual(result.substrate_event_count, 2)
         self.assertEqual(result.latest_event_type, "runner_session_started")
 
@@ -61,6 +67,8 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertFalse(result.live_dispatch_enabled)
         self.assertEqual(result.completion_authority, "harness_verification")
         self.assertFalse(result.runner_completion_is_truth)
+        self.assertEqual(result.completion_validation_summary["status"], "blocked")
+        self.assertFalse(result.completion_validation_summary["completion_accepted"])
         self.assertFalse(result.safe_to_execute_live)
 
     def test_event_stream_cli_outputs_json_summary(self) -> None:
@@ -74,6 +82,8 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(payload["event_statuses"], [200, 200, 200, 200, 200])
         self.assertEqual(payload["final_task_status"], "intake_ready")
         self.assertFalse(payload["accepted_completion"])
+        self.assertEqual(payload["completion_validation_summary"]["status"], "pending")
+        self.assertFalse(payload["completion_validation_summary"]["completion_accepted"])
         self.assertEqual(payload["latest_event_type"], "run_completed_by_executor")
 
     def test_intent_consumer_cli_outputs_json_summary(self) -> None:
@@ -90,6 +100,8 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertEqual(payload["event_statuses"], [200, 200])
         self.assertEqual(payload["final_task_status"], "blocked")
         self.assertFalse(payload["accepted_completion"])
+        self.assertEqual(payload["completion_validation_summary"]["status"], "blocked")
+        self.assertFalse(payload["completion_validation_summary"]["completion_accepted"])
 
     def test_handoff_cli_outputs_json_summary(self) -> None:
         stdout = io.StringIO()
@@ -114,6 +126,8 @@ class ExecutionSubstrateDryRunTests(unittest.TestCase):
         self.assertFalse(payload["live_dispatch_enabled"])
         self.assertEqual(payload["completion_authority"], "harness_verification")
         self.assertFalse(payload["runner_completion_is_truth"])
+        self.assertEqual(payload["completion_validation_summary"]["status"], "blocked")
+        self.assertFalse(payload["completion_validation_summary"]["completion_accepted"])
         self.assertFalse(payload["safe_to_execute_live"])
 
 

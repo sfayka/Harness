@@ -28,6 +28,7 @@ class ExecutionSubstrateDryRunResult:
     event_statuses: tuple[int, ...]
     final_task_status: str | None
     accepted_completion: bool
+    completion_validation_summary: dict[str, Any] | None
     substrate_event_count: int
     latest_event_type: str | None
     latest_runner_session_id: str | None
@@ -47,6 +48,7 @@ class ExecutionSubstrateIntentDryRunResult:
     event_statuses: tuple[int, ...]
     final_task_status: str | None
     accepted_completion: bool
+    completion_validation_summary: dict[str, Any] | None
     substrate_event_count: int
     latest_event_type: str | None
 
@@ -67,6 +69,7 @@ class ExecutionSubstrateHandoffDryRunResult:
     live_dispatch_enabled: bool
     completion_authority: str
     runner_completion_is_truth: bool
+    completion_validation_summary: dict[str, Any] | None
     safe_to_execute_live: bool
 
 
@@ -287,6 +290,11 @@ def run_symphony_substrate_dry_run(
 
         task = read_model["task"]
         execution_summary = task["execution_summary"]
+        completion_validation = (
+            task.get("completion_validation_summary")
+            if isinstance(task.get("completion_validation_summary"), dict)
+            else None
+        )
         latest_event = execution_summary["latest_substrate_event"] or {}
         timeline_events = [
             event
@@ -297,7 +305,8 @@ def run_symphony_substrate_dry_run(
             task_id=task_id,
             event_statuses=event_statuses,
             final_task_status=task["current_status"],
-            accepted_completion=task["current_status"] == "completed",
+            accepted_completion=bool(completion_validation and completion_validation.get("completion_accepted")),
+            completion_validation_summary=completion_validation,
             substrate_event_count=execution_summary["substrate_event_count"],
             latest_event_type=latest_event.get("event_type"),
             latest_runner_session_id=execution_summary["latest_runner_session_id"],
@@ -331,6 +340,11 @@ def run_symphony_intent_consumer_dry_run(
 
         task = read_model["task"]
         execution_summary = task["execution_summary"]
+        completion_validation = (
+            task.get("completion_validation_summary")
+            if isinstance(task.get("completion_validation_summary"), dict)
+            else None
+        )
         latest_event = execution_summary["latest_substrate_event"] or {}
         return ExecutionSubstrateIntentDryRunResult(
             task_id=task_id,
@@ -344,7 +358,8 @@ def run_symphony_intent_consumer_dry_run(
             consumed_intent_type=str(intent_entry["intent"]["intent_type"]),
             event_statuses=event_statuses,
             final_task_status=task["current_status"],
-            accepted_completion=task["current_status"] == "completed",
+            accepted_completion=bool(completion_validation and completion_validation.get("completion_accepted")),
+            completion_validation_summary=completion_validation,
             substrate_event_count=execution_summary["substrate_event_count"],
             latest_event_type=latest_event.get("event_type"),
         )
@@ -366,6 +381,11 @@ def run_symphony_handoff_dry_run(
         )
 
         intent_entry = intent_payload["intents"][0]
+        completion_validation = (
+            intent_entry.get("completion_validation_summary")
+            if isinstance(intent_entry.get("completion_validation_summary"), dict)
+            else None
+        )
         transport_result = DisabledSymphonyExecutionTransport(
             harness_base_url=harness_base_url,
         ).preview(execution_substrate_intent_from_dict(intent_entry["intent"]))
@@ -387,6 +407,7 @@ def run_symphony_handoff_dry_run(
             live_dispatch_enabled=transport_result.live_dispatch_enabled,
             completion_authority=transport_result.completion_authority,
             runner_completion_is_truth=transport_result.runner_completion_is_truth,
+            completion_validation_summary=completion_validation,
             safe_to_execute_live=bool(handoff_payload["metadata"]["safe_to_execute_live"]),
         )
 
