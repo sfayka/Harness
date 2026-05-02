@@ -322,11 +322,11 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
       intent_status: String(completionValidationSummary.intent_status ?? "pending") as Task["completion_validation_summary"]["intent_status"],
       evidence_status: String(completionValidationSummary.evidence_status ?? "pending") as Task["completion_validation_summary"]["evidence_status"],
       reconciliation_status: String(completionValidationSummary.reconciliation_status ?? "pending"),
-      completion_claimed: Boolean(completionValidationSummary.completion_claimed),
-      completion_accepted: Boolean(completionValidationSummary.completion_accepted),
+      completion_claimed: mapBoolean(completionValidationSummary.completion_claimed),
+      completion_accepted: mapBoolean(completionValidationSummary.completion_accepted),
       manual_review_status:
         (completionValidationSummary.manual_review_status as string | null | undefined) ?? null,
-      automatic_completion_safe: Boolean(completionValidationSummary.automatic_completion_safe),
+      automatic_completion_safe: mapBoolean(completionValidationSummary.automatic_completion_safe),
       verification_outcome: String(completionValidationSummary.verification_outcome ?? "not_evaluated"),
       reasons: Array.isArray(completionValidationSummary.reasons)
         ? completionValidationSummary.reasons.map(String)
@@ -345,11 +345,11 @@ function mapTask(readModel: Record<string, unknown>, timelineOverride?: Timeline
       ? {
           result: mappedVerificationStatus,
           outcome: String(verificationSummary.outcome ?? ""),
-          completion_accepted: Boolean(verificationSummary.accepted_completion),
-          verification_passed: Boolean(verificationSummary.verification_passed),
-          evidence_sufficient: Boolean(verificationSummary.evidence_is_sufficient),
-          evidence_is_valid: Boolean(verificationSummary.evidence_is_valid),
-          evidence_is_sufficient: Boolean(verificationSummary.evidence_is_sufficient),
+          completion_accepted: mapBoolean(verificationSummary.accepted_completion),
+          verification_passed: mapBoolean(verificationSummary.verification_passed),
+          evidence_sufficient: mapBoolean(verificationSummary.evidence_is_sufficient),
+          evidence_is_valid: mapBoolean(verificationSummary.evidence_is_valid),
+          evidence_is_sufficient: mapBoolean(verificationSummary.evidence_is_sufficient),
           reasons,
           evaluated_at:
             (evaluationSummary.latest_recorded_at as string | undefined) ??
@@ -495,6 +495,10 @@ function mapStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map(String) : [];
 }
 
+function mapBoolean(value: unknown): boolean {
+  return value === true;
+}
+
 function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
   const completionValidationSummary =
     entry.completion_validation_summary && typeof entry.completion_validation_summary === "object"
@@ -537,11 +541,11 @@ function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
           intent_status: String(completionValidationSummary.intent_status ?? "pending") as Task["completion_validation_summary"]["intent_status"],
           evidence_status: String(completionValidationSummary.evidence_status ?? "pending") as Task["completion_validation_summary"]["evidence_status"],
           reconciliation_status: String(completionValidationSummary.reconciliation_status ?? "pending"),
-          completion_claimed: Boolean(completionValidationSummary.completion_claimed),
-          completion_accepted: Boolean(completionValidationSummary.completion_accepted),
+          completion_claimed: mapBoolean(completionValidationSummary.completion_claimed),
+          completion_accepted: mapBoolean(completionValidationSummary.completion_accepted),
           manual_review_status:
             (completionValidationSummary.manual_review_status as string | null | undefined) ?? null,
-          automatic_completion_safe: Boolean(completionValidationSummary.automatic_completion_safe),
+          automatic_completion_safe: mapBoolean(completionValidationSummary.automatic_completion_safe),
           verification_outcome: String(completionValidationSummary.verification_outcome ?? "not_evaluated"),
           reasons: Array.isArray(completionValidationSummary.reasons)
             ? completionValidationSummary.reasons.map(String)
@@ -567,16 +571,16 @@ function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
         source: String(intent.source ?? ""),
         reason: String(intent.reason ?? ""),
         suggested_action: String(intent.suggested_action ?? ""),
-        advisory_only: Boolean(intent.advisory_only),
+        advisory_only: mapBoolean(intent.advisory_only),
         events_endpoint: String(intent.events_endpoint ?? ""),
         completion_authority: String(intent.completion_authority ?? ""),
         prohibited_actions: mapStringArray(intent.prohibited_actions),
       },
       harness_boundary: {
         completion_authority: String(harnessBoundary.completion_authority ?? ""),
-        advisory_only: Boolean(harnessBoundary.advisory_only),
-        runner_completion_is_truth: Boolean(harnessBoundary.runner_completion_is_truth),
-        artifact_verification_required: Boolean(harnessBoundary.artifact_verification_required),
+        advisory_only: mapBoolean(harnessBoundary.advisory_only),
+        runner_completion_is_truth: mapBoolean(harnessBoundary.runner_completion_is_truth),
+        artifact_verification_required: mapBoolean(harnessBoundary.artifact_verification_required),
       },
       runner_policy: {
         substrate_kind: String(runnerPolicy.substrate_kind ?? ""),
@@ -591,7 +595,7 @@ function mapExecutionSubstrateHandoff(entry: Record<string, unknown>) {
       metadata: {
         task_id: String(metadata.task_id ?? ""),
         source: String(metadata.source ?? ""),
-        safe_to_execute_live: Boolean(metadata.safe_to_execute_live),
+        safe_to_execute_live: mapBoolean(metadata.safe_to_execute_live),
       },
     },
   };
@@ -608,8 +612,8 @@ export async function fetchExecutionSubstrateHandoffs(): Promise<ExecutionSubstr
     handoff_count: Number(payload.handoff_count ?? handoffs.length),
     handoffs,
     source: String(payload.source ?? ""),
-    advisory_only: Boolean(payload.advisory_only),
-    dispatch_enabled: Boolean(payload.dispatch_enabled),
+    advisory_only: mapBoolean(payload.advisory_only),
+    dispatch_enabled: mapBoolean(payload.dispatch_enabled),
     completion_authority: String(payload.completion_authority ?? ""),
   };
 }
@@ -622,12 +626,12 @@ export async function fetchExecutionSubstrateTransportStatus(): Promise<Executio
     substrate_kind: String(payload.substrate_kind ?? ""),
     preferred_runner: String(payload.preferred_runner ?? ""),
     transport_status: String(payload.transport_status ?? ""),
-    dispatch_enabled: Boolean(payload.dispatch_enabled),
-    live_dispatch_enabled: Boolean(payload.live_dispatch_enabled),
-    advisory_only: Boolean(payload.advisory_only),
+    dispatch_enabled: mapBoolean(payload.dispatch_enabled),
+    live_dispatch_enabled: mapBoolean(payload.live_dispatch_enabled),
+    advisory_only: mapBoolean(payload.advisory_only),
     completion_authority: String(payload.completion_authority ?? ""),
-    runner_completion_is_truth: Boolean(payload.runner_completion_is_truth),
-    safe_to_execute_live: Boolean(payload.safe_to_execute_live),
+    runner_completion_is_truth: mapBoolean(payload.runner_completion_is_truth),
+    safe_to_execute_live: mapBoolean(payload.safe_to_execute_live),
     events_contract: String(payload.events_contract ?? ""),
     handoff_preview_endpoint: String(payload.handoff_preview_endpoint ?? ""),
     intents_endpoint: String(payload.intents_endpoint ?? ""),

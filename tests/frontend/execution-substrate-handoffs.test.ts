@@ -141,3 +141,121 @@ test("maps execution substrate transport status from Harness", async () => {
   assert.equal(status.runner_completion_is_truth, false);
   assert.equal(status.safe_to_execute_live, false);
 });
+
+test("does not coerce malformed substrate safety strings into enabled booleans", async () => {
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith("/execution-substrate/transport-status")) {
+      return new Response(
+        JSON.stringify({
+          generated_at: "2026-04-30T16:50:00Z",
+          substrate_kind: "symphony-compatible",
+          preferred_runner: "symphony",
+          transport_status: "disabled",
+          dispatch_enabled: "false",
+          live_dispatch_enabled: "false",
+          advisory_only: "true",
+          completion_authority: "harness_verification",
+          runner_completion_is_truth: "false",
+          safe_to_execute_live: "false",
+          events_contract: "execution_substrate_event.v1",
+          handoff_preview_endpoint: "/execution-substrate/handoffs",
+          intents_endpoint: "/execution-substrate/intents",
+          message: "Symphony live dispatch is disabled.",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        generated_at: "2026-04-30T15:00:00Z",
+        handoff_count: 1,
+        source: "execution_substrate_intents",
+        advisory_only: "true",
+        dispatch_enabled: "false",
+        completion_authority: "harness_verification",
+        handoffs: [
+          {
+            task_id: "task-1",
+            attention_type: "retryable_failure",
+            current_status: "blocked",
+            last_activity_at: null,
+            completion_validation_summary: {
+              status: "blocked",
+              summary: "Completion remains blocked.",
+              intent_status: "not_validated",
+              evidence_status: "insufficient",
+              reconciliation_status: "pending",
+              completion_claimed: "true",
+              completion_accepted: "false",
+              manual_review_status: "none",
+              automatic_completion_safe: "false",
+              verification_outcome: "insufficient_evidence",
+              reasons: [],
+              required_criteria_count: 1,
+              concrete_required_criteria_count: 1,
+              required_artifact_types: ["pull_request"],
+              validated_artifact_ids: [],
+              validated_artifact_count: 0,
+            },
+            handoff: {
+              adapter: "symphony-execution-substrate",
+              mode: "render_only",
+              intent: {
+                intent_type: "retry_execution",
+                substrate_kind: "symphony-compatible",
+                task_id: "task-1",
+                source: "harness_supervision_queue",
+                reason: "Task is retryable.",
+                suggested_action: "retry_or_redispatch",
+                advisory_only: "true",
+                events_endpoint: "/tasks/task-1/execution-substrate-events",
+                completion_authority: "harness_verification",
+                prohibited_actions: ["mark_harness_complete"],
+              },
+              harness_boundary: {
+                completion_authority: "harness_verification",
+                advisory_only: "true",
+                runner_completion_is_truth: "false",
+                artifact_verification_required: "true",
+              },
+              runner_policy: {
+                substrate_kind: "symphony-compatible",
+                allowed_intent_type: "retry_execution",
+                prohibited_actions: ["mark_harness_complete"],
+              },
+              callback: {
+                events_endpoint: "/tasks/task-1/execution-substrate-events",
+                events_url: "http://harness.test/tasks/task-1/execution-substrate-events",
+                event_contract: "execution_substrate_event.v1",
+              },
+              metadata: {
+                task_id: "task-1",
+                source: "harness_supervision_queue",
+                safe_to_execute_live: "false",
+              },
+            },
+          },
+        ],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  const transport = await fetchExecutionSubstrateTransportStatus();
+  const preview = await fetchExecutionSubstrateHandoffs();
+
+  assert.equal(transport.dispatch_enabled, false);
+  assert.equal(transport.live_dispatch_enabled, false);
+  assert.equal(transport.advisory_only, false);
+  assert.equal(transport.runner_completion_is_truth, false);
+  assert.equal(transport.safe_to_execute_live, false);
+  assert.equal(preview.dispatch_enabled, false);
+  assert.equal(preview.advisory_only, false);
+  assert.equal(preview.handoffs[0].completion_validation_summary?.completion_claimed, false);
+  assert.equal(preview.handoffs[0].completion_validation_summary?.completion_accepted, false);
+  assert.equal(preview.handoffs[0].handoff.intent.advisory_only, false);
+  assert.equal(preview.handoffs[0].handoff.harness_boundary.advisory_only, false);
+  assert.equal(preview.handoffs[0].handoff.harness_boundary.runner_completion_is_truth, false);
+  assert.equal(preview.handoffs[0].handoff.metadata.safe_to_execute_live, false);
+});
