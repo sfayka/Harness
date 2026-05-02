@@ -332,10 +332,21 @@ def summarize_run(
     duration_ms: int,
     raw_files: dict[str, Any],
     attempt_error_stage: str | None = None,
+    read_model_result: RequestResult | None = None,
 ) -> dict[str, Any]:
     verification = ((evaluate_result.payload.get("enforcement_result") or {}).get("verification_result") or {})
     reconciliation = ((evaluate_result.payload.get("enforcement_result") or {}).get("reconciliation_result") or {})
     fetched_task = fetch_result.payload.get("task") if isinstance(fetch_result.payload.get("task"), dict) else {}
+    read_model_task = (
+        read_model_result.payload.get("task")
+        if read_model_result is not None and isinstance(read_model_result.payload.get("task"), dict)
+        else {}
+    )
+    completion_validation_summary = (
+        read_model_task.get("completion_validation_summary")
+        if isinstance(read_model_task.get("completion_validation_summary"), dict)
+        else None
+    )
     queue_items = supervision_result.payload.get("queue") if isinstance(supervision_result.payload.get("queue"), list) else []
     supervision_entry = next(
         (
@@ -360,6 +371,7 @@ def summarize_run(
         "evaluate_http_status": evaluate_result.status,
         "fetch_http_status": fetch_result.status,
         "accepted_completion": evaluate_result.payload.get("accepted_completion"),
+        "completion_validation_summary": completion_validation_summary,
         "verification_passed": verification.get("verification_passed"),
         "reconciliation_status": verification.get("reconciliation_status") or reconciliation.get("status"),
         "requires_review": evaluate_result.payload.get("requires_review"),
@@ -465,6 +477,19 @@ def run_scenario_once(
             {"status": None, "payload": {}, "error": "skipped because create failed"},
         )
 
+    read_model_result = RequestResult(status=None, payload={}, error="read_model_skipped")
+    if create_result.status == 200:
+        read_model_result = client.get_json(f"/tasks/{effective_task_id}/read-model")
+        raw_files["read_model_response"] = _write_json(
+            scenario_dir / "read-model-response.json",
+            {"status": read_model_result.status, "payload": read_model_result.payload, "error": read_model_result.error},
+        )
+    else:
+        raw_files["read_model_response"] = _write_json(
+            scenario_dir / "read-model-response.json",
+            {"status": None, "payload": {}, "error": "skipped because create failed"},
+        )
+
     supervision_result = RequestResult(status=None, payload={}, error="supervision_skipped")
     if create_result.status == 200:
         supervision_result = client.get_json("/supervision/queue")
@@ -489,6 +514,7 @@ def run_scenario_once(
         duration_ms=round((time.monotonic() - scenario_started) * 1000),
         raw_files=raw_files,
         attempt_error_stage=attempt_error_stage,
+        read_model_result=read_model_result,
     )
 
 
@@ -509,12 +535,19 @@ def enrich_entry_with_expectations(entry: dict[str, Any], scenario: RuntimeScena
 
 
 def _scenario_line(entry: dict[str, Any]) -> str:
+    validation = (
+        entry.get("completion_validation_summary")
+        if isinstance(entry.get("completion_validation_summary"), dict)
+        else {}
+    )
     return (
         f"[{entry['timestamp']}] scenario={entry['scenario']} task_id={entry['task_id']} "
         f"outcome={entry.get('outcome_class')} classification={entry.get('classification')} "
         f"create={entry['create_http_status']} evaluate={entry['evaluate_http_status']} "
         f"fetch={entry['fetch_http_status']} final_status={entry['final_status']} "
         f"accepted={entry['accepted_completion']} requires_review={entry['requires_review']} "
+        f"completion_status={validation.get('status')} "
+        f"completion_accepted={validation.get('completion_accepted')} "
         f"retry_count={entry.get('retry_count')} retry_result={entry.get('retry_result')}"
     )
 

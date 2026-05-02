@@ -11,6 +11,7 @@ from modules.unattended_dryruns import (
     E2ESuiteResult,
     RequestResult,
     RunnerSessionState,
+    _scenario_line,
     build_task_id,
     classify_outcome,
     classify_unexpected_failure,
@@ -175,6 +176,21 @@ class UnattendedDryRunTests(unittest.TestCase):
             ),
             fetch_result=RequestResult(status=200, payload={"task": {"status": "completed"}}),
             supervision_result=RequestResult(status=200, payload={"queue": []}),
+            read_model_result=RequestResult(
+                status=200,
+                payload={
+                    "task": {
+                        "completion_validation_summary": {
+                            "status": "accepted",
+                            "completion_claimed": True,
+                            "completion_accepted": True,
+                            "intent_status": "matched",
+                            "evidence_status": "sufficient",
+                            "reconciliation_status": "passed",
+                        }
+                    }
+                },
+            ),
             duration_ms=1420,
             raw_files={"create_response": "runs/raw/create.json"},
         )
@@ -193,9 +209,43 @@ class UnattendedDryRunTests(unittest.TestCase):
         self.assertFalse(summary["supervision_present"])
         self.assertIsNone(summary["supervision_attention_type"])
         self.assertIsNone(summary["supervision_suggested_action"])
+        self.assertEqual(summary["completion_validation_summary"]["status"], "accepted")
+        self.assertTrue(summary["completion_validation_summary"]["completion_accepted"])
+        self.assertEqual(summary["completion_validation_summary"]["intent_status"], "matched")
+        self.assertEqual(summary["completion_validation_summary"]["evidence_status"], "sufficient")
         self.assertEqual(summary["mismatch_categories"], [])
         self.assertEqual(summary["duration_ms"], 1420)
         self.assertEqual(summary["raw_files"], {"create_response": "runs/raw/create.json"})
+
+    def test_scenario_line_surfaces_completion_validation_verdict(self) -> None:
+        line = _scenario_line(
+            {
+                "timestamp": "2026-04-01T12:30:00Z",
+                "scenario": "review_required",
+                "task_id": "task-1",
+                "outcome_class": "expected_semantic_failure",
+                "classification": "none",
+                "create_http_status": 200,
+                "evaluate_http_status": 200,
+                "fetch_http_status": 200,
+                "final_status": "in_review",
+                "accepted_completion": False,
+                "requires_review": True,
+                "completion_validation_summary": {
+                    "status": "review_required",
+                    "completion_accepted": False,
+                    "intent_status": "matched",
+                    "evidence_status": "needs_review",
+                },
+                "retry_count": 0,
+                "retry_result": "not_needed",
+            }
+        )
+
+        self.assertIn("completion_status=review_required", line)
+        self.assertIn("completion_accepted=False", line)
+        self.assertIn("accepted=False", line)
+        self.assertIn("requires_review=True", line)
 
     def test_execute_scenario_with_policy_retries_transient_failure_then_succeeds(self) -> None:
         scenario = CANONICAL_UNATTENDED_SCENARIOS[0]

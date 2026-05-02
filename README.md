@@ -585,6 +585,8 @@ find runs/raw -type f | sort
 Self-heal behavior:
 
 - each scenario compares its actual outcome to the canonical expected outcome
+- each scenario fetches `GET /tasks/<task_id>/read-model` and writes the task's `completion_validation_summary` into `runs/log.jsonl`
+- `accepted_completion` remains in the dry-run log for compatibility, but the completion validation summary is the operator-safe verdict for claimed completion
 - each scenario also compares the task's presence or absence in `GET /supervision/queue` to the canonical expectation
 - transient transport and backend availability failures are retried up to the bounded retry limit
 - runtime regressions can trigger the local E2E suite once per runner session
