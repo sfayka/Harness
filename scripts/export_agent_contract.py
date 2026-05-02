@@ -61,9 +61,10 @@ Do not edit files in this directory manually. Re-run `python scripts/export_agen
 - `GET /tasks/<task_id>/read-model`: inspect current task truth
 - `GET /tasks/<task_id>/timeline`: inspect the auditable task timeline
 
-For claimed completion, inspect `completion_validation_summary` from `GET /tasks` or
-`GET /tasks/<task_id>/read-model`. Treat executor completion as advisory until that
-summary reports accepted completion, matched intent, and sufficient evidence.
+For claimed completion, inspect `completion_validation_summary` from successful
+persisted evaluation responses, `GET /tasks`, or `GET /tasks/<task_id>/read-model`.
+Treat executor completion as advisory until that summary reports accepted
+completion, matched intent, and sufficient evidence.
 
 ## Included Examples
 

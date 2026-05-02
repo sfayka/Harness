@@ -189,7 +189,7 @@ These names are architecture-level semantics. Exact enum naming can be finalized
 
 ## Completion Validation Summary
 
-The canonical read model exposes `completion_validation_summary` on both `GET /tasks` and `GET /tasks/<task_id>/read-model`.
+Successful persisted evaluation responses and the canonical read model expose `completion_validation_summary`; clients can read it from `POST /evaluate`, `POST /tasks/<task_id>/reevaluate`, `POST /tasks/<task_id>/completion-claims`, `GET /tasks`, and `GET /tasks/<task_id>/read-model`.
 
 This summary is the operator-facing projection of the product promise: validation of agentic completion against user intent and evidence. It is derived from the task objective, acceptance criteria, completion evidence policy, verification result, reconciliation result, review state, and failure classification. It is read-only projection data; clients must not treat it as a mutation path or a second source of truth.
 

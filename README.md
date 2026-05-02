@@ -265,7 +265,7 @@ Backend inspection routes:
 - `GET /supervision/queue`: canonical autonomous-supervision triage surface.
 - `GET /runtime/status`: local runtime status envelope for CLI/web packaging and automation.
 
-The first field to inspect for claimed completion is `completion_validation_summary`, exposed on both `GET /tasks` and `GET /tasks/<task_id>/read-model`. It separates `completion_claimed` from `completion_accepted` and projects whether the claim matches user intent, has sufficient evidence, is blocked by reconciliation, or requires manual review. Agents and dashboards must not report work as done from executor narrative alone; completion is operator-safe only when Proofline reports accepted completion with matched intent and sufficient evidence.
+The first field to inspect for claimed completion is `completion_validation_summary`, exposed on successful persisted evaluation responses, `GET /tasks`, and `GET /tasks/<task_id>/read-model`. It separates `completion_claimed` from `completion_accepted` and projects whether the claim matches user intent, has sufficient evidence, is blocked by reconciliation, or requires manual review. Agents and dashboards must not report work as done from executor narrative alone; completion is operator-safe only when Proofline reports accepted completion with matched intent and sufficient evidence.
 
 The local CLI reads the same canonical store:
 
