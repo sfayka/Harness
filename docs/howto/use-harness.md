@@ -54,7 +54,7 @@ The CLI can inspect the same canonical local store without going through the bro
 python3 -m modules.proofline_runtime --json inspect task <task-id>
 ```
 
-For claimed completion, start with `completion_validation_summary`. Treat the task as actually done only when it reports `completion_claimed=true`, `completion_accepted=true`, `intent_status=matched`, and `evidence_status=sufficient`. If it reports `blocked`, `review_required`, `pending`, `insufficient`, or `invalid`, Proofline is telling you the work still needs evidence, reconciliation, repair, or explicit review.
+For claimed completion, start with `completion_validation_summary`. It is available on successful persisted evaluation responses, the task list, task read-models, and `python3 -m modules.proofline_runtime --json inspect task <task-id>`. Treat the task as actually done only when it reports `completion_claimed=true`, `completion_accepted=true`, `intent_status=matched`, and `evidence_status=sufficient`. If it reports `blocked`, `review_required`, `pending`, `insufficient`, or `invalid`, Proofline is telling you the work still needs evidence, reconciliation, repair, or explicit review.
 
 ## Watch Review Surfaces
 
