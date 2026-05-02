@@ -10,6 +10,16 @@ interface VerificationCardProps {
   completionValidation?: CompletionValidationSummary | null;
 }
 
+export function completionAcceptedForDisplay(
+  summary: VerificationSummary | null,
+  completionValidation?: CompletionValidationSummary | null,
+): boolean {
+  if (completionValidation) {
+    return completionValidation.completion_accepted;
+  }
+  return Boolean(summary?.verification_passed ?? summary?.completion_accepted);
+}
+
 export function VerificationCard({ summary, completionValidation }: VerificationCardProps) {
   if (!summary) {
     return (
@@ -45,6 +55,7 @@ export function VerificationCard({ summary, completionValidation }: Verification
       summary.evidence_is_sufficient ?? summary.evidence_sufficient ?? null,
     ),
   );
+  const completionAccepted = completionAcceptedForDisplay(summary, completionValidation);
 
   return (
     <Card>
@@ -79,13 +90,13 @@ export function VerificationCard({ summary, completionValidation }: Verification
           {/* Key indicators */}
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
-              {(summary.verification_passed ?? summary.completion_accepted) ? (
+              {completionAccepted ? (
                 <CheckCircle2 className={`h-4 w-4 ${decisionSeverity.text}`} />
               ) : (
                 <XCircle className={`h-4 w-4 ${decisionSeverity.text}`} />
               )}
               <span className="text-muted-foreground">
-                Completion {(summary.verification_passed ?? summary.completion_accepted) ? "Accepted" : "Not Accepted"}
+                Completion {completionAccepted ? "Accepted" : "Not Accepted"}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
