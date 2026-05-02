@@ -211,6 +211,14 @@ def _optional_object_list(value: Any, *, field_name: str) -> tuple[dict[str, Any
     return tuple(result)
 
 
+def _optional_boolean(value: Any, *, field_name: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise ApiRequestError(f"{field_name} must be a boolean")
+    return value
+
+
 def _require_non_empty_string(value: Any, *, field_name: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ApiRequestError(f"{field_name} is required")
@@ -380,13 +388,16 @@ def _new_task_submission_contract_violations(request_payload: dict[str, Any]) ->
             }
         )
 
-    if bool(request_payload.get("claimed_completion", False)):
+    if _optional_boolean(request_payload.get("claimed_completion"), field_name="claimed_completion"):
         add_violation(
             rule="initial_claimed_completion_not_allowed",
             source="request.claimed_completion",
             message="New task submission cannot claim completion; completion truth must enter through reevaluation or completion-claim paths.",
         )
-    if bool(request_payload.get("acceptance_criteria_satisfied", False)):
+    if _optional_boolean(
+        request_payload.get("acceptance_criteria_satisfied"),
+        field_name="acceptance_criteria_satisfied",
+    ):
         add_violation(
             rule="initial_acceptance_assertion_not_allowed",
             source="request.acceptance_criteria_satisfied",
@@ -936,8 +947,11 @@ def parse_evaluation_request(payload: dict[str, Any]) -> HarnessEvaluationReques
     return HarnessEvaluationRequest(
         task_envelope=task_envelope,
         external_facts=external_facts,
-        claimed_completion=bool(request_payload.get("claimed_completion", False)),
-        acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
+        claimed_completion=_optional_boolean(request_payload.get("claimed_completion"), field_name="claimed_completion"),
+        acceptance_criteria_satisfied=_optional_boolean(
+            request_payload.get("acceptance_criteria_satisfied"),
+            field_name="acceptance_criteria_satisfied",
+        ),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
         unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
@@ -1585,7 +1599,10 @@ def parse_completion_claim_request(task_envelope: dict[str, Any], payload: dict[
         task_envelope=merged_task,
         external_facts=external_facts,
         claimed_completion=True,
-        acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
+        acceptance_criteria_satisfied=_optional_boolean(
+            request_payload.get("acceptance_criteria_satisfied"),
+            field_name="acceptance_criteria_satisfied",
+        ),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
         unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
@@ -1614,7 +1631,7 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         request_payload.get("completion_evidence"),
         field_name="completion_evidence",
     )
-    claimed_completion = bool(request_payload.get("claimed_completion", False))
+    claimed_completion = _optional_boolean(request_payload.get("claimed_completion"), field_name="claimed_completion")
     if completion_evidence_update is not None and not claimed_completion:
         if _completion_evidence_would_prematurely_satisfy(completion_evidence_update):
             raise ApiRequestError(
@@ -1663,7 +1680,10 @@ def parse_reevaluation_request(task_envelope: dict[str, Any], payload: dict[str,
         task_envelope=merged_task,
         external_facts=external_facts,
         claimed_completion=claimed_completion,
-        acceptance_criteria_satisfied=bool(request_payload.get("acceptance_criteria_satisfied", False)),
+        acceptance_criteria_satisfied=_optional_boolean(
+            request_payload.get("acceptance_criteria_satisfied"),
+            field_name="acceptance_criteria_satisfied",
+        ),
         runtime_facts=_parse_runtime_facts(_optional_mapping(request_payload.get("runtime_facts"), field_name="runtime_facts")),
         unresolved_conditions=unresolved_conditions,
         review_reasons=_optional_string_tuple(request_payload.get("review_reasons"), field_name="review_reasons"),
@@ -4526,7 +4546,10 @@ class HarnessApiService:
             "request": {
                 "completion_claim": completion_claim,
                 "execution_attempt": execution_attempt,
-                "acceptance_criteria_satisfied": bool(request_payload.get("acceptance_criteria_satisfied", False)),
+                "acceptance_criteria_satisfied": _optional_boolean(
+                    request_payload.get("acceptance_criteria_satisfied"),
+                    field_name="acceptance_criteria_satisfied",
+                ),
                 "runtime_facts": {
                     "executor_reported_success": attempt_status == "completed",
                     "attempt_count": attempt_number,

@@ -1565,6 +1565,16 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertEqual(task_status, 404)
         self.assertIn("not found", task_payload["error"].lower())
 
+    def test_service_submit_rejects_string_completion_boolean(self) -> None:
+        payload = _request_payload("accepted_completion")
+        payload["request"]["claimed_completion"] = "false"
+
+        status, response_payload = self.service.submit(payload)
+
+        self.assertEqual(status, 400)
+        self.assertTrue(response_payload["invalid_input"])
+        self.assertIn("claimed_completion must be a boolean", response_payload["error"])
+
     def test_service_openclaw_ingress_rejects_execution_status_handoff_without_persisting_task(self) -> None:
         payload = _openclaw_ingress_payload(task_id="task-openclaw-executing-1")
         payload["task"]["status"] = "executing"
@@ -2261,6 +2271,23 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertTrue(reevaluation_response["invalid_input"])
         self.assertIn("claimed_completion", reevaluation_response["error"])
 
+    def test_service_reevaluate_rejects_string_completion_boolean(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_status, submit_response = self.service.submit(
+            {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        )
+        task_id = submit_response["task_envelope"]["id"]
+
+        reevaluation_status, reevaluation_response = self.service.reevaluate(
+            task_id,
+            {"request": {"claimed_completion": "false"}},
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(reevaluation_status, 400)
+        self.assertTrue(reevaluation_response["invalid_input"])
+        self.assertIn("claimed_completion must be a boolean", reevaluation_response["error"])
+
     def test_service_reevaluate_strips_executor_verified_status_from_code_artifacts(self) -> None:
         service = HarnessApiService(store=FileBackedHarnessStore(self.temp_dir.name))
         task_envelope = create_task_envelope(
@@ -2586,6 +2613,27 @@ class HarnessApiServiceTests(unittest.TestCase):
         self.assertNotEqual(claim_response["task_envelope"]["status"], "completed")
         claims = claim_response["task_envelope"]["observability"]["execution_metadata"]["advisory_completion_claims"]
         self.assertEqual(claims[-1]["claim_id"], "claim-intercepted-1")
+
+    def test_service_completion_claim_rejects_string_acceptance_boolean(self) -> None:
+        payload = _manual_happy_path_overlay_payload()
+        submit_payload = {"request": {"task_envelope": deepcopy(payload["request"]["task_envelope"])}}
+        submit_status, submit_response = self.service.submit(submit_payload)
+        task_id = submit_response["task_envelope"]["id"]
+
+        claim_status, claim_response = self.service.submit_completion_claim(
+            task_id,
+            {
+                "request": {
+                    **_completion_claim_payload(claim_id="claim-string-acceptance-1"),
+                    "acceptance_criteria_satisfied": "true",
+                }
+            },
+        )
+
+        self.assertEqual(submit_status, 200)
+        self.assertEqual(claim_status, 400)
+        self.assertTrue(claim_response["invalid_input"])
+        self.assertIn("acceptance_criteria_satisfied must be a boolean", claim_response["error"])
 
     def test_service_completion_claim_rejects_submission_style_mutation_fields(self) -> None:
         payload = _manual_happy_path_overlay_payload()
