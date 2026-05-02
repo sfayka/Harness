@@ -24,13 +24,70 @@ def _to_jsonable(value: Any) -> Any:
     return value
 
 
+def _completion_validation_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    enforcement = payload.get("enforcement_result") if isinstance(payload.get("enforcement_result"), dict) else {}
+    verification = (
+        enforcement.get("verification_result")
+        if isinstance(enforcement.get("verification_result"), dict)
+        else {}
+    )
+    reconciliation = (
+        enforcement.get("reconciliation_result")
+        if isinstance(enforcement.get("reconciliation_result"), dict)
+        else {}
+    )
+    evidence = (
+        enforcement.get("evidence_result")
+        if isinstance(enforcement.get("evidence_result"), dict)
+        else {}
+    )
+    claimed_completion = bool(verification.get("claimed_completion"))
+    completion_accepted = bool(verification.get("accepted_completion"))
+    requires_review = bool(verification.get("requires_review") or payload.get("requires_review"))
+    evidence_is_sufficient = bool(verification.get("evidence_is_sufficient") or evidence.get("is_sufficient"))
+    evidence_is_valid = bool(verification.get("evidence_is_valid") or evidence.get("is_valid"))
+    reconciliation_status = verification.get("reconciliation_status") or reconciliation.get("status")
+
+    if completion_accepted:
+        status = "accepted"
+    elif requires_review:
+        status = "review_required"
+    elif claimed_completion and not evidence_is_valid:
+        status = "invalid"
+    elif claimed_completion and not evidence_is_sufficient:
+        status = "insufficient"
+    elif claimed_completion:
+        status = "blocked"
+    else:
+        status = "pending"
+
+    return {
+        "status": status,
+        "completion_claimed": claimed_completion,
+        "completion_accepted": completion_accepted,
+        "intent_status": "matched" if completion_accepted else ("not_validated" if claimed_completion else "pending"),
+        "evidence_status": "sufficient"
+        if evidence_is_sufficient
+        else ("invalid" if not evidence_is_valid and claimed_completion else "insufficient" if claimed_completion else "pending"),
+        "reconciliation_status": reconciliation_status,
+        "manual_review_status": "required" if requires_review else "none",
+    }
+
+
 def _format_text_result(case_name: str, payload: dict[str, Any]) -> str:
+    completion_validation = _completion_validation_summary(payload)
     lines = [
         f"case: {case_name}",
         f"action: {payload['action']}",
         f"target_status: {payload['target_status']}",
         f"task_status: {payload['task_envelope']['status']}",
         f"accepted_completion: {payload['accepted_completion']}",
+        f"completion_status: {completion_validation['status']}",
+        f"completion_claimed: {completion_validation['completion_claimed']}",
+        f"completion_accepted: {completion_validation['completion_accepted']}",
+        f"intent_status: {completion_validation['intent_status']}",
+        f"evidence_status: {completion_validation['evidence_status']}",
+        f"reconciliation_status: {completion_validation['reconciliation_status']}",
         f"requires_review: {payload['requires_review']}",
         f"invalid_input: {payload['invalid_input']}",
     ]
@@ -77,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     request = build_demo_request(args.case_name)
     result = evaluate_task_case(request)
     payload = _to_jsonable(result)
+    payload["completion_validation_summary"] = _completion_validation_summary(payload)
     if args.as_json:
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:

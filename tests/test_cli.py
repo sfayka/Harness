@@ -29,6 +29,8 @@ class HarnessCliTests(unittest.TestCase):
         self.assertIn("case: accepted_completion", output)
         self.assertIn("action: transition_applied", output)
         self.assertIn("task_status: completed", output)
+        self.assertIn("completion_status: accepted", output)
+        self.assertIn("completion_accepted: True", output)
 
     def test_runs_blocked_case_with_json_output(self) -> None:
         exit_code, output = self._run_cli("run", "blocked_reconciliation_mismatch", "--json")
@@ -38,6 +40,8 @@ class HarnessCliTests(unittest.TestCase):
         self.assertEqual(payload["action"], "transition_applied")
         self.assertEqual(payload["target_status"], "blocked")
         self.assertEqual(payload["task_envelope"]["status"], "blocked")
+        self.assertEqual(payload["completion_validation_summary"]["status"], "blocked")
+        self.assertFalse(payload["completion_validation_summary"]["completion_accepted"])
 
     def test_runs_review_required_case(self) -> None:
         exit_code, output = self._run_cli("run", "review_required")
@@ -46,6 +50,8 @@ class HarnessCliTests(unittest.TestCase):
         self.assertIn("requires_review: True", output)
         self.assertIn("action: review_required", output)
         self.assertIn("task_status: in_review", output)
+        self.assertIn("completion_status: review_required", output)
+        self.assertIn("completion_accepted: False", output)
 
     def test_runs_invalid_input_case(self) -> None:
         exit_code, output = self._run_cli("run", "invalid_input", "--json")
