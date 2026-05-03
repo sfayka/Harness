@@ -169,6 +169,23 @@ class GuidedSetupStatusTests(unittest.TestCase):
         self.assertEqual(items["execution_substrate"]["execution_transport"]["mode"], "installed")
         self.assertFalse(items["execution_substrate"]["execution_transport"]["live_dispatch_enabled"])
 
+    def test_execution_transport_string_booleans_fail_closed(self) -> None:
+        doctor_payload = healthy_runtime_doctor_payload(substrate_status="pass")
+        for item in doctor_payload["checks"]:
+            if item["code"] == "execution_substrate":
+                item["details"]["live_dispatch_enabled"] = "false"
+                item["details"]["runner_completion_is_truth"] = "false"
+
+        payload = build_guided_setup_status(
+            doctor_payload,
+            selected_workflows=["repair-dispatch"],
+        )
+        items = {item["id"]: item for item in payload["items"]}
+        transport = items["execution_substrate"]["execution_transport"]
+
+        self.assertFalse(transport["live_dispatch_enabled"])
+        self.assertFalse(transport["runner_completion_is_truth"])
+
     def test_configured_broken_runtime_blocks_onboarding(self) -> None:
         payload = healthy_runtime_doctor_payload()
         for item in payload["checks"]:

@@ -407,9 +407,9 @@ def _execution_transport_policy(checks: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "preferred_runner": str(details.get("preferred_runner") or "symphony"),
         "mode": str(details.get("mode") or "unknown"),
-        "live_dispatch_enabled": bool(details.get("live_dispatch_enabled")),
+        "live_dispatch_enabled": details.get("live_dispatch_enabled") is True,
         "completion_authority": str(details.get("completion_authority") or "harness_verification"),
-        "runner_completion_is_truth": bool(details.get("runner_completion_is_truth")),
+        "runner_completion_is_truth": details.get("runner_completion_is_truth") is True,
     }
 
 
