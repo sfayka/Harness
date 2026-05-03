@@ -63,6 +63,14 @@ def _optional_non_empty_string_list(value: Any, *, field_name: str) -> tuple[str
     return tuple(item.strip() for item in value)
 
 
+def _optional_boolean(value: Any, *, field_name: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise OpenClawIngressInputError(f"{field_name} must be a boolean")
+    return value
+
+
 def _normalize_openclaw_child_task_ids(value: Any, *, task_id: str) -> list[str]:
     child_task_ids = list(_optional_non_empty_string_list(value, field_name="task.child_task_ids"))
     if task_id in child_task_ids:
@@ -149,11 +157,11 @@ def _validate_openclaw_handoff_contract(payload: Mapping[str, Any]) -> None:
         raise OpenClawIngressInputError(
             f"task.status must be one of {allowed_statuses} for OpenClaw ingress handoff"
         )
-    if bool(payload.get("claimed_completion", False)):
+    if _optional_boolean(payload.get("claimed_completion"), field_name="claimed_completion"):
         raise OpenClawIngressInputError(
             "OpenClaw ingress cannot claim completion; completion must flow through executor/reporting paths"
         )
-    if bool(payload.get("acceptance_criteria_satisfied", False)):
+    if _optional_boolean(payload.get("acceptance_criteria_satisfied"), field_name="acceptance_criteria_satisfied"):
         raise OpenClawIngressInputError(
             "OpenClaw ingress cannot assert acceptance_criteria_satisfied on initial handoff"
         )
@@ -359,8 +367,11 @@ def translate_openclaw_submission_payload(payload: Mapping[str, Any]) -> dict[st
             intent=_build_task_intent(payload),
             context=_build_openclaw_context(payload),
             external_facts=_to_jsonable(_optional_mapping(payload.get("external_facts"), field_name="external_facts")),
-            claimed_completion=bool(payload.get("claimed_completion", False)),
-            acceptance_criteria_satisfied=bool(payload.get("acceptance_criteria_satisfied", False)),
+            claimed_completion=_optional_boolean(payload.get("claimed_completion"), field_name="claimed_completion"),
+            acceptance_criteria_satisfied=_optional_boolean(
+                payload.get("acceptance_criteria_satisfied"),
+                field_name="acceptance_criteria_satisfied",
+            ),
             runtime_facts=_to_jsonable(_optional_mapping(payload.get("runtime_facts"), field_name="runtime_facts")),
             unresolved_conditions=(),
         )

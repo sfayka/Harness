@@ -103,6 +103,20 @@ class LinearIngressTranslationTests(unittest.TestCase):
         with self.assertRaisesRegex(LinearIngressInputError, "cannot submit runtime_facts"):
             translate_linear_submission_payload(payload)
 
+    def test_rejects_string_completion_booleans(self) -> None:
+        payload = _linear_ingress_payload()
+        payload["claimed_completion"] = "false"
+        with self.assertRaisesRegex(LinearIngressInputError, "claimed_completion must be a boolean"):
+            translate_linear_submission_payload(payload)
+
+        payload = _linear_ingress_payload()
+        payload["acceptance_criteria_satisfied"] = "true"
+        with self.assertRaisesRegex(
+            LinearIngressInputError,
+            "acceptance_criteria_satisfied must be a boolean",
+        ):
+            translate_linear_submission_payload(payload)
+
     def test_rejects_execution_artifacts_completion_evidence_and_runtime_status(self) -> None:
         payload = _linear_ingress_payload()
         payload["linked_artifacts"] = [{"id": "artifact-pr-1", "type": "pull_request"}]

@@ -109,6 +109,20 @@ class GitHubSyncTranslationTests(unittest.TestCase):
         with self.assertRaisesRegex(GitHubSyncInputError, "cannot submit completion_evidence"):
             translate_github_sync_reevaluation_payload(payload)
 
+    def test_rejects_string_completion_booleans(self) -> None:
+        payload = _github_sync_payload()
+        payload["claimed_completion"] = "false"
+        with self.assertRaisesRegex(GitHubSyncInputError, "claimed_completion must be a boolean"):
+            translate_github_sync_reevaluation_payload(payload)
+
+        payload = _github_sync_payload()
+        payload["acceptance_criteria_satisfied"] = "true"
+        with self.assertRaisesRegex(
+            GitHubSyncInputError,
+            "acceptance_criteria_satisfied must be a boolean",
+        ):
+            translate_github_sync_reevaluation_payload(payload)
+
 
 if __name__ == "__main__":
     unittest.main()

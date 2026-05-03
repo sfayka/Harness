@@ -57,6 +57,14 @@ def _optional_mapping_list(value: Any, *, field_name: str) -> list[dict[str, Any
     return normalized
 
 
+def _optional_boolean(value: Any, *, field_name: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise ManualIngressInputError(f"{field_name} must be a boolean")
+    return value
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -74,11 +82,11 @@ def _validate_manual_ingress_contract(payload: Mapping[str, Any]) -> None:
     if task_status is not None and task_status not in _ALLOWED_MANUAL_INGRESS_STATUSES:
         allowed_statuses = ", ".join(sorted(_ALLOWED_MANUAL_INGRESS_STATUSES))
         raise ManualIngressInputError(f"task_status must be one of {allowed_statuses} for manual ingress")
-    if bool(payload.get("claimed_completion", False)):
+    if _optional_boolean(payload.get("claimed_completion"), field_name="claimed_completion"):
         raise ManualIngressInputError(
             "Manual ingress cannot claim completion; completion must flow through executor/reporting paths"
         )
-    if bool(payload.get("acceptance_criteria_satisfied", False)):
+    if _optional_boolean(payload.get("acceptance_criteria_satisfied"), field_name="acceptance_criteria_satisfied"):
         raise ManualIngressInputError(
             "Manual ingress cannot assert acceptance_criteria_satisfied on initial handoff"
         )
@@ -176,8 +184,11 @@ def translate_manual_submission_payload(payload: Mapping[str, Any]) -> dict[str,
     request_payload: dict[str, Any] = {
         "task_envelope": task_envelope,
         "external_facts": canonical_external_facts,
-        "claimed_completion": bool(payload.get("claimed_completion", False)),
-        "acceptance_criteria_satisfied": bool(payload.get("acceptance_criteria_satisfied", False)),
+        "claimed_completion": _optional_boolean(payload.get("claimed_completion"), field_name="claimed_completion"),
+        "acceptance_criteria_satisfied": _optional_boolean(
+            payload.get("acceptance_criteria_satisfied"),
+            field_name="acceptance_criteria_satisfied",
+        ),
     }
 
     runtime_facts = _optional_mapping(payload.get("runtime_facts"), field_name="runtime_facts")

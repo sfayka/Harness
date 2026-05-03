@@ -172,6 +172,22 @@ class OpenClawIngressTranslationTests(unittest.TestCase):
         with self.assertRaises(OpenClawIngressInputError):
             translate_openclaw_submission_payload(payload)
 
+    def test_translate_openclaw_submission_payload_rejects_string_completion_booleans(self) -> None:
+        payload = self._payload()
+        payload["claimed_completion"] = "false"
+
+        with self.assertRaisesRegex(OpenClawIngressInputError, "claimed_completion must be a boolean"):
+            translate_openclaw_submission_payload(payload)
+
+        payload = self._payload()
+        payload["acceptance_criteria_satisfied"] = "true"
+
+        with self.assertRaisesRegex(
+            OpenClawIngressInputError,
+            "acceptance_criteria_satisfied must be a boolean",
+        ):
+            translate_openclaw_submission_payload(payload)
+
     def test_translate_openclaw_submission_payload_rejects_runtime_facts(self) -> None:
         payload = self._payload()
         payload["runtime_facts"] = {"attempt_count": 1}

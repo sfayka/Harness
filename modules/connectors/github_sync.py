@@ -51,6 +51,14 @@ def _optional_string(value: Any, *, field_name: str) -> str | None:
     return stripped or None
 
 
+def _optional_boolean(value: Any, *, field_name: str, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if not isinstance(value, bool):
+        raise GitHubSyncInputError(f"{field_name} must be a boolean")
+    return value
+
+
 def _to_jsonable(value: Any) -> Any:
     if is_dataclass(value):
         return {key: _to_jsonable(val) for key, val in asdict(value).items()}
@@ -375,11 +383,11 @@ def _validate_github_sync_contract(payload: Mapping[str, Any]) -> None:
     _require_string(payload.get("task_id"), field_name="task_id")
     _require_mapping(payload.get("github"), field_name="github")
 
-    if bool(payload.get("claimed_completion", False)):
+    if _optional_boolean(payload.get("claimed_completion"), field_name="claimed_completion"):
         raise GitHubSyncInputError(
             "GitHub sync cannot claim completion; completion must flow through executor/reporting paths"
         )
-    if bool(payload.get("acceptance_criteria_satisfied", False)):
+    if _optional_boolean(payload.get("acceptance_criteria_satisfied"), field_name="acceptance_criteria_satisfied"):
         raise GitHubSyncInputError(
             "GitHub sync cannot assert acceptance_criteria_satisfied; completion policy remains separate from artifact sync"
         )

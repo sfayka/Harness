@@ -54,6 +54,20 @@ class ManualIngressConnectorTests(unittest.TestCase):
         with self.assertRaisesRegex(ManualIngressInputError, "cannot submit runtime_facts"):
             translate_manual_submission_payload(payload)
 
+    def test_translate_manual_submission_payload_rejects_string_completion_booleans(self) -> None:
+        payload = self._payload()
+        payload["claimed_completion"] = "false"
+        with self.assertRaisesRegex(ManualIngressInputError, "claimed_completion must be a boolean"):
+            translate_manual_submission_payload(payload)
+
+        payload = self._payload()
+        payload["acceptance_criteria_satisfied"] = "true"
+        with self.assertRaisesRegex(
+            ManualIngressInputError,
+            "acceptance_criteria_satisfied must be a boolean",
+        ):
+            translate_manual_submission_payload(payload)
+
     def test_translate_manual_submission_payload_rejects_execution_artifacts_and_completion_evidence(self) -> None:
         payload = self._payload()
         payload["linked_artifacts"] = [{"id": "artifact-pr-1", "type": "pull_request"}]
