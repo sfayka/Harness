@@ -16,9 +16,9 @@ Proofline should be usable as Sean's acceptance layer for agentic software work:
 ## Current Passing Evidence
 
 - Backend unit suite: `python3 -m unittest discover -s tests`
-  - Result: `911 tests`, `17 skipped`, passing.
+  - Result: `913 tests`, `17 skipped`, passing.
 - Backend coverage: `PYTHONPATH=.tmp/proofline-dev-python python3 -m coverage run -m unittest discover -s tests`
-  - Result: `911 tests`, `17 skipped`, passing.
+  - Result: `913 tests`, `17 skipped`, passing.
   - Coverage report: `81%` total over `backend` and `modules`.
 - Frontend tests: `pnpm test:frontend`
   - Result: `23 tests`, passing.
@@ -63,6 +63,8 @@ Live mutation smoke was not run.
 Reasons:
 
 - Proofline runtime setup still reports missing `linear_api_key`.
+- `GH_TOKEN` is now accepted as a developer environment alias for `GITHUB_TOKEN`, but no usable
+  GitHub token is currently available in this shell through either env var.
 - `gh auth token` currently does not return an OAuth token in this shell, so the GitHub CLI fallback cannot satisfy Proofline's `github_token` runtime credential.
 - The live smoke creates throwaway Linear issues, GitHub branches, commits, and PRs, so it must remain gated by explicit operator approval and configured credentials.
 
