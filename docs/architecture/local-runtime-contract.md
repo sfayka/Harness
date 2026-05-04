@@ -136,11 +136,12 @@ The current workflow gates are:
 
 - `github-proof`: requires GitHub artifact verification.
 - `linear-sync`: requires Linear coordination.
-- `repair-dispatch`: requires a desktop-agent ingress/executor bridge.
+- `repair-dispatch`: requires a Symphony-compatible execution substrate.
 
 Setup items use the runtime-managed secret boundary.
 The GitHub and Linear items tell the operator which named secret to store and how Harness validates it; they do not ask operators to edit env files.
-The ingress/executor item stays client-neutral and describes the bridge as compatible with OpenClaw, Hermes, Codex, or future desktop-agent clients.
+The execution-substrate item names Symphony as the preferred advisory runner while keeping Proofline as completion authority.
+The legacy ingress/executor item remains optional compatibility wiring for older OpenClaw, Hermes, Codex, or future desktop-agent bridge paths.
 
 See [guided-integration-setup.md](guided-integration-setup.md).
 

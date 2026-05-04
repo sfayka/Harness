@@ -422,7 +422,7 @@ python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
 python3 -m modules.proofline_runtime --json setup status --workflow repair-dispatch
 ```
 
-Default setup only requires a healthy local Harness runtime. GitHub, Linear, and ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
+Default setup only requires a healthy local Harness runtime. GitHub, Linear, execution-substrate, and legacy ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. `repair-dispatch` now gates on the Symphony-compatible execution substrate; the legacy ingress/executor bridge is compatibility wiring, not the primary runner requirement. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
 
 The native macOS app shell and packaging scripts have been removed from the active tree. Do not treat a Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Proofline path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend. Normal operation should be CLI + API + web dashboard.
 

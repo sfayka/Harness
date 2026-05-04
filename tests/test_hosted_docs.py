@@ -38,3 +38,21 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("python3 -m coverage run -m unittest discover -s tests", validation)
         self.assertIn("python3 -m coverage report -m", validation)
         self.assertIn("requirements-dev.txt", local_development)
+
+    def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        runtime_contract = Path("docs/architecture/local-runtime-contract.md").read_text(
+            encoding="utf-8"
+        )
+        guided_setup = Path("docs/architecture/guided-integration-setup.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("repair-dispatch`: requires a Symphony-compatible execution substrate", runtime_contract)
+        self.assertIn("Symphony-compatible execution substrate", readme)
+        self.assertIn("legacy ingress/executor bridge is compatibility wiring", readme)
+        self.assertIn("repair-dispatch` requires the execution substrate", guided_setup)
+        self.assertNotIn(
+            "repair-dispatch`: requires a desktop-agent ingress/executor bridge",
+            runtime_contract,
+        )
