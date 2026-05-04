@@ -133,6 +133,17 @@ Default macOS paths:
 - `~/Library/Application Support/Harness/runtime/harness.pid`
 - `~/Library/Logs/Harness/harness.log`
 
+For repo-local or sandboxed development, keep runtime state inside the checkout:
+
+```bash
+export PROOFLINE_APP_DATA_DIR="$PWD/.tmp/proofline-runtime/data"
+export PROOFLINE_APP_LOG_DIR="$PWD/.tmp/proofline-runtime/logs"
+python3 -m modules.proofline_runtime --json init
+python3 -m modules.proofline_runtime --json setup status
+```
+
+`HARNESS_APP_DATA_DIR` and `HARNESS_APP_LOG_DIR` remain compatibility fallbacks, but the Proofline-named aliases win when both are set.
+
 Local CLI/web secrets use the runtime-managed secret store instead of `.env.local`:
 
 ```bash

@@ -620,6 +620,24 @@ class LocalRuntimeContractTests(unittest.TestCase):
         self.assertEqual(paths.database_path, Path("/tmp/xdg-data/harness/harness.db"))
         self.assertEqual(paths.dashboard_assets_dir, Path("/tmp/xdg-data/harness/dashboard"))
 
+    def test_resolves_proofline_app_path_overrides_before_harness_compatibility(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "PROOFLINE_APP_DATA_DIR": "/tmp/proofline-data",
+                "PROOFLINE_APP_LOG_DIR": "/tmp/proofline-logs",
+                "HARNESS_APP_DATA_DIR": "/tmp/harness-data",
+                "HARNESS_APP_LOG_DIR": "/tmp/harness-logs",
+            },
+            clear=True,
+        ):
+            paths = resolve_runtime_paths(platform_name="darwin", home="/Users/sean")
+
+        self.assertEqual(paths.data_dir, Path("/tmp/proofline-data"))
+        self.assertEqual(paths.log_dir, Path("/tmp/proofline-logs"))
+        self.assertEqual(paths.database_path, Path("/tmp/proofline-data/harness.db"))
+        self.assertEqual(paths.log_path, Path("/tmp/proofline-logs/harness.log"))
+
     def test_backend_runtime_status_payload_uses_runtime_environment_without_secrets(self) -> None:
         with patch.dict(
             os.environ,

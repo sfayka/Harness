@@ -48,8 +48,9 @@ Default Linux paths:
 - PID: `<data-dir>/runtime/harness.pid`
 - Logs: `$XDG_STATE_HOME/harness/logs/harness.log`, or `~/.local/state/harness/logs/harness.log`
 
-Developer and test runs may override paths with `--data-dir`, `--log-dir`, `HARNESS_APP_DATA_DIR`,
-or `HARNESS_APP_LOG_DIR`.
+Developer and test runs may override paths with `--data-dir`, `--log-dir`, `PROOFLINE_APP_DATA_DIR`,
+`PROOFLINE_APP_LOG_DIR`, `HARNESS_APP_DATA_DIR`, or `HARNESS_APP_LOG_DIR`. The Proofline-named
+environment variables win when both names are present.
 Normal local usage should rely on runtime-managed defaults.
 
 ## Runtime Config

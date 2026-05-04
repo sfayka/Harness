@@ -55,6 +55,8 @@ ENV_RUNTIME_HOST = "HARNESS_RUNTIME_HOST"
 ENV_RUNTIME_PORT = "HARNESS_RUNTIME_PORT"
 ENV_RUNTIME_BASE_URL = "HARNESS_RUNTIME_BASE_URL"
 ENV_RUNTIME_EXECUTABLE = "HARNESS_RUNTIME_EXECUTABLE"
+ENV_APP_DATA_DIR = "HARNESS_APP_DATA_DIR"
+ENV_APP_LOG_DIR = "HARNESS_APP_LOG_DIR"
 ENV_PROOFLINE_RUNTIME_MODE = "PROOFLINE_RUNTIME_MODE"
 ENV_PROOFLINE_RUNTIME_CONFIG_PATH = "PROOFLINE_RUNTIME_CONFIG_PATH"
 ENV_PROOFLINE_RUNTIME_DATA_DIR = "PROOFLINE_RUNTIME_DATA_DIR"
@@ -63,6 +65,8 @@ ENV_PROOFLINE_RUNTIME_HOST = "PROOFLINE_RUNTIME_HOST"
 ENV_PROOFLINE_RUNTIME_PORT = "PROOFLINE_RUNTIME_PORT"
 ENV_PROOFLINE_RUNTIME_BASE_URL = "PROOFLINE_RUNTIME_BASE_URL"
 ENV_PROOFLINE_RUNTIME_EXECUTABLE = "PROOFLINE_RUNTIME_EXECUTABLE"
+ENV_PROOFLINE_APP_DATA_DIR = "PROOFLINE_APP_DATA_DIR"
+ENV_PROOFLINE_APP_LOG_DIR = "PROOFLINE_APP_LOG_DIR"
 ENV_DASHBOARD_ASSETS_DIR = "HARNESS_DASHBOARD_ASSETS_DIR"
 ENV_PROOFLINE_DASHBOARD_ASSETS_DIR = "PROOFLINE_DASHBOARD_ASSETS_DIR"
 ENV_SECRET_PROVIDER = "HARNESS_SECRET_PROVIDER"
@@ -205,10 +209,16 @@ def resolve_runtime_paths(
     home_path = Path(home).expanduser() if home is not None else Path.home()
 
     resolved_data_dir = Path(
-        data_dir or os.environ.get("HARNESS_APP_DATA_DIR") or _default_data_dir(current_platform, home_path)
+        data_dir
+        or os.environ.get(ENV_PROOFLINE_APP_DATA_DIR)
+        or os.environ.get(ENV_APP_DATA_DIR)
+        or _default_data_dir(current_platform, home_path)
     ).expanduser()
     resolved_log_dir = Path(
-        log_dir or os.environ.get("HARNESS_APP_LOG_DIR") or _default_log_dir(current_platform, home_path)
+        log_dir
+        or os.environ.get(ENV_PROOFLINE_APP_LOG_DIR)
+        or os.environ.get(ENV_APP_LOG_DIR)
+        or _default_log_dir(current_platform, home_path)
     ).expanduser()
     runtime_dir = resolved_data_dir / "runtime"
     return RuntimePaths(
