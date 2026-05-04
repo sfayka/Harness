@@ -56,6 +56,8 @@ Existing environment variables win. This preserves developer mode:
 - repo-root `.env.local` remains valid for local development
 - exported shell variables remain valid for CI and one-off debugging
 - runtime-managed Keychain secrets are the normal macOS local-runtime path
+- an authenticated GitHub CLI session can provide `github_token` locally through `gh auth token`
+  when neither `GITHUB_TOKEN` nor the runtime-managed secret is configured
 
 Missing secrets do not block the local API from starting because GitHub, Linear, and executor integrations are optional until a chosen workflow needs them.
 Workflows that need a credential should call `secrets status --require <name>` or surface the integration-specific setup error.
@@ -66,6 +68,7 @@ Workflows that need a credential should call `secrets status --require <name>` o
 - Do not write token values to logs.
 - Do not return token values from CLI JSON.
 - Do not teach operators to edit `.env.local` for normal local setup.
+- Do not treat the GitHub CLI fallback as a source of completion truth; it is only a local credential source.
 - Do not couple the secret model to OpenClaw or Hermes. Use Harness secret names and map them to current env vars at the runtime boundary.
 
 ## Linux Portability

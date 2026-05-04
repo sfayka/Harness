@@ -294,6 +294,7 @@ def load_runtime_managed_secrets_into_environment(
     *,
     store: SecretStore | None = None,
     overwrite: bool = False,
+    command_runner: CommandRunner | None = None,
 ) -> list[SecretStatus]:
     """Populate missing runtime env vars from runtime-managed secrets.
 
@@ -302,6 +303,7 @@ def load_runtime_managed_secrets_into_environment(
     """
 
     secret_store = store or create_secret_store()
+    resolved_command_runner = command_runner or _run_command
     statuses: list[SecretStatus] = []
     for definition in SECRET_DEFINITIONS:
         current_value = os.environ.get(definition.env_var)
@@ -309,7 +311,11 @@ def load_runtime_managed_secrets_into_environment(
             statuses.append(_configured_status(definition, source="environment", required=False))
             continue
         try:
-            value = secret_store.get_secret(definition.name)
+            value, source = _resolve_secret_value(
+                definition,
+                secret_store=secret_store,
+                command_runner=resolved_command_runner,
+            )
         except SecretNotFoundError:
             statuses.append(_missing_status(definition, required=False))
         except SecretProviderUnavailableError as error:
@@ -318,7 +324,7 @@ def load_runtime_managed_secrets_into_environment(
             statuses.append(_error_status(definition, str(error), required=False))
         else:
             os.environ[definition.env_var] = value
-            statuses.append(_configured_status(definition, source=_provider_name(secret_store), required=False))
+            statuses.append(_configured_status(definition, source=source, required=False))
     return statuses
 
 
@@ -326,18 +332,25 @@ def load_app_managed_secrets_into_environment(
     *,
     store: SecretStore | None = None,
     overwrite: bool = False,
+    command_runner: CommandRunner | None = None,
 ) -> list[SecretStatus]:
     """Backward-compatible alias for the pre-CLI/web naming."""
 
-    return load_runtime_managed_secrets_into_environment(store=store, overwrite=overwrite)
+    return load_runtime_managed_secrets_into_environment(
+        store=store,
+        overwrite=overwrite,
+        command_runner=command_runner,
+    )
 
 
 def collect_secret_statuses(
     *,
     store: SecretStore | None = None,
     required_names: Iterable[str] = (),
+    command_runner: CommandRunner | None = None,
 ) -> list[SecretStatus]:
     secret_store = store or create_secret_store()
+    resolved_command_runner = command_runner or _run_command
     required = set(required_names)
     for name in required:
         get_secret_definition(name)
@@ -349,7 +362,11 @@ def collect_secret_statuses(
             statuses.append(_configured_status(definition, source="environment", required=is_required))
             continue
         try:
-            secret_store.get_secret(definition.name)
+            _value, source = _resolve_secret_value(
+                definition,
+                secret_store=secret_store,
+                command_runner=resolved_command_runner,
+            )
         except SecretNotFoundError:
             statuses.append(_missing_status(definition, required=is_required))
         except SecretProviderUnavailableError as error:
@@ -357,8 +374,36 @@ def collect_secret_statuses(
         except LocalSecretError as error:
             statuses.append(_error_status(definition, str(error), required=is_required))
         else:
-            statuses.append(_configured_status(definition, source=_provider_name(secret_store), required=is_required))
+            statuses.append(_configured_status(definition, source=source, required=is_required))
     return statuses
+
+
+def _resolve_secret_value(
+    definition: SecretDefinition,
+    *,
+    secret_store: SecretStore,
+    command_runner: CommandRunner,
+) -> tuple[str, str]:
+    try:
+        value = secret_store.get_secret(definition.name)
+    except LocalSecretError as provider_error:
+        if definition.name == "github_token" and not isinstance(secret_store, InMemorySecretStore):
+            github_cli_token = _read_github_cli_token(command_runner=command_runner)
+            if github_cli_token:
+                return github_cli_token, "github-cli"
+        raise provider_error
+    return value, _provider_name(secret_store)
+
+
+def _read_github_cli_token(*, command_runner: CommandRunner) -> str | None:
+    gh_bin = shutil.which("gh")
+    if not gh_bin:
+        return None
+    result = command_runner([gh_bin, "auth", "token"])
+    if result.returncode != 0:
+        return None
+    token = result.stdout.strip()
+    return token or None
 
 
 def secret_status_payload(statuses: list[SecretStatus]) -> dict[str, object]:

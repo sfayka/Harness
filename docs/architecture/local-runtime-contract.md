@@ -112,6 +112,9 @@ python3 -m modules.proofline_runtime --json secrets delete github_token
 
 Secret status output is redacted. It reports configured, missing, unavailable, and error states without returning token values.
 Existing environment variables win over Keychain values so developer `.env.local` workflows still work.
+For GitHub only, an authenticated `gh` CLI session is also accepted as a local credential source when
+`GITHUB_TOKEN` and the runtime-managed `github_token` secret are both absent. This reduces local setup
+friction without changing Proofline's verification boundary.
 
 Provider selection is platform-aware. Darwin uses `macos-keychain`; Linux is reserved for the `linux-secret-service` boundary even though the Linux provider is still deferred.
 

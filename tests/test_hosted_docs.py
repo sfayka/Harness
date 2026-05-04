@@ -56,3 +56,15 @@ class HostedDocsTests(unittest.TestCase):
             "repair-dispatch`: requires a desktop-agent ingress/executor bridge",
             runtime_contract,
         )
+
+    def test_github_cli_credential_fallback_is_documented(self) -> None:
+        runtime_contract = Path("docs/architecture/local-runtime-contract.md").read_text(
+            encoding="utf-8"
+        )
+        local_development = Path("docs/setup/local-development.md").read_text(encoding="utf-8")
+        secrets = Path("docs/architecture/app-managed-secrets.md").read_text(encoding="utf-8")
+
+        self.assertIn("authenticated `gh` CLI session", runtime_contract)
+        self.assertIn("gh auth token", local_development)
+        self.assertIn("gh auth token", secrets)
+        self.assertIn("only a local credential source", secrets)
