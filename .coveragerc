@@ -8,10 +8,21 @@ omit =
     docs/*
     examples/*
     exports/*
+    * 2.py
+    */* 2.py
+    modules/contracts/schema_loader 2.py
 
 [report]
 show_missing = True
 skip_empty = True
+omit =
+    tests/*
+    docs/*
+    examples/*
+    exports/*
+    * 2.py
+    */* 2.py
+    modules/contracts/schema_loader 2.py
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.:
