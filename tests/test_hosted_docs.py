@@ -16,3 +16,15 @@ class HostedDocsTests(unittest.TestCase):
     def test_vercel_neon_runbook_exists_and_render_supabase_runbook_is_removed(self) -> None:
         self.assertTrue(Path("docs/setup/vercel-neon.md").exists())
         self.assertFalse(Path("docs/setup/render-supabase.md").exists())
+
+    def test_validation_plan_names_synthetic_and_live_linear_github_gates(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        validation = Path("docs/howto/test-and-validate.md").read_text(encoding="utf-8")
+
+        self.assertIn("docs/howto/test-and-validate.md", readme)
+        self.assertIn("Validation Tiers", validation)
+        self.assertIn("Real Linear/GitHub Validation Plan", validation)
+        self.assertIn("HARNESS-DRYRUN", validation)
+        self.assertIn("sfayka/HARNESS-DRYRUN", validation)
+        self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1", validation)
+        self.assertIn("synthetic", validation.lower())

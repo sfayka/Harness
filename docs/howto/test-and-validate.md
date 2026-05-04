@@ -4,6 +4,22 @@ Validation should prove three things: the service starts, the dashboard reads li
 
 Command examples use tested Proofline runtime and storage aliases where they exist. Keep `HARNESS_*` compatibility variables, route aliases, local data paths, and stored evidence fields working until the rename migration guide explicitly retires them.
 
+## Validation Tiers
+
+Use synthetic data for normal development. Synthetic tests are the default because they are deterministic, fast, and safe to run repeatedly while Proofline's contracts are still changing.
+
+Use real Linear and GitHub data only for gated integration validation. Those checks prove that the local contracts still match the real operator systems, but they can create or update external artifacts and should not be part of every edit/test loop.
+
+The current tiers are:
+
+- Tier 0: static checks, unit tests, frontend tests, and deterministic synthetic dry runs.
+- Tier 1: local API/dashboard smoke using disposable local storage.
+- Tier 2: read-only real-system checks against the configured Linear/GitHub dry-run targets.
+- Tier 3: gated live smoke that creates throwaway Linear/GitHub artifacts.
+- Tier 4: production workflow validation against a named real project after Sean explicitly approves the target and blast radius.
+
+Do not skip from Tier 0 to Tier 3 just because credentials exist. The point is to keep the edit loop synthetic and make live-system testing deliberate.
+
 ## Fast Local Baseline
 
 ```bash
@@ -56,7 +72,34 @@ python3 -m modules.execution_substrate_dryrun handoff
 
 These commands exercise the Symphony-compatible execution substrate boundary locally. They write JSON summaries, use disposable stores, and do not start Symphony or touch live Linear/GitHub work. The summaries include `completion_validation_summary`; the legacy `accepted_completion` field is derived from that Proofline verdict, not from runner status. The `handoff` command renders the payload Proofline would hand to a Symphony-compatible runner through the disabled transport boundary while keeping `transport_status=disabled`, `dispatch_enabled=false`, `live_dispatch_enabled=false`, and `safe_to_execute_live=false`.
 
-## Local Live Smoke
+## Real Linear/GitHub Validation Plan
+
+Proofline's live integration target should remain the dry-run pair unless a release note says otherwise:
+
+- Linear project: `HARNESS-DRYRUN`
+- GitHub repository: `sfayka/HARNESS-DRYRUN`
+- Base branch: `main`
+
+Read-only checks may be run whenever the tools are authenticated:
+
+```bash
+gh auth status
+gh repo view sfayka/HARNESS-DRYRUN --json nameWithOwner,defaultBranchRef,url,isPrivate
+```
+
+For Linear, use the configured Linear connector or UI to confirm the `HARNESS-DRYRUN` project exists before running mutation smoke. A passing read-only check should identify the project URL and at least one previous live-smoke issue.
+
+Only run the mutation smoke when all of these are true:
+
+- `python3 -m unittest discover -s tests` passes.
+- `pnpm test:frontend`, `pnpm lint`, and `pnpm build` pass when frontend code changed.
+- `python3 -m modules.proofline_runtime --json setup status --workflow github-proof --workflow linear-sync` reports GitHub and Linear ready, or equivalent env vars are intentionally exported for that shell.
+- The target Linear project is `HARNESS-DRYRUN`.
+- The target GitHub repository is `sfayka/HARNESS-DRYRUN`.
+- The run is expected to create throwaway Linear issues, branches, commits, and PRs.
+- No live Symphony dispatch is enabled unless the specific test is explicitly about execution-substrate transport.
+
+### Gated Live Smoke
 
 Only run this when the repo has live `GITHUB_TOKEN` and `LINEAR_API_KEY` access configured:
 
@@ -65,6 +108,14 @@ HARNESS_RUN_LIVE_RESET_TESTS=1 python3 -m unittest tests.test_reset_live_smoke -
 ```
 
 This creates real throwaway Linear and GitHub artifacts in the configured dry-run targets.
+
+Record every successful mutation smoke under `docs/release/` with:
+
+- exact command and environment switches
+- Linear project and issue URLs
+- GitHub repository, branch, commit, and PR URLs
+- final Proofline verdicts
+- any cleanup that was performed or intentionally left visible as proof
 
 ## What Counts As Proof
 

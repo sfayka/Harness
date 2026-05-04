@@ -34,6 +34,8 @@ The reset routes live under:
 
 These routes intentionally coexist with the older TaskEnvelope routes so the narrower verifier path can ship without first deleting the broader control-plane code.
 
+The validation ladder is documented in [`docs/howto/test-and-validate.md`](docs/howto/test-and-validate.md). Use synthetic tests for normal development, read-only Linear/GitHub checks to verify real target availability, and the gated live smoke only when the dry-run Linear/GitHub targets and credentials are intentionally configured.
+
 In hosted Vercel runtimes, the reset slice is not allowed to take the whole backend down during startup. When Postgres is available, `/reset/*` now persists contracts there so multi-request verification survives cold starts. If no database URL is available, the fallback remains writable temp storage, and if even that cannot be created, `/reset/*` fails explicitly instead of crashing `/backend/health` and `/backend/tasks` during import.
 
 ## What Proofline Is
