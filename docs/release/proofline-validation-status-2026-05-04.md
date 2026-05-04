@@ -12,6 +12,7 @@ Proofline should be usable as Sean's acceptance layer for agentic software work:
 - coverage should be measurable
 - Symphony should remain an advisory execution substrate, not completion truth
 - real Linear/GitHub validation should have a concrete gated plan
+- live mutation readiness should have a read-only preflight
 - live Linear/GitHub mutation should not run without explicit credentials and approval
 
 ## Current Passing Evidence
@@ -21,9 +22,9 @@ Proofline should be usable as Sean's acceptance layer for agentic software work:
   - Scope: backend suite, execution-substrate dry runs, reset dry runs, frontend tests, lint, and build.
   - Live Linear/GitHub mutation smoke is intentionally excluded.
 - Backend unit suite: `python3 -m unittest discover -s tests`
-  - Result: `916 tests`, `17 skipped`, passing.
+  - Result: `920 tests`, `17 skipped`, passing.
 - Backend coverage: `PYTHONPATH=.tmp/proofline-dev-python python3 -m coverage run -m unittest discover -s tests`
-  - Result: `916 tests`, `17 skipped`, passing.
+  - Result: `920 tests`, `17 skipped`, passing.
   - Coverage report: `81%` total over `backend` and `modules`.
 - Frontend tests: `pnpm test:frontend`
   - Result: `23 tests`, passing.
@@ -60,6 +61,10 @@ Proofline should be usable as Sean's acceptance layer for agentic software work:
 - Linear dry-run project:
   - `HARNESS-DRYRUN`
   - URL: `https://linear.app/knoxanalytics/project/harness-dryrun-3d7d9476cb1e`
+- Live smoke preflight:
+  - `python3 scripts/proofline_live_preflight.py --json`
+  - Result: `not_ready`, with no live artifacts created.
+  - Current blockers: missing `LINEAR_API_KEY`, missing `GITHUB_TOKEN`/`GH_TOKEN`, unusable `gh auth token`, and live mutation flag intentionally unset.
 
 ## Live Mutation Status
 

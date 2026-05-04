@@ -48,6 +48,16 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("python3 scripts/proofline_validate.py --coverage", validation)
         self.assertIn("does not run live Linear/GitHub mutation smoke", validation)
 
+    def test_live_preflight_is_documented_as_read_only_gate(self) -> None:
+        validation = Path("docs/howto/test-and-validate.md").read_text(encoding="utf-8")
+
+        self.assertTrue(Path("scripts/proofline_live_preflight.py").exists())
+        self.assertIn("python3 scripts/proofline_live_preflight.py", validation)
+        self.assertIn("python3 scripts/proofline_live_preflight.py --json", validation)
+        self.assertIn("This command is read-only", validation)
+        self.assertIn("does not create Linear issues, GitHub branches, commits, or PRs", validation)
+        self.assertIn("reports `ready`", validation)
+
     def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
         runtime_contract = Path("docs/architecture/local-runtime-contract.md").read_text(

@@ -128,10 +128,20 @@ gh repo view sfayka/HARNESS-DRYRUN --json nameWithOwner,defaultBranchRef,url,isP
 
 For Linear, use the configured Linear connector or UI to confirm the `HARNESS-DRYRUN` project exists before running mutation smoke. A passing read-only check should identify the project URL and at least one previous live-smoke issue.
 
+Run the repo-owned preflight before any mutation smoke:
+
+```bash
+python3 scripts/proofline_live_preflight.py
+python3 scripts/proofline_live_preflight.py --json
+```
+
+This command is read-only. It checks the live-smoke flag, GitHub/Linear credential presence, approved dry-run targets, and the GitHub repository read-only path. It does not create Linear issues, GitHub branches, commits, or PRs.
+
 Only run the mutation smoke when all of these are true:
 
 - `python3 -m unittest discover -s tests` passes.
 - `pnpm test:frontend`, `pnpm lint`, and `pnpm build` pass when frontend code changed.
+- `python3 scripts/proofline_live_preflight.py` reports `ready`.
 - `python3 -m modules.proofline_runtime --json setup status --workflow github-proof --workflow linear-sync` reports GitHub and Linear ready, or equivalent env vars are intentionally exported for that shell.
 - The target Linear project is `HARNESS-DRYRUN`.
 - The target GitHub repository is `sfayka/HARNESS-DRYRUN`.
