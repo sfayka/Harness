@@ -34,6 +34,23 @@ pnpm build
 python3 -m unittest discover -s tests
 ```
 
+## Backend Coverage
+
+Install developer test dependencies before measuring coverage:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
+Then run:
+
+```bash
+python3 -m coverage run -m unittest discover -s tests
+python3 -m coverage report -m
+```
+
+Coverage should be used as a regression signal, not as permission to weaken acceptance-layer tests. New control-plane, evaluator, contract, reconciliation, ingress, read-model, and dashboard API behavior should add targeted tests even when the aggregate percentage looks healthy.
+
 ## Local App Runtime
 
 From a checkout:

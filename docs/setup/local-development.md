@@ -20,6 +20,12 @@ Proofline is the product name. The local development surface still uses Harness 
 python3 -m pip install -r requirements.txt
 ```
 
+For coverage and developer-only validation helpers:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
 Codex Cloud assumes system Python is available as `python`. On local machines where only `python3` is present, use `python3` for local commands. Do not assume or require a `.venv`.
 
 Run the dedicated runtime scenario suite:

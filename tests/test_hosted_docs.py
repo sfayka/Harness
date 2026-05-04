@@ -28,3 +28,13 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("sfayka/HARNESS-DRYRUN", validation)
         self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1", validation)
         self.assertIn("synthetic", validation.lower())
+
+    def test_backend_coverage_command_is_documented(self) -> None:
+        validation = Path("docs/howto/test-and-validate.md").read_text(encoding="utf-8")
+        local_development = Path("docs/setup/local-development.md").read_text(encoding="utf-8")
+
+        self.assertTrue(Path("requirements-dev.txt").exists())
+        self.assertTrue(Path(".coveragerc").exists())
+        self.assertIn("python3 -m coverage run -m unittest discover -s tests", validation)
+        self.assertIn("python3 -m coverage report -m", validation)
+        self.assertIn("requirements-dev.txt", local_development)
