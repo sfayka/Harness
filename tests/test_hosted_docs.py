@@ -39,6 +39,15 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("python3 -m coverage report -m", validation)
         self.assertIn("requirements-dev.txt", local_development)
 
+    def test_synthetic_validation_runner_is_documented(self) -> None:
+        validation = Path("docs/howto/test-and-validate.md").read_text(encoding="utf-8")
+
+        self.assertTrue(Path("scripts/proofline_validate.py").exists())
+        self.assertIn("python3 scripts/proofline_validate.py", validation)
+        self.assertIn("python3 scripts/proofline_validate.py --list", validation)
+        self.assertIn("python3 scripts/proofline_validate.py --coverage", validation)
+        self.assertIn("does not run live Linear/GitHub mutation smoke", validation)
+
     def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
         runtime_contract = Path("docs/architecture/local-runtime-contract.md").read_text(

@@ -7,6 +7,7 @@ This note records the current validation state after the Symphony execution-subs
 Proofline should be usable as Sean's acceptance layer for agentic software work:
 
 - synthetic development paths should be safe and repeatable
+- synthetic/local validation should have one repo-owned command
 - backend and frontend validation should pass
 - coverage should be measurable
 - Symphony should remain an advisory execution substrate, not completion truth
@@ -15,10 +16,14 @@ Proofline should be usable as Sean's acceptance layer for agentic software work:
 
 ## Current Passing Evidence
 
+- Synthetic/local validation runner: `python3 scripts/proofline_validate.py`
+  - Result: passing.
+  - Scope: backend suite, execution-substrate dry runs, reset dry runs, frontend tests, lint, and build.
+  - Live Linear/GitHub mutation smoke is intentionally excluded.
 - Backend unit suite: `python3 -m unittest discover -s tests`
-  - Result: `913 tests`, `17 skipped`, passing.
+  - Result: `916 tests`, `17 skipped`, passing.
 - Backend coverage: `PYTHONPATH=.tmp/proofline-dev-python python3 -m coverage run -m unittest discover -s tests`
-  - Result: `913 tests`, `17 skipped`, passing.
+  - Result: `916 tests`, `17 skipped`, passing.
   - Coverage report: `81%` total over `backend` and `modules`.
 - Frontend tests: `pnpm test:frontend`
   - Result: `23 tests`, passing.

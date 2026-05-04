@@ -28,6 +28,28 @@ pnpm lint
 pnpm build
 ```
 
+## Synthetic Validation Runner
+
+For a single non-live validation command, run:
+
+```bash
+python3 scripts/proofline_validate.py
+```
+
+That command runs the backend suite, deterministic execution-substrate dry runs, reset dry runs, and frontend tests/lint/build. It intentionally does not run live Linear/GitHub mutation smoke.
+
+To inspect the plan without running it:
+
+```bash
+python3 scripts/proofline_validate.py --list
+```
+
+To include backend coverage in the same ladder after installing `requirements-dev.txt`:
+
+```bash
+python3 scripts/proofline_validate.py --coverage
+```
+
 ## Full Backend Suite
 
 ```bash
