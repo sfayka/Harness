@@ -65,6 +65,9 @@ class HostedDocsTests(unittest.TestCase):
         secrets = Path("docs/architecture/app-managed-secrets.md").read_text(encoding="utf-8")
 
         self.assertIn("authenticated `gh` CLI session", runtime_contract)
+        self.assertIn("`GH_TOKEN` also satisfies setup status", runtime_contract)
         self.assertIn("gh auth token", local_development)
+        self.assertIn("GH_TOKEN", local_development)
         self.assertIn("gh auth token", secrets)
+        self.assertIn("GH_TOKEN", secrets)
         self.assertIn("only a local credential source", secrets)

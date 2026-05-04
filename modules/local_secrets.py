@@ -43,6 +43,7 @@ class SecretDefinition:
     label: str
     purpose: str
     required_for: str
+    env_aliases: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,7 @@ SECRET_DEFINITIONS: tuple[SecretDefinition, ...] = (
         label="GitHub token",
         purpose="Validates repository, branch, commit, pull-request, and changed-file proof.",
         required_for="GitHub artifact verification and repair workflows.",
+        env_aliases=("GH_TOKEN",),
     ),
     SecretDefinition(
         name="linear_api_key",
@@ -306,9 +308,13 @@ def load_runtime_managed_secrets_into_environment(
     resolved_command_runner = command_runner or _run_command
     statuses: list[SecretStatus] = []
     for definition in SECRET_DEFINITIONS:
-        current_value = os.environ.get(definition.env_var)
-        if current_value and not overwrite:
-            statuses.append(_configured_status(definition, source="environment", required=False))
+        env_source = _configured_environment_source(definition)
+        if env_source and not overwrite:
+            if env_source != definition.env_var and not os.environ.get(definition.env_var):
+                os.environ[definition.env_var] = os.environ[env_source]
+            statuses.append(
+                _configured_status(definition, source=f"environment:{env_source}", required=False)
+            )
             continue
         try:
             value, source = _resolve_secret_value(
@@ -359,7 +365,19 @@ def collect_secret_statuses(
     for definition in SECRET_DEFINITIONS:
         is_required = definition.name in required
         if os.environ.get(definition.env_var):
-            statuses.append(_configured_status(definition, source="environment", required=is_required))
+            statuses.append(
+                _configured_status(
+                    definition,
+                    source=f"environment:{definition.env_var}",
+                    required=is_required,
+                )
+            )
+            continue
+        env_source = _configured_environment_source(definition)
+        if env_source:
+            statuses.append(
+                _configured_status(definition, source=f"environment:{env_source}", required=is_required)
+            )
             continue
         try:
             _value, source = _resolve_secret_value(
@@ -404,6 +422,13 @@ def _read_github_cli_token(*, command_runner: CommandRunner) -> str | None:
         return None
     token = result.stdout.strip()
     return token or None
+
+
+def _configured_environment_source(definition: SecretDefinition) -> str | None:
+    for env_var in (definition.env_var, *definition.env_aliases):
+        if os.environ.get(env_var):
+            return env_var
+    return None
 
 
 def secret_status_payload(statuses: list[SecretStatus]) -> dict[str, object]:

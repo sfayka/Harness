@@ -16,7 +16,7 @@ It exposes named secrets, redacted status output, and provider operations withou
 
 Current secret names:
 
-- `github_token`: maps to `GITHUB_TOKEN`
+- `github_token`: maps to `GITHUB_TOKEN`; `GH_TOKEN` is accepted as a developer environment alias
 - `linear_api_key`: maps to `LINEAR_API_KEY`
 - `repair_callback_bearer_token`: maps to `OPENCLAW_REPAIR_BEARER_TOKEN`
 
@@ -56,6 +56,7 @@ Existing environment variables win. This preserves developer mode:
 - repo-root `.env.local` remains valid for local development
 - exported shell variables remain valid for CI and one-off debugging
 - runtime-managed Keychain secrets are the normal macOS local-runtime path
+- `GH_TOKEN` satisfies GitHub setup and is copied into `GITHUB_TOKEN` for the launched local runtime
 - an authenticated GitHub CLI session can provide `github_token` locally through `gh auth token`
   when neither `GITHUB_TOKEN` nor the runtime-managed secret is configured
 

@@ -160,9 +160,10 @@ python3 -m modules.proofline_runtime --json secrets status
 
 Secret status output is redacted. Use `--require <secret-name>` when a selected workflow cannot run without that credential.
 Developer mode can still use repo-root `.env.local`.
-For GitHub validation, an existing GitHub CLI session can satisfy local setup when `gh auth token`
-returns a token and `GITHUB_TOKEN` and the runtime-managed `github_token` secret are both absent.
-Linear still requires `LINEAR_API_KEY` or the runtime-managed `linear_api_key` secret.
+For GitHub validation, `GH_TOKEN` is accepted as a developer environment alias for `GITHUB_TOKEN`.
+An existing GitHub CLI session can also satisfy local setup when `gh auth token` returns a token and
+`GITHUB_TOKEN`, `GH_TOKEN`, and the runtime-managed `github_token` secret are all absent. Linear still
+requires `LINEAR_API_KEY` or the runtime-managed `linear_api_key` secret.
 
 Run setup doctor to get machine-readable setup status:
 

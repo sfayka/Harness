@@ -174,6 +174,29 @@ class LocalSecretStatusTests(unittest.TestCase):
 
             self.assertEqual(os.environ["GITHUB_TOKEN"], "env-secret")
 
+    def test_github_token_env_alias_satisfies_status_and_populates_primary_env(self) -> None:
+        store = InMemorySecretStore({"github_token": "keychain-secret"})
+
+        with patch.dict(os.environ, {"GH_TOKEN": "alias-secret"}, clear=True):
+            statuses = load_runtime_managed_secrets_into_environment(store=store)
+
+            self.assertEqual(os.environ["GITHUB_TOKEN"], "alias-secret")
+
+        status_by_name = {status.name: status for status in statuses}
+        self.assertEqual(status_by_name["github_token"].status, "configured")
+        self.assertEqual(status_by_name["github_token"].source, "environment:GH_TOKEN")
+
+    def test_github_token_env_alias_status_does_not_print_value(self) -> None:
+        with patch.dict(os.environ, {"GH_TOKEN": "alias-secret"}, clear=True):
+            statuses = collect_secret_statuses(store=InMemorySecretStore())
+
+        payload = secret_status_payload(statuses)
+        status_by_name = {status.name: status for status in statuses}
+
+        self.assertEqual(status_by_name["github_token"].status, "configured")
+        self.assertEqual(status_by_name["github_token"].source, "environment:GH_TOKEN")
+        self.assertNotIn("alias-secret", str(payload))
+
     def test_secret_status_payload_marks_required_missing_without_values(self) -> None:
         store = InMemorySecretStore({"github_token": "ghp_secret"})
 

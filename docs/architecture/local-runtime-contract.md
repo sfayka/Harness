@@ -97,7 +97,7 @@ This is what removes the need for Docker, Node, `pnpm`, or repo-local shell expo
 
 On macOS, the local runtime stores secrets in Keychain. The stable Harness secret names are:
 
-- `github_token`, mapped to `GITHUB_TOKEN`
+- `github_token`, mapped to `GITHUB_TOKEN`; `GH_TOKEN` is accepted as a developer environment alias
 - `linear_api_key`, mapped to `LINEAR_API_KEY`
 - `repair_callback_bearer_token`, mapped to `OPENCLAW_REPAIR_BEARER_TOKEN`
 
@@ -112,6 +112,8 @@ python3 -m modules.proofline_runtime --json secrets delete github_token
 
 Secret status output is redacted. It reports configured, missing, unavailable, and error states without returning token values.
 Existing environment variables win over Keychain values so developer `.env.local` workflows still work.
+For GitHub, `GH_TOKEN` also satisfies setup status and is copied into `GITHUB_TOKEN` before launching
+the backend so both local development and verifier code see the same credential.
 For GitHub only, an authenticated `gh` CLI session is also accepted as a local credential source when
 `GITHUB_TOKEN` and the runtime-managed `github_token` secret are both absent. This reduces local setup
 friction without changing Proofline's verification boundary.
