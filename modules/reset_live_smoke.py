@@ -15,6 +15,7 @@ from urllib import parse
 
 from modules.hosted_dryrun_flow import JsonHttpClient
 from modules.local_env import load_native_local_env
+from modules.local_secrets import load_runtime_managed_secrets_into_environment
 from modules.reset.contracts import ResetCompletionClaim, ResetVerificationContract
 from modules.reset.github_verifier import ResetGitHubVerifier
 from modules.reset.linear_client import LinearResetClient
@@ -32,6 +33,12 @@ DEFAULT_BASE_BRANCH = "main"
 
 class LiveResetSmokeError(ValueError):
     """Raised when live smoke setup or execution fails."""
+
+
+def _prepare_live_smoke_environment() -> None:
+    """Load runtime-managed secrets before live clients inspect env vars."""
+
+    load_runtime_managed_secrets_into_environment()
 
 
 def _utc_now() -> datetime:
@@ -610,6 +617,7 @@ def run_live_reset_smoke_suite(
     github_repo: str = DEFAULT_GITHUB_REPO,
     base_branch: str = DEFAULT_BASE_BRANCH,
 ) -> LiveResetSmokeSuiteResult:
+    _prepare_live_smoke_environment()
     linear = _LiveLinearClient()
     github = _LiveGitHubClient()
     project = linear.resolve_project(linear_project_name)

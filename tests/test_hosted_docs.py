@@ -55,8 +55,10 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("python3 scripts/proofline_live_preflight.py", validation)
         self.assertIn("python3 scripts/proofline_live_preflight.py --json", validation)
         self.assertIn("This command is read-only", validation)
+        self.assertIn("runtime-managed secrets", validation)
         self.assertIn("does not create Linear issues, GitHub branches, commits, or PRs", validation)
         self.assertIn("reports `ready`", validation)
+        self.assertIn("live smoke loads runtime-managed secrets", validation)
 
     def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")

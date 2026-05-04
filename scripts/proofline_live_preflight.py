@@ -15,7 +15,14 @@ import shutil
 import subprocess
 import sys
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Callable
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from modules.local_secrets import SecretStatus, collect_secret_statuses
 
 
 DEFAULT_LINEAR_PROJECT_NAME = "HARNESS-DRYRUN"
@@ -43,6 +50,13 @@ def _has_env(name: str, env: dict[str, str]) -> bool:
     return bool((env.get(name) or "").strip())
 
 
+def _configured_secret_source(name: str, statuses: tuple[SecretStatus, ...]) -> str | None:
+    for status in statuses:
+        if status.name == name and status.status == "configured":
+            return status.source or "runtime-managed-secret-store"
+    return None
+
+
 def build_live_preflight_checks(
     *,
     env: dict[str, str],
@@ -51,8 +65,12 @@ def build_live_preflight_checks(
     github_repo: str = DEFAULT_GITHUB_REPO,
     linear_project: str = DEFAULT_LINEAR_PROJECT_NAME,
     base_branch: str = DEFAULT_BASE_BRANCH,
+    secret_statuses: tuple[SecretStatus, ...] | None = None,
 ) -> tuple[PreflightCheck, ...]:
     checks: list[PreflightCheck] = []
+    runtime_statuses = secret_statuses if secret_statuses is not None else tuple(
+        collect_secret_statuses(required_names=("github_token", "linear_api_key"))
+    )
 
     live_flag = env.get("HARNESS_RUN_LIVE_RESET_TESTS") == "1"
     checks.append(
@@ -73,35 +91,52 @@ def build_live_preflight_checks(
     )
 
     github_env_ready = _has_env("GITHUB_TOKEN", env) or _has_env("GH_TOKEN", env)
+    github_runtime_source = _configured_secret_source("github_token", runtime_statuses)
+    github_ready = github_env_ready or github_runtime_source is not None
     checks.append(
         PreflightCheck(
-            code="github_env_token",
-            status="pass" if github_env_ready else "warn",
+            code="github_credential",
+            status="pass" if github_ready else "warn",
             message=(
                 "GitHub token env is configured."
                 if github_env_ready
-                else "Neither GITHUB_TOKEN nor GH_TOKEN is configured."
+                else (
+                    f"GitHub token is configured through {github_runtime_source}."
+                    if github_runtime_source
+                    else "No GitHub credential is configured."
+                )
             ),
             next_action=(
                 "No action needed."
-                if github_env_ready
+                if github_ready
                 else "Export GITHUB_TOKEN or GH_TOKEN, or configure Proofline's runtime-managed github_token secret."
             ),
-            details={"accepted_env": ["GITHUB_TOKEN", "GH_TOKEN"]},
+            details={"accepted_env": ["GITHUB_TOKEN", "GH_TOKEN"], "runtime_secret": "github_token"},
         )
     )
 
-    linear_ready = _has_env("LINEAR_API_KEY", env)
+    linear_env_ready = _has_env("LINEAR_API_KEY", env)
+    linear_runtime_source = _configured_secret_source("linear_api_key", runtime_statuses)
+    linear_ready = linear_env_ready or linear_runtime_source is not None
     checks.append(
         PreflightCheck(
-            code="linear_api_key",
+            code="linear_credential",
             status="pass" if linear_ready else "fail",
-            message="LINEAR_API_KEY is configured." if linear_ready else "LINEAR_API_KEY is missing.",
+            message=(
+                "LINEAR_API_KEY is configured."
+                if linear_env_ready
+                else (
+                    f"Linear API key is configured through {linear_runtime_source}."
+                    if linear_runtime_source
+                    else "No Linear credential is configured."
+                )
+            ),
             next_action=(
                 "No action needed."
                 if linear_ready
                 else "Export LINEAR_API_KEY or configure Proofline's runtime-managed linear_api_key secret."
             ),
+            details={"accepted_env": ["LINEAR_API_KEY"], "runtime_secret": "linear_api_key"},
         )
     )
 
