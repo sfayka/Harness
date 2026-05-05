@@ -166,6 +166,8 @@ Record every successful mutation smoke under `docs/release/` with:
 - final Proofline verdicts
 - any cleanup that was performed or intentionally left visible as proof
 
+If Sean delegates this validation to a Hermes agent that already has Linear and GitHub access, use the copyable handoff in [Hermes Live Validation Handoff](hermes-live-validation.md). Hermes is only an external tester in that flow. Its report must still be reconciled against Proofline preflight output, command results, live artifact URLs, and final Proofline verdicts.
+
 ## What Counts As Proof
 
 - healthy `/health` response

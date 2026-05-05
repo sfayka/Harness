@@ -60,6 +60,24 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("reports `ready`", validation)
         self.assertIn("live smoke loads runtime-managed secrets", validation)
 
+    def test_hermes_live_validation_handoff_is_documented(self) -> None:
+        index = Path("docs/howto/index.md").read_text(encoding="utf-8")
+        validation = Path("docs/howto/test-and-validate.md").read_text(encoding="utf-8")
+        handoff_path = Path("docs/howto/hermes-live-validation.md")
+        handoff = handoff_path.read_text(encoding="utf-8")
+
+        self.assertTrue(handoff_path.exists())
+        self.assertIn("Hermes Live Validation Handoff", index)
+        self.assertIn("Hermes Live Validation Handoff", validation)
+        self.assertIn("HARNESS-DRYRUN", handoff)
+        self.assertIn("sfayka/HARNESS-DRYRUN", handoff)
+        self.assertIn("python3 scripts/proofline_live_preflight.py --json", handoff)
+        self.assertIn("python3 scripts/proofline_validate.py", handoff)
+        self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1", handoff)
+        self.assertIn("Do not run live Symphony dispatch", handoff)
+        self.assertIn("Proofline verification is the authority", handoff)
+        self.assertIn("Record every artifact created", handoff)
+
     def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
         runtime_contract = Path("docs/architecture/local-runtime-contract.md").read_text(

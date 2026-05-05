@@ -10,6 +10,7 @@ During the staged rename, product surfaces say Proofline while commands, environ
 - [Configure Proofline](configure-harness.md)
 - [Use Proofline](use-harness.md)
 - [Test And Validate Proofline](test-and-validate.md)
+- [Hermes Live Validation Handoff](hermes-live-validation.md)
 - [Troubleshoot Proofline](troubleshoot.md)
 
 ## Source-Of-Truth References
