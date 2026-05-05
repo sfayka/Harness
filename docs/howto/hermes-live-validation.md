@@ -38,6 +38,11 @@ git status --short
 git log -5 --oneline
 python3 scripts/proofline_live_preflight.py --json
 
+Using your Linear read-only tools, confirm:
+- project HARNESS-DRYRUN exists
+- project URL is https://linear.app/knoxanalytics/project/harness-dryrun-3d7d9476cb1e
+- project is not archived
+
 Report whether the preflight is ready. If it is not ready, stop before live mutation and report each blocker exactly.
 
 Step 2: Run the synthetic validation ladder.
@@ -97,6 +102,7 @@ Return:
 - synthetic validation result
 - coverage result
 - preflight result
+- Linear read-only project confirmation
 - whether live smoke was run
 - if live smoke ran, all Linear/GitHub artifact URLs and final Proofline verdicts
 - if live smoke did not run, exact blockers

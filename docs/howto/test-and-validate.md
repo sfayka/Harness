@@ -126,7 +126,7 @@ gh auth status
 gh repo view sfayka/HARNESS-DRYRUN --json nameWithOwner,defaultBranchRef,url,isPrivate
 ```
 
-For Linear, use the configured Linear connector or UI to confirm the `HARNESS-DRYRUN` project exists before running mutation smoke. A passing read-only check should identify the project URL and at least one previous live-smoke issue.
+For Linear, use the configured Linear connector or UI to confirm the `HARNESS-DRYRUN` project exists before running mutation smoke. A passing read-only check should identify the project URL, confirm it is not archived, and identify at least one previous live-smoke issue when issue history is available.
 
 Run the repo-owned preflight before any mutation smoke:
 

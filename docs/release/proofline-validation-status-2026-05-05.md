@@ -55,6 +55,15 @@ The approved target guard passed:
 - GitHub repository: `sfayka/HARNESS-DRYRUN`
 - Base branch: `main`
 
+## Linear Read-Only Evidence
+
+- Tool: Linear connector search.
+- Query: `"HARNESS-DRYRUN"` filtered to projects.
+- Result:
+  - Project: `HARNESS-DRYRUN`
+  - URL: `https://linear.app/knoxanalytics/project/harness-dryrun-3d7d9476cb1e`
+  - Archived: `false`
+
 ## Live Mutation Status
 
 Live mutation smoke was not run.

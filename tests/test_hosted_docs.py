@@ -76,6 +76,8 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1", handoff)
         self.assertIn("Do not run live Symphony dispatch", handoff)
         self.assertIn("Proofline verification is the authority", handoff)
+        self.assertIn("Linear read-only tools", handoff)
+        self.assertIn("archived", handoff)
         self.assertIn("Record every artifact created", handoff)
 
     def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
