@@ -16,7 +16,8 @@ Make Proofline complete and usable for Sean:
 
 - Branch: `main`
 - Remote state: `main...origin/main`
-- Latest commit at audit time: `8a8d6f3` (`Record Hermes validation feedback`)
+- Latest commit at initial audit time: `8a8d6f3` (`Record Hermes validation feedback`)
+- Live-smoke evidence update: `a6426a0` (`Add Proofline completion audit`) was tested by Hermes and recorded in `docs/release/live-reset-smoke-2026-05-05.md`
 - Tracked worktree state: clean
 - Remaining untracked files: local runtime artifacts and duplicate local files only
 
@@ -41,7 +42,7 @@ Make Proofline complete and usable for Sean:
 | Armed live preflight procedure is correct | `docs/howto/hermes-live-validation.md`, `docs/howto/test-and-validate.md` | Final preflight now uses `HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json` and remains read-only | Done |
 | Procedure mismatch found by Hermes is recorded | `docs/release/hermes-validation-feedback-2026-05-05.md` | Records the missing-flag mismatch and the fix in `ec6f7b0` | Done |
 | Live mutation smoke creates no artifacts unless armed | `scripts/proofline_live_preflight.py`, `tests/test_proofline_live_preflight.py` | Preflight reports `creates_live_artifacts=false`; live mutation command remains separate and gated | Done |
-| Live mutation smoke has been run on latest `main` | `HARNESS_RUN_LIVE_RESET_TESTS=1 python3 -m unittest tests.test_reset_live_smoke -v` | Not run on latest `main`; current shell lacks required Linear/GitHub credentials and preflight is `not_ready` | Blocked |
+| Live mutation smoke has been run on latest `main` | `HARNESS_RUN_LIVE_RESET_TESTS=1 python3 -m unittest tests.test_reset_live_smoke -v` | Hermes ran live smoke on `a6426a0`; armed preflight was `ready`; live smoke passed; artifacts recorded in `docs/release/live-reset-smoke-2026-05-05.md` | Done |
 
 ## Current Local Preflight
 
@@ -72,19 +73,23 @@ Result in this shell:
 - `target_guard`: pass
 - Missing local credentials: GitHub token, Linear API key, usable `gh auth token`
 
+## Local Shell Preflight Note
+
+This local shell still lacks the Linear/GitHub credentials required to rerun the live mutation smoke directly. That does not invalidate the Hermes-run live evidence above; it means further live mutation reruns should happen from a credentialed context.
+
 ## Completion Decision
 
-The objective is not complete yet.
+The objective is complete for the current phase.
 
-All synthetic/local validation, coverage, documentation, read-only target checks, and safety gates are covered. The one remaining explicit requirement is live Linear/GitHub mutation validation on latest `main`.
+All synthetic/local validation, coverage, documentation, read-only target checks, safety gates, and live Linear/GitHub mutation smoke are covered.
 
-That validation is intentionally blocked in this shell because the required credentials are not available. It should be run only from a context where the armed preflight reports `ready` and only against:
+Future live mutation reruns should still be run only from a context where the armed preflight reports `ready` and only against:
 
 - Linear project: `HARNESS-DRYRUN`
 - GitHub repository: `sfayka/HARNESS-DRYRUN`
 - Base branch: `main`
 
-The command remains:
+The live smoke command remains:
 
 ```bash
 HARNESS_RUN_LIVE_RESET_TESTS=1 python3 -m unittest tests.test_reset_live_smoke -v
