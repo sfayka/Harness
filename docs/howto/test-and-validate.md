@@ -126,6 +126,8 @@ gh auth status
 gh repo view sfayka/HARNESS-DRYRUN --json nameWithOwner,defaultBranchRef,url,isPrivate
 ```
 
+If GitHub CLI auth is not available but a GitHub connector is available, use a read-only PR search for `repo:sfayka/HARNESS-DRYRUN is:pr` and confirm recent live-smoke PRs such as `#55`, `#56`, or `#57` are visible.
+
 For Linear, use the configured Linear connector or UI to confirm the `HARNESS-DRYRUN` project exists before running mutation smoke. A passing read-only check should identify the project URL, confirm it is not archived, and identify at least one previous live-smoke issue when issue history is available.
 
 Run the repo-owned preflight before any mutation smoke:
@@ -137,11 +139,17 @@ python3 scripts/proofline_live_preflight.py --json
 
 This command is read-only. It checks the live-smoke flag, GitHub/Linear credential presence through env vars or runtime-managed secrets, approved dry-run targets, and the GitHub repository read-only path. It does not create Linear issues, GitHub branches, commits, or PRs.
 
+The command only reports `ready` when the live mutation flag is set. That is intentional: an operator has to arm the live-smoke run before the final preflight can pass. The armed preflight is still read-only:
+
+```bash
+HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json
+```
+
 Only run the mutation smoke when all of these are true:
 
 - `python3 -m unittest discover -s tests` passes.
 - `pnpm test:frontend`, `pnpm lint`, and `pnpm build` pass when frontend code changed.
-- `python3 scripts/proofline_live_preflight.py` reports `ready`.
+- `HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json` reports `ready`.
 - `python3 -m modules.proofline_runtime --json setup status --workflow github-proof --workflow linear-sync` reports GitHub and Linear ready, or equivalent env vars are intentionally exported for that shell. The live smoke loads runtime-managed secrets before creating clients, so the CLI secret path is valid for this test.
 - The target Linear project is `HARNESS-DRYRUN`.
 - The target GitHub repository is `sfayka/HARNESS-DRYRUN`.

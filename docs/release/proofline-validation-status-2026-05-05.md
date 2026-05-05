@@ -64,9 +64,27 @@ The approved target guard passed:
   - URL: `https://linear.app/knoxanalytics/project/harness-dryrun-3d7d9476cb1e`
   - Archived: `false`
 
+## GitHub Read-Only Evidence
+
+- Tool: GitHub connector pull-request search.
+- Query: `repo:sfayka/HARNESS-DRYRUN is:pr`.
+- Repository: `sfayka/HARNESS-DRYRUN`.
+- Recent live-smoke PRs found:
+  - `#55`: `[Harness Live Smoke] happy-path KNO-237`
+  - `#56`: `[Harness Live Smoke] missing-pr KNO-238`
+  - `#57`: `[Harness Live Smoke] wrong-sha-review KNO-239`
+
 ## Live Mutation Status
 
 Live mutation smoke was not run.
+
+Hermes validation feedback identified a documentation mismatch: the final live preflight cannot report `ready` unless `HARNESS_RUN_LIVE_RESET_TESTS=1` is set, but the previous Hermes handoff showed the final Step 4 preflight without that flag. The runbook now documents the final armed preflight explicitly:
+
+```bash
+HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json
+```
+
+That armed preflight is still read-only. It exists to prove the operator has intentionally armed the live mutation gate before the smoke command creates throwaway artifacts.
 
 The gated command remains:
 

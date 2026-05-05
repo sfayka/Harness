@@ -43,6 +43,11 @@ Using your Linear read-only tools, confirm:
 - project URL is https://linear.app/knoxanalytics/project/harness-dryrun-3d7d9476cb1e
 - project is not archived
 
+Using your GitHub read-only tools, confirm:
+- repository sfayka/HARNESS-DRYRUN is readable
+- recent live-smoke pull requests are visible, including PR #55, PR #56, or PR #57 if history is available
+- the PRs link back to HARNESS-DRYRUN Linear issues such as KNO-237, KNO-238, or KNO-239
+
 Report whether the preflight is ready. If it is not ready, stop before live mutation and report each blocker exactly.
 
 Step 2: Run the synthetic validation ladder.
@@ -65,8 +70,11 @@ Report the total coverage percentage and any failures.
 
 Step 4: Re-run live preflight.
 
+When you are intentionally ready to create throwaway dry-run artifacts, run the
+final preflight with the live mutation flag already set:
+
 Run:
-python3 scripts/proofline_live_preflight.py --json
+HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json
 
 Proceed to live mutation only if all of these are true:
 - preflight status is ready
@@ -103,6 +111,7 @@ Return:
 - coverage result
 - preflight result
 - Linear read-only project confirmation
+- GitHub read-only repository and recent live-smoke PR confirmation
 - whether live smoke was run
 - if live smoke ran, all Linear/GitHub artifact URLs and final Proofline verdicts
 - if live smoke did not run, exact blockers

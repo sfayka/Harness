@@ -54,6 +54,10 @@ class HostedDocsTests(unittest.TestCase):
         self.assertTrue(Path("scripts/proofline_live_preflight.py").exists())
         self.assertIn("python3 scripts/proofline_live_preflight.py", validation)
         self.assertIn("python3 scripts/proofline_live_preflight.py --json", validation)
+        self.assertIn(
+            "HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json",
+            validation,
+        )
         self.assertIn("This command is read-only", validation)
         self.assertIn("runtime-managed secrets", validation)
         self.assertIn("does not create Linear issues, GitHub branches, commits, or PRs", validation)
@@ -72,12 +76,18 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("HARNESS-DRYRUN", handoff)
         self.assertIn("sfayka/HARNESS-DRYRUN", handoff)
         self.assertIn("python3 scripts/proofline_live_preflight.py --json", handoff)
+        self.assertIn(
+            "HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json",
+            handoff,
+        )
         self.assertIn("python3 scripts/proofline_validate.py", handoff)
         self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1", handoff)
         self.assertIn("Do not run live Symphony dispatch", handoff)
         self.assertIn("Proofline verification is the authority", handoff)
         self.assertIn("Linear read-only tools", handoff)
+        self.assertIn("GitHub read-only tools", handoff)
         self.assertIn("archived", handoff)
+        self.assertIn("PR #55", handoff)
         self.assertIn("Record every artifact created", handoff)
 
     def test_repair_dispatch_docs_match_symphony_setup_boundary(self) -> None:
