@@ -29,4 +29,4 @@ class HostedDeploymentContractTests(unittest.TestCase):
         backend_requirements = Path("backend/requirements.txt").read_text(encoding="utf-8")
 
         self.assertNotIn("-r ../requirements.txt", backend_requirements)
-        self.assertIn("fastapi==0.115.12", backend_requirements)
+        self.assertIn("fastapi==0.136.1", backend_requirements)

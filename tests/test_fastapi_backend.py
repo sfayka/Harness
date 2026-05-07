@@ -190,6 +190,23 @@ class FastApiBackendTests(unittest.TestCase):
         )
         self.assertNotIn("read-only file system", json.dumps(reset_contracts.json()))
 
+    def test_json_response_omits_traceback_shaped_fields(self) -> None:
+        class TracebackPayloadResetService:
+            def list_contracts_http(self) -> tuple[int, dict[str, object]]:
+                return 500, {
+                    "status": "error",
+                    "traceback": "Traceback raw stack",
+                    "nested": {"exception": "ValueError raw exception"},
+                }
+
+        client = TestClient(create_app(store=self.store, reset_service=TracebackPayloadResetService()))
+
+        response = client.get("/reset/contracts")
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()["traceback"], "omitted")
+        self.assertEqual(response.json()["nested"]["exception"], "omitted")
+
     def test_submit_and_read_model_round_trip_through_fastapi_adapter(self) -> None:
         created = self.client.post(
             "/tasks",

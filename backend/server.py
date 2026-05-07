@@ -17,11 +17,23 @@ from modules.store import HarnessStore
 load_native_local_env()
 
 DASHBOARD_ASSETS_DIR_ENV_VARS = ("PROOFLINE_DASHBOARD_ASSETS_DIR", "HARNESS_DASHBOARD_ASSETS_DIR")
+TRACEBACK_FIELD_NAMES = {"exception", "stack", "stacktrace", "trace", "traceback"}
+
+
+def _public_json_value(value: Any, *, field_name: str | None = None) -> Any:
+    if field_name and field_name.lower() in TRACEBACK_FIELD_NAMES:
+        return "omitted"
+    if isinstance(value, dict):
+        return {str(key): _public_json_value(item, field_name=str(key)) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_public_json_value(item, field_name=field_name) for item in value]
+    return value
 
 
 def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
     status_code, payload = result
-    return JSONResponse(status_code=int(status_code), content=payload)
+    public_payload = _public_json_value(payload)
+    return JSONResponse(status_code=int(status_code), content=public_payload)
 
 
 class _UnavailableResetService:
