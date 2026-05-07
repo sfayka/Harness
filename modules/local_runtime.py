@@ -1527,56 +1527,23 @@ def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -
         print(json.dumps(payload, indent=2, sort_keys=True))
         return exit_code
 
-    status = payload.get("status", "unknown")
-    print(f"status: {status}")
-    for key in ("message", "error", "next_action", "api_base_url", "url"):
-        value = payload.get(key)
-        if value:
-            print(f"{key}: {value}")
+    print("status: see --json for structured details")
+    print("details: omitted from human-readable output to avoid leaking sensitive values")
     paths = payload.get("paths")
     if isinstance(paths, dict):
-        print("paths:")
-        for key, value in paths.items():
-            print(f"- {key}: {value}")
+        print(f"paths: {len(paths)}")
     checks = payload.get("checks")
     if isinstance(checks, list):
-        print("checks:")
-        for check in checks:
-            if isinstance(check, dict):
-                print(f"- {check.get('code')}: {check.get('status')} - {check.get('message')}")
-                if check.get("impact"):
-                    print(f"  impact: {check.get('impact')}")
-                if check.get("next_action"):
-                    print(f"  next_action: {check.get('next_action')}")
+        print(f"checks: {len(checks)}")
     secrets = payload.get("secrets")
     if isinstance(secrets, list):
-        print("secrets:")
-        for secret in secrets:
-            if isinstance(secret, dict):
-                print(f"- {secret.get('name')}: {secret.get('status')} - {secret.get('message')}")
+        print(f"secrets: {len(secrets)}")
     items = payload.get("items")
     if isinstance(items, list):
-        print("setup_items:")
-        for item in items:
-            if isinstance(item, dict):
-                marker = "required" if item.get("required") else "optional"
-                print(f"- {item.get('id')}: {item.get('status')} ({marker})")
-                if item.get("next_action"):
-                    print(f"  next_action: {item.get('next_action')}")
+        print(f"setup_items: {len(items)}")
     completion_validation = payload.get("completion_validation_summary")
     if isinstance(completion_validation, dict):
-        print("completion_validation:")
-        for key in (
-            "status",
-            "intent_status",
-            "evidence_status",
-            "completion_claimed",
-            "completion_accepted",
-            "manual_review_status",
-            "summary",
-        ):
-            if key in completion_validation:
-                print(f"- {key}: {completion_validation.get(key)}")
+        print("completion_validation: present")
     return exit_code
 
 

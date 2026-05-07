@@ -184,7 +184,11 @@ class FastApiBackendTests(unittest.TestCase):
         self.assertEqual(health.status_code, 200)
         self.assertEqual(reset_contracts.status_code, 503)
         self.assertEqual(reset_contracts.json()["status"], "unavailable")
-        self.assertIn("read-only file system", reset_contracts.json()["reason"])
+        self.assertEqual(
+            reset_contracts.json()["reason"],
+            "Reset verifier startup failed. Check server logs and runtime configuration.",
+        )
+        self.assertNotIn("read-only file system", json.dumps(reset_contracts.json()))
 
     def test_submit_and_read_model_round_trip_through_fastapi_adapter(self) -> None:
         created = self.client.post(
