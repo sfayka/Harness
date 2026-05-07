@@ -24,15 +24,15 @@ jobs:
           - javascript-typescript
     steps:
       - name: Check out repository
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@ed410739ba306e4ebe5e123421a6bd694e494a2b
+        uses: github/codeql-action/init@e46ed2cbd01164d986452f91f178727624ae40d7
         with:
           languages: ${{ matrix.language }}
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@ed410739ba306e4ebe5e123421a6bd694e494a2b
+        uses: github/codeql-action/autobuild@e46ed2cbd01164d986452f91f178727624ae40d7
 
       - name: Analyze
-        uses: github/codeql-action/analyze@ed410739ba306e4ebe5e123421a6bd694e494a2b
+        uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7
