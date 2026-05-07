@@ -5,6 +5,20 @@ from pathlib import Path
 
 
 class HostedDocsTests(unittest.TestCase):
+    def test_agent_instruction_entrypoints_exist_and_name_proofline_boundary(self) -> None:
+        readme = Path("README.md").read_text(encoding="utf-8")
+        agents_path = Path("AGENTS.md")
+        claude_path = Path("CLAUDE.md")
+        agents = agents_path.read_text(encoding="utf-8")
+        claude = claude_path.read_text(encoding="utf-8")
+
+        self.assertTrue(agents_path.exists())
+        self.assertTrue(claude_path.exists())
+        self.assertIn("Proofline validates agentic completion against user intent and evidence", readme)
+        self.assertIn("Proofline is an acceptance layer", agents)
+        self.assertIn("Read `AGENTS.md` first", claude)
+        self.assertIn("Completion claims must flow through Proofline", claude)
+
     def test_readme_points_to_vercel_and_neon_as_the_default_hosted_story(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
 

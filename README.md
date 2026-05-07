@@ -2,712 +2,314 @@
 
 Proofline validates agentic completion against user intent and evidence.
 
-`Harness` remains the current repository, CLI, API, and codebase name during the staged rename. Do not mechanically rename packages, routes, commands, or contracts yet. See [`docs/adrs/0006-product-rename-and-acceptance-layer.md`](docs/adrs/0006-product-rename-and-acceptance-layer.md).
+It is the acceptance layer above agents, runners, Linear, and GitHub. Agents may claim they are done. Symphony, Codex, Hermes, OpenClaw, or another executor may report progress. Proofline is the layer that decides whether the claim is actually acceptable.
 
-The rename migration plan is in [`docs/architecture/proofline-rename-migration.md`](docs/architecture/proofline-rename-migration.md). Product surfaces may say Proofline while compatibility identifiers still use Harness.
+The repository may still contain the `Harness` name in routes, environment variables, historical artifacts, Python modules, and stored evidence. That is intentional during the staged rename. Treat Proofline as the product name and Harness as the current compatibility namespace. See [Proofline Rename Migration](docs/architecture/proofline-rename-migration.md).
 
-Proofline does not trust agent-reported completion on its own. It accepts or blocks lifecycle transitions only after evaluating whether the claimed result matches the user's intent, the agreed task contract, current evidence, reconciliation facts, and explicit review decisions.
+## What It Does
 
-The strategic inventory for the pivot is in [`docs/architecture/acceptance-layer-inventory.md`](docs/architecture/acceptance-layer-inventory.md). The short version: keep verification, reconciliation, lifecycle enforcement, evidence policy, Linear/GitHub alignment, manual review, and inspection surfaces; wrap Symphony/Codex/Hermes/OpenClaw as advisory execution or ingress layers; freeze or delete duplicated executor/runtime/product-shell work.
+Proofline answers one operational question:
 
-## Reset Slice
+> Does the claimed completion match the user's intent, the task contract, current evidence, and external facts?
 
-The repo now also carries a narrower reset-oriented path alongside the broader TaskEnvelope control plane.
+It does this by enforcing:
 
-That reset slice is the current fastest path to something operationally useful:
+- canonical structured work contracts through `TaskEnvelope`
+- completion-claim interception before work can be accepted
+- GitHub artifact proof for code-bearing work
+- Linear reconciliation against intended work
+- bounded repair/retry paths for recoverable proof defects
+- sticky manual-review gates when proof is ambiguous or unsafe
+- append-only evaluation history and inspectable read models
 
-- A client such as OpenClaw, Hermes, or a future equivalent may still own intake, PRD generation, decomposition, and Linear issue creation.
-- Symphony is now the preferred execution substrate for runner/scheduler behavior: polling structured work, creating isolated workspaces, launching Codex, retrying stalled attempts, and reporting advisory execution events.
-- Proofline owns verification contracts, GitHub proof validation, retry budgeting, and Linear truth updates.
-- Linear is the operator UI for V1.
-- GitHub is the proof source for code-bearing completion.
+## What It Is Not
 
-The current repo still carries OpenClaw-shaped adapter names, routes, config templates, and environment variables for the repair path. Treat those names as the current concrete implementation, not as an architectural requirement.
+Proofline is not:
 
-The reset routes live under:
+- a PM tool
+- an agent runtime
+- a scheduler
+- a chatbot UI
+- a native macOS app
+- a replacement for Linear
+- a replacement for GitHub
+- a competing Symphony/Codex orchestration layer
 
+Symphony-compatible runners belong underneath Proofline as advisory execution substrates. The repair-dispatch setup checks for a Symphony-compatible execution substrate; the legacy ingress/executor bridge is compatibility wiring, not the primary runner requirement. Proofline remains the final verification and lifecycle authority. See [Symphony Execution Substrate](docs/architecture/symphony-execution-substrate.md).
+
+## Current Operator Surfaces
+
+Supported:
+
+- CLI/runtime contract: `python3 -m modules.proofline_runtime ...`
+- backend API
+- read-only Next.js dashboard
+- static local dashboard assets served by the Python backend
+
+Not supported as active product direction:
+
+- native macOS app packaging
+- menu-bar behavior
+- Launch at Login
+- notarization workflows
+- desktop notifications as a core dependency
+
+Archived macOS notes remain under `docs/archive/macos/` for historical context only.
+
+## Architecture At A Glance
+
+```text
+User intent / Linear work
+        |
+        v
+TaskEnvelope / reset contract
+        |
+        v
+Proofline verification and reconciliation
+        |
+        +--> GitHub artifact proof
+        +--> Linear state reconciliation
+        +--> manual review gates
+        +--> repair/retry requests
+        |
+        v
+Accepted, retrying, blocked, needs_review, failed
+```
+
+Truth boundaries:
+
+- Linear tracks intended structured work.
+- GitHub proves code and artifact facts.
+- Runners and agents are replaceable workers, not truth authorities.
+- Proofline owns verified lifecycle state and completion acceptance.
+
+## Key API Surfaces
+
+Inspection:
+
+- `GET /health`
+- `GET /tasks`
+- `GET /tasks/<task_id>`
+- `GET /tasks/<task_id>/read-model`
+- `GET /tasks/<task_id>/timeline`
+- `GET /supervision/queue`
+- `GET /execution-substrate/intents`
+- `GET /execution-substrate/handoffs`
+- `GET /runtime/status`
+
+Mutation:
+
+- `POST /tasks`
+- `POST /tasks/<task_id>/reevaluate`
+- `POST /tasks/<task_id>/completion-claims`
+- `POST /sync/github`
 - `POST /reset/contracts`
-- `GET /reset/contracts`
-- `GET /reset/contracts/<contract_id>`
 - `POST /reset/contracts/<contract_id>/claims`
 - `POST /reset/tick`
 
-These routes intentionally coexist with the older TaskEnvelope routes so the narrower verifier path can ship without first deleting the broader control-plane code.
+Ingress helper routes such as `/ingress/linear`, `/ingress/manual`, and `/ingress/openclaw` are translators into canonical submission behavior. They are not alternate truth paths.
 
-The validation ladder is documented in [`docs/howto/test-and-validate.md`](docs/howto/test-and-validate.md). Use synthetic tests for normal development, read-only Linear/GitHub checks to verify real target availability, and the gated live smoke only when the dry-run Linear/GitHub targets and credentials are intentionally configured.
+## Local Quickstart
 
-In hosted Vercel runtimes, the reset slice is not allowed to take the whole backend down during startup. When Postgres is available, `/reset/*` now persists contracts there so multi-request verification survives cold starts. If no database URL is available, the fallback remains writable temp storage, and if even that cannot be created, `/reset/*` fails explicitly instead of crashing `/backend/health` and `/backend/tasks` during import.
-
-## What Proofline Is
-
-- A Python validation backend that evaluates canonical `TaskEnvelope` submissions against user intent and evidence.
-- A read-only Next.js dashboard over canonical inspection APIs.
-- A persistence layer for task snapshots and append-only evaluation history.
-- A thin integration boundary around Linear/manual/client-specific ingress adapters and GitHub/Linear fact inputs.
-- An operational reconciliation path that can enter `reconciling`, repair missing PR artifacts, and then delegate back into canonical reevaluation.
-
-Proofline is not a PM tool, an agent runtime, a scheduler, an execution workbench, or a chatbot UI.
-Proofline is also no longer pursuing a native macOS app as a supported product surface. The supported operator surfaces are the CLI/runtime contract, the backend API, and the web dashboard. The Swift app and macOS packaging scripts have been removed from the active tree while the reusable local runtime and dashboard packaging pieces are preserved. See [`docs/adrs/0005-cli-web-operator-surface.md`](docs/adrs/0005-cli-web-operator-surface.md).
-Client-specific ingress adapters are also intentionally narrow. The repo currently includes an OpenClaw-shaped ingress translator, but the same restriction applies to Hermes or any future desktop agent client: it can submit task intent, provenance, and planning-ready work into Harness, but it cannot declare `executing` or `completed`, inject executor runtime telemetry, or claim completion on initial handoff. If a client wants to hand work off as `planned`, it must provide explicit planning-grade objective fields plus a concrete `plan_summary`, and it cannot declare unresolved conditions at the same time. If it also supplies parent/dependency/capability structure, that structure must be canonical and non-self-referential before Harness will persist it. If unresolved ambiguity still exists, Harness now converts that upstream signal into canonical clarification and blocks the task instead of letting vague work look ready. Execution and completion truth must still come back through executor/reporting paths that Harness can verify.
-
-On the inspection side, Harness now also exposes a canonical supervision queue at `GET /supervision/queue`. That queue is a read-only attention projection for external supervisors and Symphony-compatible runner adapters. It surfaces tasks that currently need attention because they are in review, blocked on clarification, retryable, carrying invalid execution proof, waiting on canonical GitHub sync, or stale. `GET /execution-substrate/intents` provides the runner-facing filtered view of only the Symphony-compatible continuation intents. Neither endpoint authorizes actions on its own, and neither replaces canonical reevaluation, execution-substrate event ingestion, completion-claim, or GitHub sync paths.
-
-On the execution side, Symphony has replaced the parts of this codebase that were trending toward runner ownership. Proofline should not maintain its own always-on scheduler for polling Linear, managing Codex workspaces, and retrying agent sessions. The existing stub, Codex Cloud, and OpenClaw-shaped dispatch paths are compatibility and test surfaces while the system moves toward a Symphony-compatible substrate adapter. Proofline still owns the final trust boundary.
-
-OpenAI's Symphony project gives Proofline a clearer lower-level execution-substrate target. Proofline should not duplicate a runner whose only job is to poll structured work, create isolated workspaces, launch Codex, and retry stalled attempts. A Symphony-like runner belongs underneath Proofline as an advisory scheduler. Proofline remains above it as the final verification and trust boundary. The design pivot is documented in [`docs/architecture/symphony-execution-substrate.md`](docs/architecture/symphony-execution-substrate.md).
-
-The same boundary now applies to manual and Linear ingress. Those adapters may submit task intent, coordination metadata, and clarification blockers, but they cannot claim completion, assert acceptance, inject runtime facts, or attach repository execution artifacts such as PRs, commits, branches, or changed-file proofs on initial handoff.
-
-If you are introducing or swapping a desktop agent client such as Hermes, OpenClaw, or a future equivalent, target the canonical `POST /tasks` contract first. The `/ingress/manual`, `/ingress/linear`, and `/ingress/openclaw` routes are translator helpers for those specific payload families, not the universal ingress contract. The source-of-truth ingress shape, prohibited initial-submission fields, and a copyable planning-only example now live in [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md) under `Ingress Client Contract`.
-
-That same boundary now applies to the canonical `POST /tasks` and one-shot new-task `POST /evaluate` paths as well. A brand-new task may carry intent, planning state, support artifacts, and clarification blockers, but it may not arrive already carrying execution truth. If a caller tries to create a new task with claimed completion, runtime facts, prevalidated completion evidence, execution attempts, advisory completion claims, reconciliation history, assignment truth, or runtime/terminal lifecycle truth, Harness rejects the request as invalid input instead of storing a polluted task snapshot. Even when initial support artifacts are allowed, Harness strips any caller-submitted `verification_status=verified` before persisting the task so new work cannot begin with pre-certified artifact truth.
-
-That clarification rule also now applies across canonical submission, not just the current OpenClaw-named adapter. If a caller submits unresolved conditions through `POST /tasks`, Harness records canonical clarification, moves the task to `blocked`, and preserves the caller's intended next lifecycle state as `clarification.resume_target_status` instead of pretending the task is already `planned` or `dispatch_ready`. When later reevaluation clears those required inputs, Harness now resumes the task back to that recorded lifecycle target. If the target is `dispatch_ready`, it immediately runs the same automatic-dispatch policy used after ingestion so “ready next” turns into a real execution attempt instead of a passive label. If the target is `assigned`, Harness restores the active assignment instead of leaving the task blocked behind a resolved clarification.
-Harness also keeps new-task submission separate from persisted-task mutation. `POST /evaluate` may still evaluate a stored task, but it cannot mutate stored lifecycle, assignment, artifact, or completion-evidence truth through submission-style overlays. Existing tasks must use `POST /tasks/<task_id>/reevaluate` for persisted updates.
-That same fail-closed rule now applies to the persisted-task helpers themselves. `POST /tasks/<task_id>/reevaluate` and `POST /tasks/<task_id>/completion-claims` reject submission-style mutation fields such as `task_envelope`, `task_status`, `assigned_executor`, and `linked_artifacts` instead of silently ignoring them.
-Generic reevaluation is also no longer allowed to combine executor runtime telemetry with repository execution artifacts such as PRs, commits, branches, or changed-file proofs. If a caller is reporting executor-side execution evidence, it must use `POST /tasks/<task_id>/completion-claims`, where Harness records the execution attempt and applies executor-side contract validation before completion can proceed. Fact-only reevaluation can still attach externally synchronized repository artifacts without pretending they came from a fresh executor run.
-
-For GitHub-backed sync specifically, Harness now also exposes `POST /sync/github` as a thin wrapper over canonical reevaluation. That helper accepts a GitHub-shaped payload plus `task_id`, derives normalized `external_facts.github_facts`, and may attach trusted `github/api` branch, commit, pull-request, and changed-file artifacts. The caller still cannot claim completion, assert acceptance, attach completion evidence, or carry executor runtime telemetry. When Harness already has an unresolved advisory completion claim for the same task, the sync bridge may resume that persisted completion context and advance validated artifact evidence from the newly trusted GitHub sync artifacts.
-
-Evaluation and reevaluation also cannot self-certify newly attached support artifacts. If a caller sends review notes, handoff artifacts, or other non-execution artifacts already marked `verification_status=verified`, Harness downgrades the artifact back to `unverified`, strips it from validated evidence, and forces canonical verification to re-attest it before it counts. Caller-claimed provenance such as `github/api` or `harness/manual_review` is still caller input, not trust for support artifacts. Canonical GitHub-backed code-artifact overlays remain a separate path for normalized external sync.
-
-## Governed Reconciliation
-
-Harness distinguishes execution from completion.
-
-Before completion claims reach reconciliation, Harness now validates whether a successful execution attempt is minimally trustworthy for the current run. For code-bearing executor attempts, that normally means current-run repository, branch, and commit context must be present and internally coherent. Only code-execution artifacts and code-execution artifact references are allowed to contribute to that proof; support artifacts like review notes can be stored for audit, but they cannot make a run look executed. If repository and branch are present but commit SHA is still missing, Harness can allow reconciliation to resolve the branch head before escalating. Otherwise, invalid attempt shape is retried with a bounded budget and then failed explicitly rather than being treated as progress.
-
-Harness also rejects executor-side contract violations mechanically. Delegated code-bearing completion evidence cannot use reserved shared branches such as `work`, cannot omit branch identity, and cannot rely on malformed or stale PR URLs as proof. A real GitHub pull request URL must be numeric and current-run-valid; compare URLs, PR creation pages, closed historical PRs, and unrelated branch/commit/PR chains do not satisfy completion evidence.
-
-Executor-submitted completion claims also cannot self-certify support-artifact proof, pull-request proof, commit proof, branch proof, or changed-file proof. If a completion claim carries one of those artifact types already marked `verified`, Harness downgrades that artifact back to unverified, removes it from validated evidence, and requires canonical verification or reconciliation to earn trust again. When both PR and commit proof are missing or self-certified, Harness now chains the governed reconciliation handlers in order instead of trusting the caller-supplied proof. `verification_status=verified` on a caller payload is advisory input, not trust.
-Support artifacts such as review notes or handoff markers also do not count as repository, branch, or commit proof for execution-attempt validation, even if a caller decorates them with GitHub-looking context fields.
-
-When Harness strips caller-submitted artifacts out of `validated_artifact_ids`, it also clears any caller-supplied `completion_evidence.status`, `validated_at`, and `validator` fields that no longer have real backing. A task should not carry “satisfied” evidence metadata after its purported proof has been invalidated.
-
-Harness also does not auto-complete on vague success conditions. If a task's required acceptance criteria are too generic to provide observable completion truth, verification escalates to `in_review` instead of pretending the executor proved the task is done.
-
-When reconciliation resolves repository and branch context across multiple sources, Harness also avoids synthesizing a current-run commit identity from a weaker source just because it happens to match the branch name. If execution metadata established the branch but not the commit, Harness now prefers a missing commit over caller-supplied commit backfill unless the execution attempt itself proved that commit.
-
-Harness also canonicalizes missing-information blockers instead of leaving them as loose evaluator notes. When callers submit `unresolved_conditions` through `POST /tasks`, `POST /tasks/<task_id>/reevaluate`, or `POST /tasks/<task_id>/completion-claims`, Harness records a real `task.clarification` contract, moves the task into `blocked`, and exposes that blocker through the canonical read-model and timeline surfaces.
-
-Harness also validates manual-review decisions mechanically. A serialized `review_decision` only counts if its outcome, target status, and follow-up action still match the original review request and canonical review policy, and if it resolves the currently active review gate for that task. Review gates are now derived from enforcement-recorded review requests only; caller-supplied `review_request` payloads do not create active review state by themselves, future-dated review timestamps are rejected, and a `reviewed_at` timestamp cannot predate the persisted `requested_at` for the gate it resolves.
-
-That rule also applies to reconciliation-driven escalation. If `POST /tasks/<task_id>/completion-claims` cannot safely prove the reported GitHub execution state and moves the task into `in_review`, Harness now persists a real reconciliation review request and matching evaluation record instead of treating `in_review` as an unstructured status flag. The resulting gate is visible on the canonical read-model, timeline, history, and task-list surfaces, and later manual review must resolve that exact persisted request. Once that review resolves, the projected `reconciliation_summary` also resolves; it no longer keeps presenting the old gate as still active.
-
-The same projection rule now applies to verification. Once explicit manual review resolves a pending review gate, the canonical read-model and task-list `verification_summary` no longer keep reporting the older `review_required` or `verification_deferred` state as if it were still current.
-
-That resolved verification projection also has to match the current task evidence. If manual review resolves the gate without accepting completion, inspection surfaces no longer keep projecting stale `claimed_completion=true` or `evidence_is_sufficient=true` from the old pre-review verification attempt.
-
-That same rule applies when manual review resolves the gate by authorizing follow-up work. If `authorize_redispatch`, `authorize_retry`, or `authorize_replan` leads to a later non-review outcome, the canonical `verification_summary` must still stay resolved; inspection surfaces should not fall back to `verification_deferred` or `review_required` after the manual gate has already been cleared.
-
-If a manual-review follow-up is attempted but lifecycle policy rejects it, Harness keeps the review gate active and records that attempt honestly. The timeline exposes that as `review_decision_rejected` instead of projecting the gate as resolved.
-
-That rejected attempt also must not strand the task. Later manual review decisions still resolve the original persisted review request; a failed follow-up attempt does not consume the gate.
-
-While that gate remains active, the canonical `verification_summary` must also stop advertising stale completion safety from the rejected path. Inspection surfaces should not keep projecting `claimed_completion=true`, `evidence_is_sufficient=true`, or `automatic_completion_safe=true` after a rejected manual-review follow-up leaves the task in `in_review`.
-
-The same precedence rule applies if a later governed step reopens review after an earlier decision was already resolved. A newer active `review_request` must outrank the older resolved decision on inspection surfaces; `verification_summary` and `reconciliation_summary` should follow the current active gate instead of falling back to stale `verification_deferred` or otherwise pre-review state from the earlier branch.
-
-The same fail-closed rule now applies to other rejected late follow-up. If reevaluation or completion-claim input hits a forbidden transition against already-settled task truth, Harness records the rejected attempt in evaluation history and timeline without letting that rejected action replace the current lifecycle, verification, reconciliation, or failure projection for the task. New external facts may still be persisted when they represent real synchronized state; the rejected transition itself is what does not become canonical task truth.
-
-If manual review resolves the gate without accepting completion, Harness also clears any previously satisfied completion evidence back to deferred. A replan, retry, blocked, failed, canceled, or clarification outcome must not leave stale validated proof behind that can auto-complete the task later without a new governed execution or explicit acceptance.
-
-That same current-truth rule applies to assignment. If manual review moves a task into a non-active state like `planned` or `blocked`, Harness clears `assigned_executor` instead of leaving stale active-assignment state attached after work has been explicitly paused or sent back for replanning.
-
-The operator surfaces follow that same rule for active review. When a task is `in_review` with an unresolved review gate, the canonical read-model and task-list views do not project `assigned_executor` as if work were still actively routed, even if the persisted task still retains prior assignment context for later policy-driven follow-up.
-
-If that manual-review outcome is `require_clarification`, Harness now records a real canonical `task.clarification` contract at the same time. The task does not just become generically `blocked`; operators can see the explicit clarification blocker, its `resume_target_status`, and the required input through the task, read-model, list, and timeline surfaces.
-
-When manual review explicitly authorizes redispatch, Harness now records a governed execution continuation instead of leaving the task parked in `dispatch_ready` with a resolved review record and no follow-up execution.
-
-Reevaluation also cannot pre-satisfy completion evidence as a side channel. If a reevaluation is not itself a claimed completion, it may not set `completion_evidence.status=satisfied`, inject validated artifact IDs, or otherwise preload final evidence state before a canonical completion decision.
-
-The same discipline now applies to repo-owned ingress helpers and spikes. Builder utilities that construct `POST /tasks` payloads refuse to emit completion truth, runtime telemetry, or code-execution artifacts on initial submission, and reevaluation builders refuse to preload satisfied evidence unless the same request is actually claiming completion.
-
-Tasks only reach terminal success through artifact-backed reevaluation, not execution claims alone. For recoverable defects such as `missing_pr_after_execution` and `missing_commit_after_execution`, Harness spends automation before operator attention: it moves the task into `reconciling`, runs a bounded reconciliation handler, and then returns to canonical reevaluation.
-
-If recovery succeeds, the task can proceed to canonical reevaluation. If recovery is blocked by a retryable provider problem, Harness moves the task to `blocked`. If recovery proves the execution proof chain is unusable, Harness marks the task `failed`. Only unresolved ambiguity or review-only judgment paths escalate to `in_review`. A historical or pre-attached PR artifact is not enough by itself; the PR has to validate against the current execution context, reruns or branch reuse require explicit task/run linkage rather than branch or task-name matching alone, commit association is discovery evidence rather than present-run proof when the PR head no longer matches the expected commit, a newly created PR is only trusted after Harness reads back the persisted GitHub record and revalidates it, and a missing commit SHA may be recovered from the current branch head before the handler gives up. A branch lookup miss is not treated as terminal on its own when the same current-run commit is already visible; that state is treated as retryable so later GitHub sync or a follow-up reconciliation pass can still validate the run.
-
-Recoverable defects should not require immediate human babysitting, but Harness does not assume all recovery cases are safe or automatic.
-
-Harness also does not auto-dispatch work just because it is merely `planned`. Normal automatic dispatch begins from `dispatch_ready`, after planning and clarification boundaries have actually been satisfied. Even then, explicit blocking dependencies must already satisfy their required milestone before dispatch is allowed to proceed. When a reevaluation triggers legacy direct dispatch, the API response now reports the post-dispatch canonical task outcome rather than the intermediate `dispatch_ready` hop, so operators see the real result of the follow-up attempt immediately. New clients should read the `execution_continuation` field; the older `automatic_dispatch` field remains as a compatibility alias.
-
-Governed reconciliation (current scope):
-
-- Proven failure-path: KNO-174
-  → recovery blocked → explicit escalation (`in_review`)
-
-- Proven success-path: KNO-175
-  → recovery succeeds → PR attached → reevaluation → `completed`
-
-- Current implemented classes:
-  → missing_pr_after_execution
-  → missing_commit_after_execution
-
-- Principle:
-  → Harness spends automation before operator attention
-
-## Governed Reconciliation Proofs
-
-The repository now includes proof records for the `missing_pr_after_execution` reconciliation class:
-
-- [`docs/demo/kno-174-missing-pr-after-execution/README.md`](docs/demo/kno-174-missing-pr-after-execution/README.md): governed failure-path proof. This shows safe escalation when recovery is blocked by external GitHub limitations and the task lands in `in_review` with structured reconciliation evidence.
-- [`docs/demo/kno-175-missing-pr-success/README.md`](docs/demo/kno-175-missing-pr-success/README.md): success-path proof. This shows Harness creating and attaching the missing PR, then completing canonical reevaluation to `completed` without operator intervention.
-
-These proofs are specific to `missing_pr_after_execution`. They do not claim that every reconciliation class is already automated or proven. `missing_commit_after_execution` is implemented as a bounded reconciliation class, but it is not part of this proof set yet.
-
-## Planned Capabilities
-
-The repository also carries planning-only scaffolds for future capabilities:
-
-- the Harness Evolution Engine (HEE), an advisory subsystem for diagnosing recurring failures and proposing reviewed improvements
-- a replaceable desktop-agent executor adapter, with the current concrete example documented in the OpenClaw-shaped adapter note below
-- trace continuity across replay, retry, resume, compaction, handoff, and review
-- execution budget governance for spend, runtime, retry, fan-out, and tool-use caps
-- a local eval harness for skills and delegated workflows
-
-See:
-
-- [`docs/architecture/harness-evolution-engine.md`](docs/architecture/harness-evolution-engine.md)
-- [`docs/architecture/trace-continuity.md`](docs/architecture/trace-continuity.md)
-- [`docs/architecture/execution-budget-model.md`](docs/architecture/execution-budget-model.md)
-- [`docs/architecture/local-eval-harness.md`](docs/architecture/local-eval-harness.md)
-- [`docs/architecture/openclaw-executor-adapter.md`](docs/architecture/openclaw-executor-adapter.md)
-- [`docs/architecture/completion-interception-and-artifact-validation-boundary.md`](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
-- [`docs/architecture/symphony-execution-substrate.md`](docs/architecture/symphony-execution-substrate.md)
-
-## Current Architecture
-
-### Frontend
-
-- Next.js 16 app in [`app/`](app) with shared dashboard components in [`components/`](components).
-- Root route redirects to `/tasks` in normal Next mode. The static local dashboard export renders the tasks view at `/dashboard/` so a Python-served local dashboard has a working entrypoint.
-- Main working views:
-  - `/tasks`
-  - `/verification`
-  - `/reconciliation`
-  - `/reviews`
-- Frontend reads backend data through the Next proxy route at [`app/api/harness/[...path]/route.ts`](app/api/harness/[...path]/route.ts).
-- Local CLI/web builds can also export the dashboard as static assets under `/dashboard` with [`scripts/build-local-dashboard.mjs`](scripts/build-local-dashboard.mjs). That packageable path serves the dashboard from the Python backend and calls the same-origin Harness API directly, so operators do not need Node or `pnpm`.
-- The frontend requires a reachable backend, either through the hosted Next proxy or the local same-origin API. If the backend is missing or unreachable, the UI shows an error; it does not silently switch to fake live data.
-
-### Backend
-
-- Minimal Python HTTP server in [`modules/api.py`](modules/api.py).
-- Canonical evaluation and enforcement logic in [`modules/evaluation.py`](modules/evaluation.py) and [`modules/contracts/`](modules/contracts).
-- Canonical inspection surfaces:
-  - `GET /health`
-  - `GET /tasks`
-  - `GET /tasks/<task_id>`
-  - `GET /tasks/<task_id>/evaluations`
-  - `GET /tasks/<task_id>/read-model`
-  - `GET /tasks/<task_id>/timeline`
-  - `GET /supervision/queue`
-  - `GET /runtime/status`
-- Canonical mutation surfaces:
-- `POST /tasks`
-- `POST /tasks/<task_id>/reevaluate`
-- `POST /sync/github`
-- Completion-claim interception helper (delegates into canonical reevaluation semantics):
-  - `POST /tasks/<task_id>/completion-claims`
-- `POST /tasks` is an intake/planning submission path. It may create only fresh task truth, not pre-executed completion truth.
-- Input-shape status overlays on `POST /tasks` and `POST /evaluate` are limited to intake/planning states such as `intake_ready`, `planned`, `dispatch_ready`, `assigned`, and `blocked`. Runtime and terminal states such as `executing`, `reconciling`, `completed`, `failed`, and `canceled` are not accepted through the top-level overlay shortcut.
-- Integration helper surface:
-  - `POST /ingress/linear`
-  - `POST /ingress/manual`
-  - `POST /ingress/openclaw`
-
-### Persistence
-
-- Store selection is controlled by `PROOFLINE_STORE_BACKEND`, with `HARNESS_STORE_BACKEND` retained as a compatibility fallback.
-- Supported backends:
-  - `file` for local JSON-backed development.
-  - `sqlite` for durable local CLI/web state without Docker or hosted services.
-  - `postgres` for durable hosted state.
-- Postgres storage is implemented in [`modules/store.py`](modules/store.py) and bootstrapped with [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql).
-- SQLite storage is implemented in [`modules/store.py`](modules/store.py) and [`modules/reset/store.py`](modules/reset/store.py). Harness creates the local database and schema automatically.
-- The default hosted deployment target is Neon-backed Postgres attached through Vercel. Harness stores canonical task and evaluation payloads as JSONB in `tasks` and `evaluation_records`.
-- The local runtime contract is implemented in [`modules/local_runtime.py`](modules/local_runtime.py) and documented in [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md).
-- Runtime-managed secret storage is implemented in [`modules/local_secrets.py`](modules/local_secrets.py) and documented in [`docs/architecture/app-managed-secrets.md`](docs/architecture/app-managed-secrets.md).
-- Local dashboard packaging is documented in [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md).
-- Setup doctor output is documented in [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md).
-- The deprecated macOS menu-bar app has been removed from the active tree; supported local operation should use the CLI/runtime contract and web dashboard.
-
-## Hosted Deployment Target
-
-Harness now prefers a single hosted project on Vercel Services.
-
-Default hosted shape:
-
-- `web` service for the Next.js dashboard
-- `api` service for the Python backend
-- Neon-backed Postgres provided through Vercel
-- optional Vercel Blob only for real file-like hosted outputs
-
-The hosted backend health endpoint is expected at:
-
-- `GET /backend/health`
-
-The dashboard derives its backend route automatically from the Vercel deployment URL and the `/backend` route prefix. Hosted deployments should not require a manually configured `PROOFLINE_API_BASE_URL` or `HARNESS_API_BASE_URL` when both services live inside the same Vercel project.
-
-## Key Views And Routes
-
-Frontend routes:
-
-- `/tasks`: broad task inventory and detail panel.
-- `/verification`: tasks scoped and sorted around verification outcomes.
-- `/reconciliation`: tasks scoped and sorted around mismatch and blocking reconciliation outcomes.
-- `/reviews`: tasks with manual review activity.
-
-Backend inspection routes:
-
-- `GET /tasks`: dashboard list surface.
-- `GET /tasks/<task_id>/read-model`: canonical detail surface for current task truth.
-- `GET /tasks/<task_id>/timeline`: canonical audit timeline.
-- `GET /supervision/queue`: canonical autonomous-supervision triage surface.
-- `GET /runtime/status`: local runtime status envelope for CLI/web packaging and automation.
-
-The first field to inspect for claimed completion is `completion_validation_summary`, exposed on successful persisted evaluation responses, `GET /tasks`, and `GET /tasks/<task_id>/read-model`. It separates `completion_claimed` from `completion_accepted` and projects whether the claim matches user intent, has sufficient evidence, is blocked by reconciliation, or requires manual review. Agents and dashboards must not report work as done from executor narrative alone; completion is operator-safe only when Proofline reports accepted completion with matched intent and sufficient evidence.
-
-The local CLI reads the same canonical store:
-
-```bash
-python3 -m modules.proofline_runtime --json inspect task <task-id>
-```
-
-For triage surfaces, `review_required` stays distinct from terminal failure. If a task is in `in_review`, the projected `failure_summary.state` and `execution_summary.failure_state` remain `review_required` rather than collapsing into `failed`.
-
-Within `execution_summary`, `attempt_count` is the number of recorded canonical execution attempts. `total_attempts` may be higher when retry/evaluation history exists without a new execution-attempt record, but it must never undercount the recorded execution attempts already attached to the task.
-
-That same chronology rule applies to the projected latest-attempt fields. `execution_summary.latest_attempt`, `latest_status`, and related latest-attempt details follow the newest recorded execution attempt by `recorded_at`; they do not trust raw list append order when stored attempt arrays arrive out of sequence.
-
-That chronology rule also applies to current-run binding outside the read model. When reconciliation or replay logic needs the active execution attempt and there is no explicit completion-claim `attempt_id` binding, Harness selects the newest recorded execution attempt by `recorded_at` rather than whichever attempt happened to be appended last.
-
-## Storage And Environment
-
-Optional frontend/backend API override:
-
-- `PROOFLINE_API_BASE_URL`
-  - Local example: `http://127.0.0.1:8000`
-  - Hosted use: local override only; same-project Vercel deployments always derive the backend route automatically and ignore stale hosted overrides
-- `HARNESS_API_BASE_URL`
-  - Compatibility fallback when `PROOFLINE_API_BASE_URL` is unset
-
-Backend storage environment variables:
-
-- `PROOFLINE_STORE_BACKEND`
-  - Supported values: `file`, `sqlite`, `postgres`
-  - Default in [`.env.example`](.env.example): `file`
-  - Self-contained local CLI/web mode should use `sqlite`
-  - Hosted Vercel deployments auto-select `postgres` when managed Postgres connection variables are present
-- `HARNESS_STORE_BACKEND`
-  - Compatibility fallback when `PROOFLINE_STORE_BACKEND` is unset
-- `PROOFLINE_SQLITE_PATH`
-  - Optional explicit SQLite database file path when `PROOFLINE_STORE_BACKEND=sqlite`
-  - macOS local default: `~/Library/Application Support/Harness/harness.db`
-  - Linux default: `$XDG_DATA_HOME/harness/harness.db`, or `~/.local/share/harness/harness.db` when `XDG_DATA_HOME` is unset
-  - If `PROOFLINE_STORE_ROOT` is set and `PROOFLINE_SQLITE_PATH` is not, Proofline uses `<PROOFLINE_STORE_ROOT>/harness.db`
-- `HARNESS_SQLITE_PATH` and `HARNESS_STORE_ROOT`
-  - Compatibility fallbacks when the Proofline-named storage variables are unset
-- Postgres connection string
-  - Harness resolves this in order from `DATABASE_URL`, `POSTGRES_URL`, `POSTGRES_URL_NON_POOLING`, `POSTGRES_PRISMA_URL`, then `POSTGRES_URL_NO_SSL`
-  - `DATABASE_URL` remains the explicit portable override
-  - Vercel-managed Neon deployments should normally work from the injected `POSTGRES_URL` without any extra remapping
-- `BLOB_READ_WRITE_TOKEN`
-  - Auto-injected when a Vercel Blob store is connected to the project
-  - Not required for canonical task state today; Postgres remains the source of truth
-
-Reset-slice verifier environment variables:
-
-- `GITHUB_TOKEN`
-  - Used by the reset verifier to validate branch, commit SHA, and PR proof against GitHub
-- `LINEAR_API_KEY`
-  - Used by the reset verifier to move Linear issues and leave canonical Harness comments
-- `OPENCLAW_BASE_URL`
-  - Optional HTTP fallback used when the reset verifier requests repair through the current OpenClaw-shaped remote callback adapter
-  - In hosted Vercel runtimes this must be a remote-reachable repair receiver, not `127.0.0.1`, `localhost`, or another loopback/private-only address
-- `OPENCLAW_REPAIR_ENDPOINT`
-  - Optional override for the current OpenClaw-shaped repair callback path
-- `OPENCLAW_REPAIR_BEARER_TOKEN`
-  - Optional bearer token for authenticated HTTP repair receivers
-  - When set, Harness sends `Authorization: Bearer <token>` on hosted repair callbacks
-
-If the reset verifier rejects a claim and the repair callback itself cannot be delivered, Harness now preserves the failed claim, moves the contract into `needs_review`, and updates Linear to `In Review` instead of returning a transport-shaped false negative that leaves the contract looking untouched.
-
-The `OPENCLAW_*` variable names remain because the current repo-owned repair receiver adapter is OpenClaw-specific today. They should be treated as implementation details, not as the architectural boundary.
-
-For local development, `backend.server` now auto-loads both repo-root `.env.local` and `config/openclaw/.env.local`. When the current repo-owned OpenClaw local config exports `OPENCLAW_CONFIG_PATH` or `OPENCLAW_STATE_DIR`, Harness prefers a local `openclaw agent --local` repair dispatch over the HTTP callback path.
-
-Relevant supporting files:
-
-- [`.env.example`](.env.example)
-- [`sql/postgres/001_harness_store.sql`](sql/postgres/001_harness_store.sql)
-- [`docs/setup/local-development.md`](docs/setup/local-development.md)
-- [`docs/setup/openclaw-local.md`](docs/setup/openclaw-local.md)
-- [`docs/setup/vercel-neon.md`](docs/setup/vercel-neon.md)
-- [`docs/demo/hosted-dryrun-operator-flow.md`](docs/demo/hosted-dryrun-operator-flow.md)
-
-## Local Development
-
-Backend setup:
+Install dependencies:
 
 ```bash
 python3 -m pip install -r requirements.txt
-```
-
-Codex Cloud assumes system Python is available as `python`. On local machines where only `python3` is available, use `python3` for local commands. Do not assume or require a `.venv`.
-
-Run the backend with the file store:
-
-```bash
-python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
-```
-
-Run the backend with SQLite local persistence:
-
-```bash
-export PROOFLINE_STORE_BACKEND=sqlite
-export PROOFLINE_SQLITE_PATH="$HOME/Library/Application Support/Harness/harness.db"
-python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
-```
-
-SQLite mode creates the database and schema automatically, enables WAL mode and foreign keys, and stores canonical tasks, evaluation records, and reset verifier contracts in the local database. This is the intended persistence base for self-contained local CLI/web usage.
-
-Run the local runtime contract from a repo checkout:
-
-```bash
-python3 -m modules.proofline_runtime --json init
-python3 -m modules.proofline_runtime --json start
-python3 -m modules.proofline_runtime --json status
-python3 -m modules.proofline_runtime serve
-python3 -m modules.proofline_runtime --json doctor
-python3 -m modules.proofline_runtime --json setup status
-python3 -m modules.proofline_runtime --json secrets status
-python3 -m modules.proofline_runtime --json recover
-python3 -m modules.proofline_runtime --json stop
-```
-
-The Proofline-named module entrypoint is also available:
-
-```bash
-python3 -m modules.proofline_runtime --json status
-```
-
-Future packaged CLI builds should expose the same contract as `proofline init`, `proofline start`, `proofline serve`, `proofline status`, `proofline doctor`, `proofline setup status`, `proofline open`, `proofline recover`, `proofline stop`, and `proofline secrets ...`. A compatibility `harness ...` command can remain during the migration. The runtime stores config, SQLite state, dashboard assets, PID files, and logs in runtime-managed local directories so operators do not need Docker, Node, `pnpm`, or repo-local shell exports.
-
-Build the packageable dashboard assets for the local CLI/web path:
-
-```bash
-pnpm build:dashboard:local
-```
-
-The output lives in `dist/local-dashboard/`. When `PROOFLINE_DASHBOARD_ASSETS_DIR` points at that directory, the Python backend serves the dashboard at `/dashboard` from the same process that serves the local API. `HARNESS_DASHBOARD_ASSETS_DIR` remains a compatibility fallback.
-
-Store runtime-managed secrets for local CLI/web usage:
-
-```bash
-printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
-printf '%s' "$LINEAR_API_KEY" | python3 -m modules.proofline_runtime --json secrets set linear_api_key --value-stdin
-python3 -m modules.proofline_runtime --json secrets status --require github_token
-```
-
-The secrets command reports setup state without printing token values. Developer `.env.local` mode remains supported for local development, but normal local CLI/web usage should prefer the secret store instead of asking operators to edit env files.
-
-Use guided setup status for CLI/web setup:
-
-```bash
-python3 -m modules.proofline_runtime --json setup status
-python3 -m modules.proofline_runtime --json setup status --workflow github-proof
-python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
-python3 -m modules.proofline_runtime --json setup status --workflow repair-dispatch
-```
-
-Default setup only requires a healthy local Harness runtime. GitHub, Linear, execution-substrate, and legacy ingress/executor setup appears as incomplete optional work unless the user selects a workflow that requires it. `repair-dispatch` now gates on the Symphony-compatible execution substrate; the legacy ingress/executor bridge is compatibility wiring, not the primary runner requirement. See [`docs/architecture/guided-integration-setup.md`](docs/architecture/guided-integration-setup.md).
-
-The native macOS app shell and packaging scripts have been removed from the active tree. Do not treat a Swift menu-bar app, Launch at Login, notifications, first-run windows, signing, or notarization as the normal Proofline path. The reusable pieces that still matter are the portable CLI/runtime contract, SQLite local persistence, secret storage boundary, and static dashboard assets served by the Python backend. Normal operation should be CLI + API + web dashboard.
-
-See [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md), [`docs/architecture/local-dashboard-packaging.md`](docs/architecture/local-dashboard-packaging.md), and [`docs/architecture/setup-doctor.md`](docs/architecture/setup-doctor.md). The older macOS architecture notes live under [`docs/archive/macos/`](docs/archive/macos/) for historical context only.
-
-`backend.server` now auto-loads repo-root `.env.local` and `config/openclaw/.env.local` for local development. That means the backend can pick up `GITHUB_TOKEN`, `LINEAR_API_KEY`, and the repo-owned current-client config/state paths without manual shell export steps.
-
-Run the backend with Postgres:
-
-```bash
-export PROOFLINE_STORE_BACKEND=postgres
-export DATABASE_URL=postgresql://...
-python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
-```
-
-For a local environment pulled from a Vercel-managed Neon project, `POSTGRES_URL` also works without additional remapping:
-
-```bash
-export PROOFLINE_STORE_BACKEND=postgres
-export POSTGRES_URL=postgresql://...
-python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
-```
-
-The API binds to `0.0.0.0` by default and honors `PORT` when set. Local default access is `http://127.0.0.1:8000`.
-
-Frontend setup:
-
-```bash
 pnpm install --frozen-lockfile
-cp .env.example .env.local
 ```
 
-Set:
+Start the backend:
 
 ```bash
-PROOFLINE_API_BASE_URL=http://127.0.0.1:8000
+python3 -m uvicorn backend.server:app --host 127.0.0.1 --port 8000
 ```
 
 Run the frontend:
 
 ```bash
+cp .env.example .env.local
+printf 'PROOFLINE_API_BASE_URL=http://127.0.0.1:8000\n' >> .env.local
 pnpm dev
 ```
 
-### Reset-Slice Smoke Path
+Use the local runtime contract:
 
-Once the backend is running and `.env.local` contains `GITHUB_TOKEN`, `LINEAR_API_KEY`, and `OPENCLAW_BASE_URL`, the narrow verifier path is available through:
+```bash
+python3 -m modules.proofline_runtime --json init
+python3 -m modules.proofline_runtime --json start
+python3 -m modules.proofline_runtime --json status
+python3 -m modules.proofline_runtime --json doctor
+python3 -m modules.proofline_runtime --json stop
+```
 
-- `POST /reset/contracts`
-- `POST /reset/contracts/<contract_id>/claims`
-- `POST /reset/tick`
+Build local dashboard assets for the Python-served dashboard:
 
-Use this path when you want Harness to verify GitHub proof for a Linear issue and push canonical truth back into Linear without depending on the dashboard.
+```bash
+pnpm build:dashboard:local
+```
 
-For a deterministic local proof of the new slice without touching real Linear or GitHub state, run:
+More complete setup paths:
+
+- [Local Quickstart](docs/howto/local-quickstart.md)
+- [Configure Proofline](docs/howto/configure-harness.md)
+- [Local Development](docs/setup/local-development.md)
+
+## Storage And Secrets
+
+Proofline supports file, SQLite, and Postgres storage:
+
+- `PROOFLINE_STORE_BACKEND=file`
+- `PROOFLINE_STORE_BACKEND=sqlite`
+- `PROOFLINE_STORE_BACKEND=postgres`
+
+Harness-named environment variables remain compatibility fallbacks. Prefer Proofline-named variables in new docs and scripts.
+
+For local CLI/web usage, prefer runtime-managed secrets over repeated shell exports:
+
+```bash
+printf '%s' "$GITHUB_TOKEN" | python3 -m modules.proofline_runtime --json secrets set github_token --value-stdin
+printf '%s' "$LINEAR_API_KEY" | python3 -m modules.proofline_runtime --json secrets set linear_api_key --value-stdin
+python3 -m modules.proofline_runtime --json secrets status
+```
+
+The reset verifier uses:
+
+- `GITHUB_TOKEN` or `GH_TOKEN`
+- `LINEAR_API_KEY`
+- optional `OPENCLAW_*` compatibility variables for the current repair callback adapter
+
+## Hosted Deployment
+
+The default hosted shape is one Vercel Services project:
+
+- Next.js dashboard service
+- Python backend service
+- Neon-backed Postgres
+- optional Vercel Blob for file-like hosted outputs
+
+`BLOB_READ_WRITE_TOKEN` is supported when Vercel Blob is connected, but Postgres remains the canonical task/evaluation store.
+
+Hosted runbook:
+
+- [Vercel + Neon Deployment](docs/setup/vercel-neon.md)
+
+## Validation
+
+Use synthetic validation for normal development:
+
+```bash
+python3 scripts/proofline_validate.py
+```
+
+Inspect the validation plan:
+
+```bash
+python3 scripts/proofline_validate.py --list
+```
+
+Measure backend coverage:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 -m coverage run -m unittest discover -s tests
+python3 -m coverage report -m
+```
+
+Run focused deterministic reset proofs:
 
 ```bash
 python3 -m modules.reset_dryrun success
 python3 -m modules.reset_dryrun review
 ```
 
-These dry runs start a temporary local FastAPI app, exercise the `/reset/*` routes over HTTP, and prove the two core paths:
-
-- invalid proof followed by successful repair and verified completion
-- invalid proof that exhausts the retry budget and escalates to `In Review`
-
-## Test Execution
-
-Install backend and frontend dependencies first:
+Run execution-substrate dry runs:
 
 ```bash
-python3 -m pip install -r requirements.txt
-pnpm install --frozen-lockfile
+python3 -m modules.execution_substrate_dryrun event-stream
+python3 -m modules.execution_substrate_dryrun intent-consumer
+python3 -m modules.execution_substrate_dryrun handoff
 ```
 
-Run only the dedicated end-to-end runtime scenario suite:
+Use live Linear/GitHub only through the gated dry-run path:
 
 ```bash
-python3 -m unittest discover -s tests/e2e -p 'test_*.py'
+HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json
+HARNESS_RUN_LIVE_RESET_TESTS=1 python3 -m unittest tests.test_reset_live_smoke -v
 ```
 
-Run the full Python test suite:
+Approved live dry-run targets:
+
+- Linear project: `HARNESS-DRYRUN`
+- GitHub repository: `sfayka/HARNESS-DRYRUN`
+- Base branch: `main`
+
+The May 5 live smoke passed and is recorded in [Live Reset Smoke - 2026-05-05](docs/release/live-reset-smoke-2026-05-05.md).
+
+Full validation guide:
+
+- [Test And Validate Proofline](docs/howto/test-and-validate.md)
+
+## Documentation Map
+
+Start here:
+
+- [How-To Index](docs/howto/index.md)
+- [Use Proofline](docs/howto/use-harness.md)
+- [Troubleshoot Proofline](docs/howto/troubleshoot.md)
+
+Architecture references:
+
+- [System Context](docs/architecture/system-context.md)
+- [Module Boundaries](docs/architecture/module-boundaries.md)
+- [TaskEnvelope](docs/architecture/task-envelope.md)
+- [Verification And Completion Enforcement](docs/architecture/verification-and-completion-enforcement.md)
+- [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
+- [Completion Interception And Artifact Validation Boundary](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
+- [Symphony Execution Substrate](docs/architecture/symphony-execution-substrate.md)
+- [Local Runtime Contract](docs/architecture/local-runtime-contract.md)
+- [Agent API Usage](docs/api/agent-api-usage.md)
+
+Agent-facing repo rules:
+
+- [AGENTS.md](AGENTS.md)
+- [CLAUDE.md](CLAUDE.md)
+
+## Development Commands
+
+Backend:
 
 ```bash
 python3 -m unittest discover -s tests
 ```
 
-Run the controlled autonomous dry run that exercises:
-
-- canonical task creation through `POST /evaluate`
-- supervision through `GET /supervision/queue`, which now produces Symphony-compatible execution-substrate intents by default
-- legacy direct redispatch only because this controlled compatibility dry run explicitly enables it
-- Codex Cloud adapter proof validation
-- post-dispatch GitHub-backed sync through `POST /sync/github` that closes the missing changed-file evidence gap
+Frontend:
 
 ```bash
-python -m unittest tests.test_autonomous_dryrun
-```
-
-Run frontend validation:
-
-```bash
+pnpm test:frontend
 pnpm lint
 pnpm build
-pnpm build:dashboard:local
-pnpm test:frontend
 ```
 
-## Unattended Dry-Run Runner
-
-Use [`scripts/run_unattended_dryruns.py`](scripts/run_unattended_dryruns.py) to repeatedly execute the three canonical runtime scenarios against the hosted backend:
-
-- `happy_path`
-- `mismatch`
-- `review_required`
-
-The runner reuses the same scenario builders used by the runtime E2E suite instead of maintaining a second set of hand-built payloads.
-
-Expected environment:
+Docs-only:
 
 ```bash
-pip install -r requirements.txt
+git diff --check
+python3 -m unittest tests.test_hosted_docs -v
 ```
-
-Optional configuration:
-
-```bash
-export HARNESS_DRYRUN_BASE_URL=https://harness-qeav.onrender.com
-export HARNESS_DRYRUN_OUTPUT_DIR=runs
-export HARNESS_DRYRUN_INTERVAL_SECONDS=300
-export HARNESS_DRYRUN_ITERATIONS=0
-export HARNESS_DRYRUN_MAX_RETRIES=2
-export HARNESS_DRYRUN_DIAGNOSTICS_ENABLED=true
-export HARNESS_DRYRUN_MAX_E2E_SUITE_RUNS=1
-```
-
-Run once:
-
-```bash
-python scripts/run_unattended_dryruns.py --iterations 1
-```
-
-Run unattended in tmux:
-
-```bash
-tmux new -s harness-dryruns 'python scripts/run_unattended_dryruns.py --interval-seconds 300'
-```
-
-Stop or restart:
-
-- stop with `Ctrl-C` in the tmux pane
-- restart by rerunning the same command
-
-Inspect logs and raw responses:
-
-```bash
-tail -f runs/log.jsonl
-find runs/reports -type f | sort
-find runs/raw -type f | sort
-```
-
-Self-heal behavior:
-
-- each scenario compares its actual outcome to the canonical expected outcome
-- each scenario fetches `GET /tasks/<task_id>/read-model` and writes the task's `completion_validation_summary` into `runs/log.jsonl`
-- `accepted_completion` remains in the dry-run log for compatibility, but the completion validation summary is the operator-safe verdict for claimed completion
-- each scenario also compares the task's presence or absence in `GET /supervision/queue` to the canonical expectation
-- transient transport and backend availability failures are retried up to the bounded retry limit
-- runtime regressions can trigger the local E2E suite once per runner session
-- unexpected failures write structured reports under `runs/reports/`
-
-Disable retry and diagnostics:
-
-```bash
-python scripts/run_unattended_dryruns.py --max-retries 0 --disable-diagnostics --max-e2e-suite-runs 0
-```
-
-## Demo And Canonical Scenarios
-
-### Local deterministic scenario pack
-
-The canonical demo runner in [`modules/demo_runner.py`](modules/demo_runner.py) defines these scenarios:
-
-- `successful_completion`
-- `missing_evidence_then_completed`
-- `wrong_target_corrected`
-  - starts blocked while target facts are corrected, then completes after reevaluation with aligned facts
-- `review_required_then_completed`
-- `contradictory_facts_blocked`
-- `long_running_handoff`
-
-For local operator walkthroughs, the seeded demo task IDs are:
-
-- `demo-successful-completion`
-- `demo-missing-evidence-then-completed`
-- `demo-contradictory-facts-blocked`
-- `demo-review-required-then-completed`
-- `demo-long-running-handoff`
-
-Seed locally with:
-
-```bash
-python -m modules.demo_bootstrap --exit-after-seed
-```
-
-Or use the full walkthrough flow in [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md).
-
-`review_required_then_completed` now uses the explicit `in_review` lifecycle state. A review-required evaluation does not leave the task in `completed`; manual review is what resolves it back to a terminal or follow-up state.
-
-### Current hosted examples
-
-As of March 28, 2026, the hosted backend currently contains these useful example tasks:
-
-- Happy path: `dryrun-e2e-test-kno-133-db-seed-v5`
-  - current status: `completed`
-  - verification outcome: `accepted_completion`
-  - reconciliation outcome: `no_mismatch`
-- Mismatch path: `dryrun-mismatch-kno-133-db-v1`
-  - current status: `failed`
-  - verification outcome: `terminal_invalid`
-  - reconciliation outcome: `wrong_target`
-
-These are live persisted tasks, not fixed seeded IDs, so they may change later.
-
-## Health Diagnostics
-
-`GET /health` is the operator check for backend readiness and storage configuration.
-
-Current fields:
-
-- `status`: overall service state for this probe.
-- `store_backend`: `file` or `postgres`.
-- `database_configured`: whether the process is configured for database-backed storage.
-- `database_host`: parsed hostname only, without credentials.
-- `database_schema_ready`: whether the required `tasks` and `evaluation_records` tables are present.
-
-The health endpoint does not return raw `DATABASE_URL` values or credentials.
-
-## Docs And Screenshots
-
-Start here:
-
-- [`docs/howto/index.md`](docs/howto/index.md)
-- [`docs/howto/local-quickstart.md`](docs/howto/local-quickstart.md)
-- [`docs/howto/use-harness.md`](docs/howto/use-harness.md)
-- [`docs/howto/test-and-validate.md`](docs/howto/test-and-validate.md)
-- [`docs/howto/troubleshoot.md`](docs/howto/troubleshoot.md)
-
-Source-of-truth references:
-
-- [`docs/architecture/system-context.md`](docs/architecture/system-context.md)
-- [`docs/architecture/module-boundaries.md`](docs/architecture/module-boundaries.md)
-- [`docs/architecture/task-envelope.md`](docs/architecture/task-envelope.md)
-- [`docs/architecture/local-runtime-contract.md`](docs/architecture/local-runtime-contract.md)
-- [`docs/api/agent-api-usage.md`](docs/api/agent-api-usage.md)
-- [`docs/demo/operator-walkthrough.md`](docs/demo/operator-walkthrough.md)
-- [`docs/setup/local-development.md`](docs/setup/local-development.md)
-- [`docs/setup/vercel-neon.md`](docs/setup/vercel-neon.md)
-
-Current screenshot-backed how-to assets:
-
-- [`docs/howto/images/local-dashboard-tasks.png`](docs/howto/images/local-dashboard-tasks.png)
-- [`docs/howto/images/local-dashboard-task-detail.png`](docs/howto/images/local-dashboard-task-detail.png)
-- [`docs/howto/images/local-dashboard-reviews.png`](docs/howto/images/local-dashboard-reviews.png)
-- [`docs/howto/images/health-check-response.png`](docs/howto/images/health-check-response.png)
-- [`docs/howto/images/reset-dryrun-verified.png`](docs/howto/images/reset-dryrun-verified.png)
-- [`docs/howto/images/reset-dryrun-review.png`](docs/howto/images/reset-dryrun-review.png)
-
-## Known Limitations
-
-- The dashboard is read-only. There is no mutation UI for submissions, reevaluation, or review actions.
-- The frontend depends on a reachable backend via the hosted proxy or local same-origin API; it does not provide an offline sample-data mode in the current code path.
-- Live Linear and GitHub synchronization are still thin integration layers rather than full background sync services.
-- Review-required handling exists in evaluation, reevaluation, and dashboard summaries, but the hosted backend is not guaranteed to keep a review-required example task seeded at all times.
-- Hosted example task IDs are operational data and may change independently of the local deterministic scenario pack.
 
 ## Repository Layout
 
-- [`modules/`](modules): backend API, evaluation logic, persistence, demo tooling, connectors.
-- [`app/`](app): Next.js routes and proxy handler.
-- [`components/`](components): dashboard UI components.
-- [`lib/`](lib): frontend API mapping and types.
-- [`schemas/`](schemas): canonical machine-readable contracts.
-- [`tests/`](tests): backend and integration tests.
+- `backend/`: hosted backend entrypoint.
+- `app/`: Next.js dashboard routes and proxy handlers.
+- `components/`: dashboard UI components.
+- `lib/`: frontend API mapping and types.
+- `modules/`: Python API, evaluation, stores, runtime, reset verifier, adapters, dry runs.
+- `schemas/`: canonical machine-readable contracts.
+- `sql/`: database schema.
+- `scripts/`: validation, build, hosted dry-run, and setup helpers.
+- `tests/`: backend, contract, integration, E2E, and frontend tests.
+- `docs/`: how-to, architecture, demo, release, and archive notes.
 
 ## License
 
-Licensed under the Apache License 2.0. See [`LICENSE`](LICENSE).
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE).

@@ -4,18 +4,20 @@ This file is for coding agents and automated contributors working in this reposi
 
 ## Repository Purpose
 
-Harness is the current repository name for an acceptance layer for AI-assisted work. The recommended product rename is Proofline, documented in `docs/adrs/0006-product-rename-and-acceptance-layer.md`.
+Proofline is an acceptance layer for AI-assisted work: validation of agentic completion against user intent and evidence.
+
+The repository may still be named Harness in GitHub, local paths, routes, env vars, historical artifacts, and compatibility code while the staged rename completes. Treat Proofline as the product name and Harness as the compatibility namespace. The rename plan is documented in `docs/architecture/proofline-rename-migration.md` and `docs/adrs/0006-product-rename-and-acceptance-layer.md`.
 
 The system evaluates whether structured work is actually complete, evidence-backed, reconciled with external systems, and safe to accept.
 
-Work surfaces and ingress clients sit above Harness. Harness owns verification, reconciliation, lifecycle enforcement, persistence of task truth, and inspection surfaces.
+Work surfaces and ingress clients sit above Proofline. Proofline owns verification, reconciliation, lifecycle enforcement, persistence of task truth, and inspection surfaces.
 
 ## Ownership Model
 
 - agents execute work
 - Linear tracks intended work
 - GitHub proves execution artifacts
-- Harness owns truth and lifecycle correctness
+- Proofline owns truth and lifecycle correctness
 
 Keep that split intact.
 
@@ -24,12 +26,12 @@ Keep that split intact.
 Do not collapse these roles:
 
 - ingress clients submit canonical work or updates
-- Harness normalizes and evaluates
+- Proofline normalizes and evaluates
 - GitHub and Linear provide external facts
 - dashboard reads canonical inspection APIs
 - CLI and web dashboard are the supported operator surfaces
 
-Harness is not:
+Proofline is not:
 
 - a PM tool
 - an agent runtime
@@ -78,7 +80,7 @@ Freeze or delete work that primarily builds:
 
 ## Operator Surface Direction
 
-Harness is now CLI + API + web dashboard first.
+Proofline is CLI + API + web dashboard first.
 
 The native macOS app and packaging scripts have been removed from the active tree. Do not reintroduce native macOS features, packaging work, notarization work, menu-bar behavior, notification behavior, or onboarding behavior unless a task explicitly reopens that product decision.
 
@@ -89,7 +91,7 @@ Keep reusable runtime pieces in portable Python/TypeScript surfaces:
 - the Next.js dashboard
 - static local dashboard assets served by the Python backend
 
-Do not make Harness core depend on Swift, AppKit, `.app` bundle layout, Keychain-only semantics, Launch at Login, or macOS notification APIs.
+Do not make Proofline core depend on Swift, AppKit, `.app` bundle layout, Keychain-only semantics, Launch at Login, or macOS notification APIs.
 
 ## Invariants That Must Not Be Broken
 
@@ -108,7 +110,7 @@ Do not make Harness core depend on Swift, AppKit, `.app` bundle layout, Keychain
 
 ## Codex Cloud Execution Requirements
 
-Codex Cloud tasks for Harness must run in the Harness environment and that environment must execute the repo-owned bootstrap script:
+Codex Cloud tasks for this repository must run in the repository environment and that environment must execute the repo-owned bootstrap script:
 
 - `bash /workspace/Harness/scripts/codex-cloud-setup.sh`
 
@@ -265,7 +267,7 @@ When working in this repo:
 
 Keep the role split intact:
 - workflow tooling helps with planning, review, QA, and shipping discipline
-- Harness still owns task truth, lifecycle correctness, verification, and reconciliation semantics
+- Proofline still owns task truth, lifecycle correctness, verification, and reconciliation semantics
 
 Do not use workflow language as justification to weaken Harness invariants or to replace canonical API/read-model/timeline surfaces.
 
