@@ -12,7 +12,7 @@ During the staged rename, product surfaces say Proofline while commands, environ
 - [Test And Validate Proofline](test-and-validate.md)
 - [Hermes Live Validation Handoff](hermes-live-validation.md)
 - [Troubleshoot Proofline](troubleshoot.md)
-- [Hermes Proofline Skill](../../skills/hermes-proofline/SKILL.md)
+- [Proofline Acceptance Skill](../../skills/proofline-acceptance/SKILL.md)
 
 ## Source-Of-Truth References
 
