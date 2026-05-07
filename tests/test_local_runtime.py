@@ -280,6 +280,28 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(store.values["github_token"], "ghp_secret")
         self.assertNotIn("ghp_secret", json.dumps(payload))
 
+    def test_json_emit_redacts_sensitive_values(self) -> None:
+        payload = {
+            "status": "ok",
+            "token": "ghp_secretvalue123456",
+            "nested": {
+                "message": "Bearer abcdef1234567890 should not print",
+                "items": ["lin_api_abcdefghijklmnopqrstuvwxyz"],
+            },
+        }
+        stdout = io.StringIO()
+
+        with contextlib.redirect_stdout(stdout):
+            exit_code = _emit(payload, as_json=True)
+
+        output = stdout.getvalue()
+        redacted_payload = json.loads(output)
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertEqual(redacted_payload["token"], "[redacted]")
+        self.assertNotIn("ghp_secretvalue123456", output)
+        self.assertNotIn("abcdef1234567890", output)
+        self.assertNotIn("lin_api_abcdefghijklmnopqrstuvwxyz", output)
+
     def test_human_readable_emit_redacts_sensitive_values(self) -> None:
         payload = {
             "status": "ok",

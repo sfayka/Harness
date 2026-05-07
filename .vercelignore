@@ -1,0 +1,45 @@
+# Local runtime and agent artifacts
+.tmp/
+tmp/
+temp/
+.build/
+runs/
+apps/
+script/
+.harness-*/
+.playwright-mcp/
+.superpowers/
+
+# Python local state
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Frontend local state
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Local secrets and linked project metadata
+.env
+.env.local
+.env.*.local
+.vercel/
+
+# Repository and editor noise
+.git/
+.DS_Store
+.claude/
+.vscode/
+.idea/

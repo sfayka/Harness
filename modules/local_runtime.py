@@ -7,6 +7,7 @@ import contextlib
 import json
 import os
 import platform
+import re
 import shutil
 import signal
 import socket
@@ -46,6 +47,25 @@ EXIT_OK = 0
 EXIT_UNHEALTHY = 1
 EXIT_SETUP_REQUIRED = 2
 EXIT_RUNTIME_ERROR = 3
+REDACTED_VALUE = "[redacted]"
+SENSITIVE_FIELD_NAMES = {
+    "access_token",
+    "api_key",
+    "authorization",
+    "bearer_token",
+    "client_secret",
+    "password",
+    "secret",
+    "secret_value",
+    "token",
+}
+SENSITIVE_VALUE_PATTERNS = (
+    re.compile(r"github_pat_[A-Za-z0-9_]+"),
+    re.compile(r"gh[pousr]_[A-Za-z0-9_]+"),
+    re.compile(r"lin_api_[A-Za-z0-9]+"),
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]+"),
+    re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._~+/=-]{12,}"),
+)
 
 ENV_RUNTIME_MODE = "HARNESS_RUNTIME_MODE"
 ENV_RUNTIME_CONFIG_PATH = "HARNESS_RUNTIME_CONFIG_PATH"
@@ -83,6 +103,21 @@ class LocalRuntimeError(ValueError):
     def __init__(self, message: str, *, exit_code: int = EXIT_RUNTIME_ERROR) -> None:
         super().__init__(message)
         self.exit_code = exit_code
+
+
+def _safe_cli_json_value(value: Any, *, field_name: str | None = None) -> Any:
+    if field_name and field_name.lower() in SENSITIVE_FIELD_NAMES:
+        return REDACTED_VALUE
+    if isinstance(value, dict):
+        return {str(key): _safe_cli_json_value(item, field_name=str(key)) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_safe_cli_json_value(item, field_name=field_name) for item in value]
+    if isinstance(value, str):
+        redacted = value
+        for pattern in SENSITIVE_VALUE_PATTERNS:
+            redacted = pattern.sub(REDACTED_VALUE, redacted)
+        return redacted
+    return value
 
 
 @dataclass(frozen=True)
@@ -1524,7 +1559,8 @@ def _handle_secrets_command(args: argparse.Namespace, *, as_json: bool) -> int:
 
 def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -> int:
     if as_json:
-        print(json.dumps(payload, indent=2, sort_keys=True))
+        safe_payload = _safe_cli_json_value(payload)
+        print(json.dumps(safe_payload, indent=2, sort_keys=True))
         return exit_code
 
     print("status: see --json for structured details")
