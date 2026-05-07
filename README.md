@@ -273,6 +273,7 @@ Agent-facing repo rules:
 
 - [AGENTS.md](AGENTS.md)
 - [CLAUDE.md](CLAUDE.md)
+- [Hermes Proofline Skill](skills/hermes-proofline/SKILL.md)
 
 ## Development Commands
 

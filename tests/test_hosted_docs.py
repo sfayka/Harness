@@ -9,15 +9,20 @@ class HostedDocsTests(unittest.TestCase):
         readme = Path("README.md").read_text(encoding="utf-8")
         agents_path = Path("AGENTS.md")
         claude_path = Path("CLAUDE.md")
+        hermes_skill_path = Path("skills/hermes-proofline/SKILL.md")
         agents = agents_path.read_text(encoding="utf-8")
         claude = claude_path.read_text(encoding="utf-8")
+        hermes_skill = hermes_skill_path.read_text(encoding="utf-8")
 
         self.assertTrue(agents_path.exists())
         self.assertTrue(claude_path.exists())
+        self.assertTrue(hermes_skill_path.exists())
         self.assertIn("Proofline validates agentic completion against user intent and evidence", readme)
         self.assertIn("Proofline is an acceptance layer", agents)
         self.assertIn("Read `AGENTS.md` first", claude)
         self.assertIn("Completion claims must flow through Proofline", claude)
+        self.assertIn("If Hermes is coordinating work, Proofline should verify completion", hermes_skill)
+        self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json", hermes_skill)
 
     def test_readme_points_to_vercel_and_neon_as_the_default_hosted_story(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
