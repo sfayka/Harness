@@ -28,6 +28,7 @@ from modules.local_runtime import (
     start_runtime,
     stop_runtime,
     _check_execution_substrate,
+    _emit,
 )
 from modules.store import SQLiteHarnessStore
 
@@ -278,6 +279,47 @@ class LocalRuntimeCliTests(unittest.TestCase):
         self.assertEqual(payload["status"], "stored")
         self.assertEqual(store.values["github_token"], "ghp_secret")
         self.assertNotIn("ghp_secret", json.dumps(payload))
+
+    def test_human_readable_emit_redacts_sensitive_values(self) -> None:
+        payload = {
+            "status": "ok",
+            "message": "GitHub token ghp_secretvalue123456 was received.",
+            "paths": {"token": "github_pat_1234567890abcdef"},
+            "checks": [
+                {
+                    "code": "github_auth",
+                    "status": "warning",
+                    "message": "Bearer abcdef1234567890 should not print",
+                    "next_action": "Rotate lin_api_abcdefghijklmnopqrstuvwxyz.",
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "github_token",
+                    "status": "configured",
+                    "message": "Stored ghp_secretvalue123456.",
+                }
+            ],
+            "completion_validation_summary": {
+                "status": "blocked",
+                "summary": "Slack token xoxb-1234567890-sensitive was rejected.",
+            },
+        }
+        stdout = io.StringIO()
+
+        with contextlib.redirect_stdout(stdout):
+            exit_code = _emit(payload, as_json=False)
+
+        output = stdout.getvalue()
+        self.assertEqual(exit_code, EXIT_OK)
+        self.assertIn("details: omitted from human-readable output", output)
+        self.assertIn("secrets: 1", output)
+        self.assertNotIn("ghp_secretvalue123456", output)
+        self.assertNotIn("github_token", output)
+        self.assertNotIn("github_pat_1234567890abcdef", output)
+        self.assertNotIn("abcdef1234567890", output)
+        self.assertNotIn("lin_api_abcdefghijklmnopqrstuvwxyz", output)
+        self.assertNotIn("xoxb-1234567890-sensitive", output)
 
     def test_secrets_delete_reports_missing_without_error(self) -> None:
         store = InMemorySecretStore()

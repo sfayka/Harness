@@ -27,14 +27,11 @@ def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
 class _UnavailableResetService:
     """Fail-closed reset adapter used when reset startup cannot succeed."""
 
-    def __init__(self, reason: str) -> None:
-        self.reason = reason
-
     def _response(self) -> tuple[int, dict[str, Any]]:
         return 503, {
             "status": "unavailable",
             "message": "Reset verifier is unavailable in this runtime.",
-            "reason": self.reason,
+            "reason": "Reset verifier startup failed. Check server logs and runtime configuration.",
         }
 
     def register_contract_http(self, _: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -57,8 +54,8 @@ def _build_reset_service(store: HarnessStore | None) -> ResetVerificationService
     root_dir = getattr(store, "root_dir", None) if store is not None else None
     try:
         return ResetVerificationService.from_env(root_dir=root_dir)
-    except (OSError, ValueError) as error:
-        return _UnavailableResetService(str(error))
+    except (OSError, ValueError):
+        return _UnavailableResetService()
 
 
 def _resolve_dashboard_assets_dir() -> Path | None:
