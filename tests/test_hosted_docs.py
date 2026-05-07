@@ -48,6 +48,7 @@ class HostedDocsTests(unittest.TestCase):
         contributing = Path("CONTRIBUTING.md").read_text(encoding="utf-8")
         security = Path("SECURITY.md").read_text(encoding="utf-8")
         ci = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+        codeql = Path(".github/workflows/codeql.yml").read_text(encoding="utf-8")
         dependabot = Path(".github/dependabot.yml").read_text(encoding="utf-8")
 
         self.assertIn("Proofline is still early", contributing)
@@ -56,6 +57,8 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("executor and agent summaries are advisory only", security)
         self.assertIn("python -m unittest discover -s tests", ci)
         self.assertIn("pnpm lint", ci)
+        self.assertIn("github/codeql-action/analyze@", codeql)
+        self.assertIn("security-events: write", codeql)
         self.assertIn("package-ecosystem: github-actions", dependabot)
         self.assertTrue(Path(".github/pull_request_template.md").exists())
         self.assertTrue(Path(".github/ISSUE_TEMPLATE/bug_report.md").exists())
