@@ -60,6 +60,56 @@ The operator-safe done shape is:
 
 If Proofline reports `blocked`, `pending`, `insufficient`, `invalid`, `retrying`, or `review_required`, do not tell the user the work is done.
 
+## Capability Check
+
+Before using Proofline for real validation, verify what the current environment can actually do.
+
+Minimum local capability:
+
+- read the Proofline repository
+- pull latest `main`
+- run Python commands from the repo
+- run `python3 scripts/proofline_validate.py`
+- inspect Proofline API/read-model output
+
+Code-proof capability:
+
+- read the user's Git hosting system
+- inspect repository, branch, commit, pull request or merge request metadata
+- verify changed files or equivalent diff evidence
+- verify test or CI evidence when required by the task
+
+Project-tracker capability:
+
+- read the user's project-tracking system
+- identify the intended work item
+- read title, description, acceptance criteria, state, assignee/owner, dependency/blocker facts, and comments when relevant
+- distinguish intended work state from Proofline-accepted completion
+
+Current V1 live adapters:
+
+- project tracker: Linear
+- code host: GitHub
+
+For V1, stick to Linear and GitHub for live validation. Other project trackers and code hosts belong in the V2 adapter layer. A new tracker or code host needs an adapter that translates vendor-specific payloads into Proofline's normalized external facts and evidence model. Until that exists, use Proofline in synthetic/local mode or manual-evidence mode, and be explicit that live reconciliation is not first-class for that tool yet.
+
+If the environment is missing required access, stop and ask the user to connect the tool through their agent platform or provide credentials through Proofline's supported secret path. Do not invent proof from screenshots, summaries, or worker claims.
+
+Useful local checks:
+
+```bash
+git remote -v
+git pull --ff-only
+python3 scripts/proofline_validate.py --list
+python3 scripts/proofline_live_preflight.py --json
+python3 -m modules.proofline_runtime --json setup status
+python3 -m modules.proofline_runtime --json setup status --workflow github-proof
+python3 -m modules.proofline_runtime --json setup status --workflow linear-sync
+python3 -m modules.proofline_runtime --json secrets status
+```
+
+The unarmed live preflight is read-only and may report `not_ready`. That is useful: it tells the agent which credentials, targets, or tool connections are missing before any live mutation is attempted.
+
 ## Modes
 
 ### Light Mode

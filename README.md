@@ -178,6 +178,27 @@ The reset verifier uses:
 - `LINEAR_API_KEY`
 - optional `OPENCLAW_*` compatibility variables for the current repair callback adapter
 
+## Tool Requirements
+
+Proofline is most useful when it can compare intended work against real evidence.
+
+Minimum useful setup:
+
+- repo access for the Proofline checkout
+- Python runtime and dependencies
+- a running Proofline backend or local runtime
+- access to the code host that contains execution artifacts
+- access to the project tracker that contains intended work
+
+The V1 live integration pair is:
+
+- Linear for intended work
+- GitHub for artifact proof
+
+For V1, do not present other project trackers or code hosts as first-class live validation targets. V2 can add a flexible adapter layer. A Jira/Asana/Shortcut/Notion tracker adapter would need to normalize intended work, state, dependencies, acceptance criteria, and comments into Proofline external facts. A GitLab/Bitbucket adapter would need to normalize repository, branch, commit, merge request, diff, and CI evidence into Proofline artifact facts.
+
+Until that V2 adapter layer exists, live reconciliation is Linear/GitHub-only. Other tools may still be used for manual context, but Proofline should not imply equivalent automated validation for them.
+
 ## Hosted Deployment
 
 The default hosted shape is one Vercel Services project:

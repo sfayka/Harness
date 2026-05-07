@@ -27,6 +27,9 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("This skill is agent-agnostic", proofline_skill)
         self.assertIn("If an agent is coordinating work, Proofline should verify completion", proofline_skill)
         self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1 python3 scripts/proofline_live_preflight.py --json", proofline_skill)
+        self.assertIn("Capability Check", proofline_skill)
+        self.assertIn("Current V1 live adapters", proofline_skill)
+        self.assertIn("Other project trackers and code hosts belong in the V2 adapter layer", proofline_skill)
         self.assertIn("skills/proofline-acceptance/SKILL.md", hermes_skill)
 
     def test_readme_points_to_vercel_and_neon_as_the_default_hosted_story(self) -> None:
@@ -48,6 +51,9 @@ class HostedDocsTests(unittest.TestCase):
         self.assertIn("docs/howto/test-and-validate.md", readme)
         self.assertIn("Validation Tiers", validation)
         self.assertIn("Real Linear/GitHub Validation Plan", validation)
+        self.assertIn("Capability Check", validation)
+        self.assertIn("Current V1 live systems", validation)
+        self.assertIn("Other project trackers and code hosts belong in the V2 adapter layer", validation)
         self.assertIn("HARNESS-DRYRUN", validation)
         self.assertIn("sfayka/HARNESS-DRYRUN", validation)
         self.assertIn("HARNESS_RUN_LIVE_RESET_TESTS=1", validation)

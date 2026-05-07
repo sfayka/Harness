@@ -119,6 +119,25 @@ Proofline's live integration target should remain the dry-run pair unless a rele
 - GitHub repository: `sfayka/HARNESS-DRYRUN`
 - Base branch: `main`
 
+### Capability Check
+
+Before trying live validation, confirm the agent or operator has the required capabilities.
+
+Minimum:
+
+- can read and pull the Proofline repo
+- can run `python3 scripts/proofline_validate.py`
+- can run `python3 scripts/proofline_live_preflight.py --json`
+- can read the intended-work system
+- can read the code-hosting system
+
+Current V1 live systems:
+
+- Linear for intended work
+- GitHub for artifact proof
+
+For V1, stick to Linear and GitHub for live validation. Other project trackers and code hosts belong in the V2 adapter layer. A project-tracker adapter must translate the vendor's issues/tasks/projects into normalized intended-work facts. A code-host adapter must translate branches, commits, pull requests or merge requests, changed files, and CI state into normalized artifact facts. Without that adapter, do not pretend the live validation is equivalent to the Linear/GitHub path.
+
 Read-only checks may be run whenever the tools are authenticated:
 
 ```bash
