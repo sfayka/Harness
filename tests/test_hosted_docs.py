@@ -44,6 +44,23 @@ class HostedDocsTests(unittest.TestCase):
         self.assertTrue(Path("docs/setup/vercel-neon.md").exists())
         self.assertFalse(Path("docs/setup/render-supabase.md").exists())
 
+    def test_public_repository_hygiene_files_exist(self) -> None:
+        contributing = Path("CONTRIBUTING.md").read_text(encoding="utf-8")
+        security = Path("SECURITY.md").read_text(encoding="utf-8")
+        ci = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+        dependabot = Path(".github/dependabot.yml").read_text(encoding="utf-8")
+
+        self.assertIn("Proofline is still early", contributing)
+        self.assertIn("Apache License 2.0", contributing)
+        self.assertIn("report suspected vulnerabilities privately", security)
+        self.assertIn("executor and agent summaries are advisory only", security)
+        self.assertIn("python -m unittest discover -s tests", ci)
+        self.assertIn("pnpm lint", ci)
+        self.assertIn("package-ecosystem: github-actions", dependabot)
+        self.assertTrue(Path(".github/pull_request_template.md").exists())
+        self.assertTrue(Path(".github/ISSUE_TEMPLATE/bug_report.md").exists())
+        self.assertTrue(Path(".github/ISSUE_TEMPLATE/feature_request.md").exists())
+
     def test_validation_plan_names_synthetic_and_live_linear_github_gates(self) -> None:
         readme = Path("README.md").read_text(encoding="utf-8")
         validation = Path("docs/howto/test-and-validate.md").read_text(encoding="utf-8")

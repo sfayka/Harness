@@ -1,6 +1,6 @@
 # Contributing
 
-Harness is still early. The most useful contributions right now are the ones that make contracts, verification rules, and control-plane boundaries clearer.
+Proofline is still early. The most useful contributions right now are the ones that make contracts, verification rules, and acceptance-layer boundaries clearer.
 
 ## Before Opening A Change
 
@@ -11,9 +11,9 @@ Harness is still early. The most useful contributions right now are the ones tha
 
 ## Contribution Guidelines
 
-- keep Harness positioned as a control plane and reliability layer
+- keep Proofline positioned as an acceptance layer for agentic completion
 - do not treat executor-reported success as sufficient completion evidence
-- preserve the boundary between ingress, control plane, systems of record, and executors
+- preserve the boundary between ingress, Proofline verification, systems of record, and executors
 - avoid introducing runtime or framework choices that conflict with accepted ADRs
 - update docs when contracts or architectural assumptions change
 
@@ -32,4 +32,4 @@ Harness is still early. The most useful contributions right now are the ones tha
 
 ## License
 
-License selection is not defined in this file. Maintainers should confirm the intended open-source license before making the repository public.
+Proofline is licensed under the Apache License 2.0. See `LICENSE`.
