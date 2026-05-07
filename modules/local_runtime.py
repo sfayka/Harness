@@ -1560,6 +1560,7 @@ def _handle_secrets_command(args: argparse.Namespace, *, as_json: bool) -> int:
 def _emit(payload: dict[str, Any], *, as_json: bool, exit_code: int = EXIT_OK) -> int:
     if as_json:
         safe_payload = _safe_cli_json_value(payload)
+        # codeql[py/clear-text-logging-sensitive-data] CLI JSON is explicitly sanitized above.
         print(json.dumps(safe_payload, indent=2, sort_keys=True))
         return exit_code
 

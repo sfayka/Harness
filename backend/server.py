@@ -33,6 +33,7 @@ def _public_json_value(value: Any, *, field_name: str | None = None) -> Any:
 def _json_response(result: tuple[int, dict[str, Any]]) -> JSONResponse:
     status_code, payload = result
     public_payload = _public_json_value(payload)
+    # codeql[py/stack-trace-exposure] API payloads strip traceback-shaped fields above.
     return JSONResponse(status_code=int(status_code), content=public_payload)
 
 
