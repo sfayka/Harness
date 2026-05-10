@@ -1,0 +1,26 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "research_packet",
+  "id": "research-demo-client-html-delivery",
+  "role": "research",
+  "summary": "Sean needs a reliable client/prospect delivery lane for generated HTML artifacts.",
+  "evidence": [
+    {
+      "source": "github_issue",
+      "ref": "sfayka/business-process-audit-studio#44",
+      "finding": "BP Audit Studio has artifact generation but needs static web bucket delivery."
+    },
+    {
+      "source": "x_article",
+      "ref": "2052796100608974848",
+      "finding": "HTML artifacts are easier to read, share, and enrich than raw Markdown."
+    }
+  ],
+  "signals": [
+    "client_delivery_gap",
+    "shareable_html_artifact",
+    "static_bucket_hosting"
+  ]
+}

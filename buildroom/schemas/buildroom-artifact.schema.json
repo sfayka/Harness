@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://proofline.local/schemas/buildroom-artifact.schema.json",
+  "title": "Proofline Auto-build v0 Buildroom Artifact",
+  "type": "object",
+  "required": ["schema_version", "kind", "id", "job_id", "role", "live_mutations_enabled"],
+  "properties": {
+    "schema_version": {
+      "const": "buildroom.v0"
+    },
+    "kind": {
+      "enum": [
+        "research_packet",
+        "idea_contract",
+        "intent_review",
+        "main_review",
+        "product_plan",
+        "build_plan",
+        "coder_receipt",
+        "qa_receipt",
+        "verification_delta",
+        "trust_report",
+        "retention_review",
+        "operator_summary"
+      ]
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "role": {
+      "enum": ["research", "dreamer", "main", "coder", "qa", "trust", "retention", "operator"]
+    },
+    "live_mutations_enabled": {
+      "const": false
+    }
+  },
+  "additionalProperties": true
+}

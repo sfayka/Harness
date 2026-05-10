@@ -1,0 +1,19 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "main_review",
+  "id": "main-demo-client-html-delivery",
+  "role": "main",
+  "decision": "approved",
+  "approved_scope": [
+    "local buildroom template",
+    "static publishing issue linkage",
+    "guardrail validation"
+  ],
+  "blocked_scope": [
+    "cron automation",
+    "unattended commits",
+    "production deployment"
+  ]
+}

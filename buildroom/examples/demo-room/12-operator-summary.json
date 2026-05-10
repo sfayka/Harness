@@ -1,0 +1,18 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "operator_summary",
+  "id": "operator-demo-client-html-delivery",
+  "role": "operator",
+  "headline": "Auto-build v0 local buildroom demo is clean.",
+  "status": "ready_for_review",
+  "links": [
+    "buildroom/examples/demo-room",
+    "docs/architecture/autobuild-buildroom.md"
+  ],
+  "next_actions": [
+    "Review the local contract chain.",
+    "Only then consider adding cron or dashboard surfaces."
+  ]
+}

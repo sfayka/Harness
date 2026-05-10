@@ -1,0 +1,33 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "product_plan",
+  "id": "product-demo-client-html-delivery",
+  "role": "main",
+  "main_review_id": "main-demo-client-html-delivery",
+  "allowed_paths": [
+    "docs/architecture/autobuild-buildroom.md",
+    "buildroom/README.md",
+    "buildroom/schemas/buildroom-artifact.schema.json",
+    "buildroom/examples/demo-room/README.md",
+    "scripts/validate_buildroom.py",
+    "tests/test_buildroom_contract.py"
+  ],
+  "planned_files": [
+    "docs/architecture/autobuild-buildroom.md",
+    "buildroom/README.md",
+    "buildroom/schemas/buildroom-artifact.schema.json",
+    "buildroom/examples/demo-room/README.md",
+    "scripts/validate_buildroom.py",
+    "tests/test_buildroom_contract.py"
+  ],
+  "acceptance_checks": [
+    "python3 -m unittest tests.test_buildroom_contract -v",
+    "python3 scripts/validate_buildroom.py buildroom/examples/demo-room"
+  ],
+  "risk_notes": [
+    "Do not make Proofline an execution scheduler.",
+    "Do not enable live mutations in v0."
+  ]
+}

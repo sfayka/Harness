@@ -1,0 +1,17 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "qa_receipt",
+  "id": "qa-demo-client-html-delivery",
+  "role": "qa",
+  "verified_by": "qa-agent",
+  "coder_receipt_id": "coder-demo-client-html-delivery",
+  "decision": "verified",
+  "evidence_checked": [
+    "expected artifact chain exists",
+    "validator rejects changed paths outside product plan",
+    "no live mutations enabled",
+    "retention is recommendation-only"
+  ]
+}

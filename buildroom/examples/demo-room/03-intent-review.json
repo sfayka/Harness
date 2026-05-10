@@ -1,0 +1,10 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "intent_review",
+  "id": "intent-demo-client-html-delivery",
+  "role": "main",
+  "decision": "ready_for_main_review",
+  "rationale": "Evidence is specific, scope is bounded, and work can be verified without live mutations."
+}

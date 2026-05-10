@@ -1,0 +1,12 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "verification_delta",
+  "id": "delta-demo-client-html-delivery",
+  "role": "qa",
+  "coder_receipt_id": "coder-demo-client-html-delivery",
+  "qa_receipt_id": "qa-demo-client-html-delivery",
+  "state": "confirmed",
+  "notes": "Coder receipt and QA receipt agree on local-only artifact chain and guardrails."
+}

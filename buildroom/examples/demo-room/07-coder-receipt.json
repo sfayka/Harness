@@ -1,0 +1,23 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "coder_receipt",
+  "id": "coder-demo-client-html-delivery",
+  "role": "coder",
+  "implemented_by": "coder-agent",
+  "build_plan_id": "build-demo-client-html-delivery",
+  "changed_paths": [
+    "docs/architecture/autobuild-buildroom.md",
+    "buildroom/README.md",
+    "buildroom/schemas/buildroom-artifact.schema.json",
+    "buildroom/examples/demo-room/README.md",
+    "scripts/validate_buildroom.py",
+    "tests/test_buildroom_contract.py"
+  ],
+  "commands_run": [
+    "python3 -m unittest tests.test_buildroom_contract -v",
+    "python3 scripts/validate_buildroom.py buildroom/examples/demo-room"
+  ],
+  "claims_complete": true
+}

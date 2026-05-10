@@ -1,0 +1,11 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "retention_review",
+  "id": "retention-demo-client-html-delivery",
+  "role": "retention",
+  "recommendation": "keep",
+  "side_effects": "none",
+  "rationale": "Keep as a reusable demo packet and validation fixture. Retention does not delete or move live state."
+}
