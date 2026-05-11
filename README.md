@@ -2,6 +2,8 @@
 
 Proofline validates agentic completion against user intent and evidence.
 
+![Proofline acceptance circuit animation](docs/assets/proofline-acceptance-circuit.svg)
+
 It is the acceptance layer above agents, runners, Linear, and GitHub. Agents may claim they are done. Symphony, Codex, Hermes, OpenClaw, or another executor may report progress. Proofline is the layer that decides whether the claim is actually acceptable.
 
 The repository may still contain the `Harness` name in routes, environment variables, historical artifacts, Python modules, and stored evidence. That is intentional during the staged rename. Treat Proofline as the product name and Harness as the current compatibility namespace. See [Proofline Rename Migration](docs/architecture/proofline-rename-migration.md).
