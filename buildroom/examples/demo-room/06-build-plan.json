@@ -1,0 +1,18 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "build_plan",
+  "id": "build-demo-client-html-delivery",
+  "role": "coder",
+  "main_review_id": "main-demo-client-html-delivery",
+  "product_plan_id": "product-demo-client-html-delivery",
+  "steps": [
+    "create buildroom docs",
+    "create generic artifact schema",
+    "create demo room artifacts",
+    "create validator",
+    "add contract tests"
+  ],
+  "execution_mode": "local_filesystem_only"
+}

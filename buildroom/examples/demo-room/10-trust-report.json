@@ -1,0 +1,13 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "trust_report",
+  "id": "trust-demo-client-html-delivery",
+  "role": "trust",
+  "state": "clean",
+  "watch_items": [
+    "Publishing backend remains unimplemented in this buildroom v0 slice."
+  ],
+  "investigate_items": []
+}

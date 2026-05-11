@@ -1,0 +1,23 @@
+{
+  "schema_version": "buildroom.v0",
+  "job_id": "demo-client-html-delivery",
+  "live_mutations_enabled": false,
+  "kind": "idea_contract",
+  "id": "idea-demo-client-html-delivery",
+  "role": "dreamer",
+  "title": "Client-facing HTML delivery lane",
+  "beneficiary": "Knox Analytics clients and prospects",
+  "why_now": "BP Audit Studio is ready to produce useful artifacts, but client delivery is still manual.",
+  "proposal": "Add a static bucket-backed publishing mechanism for generated HTML artifacts.",
+  "out_of_scope": [
+    "unattended deployment",
+    "email sending",
+    "deleting old artifacts"
+  ],
+  "verification": [
+    "artifact renders locally",
+    "publish target is configurable",
+    "client URL is copyable"
+  ],
+  "approval_authority": "main_review"
+}
