@@ -214,6 +214,8 @@ Typical use:
 
 These artifacts preserve continuity across long-running work, but they do not override completion policy or lifecycle enforcement.
 
+When a long-session risk policy requires checkpoint or handoff evidence, the required artifact proves continuity and reviewability, not completion. The detailed risk thresholds and required checkpoint/handoff metadata are defined in [Long-Session Risk And Checkpoint Handoff](long-session-risk.md).
+
 ## Repository And Branch Identity
 
 Repository identity is represented as:
@@ -312,6 +314,7 @@ Canonical rules:
 - executor-reported success without evidence is not sufficient for `completed`
 - advisory or research tasks may use `advisory_only` or `not_applicable`, but that must be explicit
 - progress, plan, and handoff artifacts may inform verification and review, but they are not completion-bearing artifact types in the current contract
+- risk-required checkpoint or handoff artifacts may unblock continuation or review routing, but do not satisfy completion evidence unless a later explicit evidence policy promotes them
 
 ## Distinguishing Outcome Classes
 

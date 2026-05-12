@@ -192,6 +192,8 @@ Runtime reporting should preserve:
 
 Trace continuity answers what context was used and how it changed over time. Verification and reconciliation still answer whether the produced outcome is trustworthy enough to accept.
 
+Long-running sessions also carry execution risk when time, context size, repeated tool errors, stale evidence, or missing checkpoint summaries make the current executor state hard to trust. The threshold and handoff rules for that risk are defined in [Long-Session Risk And Checkpoint Handoff](long-session-risk.md). Those rules may require checkpoint or handoff artifacts before continuation or acceptance, but they do not turn runtime progress into completion evidence.
+
 ## Execution Event Semantics
 
 Runtime events must be explicit and reviewable.
@@ -206,6 +208,7 @@ The initial execution event family should include:
 - `execution_succeeded`
 - `execution_stalled`
 - `execution_timed_out`
+- `long_session_risk_detected`
 - `retry_scheduled`
 - `retry_started`
 - `execution_canceled`

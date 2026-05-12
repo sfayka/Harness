@@ -82,6 +82,12 @@ The lineage model that preserves how trace segments, context snapshots, compacte
 
 Trace continuity is inspection truth, not completion truth.
 
+### Long-Session Risk
+
+The runtime and continuity risk that a long-running agent session may no longer be trustworthy without a checkpoint, handoff, fresh validation, or manual review.
+
+Long-session risk can require additional evidence before continuation or acceptance. It is not completion truth and its absence does not prove that work is done.
+
 ### Execution Budget
 
 The policy and ledger model that records authorized and consumed spend, runtime, retry count, fan-out, and tool-use limits for delegated execution.
