@@ -285,6 +285,7 @@ Architecture references:
 - [System Context](docs/architecture/system-context.md)
 - [Module Boundaries](docs/architecture/module-boundaries.md)
 - [TaskEnvelope](docs/architecture/task-envelope.md)
+- [Execution Packet](docs/architecture/execution-packet.md)
 - [Verification And Completion Enforcement](docs/architecture/verification-and-completion-enforcement.md)
 - [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
 - [Completion Interception And Artifact Validation Boundary](docs/architecture/completion-interception-and-artifact-validation-boundary.md)

@@ -64,6 +64,12 @@ Codex is an initial executor, not the only possible executor. Executors are repl
 
 The smallest unit of structured work that Harness intends to assign and monitor as a single owned outcome.
 
+### Execution Packet
+
+A portable upstream bundle that connects user intent, specification, plan, task breakdown, acceptance criteria, validation commands, required evidence, and linked external artifacts before one or more TaskEnvelope records are created.
+
+Execution packets are optional producer-side context. They do not replace TaskEnvelope and do not prove completion.
+
 ### Assignment
 
 The decision that a specific executor type or executor instance owns a task.
