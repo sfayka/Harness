@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Proofline Acceptance Circuit</title>
+  <desc id="desc">Animated diagram showing a claim packet moving through intent, TaskEnvelope, agent claim, evidence, reconcile, review gate, and accepted nodes.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0a2328"/>
+      <stop offset=".52" stop-color="#071014"/>
+      <stop offset="1" stop-color="#05080b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".18" cy=".18" r=".78">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity=".25"/>
+      <stop offset=".42" stop-color="#22d3ee" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0v28" fill="none" stroke="#7dd3fc" stroke-opacity=".08" stroke-width="1"/>
+    </pattern>
+    <filter id="cyanGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.23 0 0 0 0 0.93 0 0 0 0 1 0 0 0 .8 0" result="glowColor"/>
+      <feMerge>
+        <feMergeNode in="glowColor"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="amberGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .98 0 0 0 0 .78 0 0 0 0 .18 0 0 0 .75 0" result="glowColor"/>
+      <feMerge>
+        <feMergeNode in="glowColor"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <marker id="arrowCyan" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M1 1 11 6 1 11Z" fill="#67e8f9"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="11" markerHeight="11" orient="auto-start-reverse">
+      <path d="M1 1 11 6 1 11Z" fill="#fcd34d"/>
+    </marker>
+    <style>
+      text { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .node { fill: rgba(8, 47, 73, .72); stroke: rgba(103, 232, 249, .58); stroke-width: 1.3; }
+      .node-hold { fill: rgba(71, 58, 8, .58); stroke: rgba(252, 211, 77, .66); }
+      .node-pass { fill: rgba(6, 78, 59, .58); stroke: rgba(110, 231, 183, .66); }
+      .edge { fill: none; stroke: #67e8f9; stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: 14 10; opacity: .74; marker-end: url(#arrowCyan); }
+      .edge-feedback { stroke: #fcd34d; opacity: .78; marker-end: url(#arrowAmber); }
+      .pulse { fill: none; stroke: #67e8f9; stroke-width: 2; opacity: 0; }
+      .pulse-hold { stroke: #fcd34d; }
+      .pulse-pass { stroke: #6ee7b7; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="620" fill="#070b0f"/>
+  <rect x="42" y="36" width="1116" height="548" rx="18" fill="url(#panel)" stroke="#155e75" stroke-opacity=".52"/>
+  <rect x="42" y="36" width="1116" height="548" rx="18" fill="url(#glow)"/>
+  <rect x="42" y="36" width="1116" height="548" rx="18" fill="url(#grid)" opacity=".9"/>
+
+  <text x="78" y="90" fill="#67e8f9" font-size="13" font-weight="800" letter-spacing="5">PROOFLINE ACCEPTANCE CIRCUIT</text>
+  <text x="78" y="134" fill="#f8fafc" font-size="44" font-weight="800" letter-spacing="0">Agent claims are advisory until proof closes the loop</text>
+  <text x="80" y="169" fill="#94a3b8" font-size="17">Intent, evidence, reconciliation, lifecycle policy, and review gates decide whether work is accepted.</text>
+
+  <g opacity=".95">
+    <path class="edge" d="M325 255H355"/>
+    <path class="edge" d="M545 255H575"/>
+    <path class="edge" d="M765 255H795"/>
+    <path class="edge" d="M890 330V390"/>
+    <path class="edge" d="M795 465H765"/>
+    <path class="edge" d="M575 465H545"/>
+    <path class="edge edge-feedback" d="M670 390V330"/>
+  </g>
+
+  <g>
+    <circle class="pulse" cx="230" cy="255" r="44">
+      <animate attributeName="r" values="44;74;74" keyTimes="0;.45;1" dur="1.55s" begin="0s;12s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.45;1" dur="1.55s" begin="0s;12s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="pulse" cx="450" cy="255" r="44">
+      <animate attributeName="r" values="44;74;74" keyTimes="0;.45;1" dur="1.55s" begin="1.7s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.45;1" dur="1.55s" begin="1.7s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="pulse pulse-hold" cx="670" cy="255" r="44">
+      <animate attributeName="r" values="44;74;74" keyTimes="0;.45;1" dur="1.55s" begin="3.4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.45;1" dur="1.55s" begin="3.4s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="pulse" cx="890" cy="255" r="44">
+      <animate attributeName="r" values="44;74;74" keyTimes="0;.45;1" dur="1.55s" begin="5.1s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.45;1" dur="1.55s" begin="5.1s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="pulse" cx="890" cy="465" r="44">
+      <animate attributeName="r" values="44;74;74" keyTimes="0;.45;1" dur="1.55s" begin="6.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.45;1" dur="1.55s" begin="6.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="pulse pulse-hold" cx="670" cy="465" r="44">
+      <animate attributeName="r" values="44;74;74" keyTimes="0;.45;1" dur="1.55s" begin="8.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".65;0;0" keyTimes="0;.45;1" dur="1.55s" begin="8.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle class="pulse pulse-pass" cx="450" cy="465" r="44">
+      <animate attributeName="r" values="44;78;78" keyTimes="0;.5;1" dur="1.7s" begin="10.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".72;0;0" keyTimes="0;.5;1" dur="1.7s" begin="10.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <g>
+    <g transform="translate(150 200)">
+      <rect class="node" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">01</text>
+      <rect x="18" y="18" width="34" height="34" rx="6" fill="none" stroke="#a5f3fc"/>
+      <rect x="31" y="29" width="9" height="13" rx="2" fill="none" stroke="#a5f3fc" stroke-width="2"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">Intent</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">Issue and objective</text>
+    </g>
+    <g transform="translate(370 200)">
+      <rect class="node" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">02</text>
+      <circle cx="35" cy="35" r="9" fill="none" stroke="#a5f3fc"/>
+      <circle cx="35" cy="35" r="4" fill="#a5f3fc"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">TaskEnvelope</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">Canonical contract</text>
+    </g>
+    <g transform="translate(590 200)">
+      <rect class="node node-hold" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">03</text>
+      <circle cx="35" cy="35" r="8" fill="none" stroke="#fde68a"/>
+      <circle cx="35" cy="35" r="5" fill="#fde68a"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">Agent Claim</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">Advisory done signal</text>
+    </g>
+    <g transform="translate(810 200)">
+      <rect class="node" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">04</text>
+      <path d="M29 35h12m-4-4 4 4-4 4" fill="none" stroke="#a5f3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">Evidence</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">PRs, commits, tests</text>
+    </g>
+    <g transform="translate(810 410)">
+      <rect class="node" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">05</text>
+      <path d="M28 31h16M28 39h16M34 27l-6 4 6 4M38 35l6 4-6 4" fill="none" stroke="#a5f3fc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">Reconcile</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">GitHub and Linear</text>
+    </g>
+    <g transform="translate(590 410)">
+      <rect class="node node-hold" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">06</text>
+      <rect x="27" y="32" width="17" height="13" rx="2" fill="none" stroke="#fde68a" stroke-width="2"/>
+      <path d="M31 32v-6c0-8 10-8 10 0v6" fill="none" stroke="#fde68a" stroke-width="2"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">Review Gate</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">Sticky manual hold</text>
+    </g>
+    <g transform="translate(370 410)">
+      <rect class="node node-pass" width="160" height="110" rx="8"/>
+      <text class="mono" x="132" y="25" fill="#64748b" font-size="12" font-weight="700">07</text>
+      <path d="M27 35l6 6 13-16" fill="none" stroke="#bbf7d0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="18" y="70" fill="#f8fafc" font-size="17" font-weight="800">Accepted</text>
+      <text x="18" y="92" fill="#a8b5c4" font-size="12">Proof-backed state</text>
+    </g>
+  </g>
+
+  <g filter="url(#cyanGlow)">
+    <animateTransform attributeName="transform" type="translate" dur="12s" repeatCount="indefinite"
+      keyTimes="0;.07;.14;.21;.28;.35;.42;.49;.56;.63;.70;.77;.84;.91;1"
+      values="230 255;230 255;450 255;450 255;670 255;670 255;890 255;890 255;890 465;890 465;670 465;670 465;450 465;450 465;230 255"/>
+    <rect x="-58" y="-16" width="116" height="32" rx="7" fill="#bffcff" stroke="#67e8f9"/>
+    <text class="mono" x="0" y="5" text-anchor="middle" fill="#061014" font-size="12" font-weight="900">claim packet</text>
+  </g>
+
+  <g transform="translate(78 550)">
+    <rect width="668" height="44" rx="8" fill="#020617" fill-opacity=".45" stroke="#334155" stroke-opacity=".55"/>
+    <text class="mono" x="18" y="28" fill="#cbd5e1" font-size="12" font-weight="800">1 task.created</text>
+    <text class="mono" x="150" y="28" fill="#cbd5e1" font-size="12" font-weight="800">2 claim.received</text>
+    <text class="mono" x="304" y="28" fill="#cbd5e1" font-size="12" font-weight="800">3 evidence.validated</text>
+    <text class="mono" x="486" y="28" fill="#cbd5e1" font-size="12" font-weight="800">4 policy.accepted</text>
+  </g>
+</svg>
