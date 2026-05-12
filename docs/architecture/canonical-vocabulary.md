@@ -44,11 +44,23 @@ The place where humans and agents coordinate around tasks, issues, projects, and
 
 In this architecture, Linear is the work surface.
 
+### Tracker Provider
+
+A read-oriented adapter that fetches and normalizes intended-work facts from a system such as Linear, GitHub Issues, or Jira.
+
+Tracker providers supply external facts for reconciliation. They do not replace `TaskEnvelope`, and tracker state does not prove completion by itself.
+
 ### Artifact Evidence
 
 The external evidence used to support completion claims, such as pull requests, commits, logs, or generated outputs.
 
 GitHub is the primary source of truth for code-bearing artifact evidence.
+
+### Integration Proof
+
+Structured evidence that an external integration actually behaved as required, such as API receipts, webhook receipts, retry traces, async job terminal state, sandbox replay results, or external before/after state.
+
+Integration proof is evidence input. It is not a simulator and does not authorize completion without Proofline evaluation.
 
 ### Workflow Substrate
 

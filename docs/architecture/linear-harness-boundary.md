@@ -9,6 +9,8 @@ Clarify how Linear and Proofline fit together so Proofline is positioned as comp
 - Linear is the AI-native work surface and system of record for structured work.
 - Proofline is the control plane and reliability layer underneath that work surface.
 
+Linear remains Proofline's v1 intended-work provider. Future tracker providers should follow the narrow provider boundary in [Tracker Provider Abstraction](tracker-provider-abstraction.md) rather than changing `TaskEnvelope` into a generic PM schema.
+
 Linear is where humans and agents coordinate work.
 
 Proofline is where the system decides whether work is actually verified, reconciled, and acceptable as complete.

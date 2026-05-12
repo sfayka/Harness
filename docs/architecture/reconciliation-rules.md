@@ -17,6 +17,8 @@ The initial reconciliation scope is:
 
 These systems are sufficient to establish the first public version of reconciliation semantics without committing to connector implementation details.
 
+Future tracker providers should enter reconciliation through a provider-neutral tracker-facts projection. See [Tracker Provider Abstraction](tracker-provider-abstraction.md). Linear remains the v1 default and reference provider.
+
 ## Systems And Roles
 
 ### Harness
@@ -233,6 +235,10 @@ Harness should recognize, at minimum, the following mismatch categories:
 - `github_artifact_not_found`
 - `linear_record_not_found`
 - `linear_state_conflict`
+- `tracker_record_not_found`
+- `tracker_state_conflict`
+- `tracker_identity_conflict`
+- `tracker_link_conflict`
 - `github_review_conflict`
 - `wrong_repository`
 - `wrong_branch`

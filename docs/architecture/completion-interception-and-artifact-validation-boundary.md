@@ -18,6 +18,8 @@ Without an explicit boundary:
 
 Proofline must intercept completion claims and re-evaluate canonical task truth before any terminal lifecycle outcome is accepted.
 
+The same boundary applies to integration proof. API receipts, webhook traces, retry logs, async job states, sandbox replay results, and external state snapshots are evidence inputs. They do not become lifecycle truth until Proofline validates them against task policy.
+
 ## Core Boundary Rule
 
 **Completion claims from an executor are advisory execution facts, not authoritative lifecycle decisions.**
@@ -39,6 +41,7 @@ The adapter may:
 - report execution state changes (started, progressed, failed, claimed-complete)
 - attach normalized artifact references (URIs, IDs, provenance pointers)
 - attach execution traces/log pointers
+- attach integration-proof references such as API receipts, webhook correlation IDs, retry traces, or async job states
 - preserve provenance about how outputs were produced
 
 The adapter must not:

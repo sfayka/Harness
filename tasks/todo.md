@@ -1,26 +1,23 @@
-# Acceptance Circuit Demo Prototype
+# Proofline Issue Backlog Pass
 
 ## Spec
 
-Create a read-only `/demo/acceptance-circuit` prototype with two selectable visual directions for the Proofline acceptance demo. Both versions should explain that an agent completion claim is advisory until Proofline validates intent, evidence, external facts, lifecycle policy, and review gates.
+Work the remaining open Proofline issues by turning actionable architecture work into focused PRs, closing stale or superseded issues with clear rationale, and redrafting broad research items into concrete next steps where needed.
 
 ## Plan
 
-- [x] Add a demo route with two selectable visual concepts.
-- [x] Implement Version A as a dark aerospace/circuit-board acceptance board.
-- [x] Implement Version B as a lighter forensic evidence-lab acceptance flow.
-- [x] Keep both versions read-only and clearly demo/replay-oriented.
-- [x] Revise the visual system toward a directional map/diagram with arrows and moving payloads.
-- [x] Normalize vertical arrow offsets so up/down arrows use the same visual gap between node edges.
-- [x] Add a lightweight animated acceptance-circuit hero asset for the README.
-- [x] Reference the animated hero from the top of `README.md`.
-- [x] Run frontend validation and inspect rendered output.
+- [x] Refresh live GitHub issue state and local branch state.
+- [x] Create a focused PR for issue #420 covering the v2 tracker/provider abstraction while preserving Linear as the v1 default.
+- [x] Create or prepare a focused PR for issue #419 covering integration-proof evidence lanes.
+- [x] Triage #417, #418, and #411 as close/redraft/follow-up based on existing Proofline architecture.
+- [x] Run relevant validation for changed docs.
+- [x] Summarize issue state, PRs, and any remaining user decisions.
 
 ## Review
 
-- Built as a contained prototype route at `/demo/acceptance-circuit`.
 - `git diff --check` passed.
-- Static preview route returned `200`, and the served HTML includes the corrected `162px` / `172px` vertical arrow offsets.
-- Headless Chrome screenshot generated at `output/acceptance-circuit-arrow-check.png` for visual inspection.
-- Animated README hero added at `docs/assets/proofline-acceptance-circuit.svg`; XML parsing and `git diff --check` passed.
-- Full lint, typecheck, build, and local Next rendering were attempted, but Node/Next commands hung before producing diagnostics or binding a server in this sandbox. Stuck processes were stopped.
+- `python3 -m unittest tests.test_hosted_docs -v` passed.
+- Checked changed Markdown links; all local links resolved.
+- Opened PR #426 for #417, #419, and #420.
+- Closed #411 as covered by the existing supervision queue, retry/stale/review behavior, and execution-substrate intent surfaces.
+- Closed #418 as monitor-only because no reliable public `gpr` artifact matching the issue signal was found.

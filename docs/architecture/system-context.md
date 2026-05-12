@@ -126,5 +126,6 @@ flowchart LR
 ## Related Documents
 
 - [symphony-execution-substrate.md](symphony-execution-substrate.md)
+- [dark-factory-acceptance-workflow.md](dark-factory-acceptance-workflow.md)
 - [runtime-execution-contract.md](runtime-execution-contract.md)
 - [verification-and-completion-enforcement.md](verification-and-completion-enforcement.md)
