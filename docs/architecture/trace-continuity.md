@@ -125,6 +125,7 @@ Rules:
 - the new segment references the handoff artifact through `handoff_from`
 - the handoff artifact references the source segment and source attempt
 - handoff must record which context the receiving executor actually saw
+- risk-driven handoffs must also record the long-session risk state, known validation state, unresolved assumptions, and evidence still required before completion can be accepted
 
 ### Manual Review Intervention
 
@@ -189,6 +190,7 @@ These are inspection requirements, not storage-engine requirements.
 - Trace continuity is observable execution lineage, not completion truth.
 - A continuity group may contain failed, contradictory, stale, and successful segments.
 - A compacted or handoff artifact is support context, not verified completion evidence by default.
+- A risk-driven checkpoint or handoff may be required before continuation, but satisfying that requirement does not satisfy completion evidence.
 - Continuity metadata may inform review, diagnosis, and local evals, but verification and reconciliation remain authoritative for completion.
 - Trace ingestion or continuity reconstruction failure must not bypass lifecycle enforcement.
 
@@ -208,6 +210,7 @@ These are inspection requirements, not storage-engine requirements.
 ## Related Documents
 
 - [Runtime Execution Contract](runtime-execution-contract.md)
+- [Long-Session Risk And Checkpoint Handoff](long-session-risk.md)
 - [Artifact And Completion Evidence](artifact-and-completion-evidence.md)
 - [Operator And Manual Review](operator-and-manual-review.md)
 - [Harness Evolution Engine](harness-evolution-engine.md)

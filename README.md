@@ -290,6 +290,7 @@ Architecture references:
 - [Completion Interception And Artifact Validation Boundary](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
 - [Symphony Execution Substrate](docs/architecture/symphony-execution-substrate.md)
 - [Local Runtime Contract](docs/architecture/local-runtime-contract.md)
+- [Long-Session Risk And Checkpoint Handoff](docs/architecture/long-session-risk.md)
 - [Agent API Usage](docs/api/agent-api-usage.md)
 
 Agent-facing repo rules:
