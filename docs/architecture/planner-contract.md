@@ -141,6 +141,7 @@ Harness core may supply non-canonical planning directives such as:
 - preferred task granularity
 - planning policy profile
 - whether checkpoint tasks are required for this plan
+- references to an upstream Execution Packet or spec-driven bundle
 
 These directives shape planning behavior, but they do not replace the canonical task contract.
 

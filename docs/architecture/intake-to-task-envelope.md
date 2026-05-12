@@ -21,6 +21,8 @@ Intake owns:
 - populating all required schema fields with intake-owned values or explicit defaults
 - validating the produced envelope against the canonical JSON Schema
 
+An optional upstream [Execution Packet](execution-packet.md) may provide structured intent, task breakdown, acceptance criteria, required evidence, validation commands, and linked artifacts. Intake may consume packet work items through a mapper, but the output must still be canonical TaskEnvelope records and must still pass normal schema validation.
+
 Intake does not own:
 
 - decomposition into child tasks
@@ -146,3 +148,5 @@ Fields deferred beyond intake:
 Every produced envelope must be validated against [task_envelope.schema.json](../../schemas/task_envelope.schema.json) before leaving intake.
 
 If validation fails, intake must reject the envelope rather than emitting a partial or schema-invalid object.
+
+When intake receives work derived from an Execution Packet, packet provenance may be preserved in `origin` or `extensions`, but packet presence must not mark evidence satisfied or bypass canonical lifecycle policy.
