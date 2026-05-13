@@ -40,6 +40,8 @@ Supported canonical artifact types:
 
 These artifact types are broad enough to support code-bearing tasks, advisory tasks, and reconciliation across external systems.
 
+Integration proof for APIs, webhooks, retries, async jobs, and external before/after state should initially be represented as structured metadata on existing artifact records rather than as a separate simulator or execution subsystem. See [Integration Proof Evidence](integration-proof-evidence.md).
+
 The long-running support artifact types are intentionally distinct from completion evidence:
 
 - `progress_artifact` captures structured progress state across multiple evaluation cycles or execution sessions
@@ -71,6 +73,8 @@ Optional fields provide type-specific details:
 - `content_type`
 - `captured_at`
 - `metadata`
+
+For integration proof, `metadata.integration_proof` carries the proof subtype, source, correlation ID, redaction status, terminal state, and subtype-specific details.
 
 ## Type-Specific Required Fields
 

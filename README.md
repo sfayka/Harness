@@ -199,7 +199,7 @@ The V1 live integration pair is:
 
 For V1, do not present other project trackers or code hosts as first-class live validation targets. V2 can add a flexible adapter layer. A Jira/Asana/Shortcut/Notion tracker adapter would need to normalize intended work, state, dependencies, acceptance criteria, and comments into Proofline external facts. A GitLab/Bitbucket adapter would need to normalize repository, branch, commit, merge request, diff, and CI evidence into Proofline artifact facts.
 
-Until that V2 adapter layer exists, live reconciliation is Linear/GitHub-only. Other tools may still be used for manual context, but Proofline should not imply equivalent automated validation for them.
+Until that V2 adapter layer exists, live reconciliation is Linear/GitHub-only. Other tools may still be used for manual context, but Proofline should not imply equivalent automated validation for them. The v2 intended-work provider boundary is captured in [Tracker Provider Abstraction](docs/architecture/tracker-provider-abstraction.md).
 
 ## Hosted Deployment
 
@@ -288,6 +288,9 @@ Architecture references:
 - [Execution Packet](docs/architecture/execution-packet.md)
 - [Verification And Completion Enforcement](docs/architecture/verification-and-completion-enforcement.md)
 - [Reconciliation Rules](docs/architecture/reconciliation-rules.md)
+- [Tracker Provider Abstraction](docs/architecture/tracker-provider-abstraction.md)
+- [Integration Proof Evidence](docs/architecture/integration-proof-evidence.md)
+- [Dark Factory Acceptance Workflow](docs/architecture/dark-factory-acceptance-workflow.md)
 - [Completion Interception And Artifact Validation Boundary](docs/architecture/completion-interception-and-artifact-validation-boundary.md)
 - [Symphony Execution Substrate](docs/architecture/symphony-execution-substrate.md)
 - [Local Runtime Contract](docs/architecture/local-runtime-contract.md)
