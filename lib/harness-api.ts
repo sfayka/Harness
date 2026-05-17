@@ -57,6 +57,8 @@ function mapVerificationStatus(summary: Record<string, unknown> | null): Verific
       return "insufficient_evidence";
     case "verification_deferred":
       return "deferred";
+    case "review_resolved":
+      return summary.accepted_completion === true ? "accepted" : "rejected";
     case "blocked_unresolved_conditions":
     case "review_required":
       return "pending";
@@ -73,8 +75,13 @@ function mapReconciliationStatus(summary: Record<string, unknown> | null): Recon
     return null;
   }
 
+  if (summary.status === "resolved") {
+    return "no_mismatch";
+  }
+
   switch (summary.outcome) {
     case "no_mismatch":
+    case "review_resolved":
       return "no_mismatch";
     case "missing_evidence":
       return "stale_evidence";

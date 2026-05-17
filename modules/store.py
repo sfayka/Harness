@@ -18,10 +18,12 @@ from modules.evaluation import HarnessEvaluationRequest, HarnessEvaluationResult
 
 try:
     import psycopg
+    from psycopg.errors import ForeignKeyViolation
     from psycopg.errors import UniqueViolation
     from psycopg.types.json import Jsonb
 except ImportError:  # pragma: no cover - exercised when postgres backend is requested without dependency.
     psycopg = None
+    ForeignKeyViolation = None
     UniqueViolation = None
     Jsonb = None
 
@@ -242,6 +244,8 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
         recorded_at: str | None = None,
     ) -> EvaluationRecord:
         task_id = str(request.task_envelope["id"])
+        if not self._task_path(task_id).exists():
+            raise TaskEnvelopeNotFoundError(f"TaskEnvelope {task_id!r} was not found")
         record = EvaluationRecord(
             evaluation_id=evaluation_id or str(uuid.uuid4()),
             task_id=task_id,
@@ -249,7 +253,10 @@ class FileBackedHarnessStore(TaskEnvelopeStore, EvaluationRecordStore):
             request=_jsonable(request),
             result=_jsonable(result),
         )
-        self._write_json(self._evaluation_path(task_id, record.evaluation_id), _jsonable(record))
+        path = self._evaluation_path(task_id, record.evaluation_id)
+        if path.exists():
+            raise StoreError(f"EvaluationRecord {record.evaluation_id!r} already exists")
+        self._write_json(path, _jsonable(record))
         return record
 
     def list_evaluation_records(self, task_id: str) -> tuple[EvaluationRecord, ...]:
@@ -491,6 +498,8 @@ class PostgresHarnessStore(HarnessStore):
                             Jsonb(record.result),
                         ),
                     )
+        except ForeignKeyViolation as error:
+            raise TaskEnvelopeNotFoundError(f"TaskEnvelope {task_id!r} was not found") from error
         except UniqueViolation as error:
             raise StoreError(f"EvaluationRecord {record.evaluation_id!r} already exists") from error
         return record

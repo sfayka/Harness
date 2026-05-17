@@ -210,6 +210,25 @@ class GitHubConnectorScaffoldingTests(unittest.TestCase):
         self.assertEqual(len(github_facts.artifact_refs), 1)
         self.assertEqual(github_facts.artifact_refs[0].external_id, "PR-111")
 
+    def test_normalizes_reason_sequence(self) -> None:
+        github_facts = translate_github_artifact_facts(
+            {
+                "repository": {"host": "github.com", "owner": "sfayka", "name": "Harness"},
+                "reasons": [" review required ", "missing commit"],
+            }
+        )
+
+        self.assertEqual(github_facts.reasons, ("review required", "missing commit"))
+
+    def test_rejects_string_reason_sequence(self) -> None:
+        with self.assertRaisesRegex(GitHubConnectorInputError, "reasons must be a list or tuple of strings"):
+            translate_github_artifact_facts(
+                {
+                    "repository": {"host": "github.com", "owner": "sfayka", "name": "Harness"},
+                    "reasons": "review required",
+                }
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

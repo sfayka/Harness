@@ -92,3 +92,81 @@ test("maps read-model execution transport summary fields", async () => {
   assert.equal(task.completion_validation_summary.completion_accepted, false);
   assert.deepEqual(task.completion_validation_summary.required_artifact_types, ["pull_request"]);
 });
+
+test("maps resolved manual review summaries as accepted and reconciled", async () => {
+  const responses = new Map<string, unknown>([
+    [
+      "/api/proofline/tasks/task-1/read-model",
+      {
+        task: {
+          task_id: "task-1",
+          title: "Manual review accepted completion",
+          current_status: "completed",
+          origin: {
+            source_system: "harness",
+            source_type: "test",
+            source_id: "task-1",
+          },
+          relationships: {},
+          evidence_summary: {},
+          completion_validation_summary: {
+            status: "accepted",
+            summary: "Completion accepted after manual review.",
+            intent_status: "matched",
+            evidence_status: "sufficient",
+            reconciliation_status: "resolved",
+            completion_claimed: true,
+            completion_accepted: true,
+            manual_review_status: "resolved",
+            automatic_completion_safe: false,
+            verification_outcome: "review_resolved",
+            reasons: [],
+            required_criteria_count: 1,
+            concrete_required_criteria_count: 1,
+            required_artifact_types: ["pull_request"],
+            validated_artifact_ids: ["pr-1"],
+            validated_artifact_count: 1,
+          },
+          verification_summary: {
+            outcome: "review_resolved",
+            accepted_completion: true,
+            verification_passed: false,
+            evidence_is_sufficient: true,
+            reasons: ["Manual review approved completion."],
+          },
+          reconciliation_summary: {
+            outcome: "review_resolved",
+            status: "resolved",
+            blocking: false,
+            mismatch_categories: [],
+            reasons: [],
+          },
+          review_summary: {
+            status: "resolved",
+          },
+          evaluation_summary: {},
+          timestamps: {
+            updated_at: "2026-04-30T19:01:00Z",
+          },
+        },
+      },
+    ],
+    ["/api/proofline/tasks/task-1/timeline", { timeline: [] }],
+  ]);
+
+  globalThis.fetch = async (url) => {
+    const payload = responses.get(String(url));
+    assert.notEqual(payload, undefined, `unexpected URL ${url}`);
+    return new Response(JSON.stringify(payload), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+
+  const task = await fetchTaskDetail("task-1");
+
+  assert.equal(task.verification_summary?.result, "accepted");
+  assert.equal(task.verification_summary?.completion_accepted, true);
+  assert.equal(task.reconciliation_summary?.result, "no_mismatch");
+  assert.equal(task.reconciliation_summary?.status, "resolved");
+});

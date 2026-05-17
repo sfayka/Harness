@@ -58,6 +58,20 @@ def _optional_bool(value: Any) -> bool | None:
     return value
 
 
+def _optional_string_sequence(value: Any, *, field_name: str) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if not isinstance(value, (list, tuple)):
+        raise GitHubConnectorInputError(f"{field_name} must be a list or tuple of strings")
+
+    normalized: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            raise GitHubConnectorInputError(f"{field_name}[{index}] must be a non-empty string")
+        normalized.append(item.strip())
+    return tuple(normalized)
+
+
 def _optional_int(value: Any, *, field_name: str) -> int | None:
     if value is None:
         return None
@@ -282,7 +296,7 @@ def translate_github_artifact_facts(payload: Mapping[str, Any]) -> GitHubArtifac
         pull_request=translate_github_pull_request(pull_request_payload) if pull_request_payload is not None else None,
         changed_files=_translate_changed_files_summary(changed_files_payload),
         artifact_refs=translate_github_artifact_references(payload),
-        reasons=tuple(payload.get("reasons", ())),
+        reasons=_optional_string_sequence(payload.get("reasons"), field_name="reasons"),
     )
 
     try:

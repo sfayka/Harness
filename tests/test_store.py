@@ -114,6 +114,38 @@ class HarnessStoreContractTests:
         self.assertEqual(record.result["task_envelope"]["status"], "completed")
         self.assertIn("accepted_completion", record.result["enforcement_result"]["verification_result"]["outcome"])
 
+    def test_rejects_evaluation_record_for_missing_task(self) -> None:
+        request = build_demo_request("accepted_completion")
+        result = evaluate_task_case(request)
+
+        with self.assertRaises(TaskEnvelopeNotFoundError):
+            self.store.put_evaluation_record(
+                request=request,
+                result=result,
+                evaluation_id="eval-missing-task",
+                recorded_at="2026-03-24T21:00:00Z",
+            )
+
+    def test_rejects_duplicate_evaluation_record_id(self) -> None:
+        request = build_demo_request("accepted_completion")
+        result = evaluate_task_case(request)
+
+        self.store.put_task(request.task_envelope)
+        self.store.put_evaluation_record(
+            request=request,
+            result=result,
+            evaluation_id="eval-duplicate",
+            recorded_at="2026-03-24T21:00:00Z",
+        )
+
+        with self.assertRaises(StoreError):
+            self.store.put_evaluation_record(
+                request=request,
+                result=result,
+                evaluation_id="eval-duplicate",
+                recorded_at="2026-03-24T21:01:00Z",
+            )
+
 
 class FileBackedHarnessStoreTests(HarnessStoreContractTests, unittest.TestCase):
     def setUp(self) -> None:
@@ -169,18 +201,6 @@ class SQLiteHarnessStoreTests(HarnessStoreContractTests, unittest.TestCase):
             restarted.list_evaluation_records(request.task_envelope["id"])[0].evaluation_id,
             "eval-sqlite-restart",
         )
-
-    def test_rejects_evaluation_record_for_missing_task(self) -> None:
-        request = build_demo_request("accepted_completion")
-        result = evaluate_task_case(request)
-
-        with self.assertRaises(TaskEnvelopeNotFoundError):
-            self.store.put_evaluation_record(
-                request=request,
-                result=result,
-                evaluation_id="eval-missing-task",
-                recorded_at="2026-03-24T21:00:00Z",
-            )
 
     def test_corrupt_database_raises_operator_readable_store_error(self) -> None:
         corrupt_path = Path(self.temp_dir.name) / "corrupt.db"
