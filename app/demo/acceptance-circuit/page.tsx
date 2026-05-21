@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
   CheckCircle2,
@@ -13,6 +13,11 @@ import {
   ShieldCheck,
   Split,
 } from "lucide-react";
+import {
+  acceptanceCircuitScenarios,
+  type AcceptanceCircuitEvent,
+  type AcceptanceCircuitScenario,
+} from "@/lib/acceptance-circuit-replay";
 
 const stages = [
   {
@@ -60,46 +65,21 @@ const stages = [
 ];
 
 const mapNodes = [
-  { id: "intent", label: "Intent", detail: "Linear issue + objective", x: 0, y: 0, state: "active" },
-  { id: "contract", label: "TaskEnvelope", detail: "Canonical contract", x: 232, y: 0, state: "active" },
-  { id: "claim", label: "Agent Claim", detail: "Advisory done signal", x: 464, y: 0, state: "held" },
-  { id: "evidence", label: "Evidence Bus", detail: "PRs, commits, tests", x: 696, y: 0, state: "active" },
-  { id: "reconcile", label: "Reconcile", detail: "GitHub + Linear facts", x: 696, y: 222, state: "active" },
-  { id: "review", label: "Review Gate", detail: "Sticky manual hold", x: 464, y: 222, state: "watch" },
-  { id: "accepted", label: "Accepted", detail: "Proof-backed lifecycle", x: 232, y: 222, state: "passed" },
-];
-
-const auditEvents = [
-  "task.created",
-  "claim.received",
-  "evidence.validated",
-  "reconciliation.passed",
-  "policy.accepted",
-];
-
-const scenarioRows = [
-  {
-    name: "Accepted completion",
-    evidence: "4 artifacts",
-    reconciliation: "no mismatch",
-    outcome: "accepted",
-  },
-  {
-    name: "Missing PR proof",
-    evidence: "insufficient",
-    reconciliation: "pending",
-    outcome: "review required",
-  },
-  {
-    name: "Wrong target branch",
-    evidence: "present",
-    reconciliation: "mismatch",
-    outcome: "blocked",
-  },
-];
+  { id: "intent", label: "Intent", detail: "Tracker issue + objective", x: 0, y: 0 },
+  { id: "contract", label: "TaskEnvelope", detail: "Canonical contract", x: 232, y: 0 },
+  { id: "claim", label: "Agent Claim", detail: "Advisory done signal", x: 464, y: 0 },
+  { id: "evidence", label: "Evidence Bus", detail: "PRs, commits, tests", x: 696, y: 0 },
+  { id: "reconcile", label: "Reconcile", detail: "GitHub + tracker facts", x: 696, y: 222 },
+  { id: "review", label: "Review Gate", detail: "Sticky manual hold", x: 464, y: 222 },
+  { id: "accepted", label: "Accepted", detail: "Proof-backed lifecycle", x: 232, y: 222 },
+] as const;
 
 export default function AcceptanceCircuitDemoPage() {
   const [variant, setVariant] = useState<"circuit" | "lab">("circuit");
+  const [scenarioId, setScenarioId] = useState(acceptanceCircuitScenarios[0].id);
+  const selectedScenario =
+    acceptanceCircuitScenarios.find((scenario) => scenario.id === scenarioId) ??
+    acceptanceCircuitScenarios[0];
 
   return (
     <main className="min-h-screen bg-[#080b0e] text-slate-100">
@@ -107,15 +87,15 @@ export default function AcceptanceCircuitDemoPage() {
         <header className="flex flex-col gap-4 border-b border-white/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300/80">
-              Proofline demo prototype
+              Proofline demo replay
             </p>
             <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-              Two visual directions for the acceptance circuit
+              Acceptance circuit driven by canonical replay data
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
-              Both concepts show the same thing: an agent claim is held until
-              intent, evidence, reconciliation, lifecycle policy, and review
-              gates complete the circuit.
+              A claimed completion moves through intent, TaskEnvelope,
+              evidence, reconciliation, review, and policy events mapped from
+              Proofline read-model and timeline fixtures.
             </p>
           </div>
           <div className="grid w-full max-w-md grid-cols-2 gap-2 rounded-lg border border-white/10 bg-white/[0.04] p-1">
@@ -138,13 +118,68 @@ export default function AcceptanceCircuitDemoPage() {
           </div>
         </header>
 
-        {variant === "circuit" ? <CircuitBoardVersion /> : <EvidenceLabVersion />}
+        <ScenarioSelector
+          selectedScenario={selectedScenario}
+          onSelectScenario={setScenarioId}
+        />
+
+        {variant === "circuit" ? (
+          <CircuitBoardVersion key={selectedScenario.id} scenario={selectedScenario} />
+        ) : (
+          <EvidenceLabVersion scenario={selectedScenario} />
+        )}
       </div>
     </main>
   );
 }
 
-function CircuitBoardVersion() {
+function ScenarioSelector({
+  selectedScenario,
+  onSelectScenario,
+}: {
+  selectedScenario: AcceptanceCircuitScenario;
+  onSelectScenario: (scenarioId: string) => void;
+}) {
+  return (
+    <section className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.035] p-3 md:grid-cols-4">
+      {acceptanceCircuitScenarios.map((scenario) => (
+        <button
+          key={scenario.id}
+          type="button"
+          onClick={() => onSelectScenario(scenario.id)}
+          className={`rounded-md border p-3 text-left transition ${
+            scenario.id === selectedScenario.id
+              ? "border-cyan-300/50 bg-cyan-300/10 text-white"
+              : "border-white/10 bg-black/20 text-slate-400 hover:border-white/20 hover:text-slate-200"
+          }`}
+        >
+          <span className="block text-sm font-semibold">{scenario.title}</span>
+          <span className={`block ${outcomeClass(scenario.outcome)}`}>
+            {scenario.outcome}
+          </span>
+        </button>
+      ))}
+    </section>
+  );
+}
+
+function CircuitBoardVersion({ scenario }: { scenario: AcceptanceCircuitScenario }) {
+  const [activeEventIndex, setActiveEventIndex] = useState(0);
+  const activeEvent = scenario.events[activeEventIndex] ?? scenario.events[0];
+  const activeNode = mapNodes.find((node) => node.id === activeEvent?.nodeId) ?? mapNodes[0];
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setActiveEventIndex((currentIndex) => (currentIndex + 1) % scenario.events.length);
+    }, 1700);
+
+    return () => window.clearInterval(interval);
+  }, [scenario.events.length]);
+
+  const nodeEventMap = useMemo(() => {
+    return new Map(scenario.events.map((event) => [event.nodeId, event]));
+  }, [scenario.events]);
+
   return (
     <section className="overflow-hidden rounded-lg border border-cyan-300/20 bg-[#071014] shadow-2xl shadow-cyan-950/40">
       <div className="relative min-h-[760px] bg-[radial-gradient(circle_at_20%_18%,rgba(34,211,238,0.14),transparent_28%),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(180deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[length:auto,28px_28px,28px_28px] p-5 sm:p-8">
@@ -152,16 +187,20 @@ function CircuitBoardVersion() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight text-white">
-                Version A: Acceptance Circuit
+                Acceptance Circuit
               </h2>
               <p className="mt-1 max-w-2xl text-sm text-slate-400">
-                Dark infrastructure board. The drama comes from current
-                flowing through real acceptance checks.
+                {scenario.description}
               </p>
             </div>
-            <div className="flex items-center gap-2 rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.18em] text-cyan-200">
-              <Activity className="h-4 w-4" />
-              Replay / read-only
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 rounded-md border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-medium uppercase tracking-[0.18em] text-cyan-200">
+                <Activity className="h-4 w-4" />
+                {scenario.modeLabel}
+              </div>
+              <div className="rounded-md border border-white/10 bg-black/25 px-3 py-2 font-mono text-xs text-slate-400">
+                {scenario.taskId}
+              </div>
             </div>
           </div>
 
@@ -174,11 +213,24 @@ function CircuitBoardVersion() {
               <div className="flow-arrow horizontal left" style={{ left: "calc(var(--map-left) + 641px)", top: "calc(var(--map-top) + 297px)" }} />
               <div className="flow-arrow horizontal left" style={{ left: "calc(var(--map-left) + 409px)", top: "calc(var(--map-top) + 297px)" }} />
               <div className="flow-arrow vertical up amber" style={{ left: "calc(var(--map-left) + 544px)", top: "calc(var(--map-top) + 172px)" }} />
-              <div className="absolute z-20 rounded-md border border-cyan-200/40 bg-cyan-200 px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 shadow-[0_0_28px_rgba(103,232,249,0.65)] motion-safe:animate-[payload-map_12s_cubic-bezier(.65,0,.35,1)_infinite]" style={{ left: "calc(var(--map-left) + 80px)", top: "calc(var(--map-top) + 75px)" }}>
-                claim packet
+              <div
+                className={`absolute z-20 rounded-md border px-3 py-1.5 font-mono text-xs font-semibold text-slate-950 shadow-[0_0_28px_rgba(103,232,249,0.65)] transition-all duration-700 ${packetClass(activeEvent)}`}
+                style={{
+                  left: `calc(var(--map-left) + ${activeNode.x + 80}px)`,
+                  top: `calc(var(--map-top) + ${activeNode.y + 75}px)`,
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                {activeEvent?.vocabulary ?? "claim.packet"}
               </div>
               {mapNodes.map((node, index) => (
-                <MapNode key={node.id} node={node} index={index} />
+                <MapNode
+                  key={node.id}
+                  node={node}
+                  index={index}
+                  event={nodeEventMap.get(node.id)}
+                  active={activeEvent?.nodeId === node.id}
+                />
               ))}
             </div>
 
@@ -188,16 +240,20 @@ function CircuitBoardVersion() {
                   Audit ticks
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {auditEvents.map((event, index) => (
+                  {scenario.events.map((event, index) => (
                     <div
-                      key={event}
-                      className="flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2"
+                      key={event.id}
+                      className={`flex items-center gap-2 rounded-md border px-3 py-2 ${
+                        index === activeEventIndex
+                          ? "border-cyan-200/50 bg-cyan-200/10"
+                          : "border-white/10 bg-white/[0.03]"
+                      }`}
                     >
                       <span className="flex h-6 w-6 items-center justify-center rounded bg-cyan-300/10 text-[11px] font-semibold text-cyan-200">
                         {index + 1}
                       </span>
                       <span className="font-mono text-xs text-slate-300">
-                        {event}
+                        {event.vocabulary}
                       </span>
                     </div>
                   ))}
@@ -207,32 +263,9 @@ function CircuitBoardVersion() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            {scenarioRows.map((row) => (
-              <div
-                key={row.name}
-                className="rounded-lg border border-white/10 bg-black/25 p-4"
-              >
-                <p className="text-sm font-semibold text-white">{row.name}</p>
-                <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <dt className="uppercase tracking-[0.16em] text-slate-500">
-                      Evidence
-                    </dt>
-                    <dd className="mt-1 font-mono text-slate-200">
-                      {row.evidence}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="uppercase tracking-[0.16em] text-slate-500">
-                      Outcome
-                    </dt>
-                    <dd className={outcomeClass(row.outcome)}>
-                      {row.outcome}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            ))}
+            <ScenarioMetric title="Read model" value={scenario.readModelSource} />
+            <ScenarioMetric title="Evidence" value={scenario.evidenceLabel} />
+            <ScenarioMetric title="Outcome" value={scenario.outcome} tone={scenario.outcomeTone} />
           </div>
         </div>
       </div>
@@ -240,7 +273,7 @@ function CircuitBoardVersion() {
   );
 }
 
-function EvidenceLabVersion() {
+function EvidenceLabVersion({ scenario }: { scenario: AcceptanceCircuitScenario }) {
   return (
     <section className="overflow-hidden rounded-lg bg-[#eef2f4] text-slate-950">
       <div className="grid min-h-[720px] gap-0 lg:grid-cols-[340px_1fr]">
@@ -259,20 +292,20 @@ function EvidenceLabVersion() {
                   Current replay
                 </p>
                 <p className="mt-2 text-lg font-semibold">
-                  Agent claim under review
+                  {scenario.title}
                 </p>
                 <p className="mt-1 font-mono text-xs text-slate-500">
-                  task-kno-demo-acceptance
+                  {scenario.taskId}
                 </p>
               </div>
             </div>
             <div className="rounded-md bg-slate-950 p-4 text-slate-100">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
-                Design intent
+                Replay source
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Less cinematic than Version A, more credible for regulated
-                enterprise buyers who want proof paths and auditability.
+                {scenario.modeLabel}. The data comes from canonical
+                read-model and timeline fixtures, not frontend-only truth.
               </p>
             </div>
           </div>
@@ -282,22 +315,22 @@ function EvidenceLabVersion() {
           <div className="flex flex-col gap-4 border-b border-slate-300 pb-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Read-only visual replay
+                {scenario.modeLabel}
               </p>
               <h3 className="mt-2 text-3xl font-semibold tracking-tight">
                 Acceptance dossier
               </h3>
             </div>
-            <div className="flex items-center gap-2 rounded-md border border-emerald-700/30 bg-emerald-600/10 px-3 py-2 text-sm font-semibold text-emerald-800">
+            <div className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold ${labHeaderClass(scenario.outcomeTone)}`}>
               <CheckCircle2 className="h-4 w-4" />
-              Proof-backed path
+              {scenario.outcome}
             </div>
           </div>
 
           <div className="mt-6 grid gap-5 xl:grid-cols-[1fr_320px]">
             <div className="space-y-3">
-              {stages.map((stage, index) => (
-                <LabStep key={stage.label} stage={stage} index={index} />
+              {scenario.events.map((event, index) => (
+                <LabStep key={event.id} event={event} index={index} />
               ))}
             </div>
             <div className="space-y-4">
@@ -306,7 +339,7 @@ function EvidenceLabVersion() {
                   Outcome split
                 </p>
                 <div className="mt-5 space-y-3">
-                  {["accepted", "review required", "blocked"].map((outcome) => (
+                  {[scenario.evidenceLabel, scenario.reconciliationLabel, scenario.outcome].map((outcome) => (
                     <div
                       key={outcome}
                       className="flex items-center justify-between border-b border-slate-100 pb-3 last:border-0 last:pb-0"
@@ -314,8 +347,8 @@ function EvidenceLabVersion() {
                       <span className="text-sm font-medium capitalize">
                         {outcome}
                       </span>
-                      <span className={labOutcomeClass(outcome)}>
-                        {outcome === "accepted" ? "clear" : "divert"}
+                      <span className={labOutcomeClass(scenario.outcome)}>
+                        {scenario.outcome === "accepted" ? "clear" : "divert"}
                       </span>
                     </div>
                   ))}
@@ -326,11 +359,11 @@ function EvidenceLabVersion() {
                   Timeline
                 </p>
                 <div className="mt-4 space-y-3">
-                  {auditEvents.map((event) => (
-                    <div key={event} className="flex items-start gap-3">
+                  {scenario.events.map((event) => (
+                    <div key={event.id} className="flex items-start gap-3">
                       <span className="mt-1 h-2 w-2 rounded-full bg-slate-950" />
                       <span className="font-mono text-xs text-slate-600">
-                        {event}
+                        {event.vocabulary}
                       </span>
                     </div>
                   ))}
@@ -347,22 +380,30 @@ function EvidenceLabVersion() {
 function MapNode({
   node,
   index,
+  event,
+  active,
 }: {
   node: (typeof mapNodes)[number];
   index: number;
+  event?: AcceptanceCircuitEvent;
+  active: boolean;
 }) {
-  const isAccepted = node.state === "passed";
-  const isHeld = node.state === "held" || node.state === "watch";
+  const state = event?.tone ?? "active";
+  const isAccepted = state === "passed";
+  const isHeld = state === "held" || state === "watch";
+  const isBlocked = state === "blocked";
 
   return (
     <div
       className={`absolute z-10 h-[150px] w-[160px] overflow-hidden rounded-lg border p-4 after:pointer-events-none after:absolute after:inset-[-1px] after:rounded-lg after:border after:border-transparent after:opacity-0 after:content-[''] ${
-        isAccepted
-          ? `${nodePulseClass(index)} border-emerald-300/50 bg-emerald-300/10`
-          : isHeld
-            ? `${nodePulseClass(index)} border-amber-300/45 bg-amber-300/10`
-            : `${nodePulseClass(index)} border-cyan-300/30 bg-cyan-300/[0.06]`
-      }`}
+        isBlocked
+          ? "border-red-300/50 bg-red-300/10"
+          : isAccepted
+            ? "border-emerald-300/50 bg-emerald-300/10"
+            : isHeld
+              ? "border-amber-300/45 bg-amber-300/10"
+              : "border-cyan-300/30 bg-cyan-300/[0.06]"
+      } ${active ? "ring-2 ring-cyan-200/50 shadow-[0_0_32px_rgba(103,232,249,0.24)]" : ""}`}
       style={{
         left: `calc(var(--map-left) + ${node.x}px)`,
         top: `calc(var(--map-top) + ${node.y}px)`,
@@ -371,11 +412,13 @@ function MapNode({
       <div className="flex items-start justify-between gap-3">
         <div
           className={`flex h-8 w-8 items-center justify-center rounded-md border ${
-            isAccepted
-              ? "border-emerald-200/50 text-emerald-200"
-              : isHeld
-                ? "border-amber-200/50 text-amber-200"
-                : "border-cyan-200/50 text-cyan-200"
+            isBlocked
+              ? "border-red-200/50 text-red-200"
+              : isAccepted
+                ? "border-emerald-200/50 text-emerald-200"
+                : isHeld
+                  ? "border-amber-200/50 text-amber-200"
+                  : "border-cyan-200/50 text-cyan-200"
           }`}
         >
           <CircleDot className="h-4 w-4" />
@@ -385,31 +428,37 @@ function MapNode({
         </span>
       </div>
       <h3 className="mt-3 text-sm font-semibold text-white">{node.label}</h3>
-      <p className="mt-1 text-xs leading-5 text-slate-400">{node.detail}</p>
+      <p className="mt-1 text-xs leading-5 text-slate-400">
+        {event?.label ?? node.detail}
+      </p>
     </div>
   );
 }
 
 function LabStep({
-  stage,
+  event,
   index,
 }: {
-  stage: (typeof stages)[number];
+  event: AcceptanceCircuitEvent;
   index: number;
 }) {
+  const stage = stages.find((candidate) => candidate.label === nodeLabelForEvent(event)) ?? stages[0];
   const Icon = stage.icon;
-  const isAccepted = stage.state === "passed";
-  const isReview = stage.state === "held" || stage.state === "watch";
+  const isAccepted = event.tone === "passed";
+  const isReview = event.tone === "held" || event.tone === "watch";
+  const isBlocked = event.tone === "blocked";
 
   return (
     <div className="grid gap-3 rounded-lg border border-slate-300 bg-white p-4 shadow-sm sm:grid-cols-[52px_1fr_auto] sm:items-center">
       <div
         className={`flex h-12 w-12 items-center justify-center rounded-md ${
-          isAccepted
-            ? "bg-emerald-100 text-emerald-800"
-            : isReview
-              ? "bg-amber-100 text-amber-800"
-              : "bg-cyan-100 text-cyan-800"
+          isBlocked
+            ? "bg-red-100 text-red-800"
+            : isAccepted
+              ? "bg-emerald-100 text-emerald-800"
+              : isReview
+                ? "bg-amber-100 text-amber-800"
+                : "bg-cyan-100 text-cyan-800"
         }`}
       >
         <Icon className="h-5 w-5" />
@@ -419,21 +468,42 @@ function LabStep({
           <span className="font-mono text-xs text-slate-400">
             {String(index + 1).padStart(2, "0")}
           </span>
-          <h4 className="font-semibold">{stage.label}</h4>
+          <h4 className="font-semibold">{event.label}</h4>
         </div>
-        <p className="mt-1 text-sm text-slate-600">{stage.detail}</p>
+        <p className="mt-1 text-sm text-slate-600">{event.detail}</p>
       </div>
       <span
         className={`w-fit rounded px-2.5 py-1 font-mono text-xs ${
-          isAccepted
-            ? "bg-emerald-100 text-emerald-800"
-            : isReview
-              ? "bg-amber-100 text-amber-800"
-              : "bg-slate-100 text-slate-600"
+          isBlocked
+            ? "bg-red-100 text-red-800"
+            : isAccepted
+              ? "bg-emerald-100 text-emerald-800"
+              : isReview
+                ? "bg-amber-100 text-amber-800"
+                : "bg-slate-100 text-slate-600"
         }`}
       >
-        {stage.state}
+        {event.vocabulary}
       </span>
+    </div>
+  );
+}
+
+function ScenarioMetric({
+  title,
+  value,
+  tone,
+}: {
+  title: string;
+  value: string;
+  tone?: AcceptanceCircuitScenario["outcomeTone"];
+}) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/25 p-4">
+      <p className="text-sm font-semibold text-white">{title}</p>
+      <p className={`mt-3 font-mono text-xs leading-5 ${tone ? toneTextClass(tone) : "text-slate-300"}`}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -446,21 +516,6 @@ function tabClass(active: boolean) {
   }`;
 }
 
-function nodePulseClass(index: number) {
-  const classes = [
-    "after:motion-safe:animate-[node-pulse-1_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-2_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-3_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-4_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-5_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-6_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-7_12s_linear_infinite]",
-    "after:motion-safe:animate-[node-pulse-8_12s_linear_infinite]",
-  ];
-
-  return classes[index] ?? "after:motion-safe:animate-[node-pulse-1_12s_linear_infinite]";
-}
-
 function outcomeClass(outcome: string) {
   if (outcome === "accepted") {
     return "mt-1 font-mono text-emerald-300";
@@ -471,6 +526,42 @@ function outcomeClass(outcome: string) {
   return "mt-1 font-mono text-amber-300";
 }
 
+function packetClass(event?: AcceptanceCircuitEvent) {
+  if (event?.tone === "blocked") {
+    return "border-red-200/40 bg-red-200";
+  }
+  if (event?.tone === "watch" || event?.tone === "held") {
+    return "border-amber-200/40 bg-amber-200";
+  }
+  if (event?.tone === "passed") {
+    return "border-emerald-200/40 bg-emerald-200";
+  }
+  return "border-cyan-200/40 bg-cyan-200";
+}
+
+function toneTextClass(tone: AcceptanceCircuitEvent["tone"]) {
+  if (tone === "passed") {
+    return "text-emerald-300";
+  }
+  if (tone === "blocked") {
+    return "text-red-300";
+  }
+  if (tone === "held" || tone === "watch") {
+    return "text-amber-300";
+  }
+  return "text-cyan-300";
+}
+
+function labHeaderClass(tone: AcceptanceCircuitEvent["tone"]) {
+  if (tone === "passed") {
+    return "border-emerald-700/30 bg-emerald-600/10 text-emerald-800";
+  }
+  if (tone === "blocked") {
+    return "border-red-700/30 bg-red-600/10 text-red-800";
+  }
+  return "border-amber-700/30 bg-amber-500/10 text-amber-800";
+}
+
 function labOutcomeClass(outcome: string) {
   if (outcome === "accepted") {
     return "rounded bg-emerald-100 px-2 py-1 font-mono text-xs text-emerald-800";
@@ -479,4 +570,9 @@ function labOutcomeClass(outcome: string) {
     return "rounded bg-red-100 px-2 py-1 font-mono text-xs text-red-800";
   }
   return "rounded bg-amber-100 px-2 py-1 font-mono text-xs text-amber-800";
+}
+
+function nodeLabelForEvent(event: AcceptanceCircuitEvent) {
+  const node = mapNodes.find((candidate) => candidate.id === event.nodeId);
+  return node?.label ?? "Intent";
 }
