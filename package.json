@@ -11,10 +11,10 @@
     "test:frontend": "tsx --test tests/frontend/**/*.test.ts"
   },
   "dependencies": {
-    "@vercel/blob": "^2.3.3",
+    "@vercel/blob": "^2.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.14.0",
+    "lucide-react": "^1.16.0",
     "next": "^16.2.6",
     "react": "^19",
     "react-dom": "^19",
@@ -25,10 +25,10 @@
     "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10.3.0",
+    "eslint": "^10.4.0",
     "eslint-config-next": "^16.2.6",
     "tailwindcss": "^4",
-    "tsx": "^4.20.0",
+    "tsx": "^4.22.3",
     "typescript": "^6"
   },
   "pnpm": {
