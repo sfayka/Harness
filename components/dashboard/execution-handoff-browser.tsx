@@ -81,7 +81,40 @@ export function ExecutionHandoffBrowser() {
   }
 
   useEffect(() => {
-    void loadPreview();
+    let cancelled = false;
+
+    async function loadInitialPreview() {
+      try {
+        const [nextTransportStatus, nextPreview] = await Promise.all([
+          fetchExecutionSubstrateTransportStatus(),
+          fetchExecutionSubstrateHandoffs(),
+        ]);
+        if (cancelled) {
+          return;
+        }
+
+        setTransportStatus(nextTransportStatus);
+        setPreview(nextPreview);
+      } catch (error) {
+        if (!cancelled) {
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "Execution substrate handoffs could not be loaded.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadInitialPreview();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
