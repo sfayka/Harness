@@ -147,9 +147,13 @@ Do not turn this pattern into:
 - a generic PM workflow engine
 - a dashboard that treats runner progress as accepted truth
 
-## Next Implementation Slice
+## Deterministic Reference Scenario
 
-The next issue-sized slice should be a deterministic reference scenario:
+The first deterministic reference scenario is implemented as
+`dark_factory_reference` in `modules/simulator.py` and included in the canonical
+demo runner and walkthrough packs.
+
+It uses public API paths only:
 
 1. seed a tracker-backed task through canonical submission
 2. record a runner handoff event
@@ -158,4 +162,8 @@ The next issue-sized slice should be a deterministic reference scenario:
 5. reevaluate into accepted, blocked, or in_review
 6. render the result through read-model and timeline surfaces
 
-That scenario should use public API paths and clearly labeled sample data unless it is explicitly configured for live Linear/GitHub dry-run targets.
+The sample path intentionally keeps runner output advisory. The completion claim
+initially blocks until the GitHub sync step attaches verified artifact evidence;
+Proofline then accepts completion through the ordinary read-model, timeline, and
+evaluation-history surfaces. It remains deterministic sample data, not a live
+Linear/GitHub dry-run target.

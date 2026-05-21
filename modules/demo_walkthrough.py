@@ -49,6 +49,12 @@ class DemoWalkthroughResult:
 
 CANONICAL_WALKTHROUGH: tuple[DemoWalkthroughScenario, ...] = (
     DemoWalkthroughScenario(
+        "dark_factory_reference",
+        "Dark-Factory Reference",
+        "Show the tracker to runner to GitHub loop while keeping Proofline as the acceptance authority.",
+        "Open the timeline and read-model to show runner handoff, completion claim, GitHub sync, then accepted completion.",
+    ),
+    DemoWalkthroughScenario(
         "successful_completion",
         "Accepted Completion",
         "Explain how aligned evidence and reconciliation allow Harness to preserve completed.",

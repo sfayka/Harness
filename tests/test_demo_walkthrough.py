@@ -46,8 +46,9 @@ class DemoWalkthroughTests(unittest.TestCase):
         tasks = store.list_tasks()
         task_ids = {task["id"] for task in tasks}
 
-        self.assertEqual(len(result.scenarios), 5)
-        self.assertEqual(len(tasks), 5)
+        self.assertEqual(len(result.scenarios), 6)
+        self.assertEqual(len(tasks), 6)
+        self.assertIn("demo-dark-factory-reference", task_ids)
         self.assertIn("demo-successful-completion", task_ids)
         self.assertIn("demo-review-required-then-completed", task_ids)
         self.assertTrue((self.output_dir / "walkthrough.txt").exists())

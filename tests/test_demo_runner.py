@@ -33,6 +33,7 @@ class HarnessDemoRunnerTests(unittest.TestCase):
             self.assertTrue((output_path / "index.json").exists())
 
             expected_final_states = {
+                "dark_factory_reference": "completed",
                 "successful_completion": "completed",
                 "missing_evidence_then_completed": "completed",
                 "wrong_target_corrected": "completed",
@@ -60,6 +61,20 @@ class HarnessDemoRunnerTests(unittest.TestCase):
         self.assertIn("reconciliation:", timeline)
         self.assertIn("lifecycle:", timeline)
         self.assertIn("new_artifacts=changed_file", timeline)
+        self.assertIn("Final Task State: completed", timeline)
+
+    def test_console_timeline_includes_dark_factory_flow_details(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = run_demo_pack(
+                scenario_names=("dark_factory_reference",),
+                output_dir=temp_dir,
+            )[0]
+            timeline = render_console_timeline(result)
+
+        self.assertIn("record_runner_handoff", timeline)
+        self.assertIn("runner_event=handoff_reported", timeline)
+        self.assertIn("completion_claim=claim-dark-factory-1", timeline)
+        self.assertIn("attach_github_artifact_evidence", timeline)
         self.assertIn("Final Task State: completed", timeline)
 
     def test_mermaid_trace_includes_transitions_and_final_state(self) -> None:
