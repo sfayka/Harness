@@ -305,21 +305,19 @@ const viewConfig: Record<DashboardView, ViewConfig> = {
 export function TaskBrowser({ view }: TaskBrowserProps) {
   const config = viewConfig[view];
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    return new URLSearchParams(window.location.search).get("task");
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [isDetailExpanded, setIsDetailExpanded] = useState(false);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [isLoadingTaskDetail, setIsLoadingTaskDetail] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const initialTaskId = new URLSearchParams(window.location.search).get("task");
-    if (initialTaskId) {
-      setSelectedTaskId(initialTaskId);
-    }
-  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -353,20 +351,6 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
   }, [config, scopedTasks, searchQuery]);
 
   useEffect(() => {
-    if (!selectedTaskId) {
-      setSelectedTask(null);
-      setDetailError(null);
-      return;
-    }
-
-    if (!scopedTasks.some((task) => task.task_id === selectedTaskId)) {
-      setSelectedTaskId(null);
-      setSelectedTask(null);
-      setDetailError(null);
-    }
-  }, [scopedTasks, selectedTaskId]);
-
-  useEffect(() => {
     let cancelled = false;
 
     async function loadTasks() {
@@ -379,16 +363,6 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
         }
 
         setTasks(result.tasks);
-        setSelectedTask((currentSelectedTask) => {
-          if (!currentSelectedTask) {
-            return currentSelectedTask;
-          }
-
-          return (
-            result.tasks.find((task) => task.task_id === currentSelectedTask.task_id) ??
-            currentSelectedTask
-          );
-        });
       } catch (error) {
         if (!cancelled) {
           setLoadError(
@@ -429,7 +403,6 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
         }
 
         startTransition(() => {
-          setSelectedTask(task);
           setTasks((currentTasks) =>
             currentTasks.map((currentTask) =>
               currentTask.task_id === task.task_id ? task : currentTask,
@@ -459,9 +432,7 @@ export function TaskBrowser({ view }: TaskBrowserProps) {
   }, [selectedTaskId]);
 
   const selectedTaskForPanel =
-    selectedTaskId && selectedTask?.task_id === selectedTaskId
-      ? selectedTask
-      : scopedTasks.find((task) => task.task_id === selectedTaskId) ?? null;
+    scopedTasks.find((task) => task.task_id === selectedTaskId) ?? null;
 
   const focusStats = config.getStats?.(scopedTasks) ?? [];
 
