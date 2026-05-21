@@ -299,6 +299,8 @@ class SimulationResult:
     evaluation_history: tuple[dict[str, Any], ...]
     supervision_queue_status: int | None
     supervision_entry: dict[str, Any] | None
+    read_model: dict[str, Any] | None = None
+    timeline: tuple[dict[str, Any], ...] = ()
 
 
 class HarnessSimulatorClient:
@@ -330,8 +332,23 @@ class HarnessSimulatorClient:
     def reevaluate_task(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         return self._request_json("POST", f"/tasks/{task_id}/reevaluate", payload)
 
+    def submit_completion_claim(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", f"/tasks/{task_id}/completion-claims", payload)
+
+    def submit_execution_substrate_event(self, task_id: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", f"/tasks/{task_id}/execution-substrate-events", payload)
+
+    def submit_github_sync(self, payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        return self._request_json("POST", "/sync/github", payload)
+
     def get_task(self, task_id: str) -> tuple[int, dict[str, Any]]:
         return self._request_json("GET", f"/tasks/{task_id}")
+
+    def get_task_read_model(self, task_id: str) -> tuple[int, dict[str, Any]]:
+        return self._request_json("GET", f"/tasks/{task_id}/read-model")
+
+    def get_task_timeline(self, task_id: str) -> tuple[int, dict[str, Any]]:
+        return self._request_json("GET", f"/tasks/{task_id}/timeline")
 
     def get_evaluation_history(self, task_id: str) -> tuple[int, dict[str, Any]]:
         return self._request_json("GET", f"/tasks/{task_id}/evaluations")
@@ -455,6 +472,63 @@ def _reevaluate_step(
     )
 
 
+def _completion_claim_step(
+    client: HarnessSimulatorClient,
+    context: _ScenarioContext,
+    name: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if context.task_id is None:
+        raise ValueError("task_id is required before completion claim submission")
+    path = f"/tasks/{context.task_id}/completion-claims"
+    status, response_payload = client.submit_completion_claim(context.task_id, payload)
+    return context.record(
+        name=name,
+        method="POST",
+        path=path,
+        http_status=status,
+        request_payload=payload,
+        payload=response_payload,
+    )
+
+
+def _execution_substrate_step(
+    client: HarnessSimulatorClient,
+    context: _ScenarioContext,
+    name: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if context.task_id is None:
+        raise ValueError("task_id is required before execution-substrate event submission")
+    path = f"/tasks/{context.task_id}/execution-substrate-events"
+    status, response_payload = client.submit_execution_substrate_event(context.task_id, payload)
+    return context.record(
+        name=name,
+        method="POST",
+        path=path,
+        http_status=status,
+        request_payload=payload,
+        payload=response_payload,
+    )
+
+
+def _github_sync_step(
+    client: HarnessSimulatorClient,
+    context: _ScenarioContext,
+    name: str,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    status, response_payload = client.submit_github_sync(payload)
+    return context.record(
+        name=name,
+        method="POST",
+        path="/sync/github",
+        http_status=status,
+        request_payload=payload,
+        payload=response_payload,
+    )
+
+
 def _fetch_final_state(
     client: HarnessSimulatorClient,
     context: _ScenarioContext,
@@ -475,6 +549,19 @@ def _fetch_final_state(
         None,
     )
     return task_payload.get("task"), tuple(history_payload.get("evaluations", ())), queue_status, supervision_entry
+
+
+def _fetch_read_model_and_timeline(
+    client: HarnessSimulatorClient,
+    context: _ScenarioContext,
+) -> tuple[dict[str, Any] | None, tuple[dict[str, Any], ...]]:
+    if context.task_id is None:
+        return None, ()
+
+    _, read_model_payload = client.get_task_read_model(context.task_id)
+    _, timeline_payload = client.get_task_timeline(context.task_id)
+    timeline = timeline_payload.get("timeline") if isinstance(timeline_payload.get("timeline"), list) else []
+    return read_model_payload.get("task"), tuple(timeline)
 
 
 def _review_request_payload(task_id: str) -> dict[str, Any]:
@@ -519,6 +606,187 @@ def _review_decision_payload(task_id: str) -> dict[str, Any]:
     return _to_jsonable(decision)
 
 
+def _dark_factory_task_payload() -> dict[str, Any]:
+    task_envelope = create_task_envelope(
+        {
+            "id": "task-dark-factory-reference-1",
+            "title": "Dark-factory reference acceptance scenario",
+            "description": (
+                "Deterministic tracker-to-runner-to-GitHub scenario used to "
+                "verify Proofline's acceptance boundary."
+            ),
+            "origin": {
+                "source_system": "linear",
+                "source_type": "synchronization",
+                "source_id": "KNO-DARK-1",
+                "ingress_name": "Linear",
+            },
+            "objective": {
+                "summary": "Accept a runner-completed code change only after GitHub evidence is verified.",
+                "deliverable_type": "code_change",
+                "success_signal": "Read-model and timeline show the completion was accepted by Proofline.",
+            },
+            "acceptance_criteria": [
+                {
+                    "id": "ac-dark-1",
+                    "description": (
+                        "Runner completion remains advisory until a verified pull request "
+                        "and commit satisfy the task evidence policy."
+                    ),
+                    "required": True,
+                }
+            ],
+        },
+        now="2026-04-01T09:00:00Z",
+    )
+    return {"request": {"task_envelope": task_envelope}}
+
+
+def _dark_factory_handoff_event_payload(task_id: str) -> dict[str, Any]:
+    return {
+        "event": {
+            "event_id": "dark-factory-handoff-1",
+            "task_id": task_id,
+            "attempt_id": "attempt-dark-factory-1",
+            "runner_kind": "symphony",
+            "runner_session_id": "runner-session-dark-factory-1",
+            "executor_kind": "codex_app_server",
+            "workspace_id": "workspace/dark-factory-reference",
+            "event_type": "handoff_reported",
+            "occurred_at": "2026-04-01T09:05:00Z",
+            "provenance": {
+                "source_system": "symphony",
+                "source_type": "runner_event",
+                "source_id": "runner-session-dark-factory-1:handoff-1",
+                "captured_by": "dark-factory-reference-scenario",
+            },
+            "payload": {
+                "handoff_state": "ready_for_verification",
+                "summary": "Runner reports Codex has produced artifacts for Proofline verification.",
+                "budget_outcome": "within_policy",
+            },
+            "artifact_references": [
+                {
+                    "artifact_type": "pull_request",
+                    "repository": "sfayka/Harness",
+                    "branch": "codex/demo",
+                    "pr_url": "https://github.com/sfayka/Harness/pull/300",
+                    "reported_by": "symphony",
+                    "reported_at": "2026-04-01T09:05:00Z",
+                    "source_attempt_id": "attempt-dark-factory-1",
+                }
+            ],
+        }
+    }
+
+
+def _dark_factory_completion_claim_payload(context: _ScenarioContext) -> dict[str, Any]:
+    return {
+        "request": {
+            "completion_claim": {
+                "claim_id": "claim-dark-factory-1",
+                "reported_at": "2026-04-01T09:10:00Z",
+                "reported_by": "codex_app_server",
+                "reason": "Executor reports the dark-factory task is complete.",
+                "metadata": {"attempt_id": "attempt-dark-factory-1"},
+            },
+            "execution_attempt": {
+                "attempt_id": "attempt-dark-factory-1",
+                "recorded_at": "2026-04-01T09:10:05Z",
+                "status": "succeeded",
+                "reported_by": "codex_app_server",
+                "artifact_references": [
+                    {
+                        "reference_id": "attempt-dark-factory-1:pr",
+                        "artifact_type": "pull_request",
+                        "location": "https://github.com/sfayka/Harness/pull/300",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "sfayka",
+                            "repository_name": "Harness",
+                            "branch_name": "codex/demo",
+                            "pull_request_number": 300,
+                            "pull_request_state": "open",
+                            "merged": False,
+                        },
+                    },
+                    {
+                        "reference_id": "attempt-dark-factory-1:commit",
+                        "artifact_type": "commit",
+                        "location": "https://github.com/sfayka/Harness/commit/abcdef1234567890",
+                        "commit_sha": "abcdef1234567890",
+                        "metadata": {
+                            "repository_host": "github.com",
+                            "repository_owner": "sfayka",
+                            "repository_name": "Harness",
+                            "branch_name": "codex/demo",
+                            "commit_sha": "abcdef1234567890",
+                        },
+                    },
+                ],
+                "metadata": {
+                    "runner_kind": "symphony",
+                    "runner_session_id": "runner-session-dark-factory-1",
+                    "handoff_event_id": "dark-factory-handoff-1",
+                },
+            },
+            "acceptance_criteria_satisfied": True,
+            "runtime_facts": {
+                "executor_reported_success": True,
+                "attempt_count": 1,
+            },
+        }
+    }
+
+
+def _dark_factory_github_sync_payload(task_id: str) -> dict[str, Any]:
+    return {
+        "task_id": task_id,
+        "captured_at": "2026-04-01T09:12:00Z",
+        "captured_by": "dark-factory-reference-scenario",
+        "expected_code_context": {
+            "repository_host": "github.com",
+            "repository_owner": "sfayka",
+            "repository_name": "Harness",
+            "branch_name": "codex/demo",
+            "base_branch": "main",
+        },
+        "github": {
+            "repository": {
+                "host": "github.com",
+                "owner": "sfayka",
+                "name": "Harness",
+                "node_id": "repo-123",
+            },
+            "branch": {
+                "name": "codex/demo",
+                "baseRefName": "main",
+                "target": {"oid": "abcdef1234567890"},
+            },
+            "commit": {
+                "sha": "abcdef1234567890",
+                "html_url": "https://github.com/sfayka/Harness/commit/abcdef1234567890",
+                "commit": {"message": "Complete dark-factory reference task"},
+            },
+            "pull_request": {
+                "number": 300,
+                "state": "open",
+                "reviewDecision": "approved",
+                "html_url": "https://github.com/sfayka/Harness/pull/300",
+                "merged": False,
+            },
+            "files": [
+                {
+                    "filename": "modules/api.py",
+                    "status": "modified",
+                    "additions": 12,
+                    "deletions": 1,
+                }
+            ],
+        },
+    }
+
+
 def _scenario_successful_completion(
     client: HarnessSimulatorClient,
     *,
@@ -548,6 +816,61 @@ def _scenario_successful_completion(
         history,
         queue_status,
         supervision_entry,
+    )
+
+
+def _scenario_dark_factory_reference(
+    client: HarnessSimulatorClient,
+    *,
+    task_id_override: str | None = None,
+    task_title_override: str | None = None,
+    origin_source_id_override: str | None = None,
+) -> SimulationResult:
+    context = _ScenarioContext(
+        task_id_override=task_id_override,
+        task_title_override=task_title_override,
+        origin_source_id_override=origin_source_id_override,
+    )
+    submission_payload = _dark_factory_task_payload()
+    if task_id_override is not None:
+        submission_payload["request"]["task_envelope"]["id"] = task_id_override
+    if task_title_override is not None:
+        submission_payload["request"]["task_envelope"]["title"] = task_title_override
+    if origin_source_id_override is not None:
+        submission_payload["request"]["task_envelope"]["origin"]["source_id"] = origin_source_id_override
+
+    _submit_step(client, context, "seed_tracker_task", submission_payload)
+    _execution_substrate_step(
+        client,
+        context,
+        "record_runner_handoff",
+        _dark_factory_handoff_event_payload(context.task_id or "task-dark-factory-reference-1"),
+    )
+    _completion_claim_step(
+        client,
+        context,
+        "submit_executor_completion_claim",
+        _dark_factory_completion_claim_payload(context),
+    )
+    _github_sync_step(
+        client,
+        context,
+        "attach_github_artifact_evidence",
+        _dark_factory_github_sync_payload(context.task_id or "task-dark-factory-reference-1"),
+    )
+    task_snapshot, history, queue_status, supervision_entry = _fetch_final_state(client, context)
+    read_model, timeline = _fetch_read_model_and_timeline(client, context)
+    return SimulationResult(
+        "dark_factory_reference",
+        context.task_id,
+        task_snapshot.get("status") if task_snapshot else None,
+        tuple(context.steps),
+        task_snapshot,
+        history,
+        queue_status,
+        supervision_entry,
+        read_model,
+        timeline,
     )
 
 
@@ -928,6 +1251,7 @@ def _scenario_long_running_handoff(
 
 
 _SCENARIOS = {
+    "dark_factory_reference": _scenario_dark_factory_reference,
     "successful_completion": _scenario_successful_completion,
     "missing_evidence_then_completed": _scenario_missing_evidence_then_completed,
     "wrong_target_corrected": _scenario_wrong_target_corrected,

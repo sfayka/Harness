@@ -55,12 +55,13 @@ class DemoBootstrapTests(unittest.TestCase):
             try:
                 self.assertEqual(result.dashboard_url, f"http://127.0.0.1:{dashboard_port}")
                 self.assertEqual(result.api_base_url, f"http://127.0.0.1:{api_port}")
-                self.assertEqual(len(result.walkthrough.scenarios), 5)
+                self.assertEqual(len(result.walkthrough.scenarios), 6)
                 self.assertTrue((output_dir / "walkthrough.txt").exists())
 
                 store = FileBackedHarnessStore(str(store_root))
                 tasks = store.list_tasks()
                 task_ids = {task["id"] for task in tasks}
+                self.assertIn("demo-dark-factory-reference", task_ids)
                 self.assertIn("demo-successful-completion", task_ids)
                 self.assertIn("demo-long-running-handoff", task_ids)
             finally:

@@ -34,6 +34,7 @@ class HarnessSimulatorTests(unittest.TestCase):
     def test_lists_supported_scenarios(self) -> None:
         scenarios = list_scenarios()
 
+        self.assertIn("dark_factory_reference", scenarios)
         self.assertIn("successful_completion", scenarios)
         self.assertIn("missing_evidence_then_completed", scenarios)
         self.assertIn("review_required_pending", scenarios)
@@ -101,6 +102,36 @@ class HarnessSimulatorTests(unittest.TestCase):
         self.assertIn("progress_artifact", artifact_types)
         self.assertIn("handoff_artifact", artifact_types)
         self.assertEqual(len(result.evaluation_history), 5)
+
+    def test_runs_dark_factory_reference_through_public_acceptance_surfaces(self) -> None:
+        result = run_scenario("dark_factory_reference", base_url=self.base_url)
+
+        self.assertEqual(result.final_task_status, "completed")
+        self.assertEqual(
+            [step.name for step in result.steps],
+            [
+                "seed_tracker_task",
+                "record_runner_handoff",
+                "submit_executor_completion_claim",
+                "attach_github_artifact_evidence",
+            ],
+        )
+        self.assertEqual([step.http_status for step in result.steps], [200, 200, 200, 200])
+        self.assertEqual(result.steps[1].action, "execution_substrate_event_recorded")
+        self.assertEqual(result.steps[2].task_status, "blocked")
+        self.assertEqual(result.steps[3].task_status, "completed")
+        self.assertEqual(len(result.evaluation_history), 3)
+        self.assertIsNotNone(result.read_model)
+        assert result.read_model is not None
+        self.assertEqual(result.read_model["execution_summary"]["substrate_event_count"], 1)
+        self.assertTrue(result.read_model["completion_validation_summary"]["completion_accepted"])
+        self.assertEqual(result.read_model["completion_validation_summary"]["intent_status"], "matched")
+        self.assertTrue(
+            any(event["event_type"] == "execution_substrate_event_recorded" for event in result.timeline)
+        )
+        self.assertTrue(
+            any(event["event_type"] == "execution_attempt_recorded" for event in result.timeline)
+        )
 
     def test_can_run_scenario_with_deterministic_task_identity(self) -> None:
         result = run_scenario(

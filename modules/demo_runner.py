@@ -24,6 +24,7 @@ class DemoScenarioSpec:
 
 
 CANONICAL_DEMO_SCENARIOS: tuple[DemoScenarioSpec, ...] = (
+    DemoScenarioSpec("dark_factory_reference", "Dark-Factory Reference", "A tracker-backed task moves through runner handoff, completion claim, GitHub sync, and Proofline acceptance."),
     DemoScenarioSpec("successful_completion", "Accepted Completion", "A task is submitted with aligned evidence and accepted immediately."),
     DemoScenarioSpec("missing_evidence_then_completed", "Blocked To Completed", "A task is blocked for insufficient evidence, then resolved with additional artifacts."),
     DemoScenarioSpec("wrong_target_corrected", "Wrong Target Corrected", "A task starts blocked while target facts are being corrected, then is reevaluated with aligned facts and accepted."),
@@ -49,9 +50,36 @@ def _extract_updates(step: SimulationStepResult) -> list[str]:
     request = step.request_payload or {}
     request_body = request.get("request") if isinstance(request, dict) else None
     if not isinstance(request_body, dict):
-        return []
+        updates: list[str] = []
+        event = request.get("event") if isinstance(request, dict) else None
+        if isinstance(event, dict):
+            if event.get("event_type"):
+                updates.append(f"runner_event={event['event_type']}")
+            artifacts = event.get("artifact_references") or []
+            if artifacts:
+                updates.append(f"runner_artifacts={len(artifacts)}")
+        github = request.get("github") if isinstance(request, dict) else None
+        if isinstance(github, dict):
+            branch = github.get("branch") if isinstance(github.get("branch"), dict) else {}
+            pull_request = github.get("pull_request") if isinstance(github.get("pull_request"), dict) else {}
+            files = github.get("files") if isinstance(github.get("files"), list) else []
+            if branch.get("name"):
+                updates.append(f"github_branch={branch['name']}")
+            if pull_request.get("number"):
+                updates.append(f"github_pr={pull_request['number']}")
+            if files:
+                updates.append(f"github_files={len(files)}")
+        return updates
 
     updates: list[str] = []
+    if "completion_claim" in request_body:
+        claim = request_body.get("completion_claim") or {}
+        if claim.get("claim_id"):
+            updates.append(f"completion_claim={claim['claim_id']}")
+    if "execution_attempt" in request_body:
+        attempt = request_body.get("execution_attempt") or {}
+        if attempt.get("attempt_id"):
+            updates.append(f"execution_attempt={attempt['attempt_id']}")
     if "new_artifacts" in request_body:
         artifacts = request_body.get("new_artifacts") or []
         artifact_types = [artifact.get("type", "unknown") for artifact in artifacts if isinstance(artifact, dict)]
